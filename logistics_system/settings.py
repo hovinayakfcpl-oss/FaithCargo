@@ -1,0 +1,132 @@
+"""
+Django settings for logistics_system project.
+"""
+
+from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# SECURITY
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-change-this-key")
+DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "192.168.31.207"]   # ✅ LAN IP add किया
+
+# CUSTOM USER MODEL
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+# DJANGO REST FRAMEWORK
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': None,  # ✅ Disable pagination
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+}
+
+# INSTALLED APPS
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+
+    # third party
+    'rest_framework',
+    'corsheaders',
+    'rest_framework.authtoken',
+    'import_export',
+
+    # custom apps
+    'accounts',
+    'vendors',
+    'rates',
+    'pickup',
+    'pincode',
+    'user_management',
+    "signup"
+    
+]
+
+# MIDDLEWARE
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',   # ✅ CORS middleware सबसे ऊपर रखा
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+# CORS SETTINGS (React)
+CORS_ALLOW_ALL_ORIGINS = True
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://192.168.31.207:3000",   # ✅ LAN React frontend allow किया
+]
+
+# URL CONFIG
+ROOT_URLCONF = 'logistics_system.urls'
+
+# TEMPLATES
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+# WSGI
+WSGI_APPLICATION = 'logistics_system.wsgi.application'
+
+# MYSQL DATABASE (using .env for safety)
+DATABASES = {
+ 'default': {
+  'ENGINE': 'django.db.backends.mysql',
+  'NAME': 'faithcargo',
+  'USER': 'root',
+  'PASSWORD': '7890',
+  'HOST': 'localhost',
+  'PORT': '3306',
+ }
+}
+
+# PASSWORD VALIDATION
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
+
+# LANGUAGE / TIME
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'Asia/Kolkata'   # ✅ India timezone
+USE_I18N = True
+USE_TZ = True
+
+# STATIC FILES (React build)
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / "frontend/build/static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# DEFAULT PRIMARY KEY
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

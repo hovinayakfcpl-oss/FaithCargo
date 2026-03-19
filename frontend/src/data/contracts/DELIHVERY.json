@@ -1,0 +1,61 @@
+{
+  "company": {
+    "name": "Faith Cargo Pvt. Ltd.",
+    "gstin": "07AAFCF2947K1ZD",
+    "contact_person": "Mr. Gaurav Sharma",
+    "location": "Delhi",
+    "date": "06-02-2026"
+  },
+  "rates": {
+    "delhivery_6cft": {
+      "N1": { "N1": 6.7, "N2": 7.2, "N3": 15.5, "Central": 9.7, "W1": 9.7, "W2": 11, "S1": 12.2, "S2": 13.1, "E": 13.2, "NE1": 17.1, "NE2": 22.5, "NE3": 22.5 },
+      "N2": { "N1": 8.2, "N2": 7.1, "N3": 15.1, "Central": 12.5, "W1": 12.5, "W2": 12.5, "S1": 15.0, "S2": 16.0, "E": 15.0, "NE1": 20.5, "NE2": 25, "NE3": 25 },
+      "N3": { "N1": 15.2, "N2": 15.0, "N3": 9.0, "Central": 20.5, "W1": 21.5, "W2": 20.5, "S1": 23.0, "S2": 24.0, "E": 23, "NE1": 28, "NE2": 33, "NE3": 33 },
+      "Central": { "N1": 11.3, "N2": 11.9, "N3": 19.9, "Central": 8.2, "W1": 9.5, "W2": 10.1, "S1": 10.1, "S2": 10.1, "E": 12.5, "NE1": 15.6, "NE2": 20.6, "NE3": 20.6 }
+    },
+    "delhivery_10cft": {
+      "N1": { "N1": 5.8, "N2": 6.1, "N3": 14.1, "Central": 7.5, "W1": 7.7, "W2": 8.2, "S1": 8.8, "S2": 9.8, "E": 9.5, "NE1": 11.6, "NE2": 16.6, "NE3": 16.6 },
+      "N2": { "N1": 6.7, "N2": 6.7, "N3": 14.8, "Central": 8.7, "W1": 9.0, "W2": 9.0, "S1": 10.5, "S2": 11.5, "E": 10.5, "NE1": 13.5, "NE2": 18.5, "NE3": 18.5 }
+    }
+  },
+  "vas_charges": {
+    "docket_charge": 75,
+    "green_tax_delhi": 0,
+    "fov": "0.05% or Rs.100 (whichever higher)",
+    "minimum_liability": 5000,
+    "cod_charges": 125,
+    "minimum_weight_surface": 20,
+    "minimum_freight_surface": 400,
+    "cft_surface": "1 CFT = 6 Kg",
+    "fsc": "10%",
+    "fsc_mechanism": "Base Rs.90.48/litre, 1% change per Rs.1 diesel change",
+    "credit_period_days": 1,
+    "billing_cycle": "15 days (1st & 30th)",
+    "pod_hardcopy": 300,
+    "pod_softcopy": 0,
+    "free_warehousing_days": 7,
+    "demurrage": "Rs.1/kg/day or Rs.100/day/docket",
+    "special_delivery_charges": {
+      "jk_himachal_ne": 5,
+      "port_blair": 45
+    },
+    "oda_charges": "Rs.4/kg or Rs.600 minimum",
+    "rto_charges": "same as outward",
+    "handling_charges": {
+      "upto_150kg": 0,
+      "above_151kg": "Rs.500/box or Rs.4/kg"
+    },
+    "gst": "18%",
+    "floor_delivery": "Rs.10 per box",
+    "mathadi_varai": "As actual"
+  },
+  "detention_charges": "Rs.2500 per day if vehicle held > 8 hours",
+  "general_terms": [
+    "18% GST applicable",
+    "Credit facility 1 day",
+    "Payment not subject to POD",
+    "Prohibited items: hazardous, cash, jewellery, firearms, gold",
+    "Pin code & phone mandatory",
+    "Claims only on POD remarks"
+  ]
+}

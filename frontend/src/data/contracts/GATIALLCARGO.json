@@ -1,0 +1,185 @@
+{
+  "freight_rates": {
+    "North 1": {
+      "North 1": 5,
+      "North 2": 5.75,
+      "West 1": 8,
+      "West 2": 8.5,
+      "South 1": 9.5,
+      "South 2": 13,
+      "East": 12,
+      "North East": 12.5,
+      "North East 1": 22,
+      "SXR": 10,
+      "IXZ": 125
+    },
+    "North 2": {
+      "North 1": 5.75,
+      "North 2": 5.75,
+      "West 1": 8.5,
+      "West 2": 9,
+      "South 1": 10.75,
+      "South 2": 13.5,
+      "East": 13,
+      "North East": 17,
+      "North East 1": 24.25,
+      "SXR": 10,
+      "IXZ": 125
+    },
+    "West 1": {
+      "North 1": 8,
+      "North 2": 8,
+      "West 1": 5,
+      "West 2": 5.75,
+      "South 1": 8,
+      "South 2": 10.75,
+      "East": 12,
+      "North East": 15.5,
+      "North East 1": 23.25,
+      "SXR": 13.75,
+      "IXZ": 125
+    },
+    "West 2": {
+      "North 1": 8.5,
+      "North 2": 9,
+      "West 1": 5.75,
+      "West 2": 5.75,
+      "South 1": 8.5,
+      "South 2": 10.75,
+      "East": 12,
+      "North East": 18.5,
+      "North East 1": 24.25,
+      "SXR": 15.25,
+      "IXZ": 125
+    },
+    "South 1": {
+      "North 1": 9.5,
+      "North 2": 10.75,
+      "West 1": 8,
+      "West 2": 8.5,
+      "South 1": 5,
+      "South 2": 6.25,
+      "East": 13,
+      "North East": 15.5,
+      "North East 1": 23.25,
+      "SXR": 16.5,
+      "IXZ": 125
+    },
+    "South 2": {
+      "North 1": 11.5,
+      "North 2": 12.5,
+      "West 1": 11.5,
+      "West 2": 11.5,
+      "South 1": 6.25,
+      "South 2": 6.25,
+      "East": 14,
+      "North East": 19.5,
+      "North East 1": 24.25,
+      "SXR": 19,
+      "IXZ": 125
+    },
+    "East": {
+      "North 1": 9.5,
+      "North 2": 10.75,
+      "West 1": 9.5,
+      "West 2": 10.75,
+      "South 1": 9.5,
+      "South 2": 12,
+      "East": 5,
+      "North East": 10,
+      "North East 1": 15,
+      "SXR": 15.25,
+      "IXZ": 125
+    },
+    "North East": {
+      "North 1": 14,
+      "North 2": 16.5,
+      "West 1": 14,
+      "West 2": 16.5,
+      "South 1": 14,
+      "South 2": 16.5,
+      "East": 13,
+      "North East": 5.5,
+      "North East 1": 8,
+      "SXR": 19,
+      "IXZ": 125
+    },
+    "North East 1": {
+      "North 1": 16.5,
+      "North 2": 18.75,
+      "West 1": 16.5,
+      "West 2": 18.75,
+      "South 1": 16.5,
+      "South 2": 18.75,
+      "East": 14,
+      "North East": 6.5,
+      "North East 1": 8,
+      "SXR": 19,
+      "IXZ": 125
+    },
+    "SXR": {
+      "North 1": 10,
+      "North 2": 10,
+      "West 1": 12.25,
+      "West 2": 13.75,
+      "South 1": 14.25,
+      "South 2": 19,
+      "East": 15.25,
+      "North East": 21.5,
+      "North East 1": 28.75,
+      "SXR": 10,
+      "IXZ": 125
+    },
+    "IXZ": {
+      "North 1": 125,
+      "North 2": 125,
+      "West 1": 125,
+      "West 2": 125,
+      "South 1": 125,
+      "South 2": 125,
+      "East": 125,
+      "North East": 125,
+      "North East 1": 125,
+      "SXR": 125,
+      "IXZ": 125
+    }
+  },
+  "charges": {
+    "basic_docket": 100,
+    "owner_risk": {
+      "upto_10000": "0.1% or min 100",
+      "upto_25000": "0.1% or min 100",
+      "upto_50_lacs": "0.1% or min 100",
+      "above_50_lacs": "1% invoice value"
+    },
+    "fod": 200,
+    "cod_dod": 200,
+    "holiday_delivery": 400,
+    "green_tax_delhi": 75,
+    "jk_kerala": "2 per kg or min 200",
+    "ne_state": "2 per kg or min 200",
+    "manipur_nagaland": "2 per kg or min 200",
+    "ess": "4 per kg or min 800",
+    "appointment_delivery": "2 per kg or min 200",
+    "warehousing": "0.1% invoice or 0.25/kg/day min 200",
+    "notices": {
+      "first": 400,
+      "second": 800,
+      "third": 2000
+    },
+    "package_handling": {
+      "32_70": 0,
+      "71_200": 100,
+      "201_700": 800,
+      "above_700": 1000
+    },
+    "terminal_air": 6.5,
+    "surface_handling": 0,
+    "minimum_billing": {
+      "city_edc": 250,
+      "zone_national": 350,
+      "air_products": 500
+    },
+    "minimum_weight": 10
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "contract": {
+    "parties": {
+      "company": "MLL Express Services Private Limited",
+      "network_partner": "Faith Cargo Private Limited",
+      "territory": "Delhi",
+      "agreement_date": "2025-12-29",
+      "term": "1 Year"
+    },
+    "terms": {
+      "minimum_weight_per_cn": 20,
+      "minimum_freight_per_cn": 300,
+      "cn_charge": 100,
+      "fuel_surcharge": {
+        "base_rate": 90,
+        "percentage": 10,
+        "increment": "1% per Rs 0.5/l increase"
+      },
+      "insurance": {
+        "owners_risk": {
+          "rate": "0.03%",
+          "min": 100,
+          "liability": 5000
+        },
+        "carriers_risk_fragile": {
+          "rate": "0.2%",
+          "min": 200
+        },
+        "carriers_risk_non_fragile": {
+          "rate": "0.2%",
+          "min": 150
+        }
+      },
+      "payment_mode": ["NEFT", "RTGS"],
+      "gst_applicable": true
+    }
+  },
+  "zones": {
+    "N1": ["Delhi", "Haryana", "Uttar Pradesh", "Rajasthan"],
+    "N2": ["Chandigarh", "Punjab", "Uttarakhand", "Himachal Pradesh"],
+    "N3": ["Jammu and Kashmir"],
+    "S1": ["Andhra Pradesh", "Telangana", "Karnataka", "Tamil Nadu", "Pondicherry"],
+    "S2": ["Kerala", "Lakshadweep"],
+    "W1": ["Maharashtra"],
+    "W2": ["Gujarat", "Dadra and Nagar Haveli", "Daman and Diu"],
+    "W3": [],
+    "C": ["Chhattisgarh", "Bihar", "Orissa", "Jharkhand", "Andaman and Nicobar"],
+    "E": ["West Bengal", "Assam"],
+    "NE1": ["Guwahati"],
+    "NE2": ["Tripura", "Meghalaya", "Nagaland", "Arunachal Pradesh", "Mizoram", "Manipur", "Sikkim"]
+  },
+  "base_rates": {
+    "5_cft": {
+      "N1": {"N1": 5.00, "N2": 6.00, "N3": 7.00, "S1": 11.00, "S2": 13.00, "W1": 7.00, "W2": 9.00, "W3": 9.40, "C": 8.00, "E": 11.30, "NE1": 13.00, "NE2": 30.00},
+      "N2": {"N1": 6.00, "N2": 5.00, "N3": 6.00, "S1": 13.00, "S2": 14.00, "W1": 7.00, "W2": 9.00, "W3": 9.40, "C": 8.00, "E": 11.30, "NE1": 13.00, "NE2": 31.00}
+    },
+    "10_cft": {
+      "N1": {"N1": 4.00, "N2": 5.00, "N3": 6.00, "S1": 10.00, "S2": 11.00, "W1": 7.00, "W2": 7.00, "W3": 7.00, "C": 7.00, "E": 9.00, "NE1": 10.00, "NE2": 25.00},
+      "N2": {"N1": 5.00, "N2": 4.00, "N3": 5.00, "S1": 11.00, "S2": 13.00, "W1": 7.00, "W2": 7.00, "W3": 7.00, "C": 7.00, "E": 9.00, "NE1": 10.00, "NE2": 26.00}
+    }
+  },
+  "vas_charges": {
+    "green_tax": {"rate": 1, "min": 100},
+    "mail_delivery": {"rate": 2, "min": 500},
+    "appointment_delivery": {"rate": 2, "min": 100},
+    "special_delivery": {"rate": 2, "min": 150},
+    "plant_delivery": {"rate": 2, "min": 100},
+    "holiday_delivery": {"rate": 2, "min": 150},
+    "cod_dod_online": 500,
+    "fod_to_pay": 200,
+    "rto": "100% of contracted rate",
+    "delivery_reattempt": {"rate": 2},
+    "demurrage": {"rate": 1},
+    "floor_delivery": {"rate": 2},
+    "special_handling": {
+      "0_20": 2,
+      "20_50": 3,
+      "50_100": 4,
+      "above_100": 5
+    },
+    "opa": {"rate": 2, "min": 800},
+    "bharat_1": {"rate": 2, "min": 800},
+    "bharat_2": {"rate": 7, "min": 2000},
+    "bharat_3": {"rate": 10, "min": 15000}
+  }
+}

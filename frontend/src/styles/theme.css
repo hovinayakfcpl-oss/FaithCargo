@@ -1,0 +1,132 @@
+/* 🔹 Brand Colors */
+:root {
+  --primary-color: #b71c1c;   /* Deep Red - Faith Cargo branding */
+  --secondary-color: #444;   /* Dark Gray for contrast */
+  --accent-color: #f1f1f1;   /* Light Gray backgrounds */
+  --text-color: #333;
+  --white: #fff;
+}
+
+/* 🔹 Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(183, 28, 28, 0.85); /* semi-transparent red */
+  color: var(--white);
+  padding: 12px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.header h1 {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.header .menu-icon {
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.profile {
+  font-weight: 500;
+}
+
+.logout-btn {
+  background: var(--secondary-color);
+  color: var(--white);
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* 🔹 Sidebar */
+.sidebar {
+  width: 220px;
+  background: var(--secondary-color);
+  color: var(--white);
+  min-height: 100vh;
+  padding-top: 20px;
+  position: fixed;
+  left: 0;
+  top: 0;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar li {
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.sidebar li:hover {
+  background: var(--primary-color);
+}
+
+/* 🔹 Main Content */
+.content {
+  margin-left: 240px; /* space for sidebar */
+  padding: 20px;
+}
+
+/* 🔹 Footer */
+.footer {
+  background: var(--secondary-color);
+  color: var(--white);
+  text-align: center;
+  padding: 10px;
+  position: fixed;
+  bottom: 0;
+  width: calc(100% - 220px); /* adjust for sidebar */
+  margin-left: 220px;
+}
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  height: 40px;
+  width: auto;
+}
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: url("../assets/truck-bg.jpg") no-repeat center center/cover;
+  min-height: 100vh;
+}
+
+.login-box {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  text-align: center;
+  width: 350px;
+}
+
+.login-logo {
+  height: 60px;
+  margin-bottom: 15px;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: #444;
+  margin-bottom: 20px;
+}

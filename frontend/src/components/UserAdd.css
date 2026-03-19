@@ -1,0 +1,131 @@
+/* 🔥 PAGE LAYOUT (SIDE BY SIDE) */
+.user-page{
+  display:flex;
+  gap:25px;
+  justify-content:center;
+  align-items:flex-start;
+  min-height:100vh;
+  background:#f4f6f9;
+  padding:30px;
+}
+
+/* REMOVE CENTER ONLY */
+.user-add-container{
+  display:block;
+}
+
+/* 🔥 CARD COMMON */
+.card{
+  background:#fff;
+  padding:25px;
+  border-radius:12px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.15);
+  width:420px;
+  transition:0.2s;
+}
+
+.card:hover{
+  transform:translateY(-5px);
+}
+
+/* 🔥 TITLE */
+.card h2{
+  margin-bottom:20px;
+  text-align:center;
+  color:#c40000;
+}
+
+/* LABEL */
+.card label{
+  display:block;
+  margin:10px 0 5px;
+  font-weight:600;
+  color:#555;
+}
+
+/* INPUT */
+.card input[type="text"],
+.card input[type="password"]{
+  width:100%;
+  padding:10px;
+  border:1px solid #ddd;
+  border-radius:6px;
+  margin-bottom:12px;
+  transition:0.2s;
+}
+
+/* FOCUS RED */
+.card input:focus{
+  border-color:#c40000;
+  outline:none;
+  box-shadow:0 0 3px rgba(196,0,0,0.3);
+}
+
+/* CHECKBOX */
+.checkbox-group{
+  margin:12px 0;
+}
+
+.checkbox-group label{
+  display:block;
+  margin-bottom:6px;
+  color:#444;
+  font-size:14px;
+}
+
+/* 🔥 BUTTON RED */
+.add-btn{
+  width:100%;
+  padding:12px;
+  background:#c40000;
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+.add-btn:hover{
+  background:#a00000;
+}
+
+/* 🔥 RIGHT CARD TABLE */
+.user-list-card h3{
+  text-align:center;
+  color:#c40000;
+}
+
+/* TABLE */
+.user-table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+}
+
+.user-table th,
+.user-table td{
+  border:1px solid #eee;
+  padding:8px;
+  text-align:center;
+  font-size:13px;
+}
+
+.user-table th{
+  background:#ffe5e5;
+  color:#c40000;
+}
+
+/* 🔥 DELETE BUTTON */
+.delete-btn{
+  background:#c40000;
+  color:white;
+  border:none;
+  padding:5px 10px;
+  border-radius:4px;
+  cursor:pointer;
+}
+
+.delete-btn:hover{
+  background:#900000;
+}

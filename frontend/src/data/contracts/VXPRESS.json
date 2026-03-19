@@ -1,0 +1,103 @@
+{
+  "courier": "VXPRESS",
+  "service": "surface",
+
+  "zones": {
+    "North1": ["Delhi","Faridabad","Ghaziabad","Gurgaon","Noida","Jaipur"],
+    "North2": ["Haryana","Punjab","Rajasthan","Uttar Pradesh","Uttarakhand"],
+    "North3": ["Jammu"],
+    "Guj1": ["Ahmedabad","Baroda","Vapi","Surat","Daman"],
+    "Guj2": ["Rest of Gujarat","Diu"],
+    "Mah1": ["Mumbai","Pune","Bhiwandi","Palghar","Navi Mumbai"],
+    "Mah2": ["Rest of Maharashtra"],
+    "Goa": ["Goa"],
+    "South1": ["Bangalore","Hyderabad","Secunderabad"],
+    "South2": ["Chennai","Tamil Nadu","Andhra Pradesh"],
+    "Kerala": ["Calicut","Cochin","Ernakulum"],
+    "Central1": ["Bhopal","Indore","Raipur","Nagpur"],
+    "Central2": ["Rest of MP","Chhattisgarh"],
+    "East1": ["Kolkata","Howrah","Bhubaneswar","Patna"],
+    "East2": ["Rest of Bihar","Jharkhand","Odisha"],
+    "NE": ["Assam","Arunachal Pradesh","Manipur","Meghalaya","Tripura"]
+  },
+
+  "rate_matrix": {
+    "North1": {
+      "North1": 5,
+      "North2": 5.5,
+      "North3": 7,
+      "Guj1": 6.5,
+      "Guj2": 7,
+      "Mah1": 7.5,
+      "Mah2": 8,
+      "Goa": 8.5,
+      "Central1": 8,
+      "Central2": 8.5,
+      "South1": 9,
+      "South2": 10.5,
+      "Kerala": 12,
+      "East1": 10.5,
+      "East2": 12,
+      "NE": 15
+    },
+
+    "North2": {
+      "North1": 6.5,
+      "North2": 5.5,
+      "North3": 8,
+      "Guj1": 7.5,
+      "Guj2": 8,
+      "Mah1": 9,
+      "Mah2": 10,
+      "Goa": 9,
+      "Central1": 9,
+      "Central2": 9.5,
+      "South1": 10,
+      "South2": 11,
+      "Kerala": 13,
+      "East1": 11,
+      "East2": 13,
+      "NE": 16
+    }
+  },
+
+  "oda_charges": {
+    "A": {
+      "fixed": 800,
+      "per_kg": 3,
+      "max_cap": 3500
+    },
+    "B": {
+      "fixed": 1000,
+      "per_kg": 4.5,
+      "max_cap": 4500
+    },
+    "C": {
+      "fixed": 1500,
+      "per_kg": 5.5,
+      "max_cap": 5500
+    },
+    "D": {
+      "fixed": 2000,
+      "per_kg": 6.5,
+      "max_cap": 6500
+    }
+  },
+
+  "extra_charges": {
+    "docket_charge": 50,
+    "to_pay": 100,
+    "dod": 100,
+    "dacc": 100,
+    "minimum_freight_surface": 450,
+    "minimum_weight_surface": 25,
+    "fsc_percent": 8,
+    "warehouse_free_days": 7,
+    "demurrage_per_day": 100,
+    "kerala_surcharge_perkg": 1.5,
+    "appointment_delivery": 2000,
+    "floor_delivery_perkg": 1,
+    "floor_delivery_min": 250,
+    "detention_per_day": 2000
+  }
+}

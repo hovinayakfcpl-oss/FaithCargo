@@ -1,0 +1,211 @@
+.rate-page {
+  background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%);
+  padding: 25px;
+  border-radius: 12px;
+  max-width: 1100px;
+  margin: 30px auto;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12); /* ✅ subtle shadow */
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.title {
+  color: #b71c1c;
+  margin-bottom: 22px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.15); /* ✅ highlight effect */
+}
+
+.calculator-layout {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 25px;
+}
+
+/* 🔹 Form Section */
+.form-section {
+  flex: 1.2;
+  background: #fff;
+  padding: 18px;
+  border-radius: 10px;
+  max-height: 460px; /* ✅ bigger card height */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* ✅ card shadow */
+  border: 1px solid #eee;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: #333;
+}
+
+.form-grid input,
+.form-grid select {
+  margin-top: 4px;
+  padding: 6px; /* ✅ compact input */
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.form-grid input:focus,
+.form-grid select:focus {
+  border-color: #b71c1c;
+  box-shadow: 0 0 6px rgba(183,28,28,0.3); /* ✅ glow effect */
+  outline: none;
+}
+
+/* 🔹 Dimension row */
+.dimension-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+}
+
+.dimension-row input {
+  flex: 1;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.add-dimension-btn {
+  background: #b71c1c;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 10px;
+  font-size: 12px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+.add-dimension-btn:hover {
+  background: #a31414;
+}
+
+.remove-dimension-btn {
+  background: #e53935;
+  color: #fff;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+.remove-dimension-btn:hover {
+  background: #c62828;
+}
+
+/* 🔹 Options */
+.options {
+  margin: 12px 0;
+  display: flex;
+  gap: 25px;
+  font-size: 13px;
+  color: #333;
+}
+
+/* 🔹 Buttons */
+.buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 15px;
+}
+
+.calculate-btn {
+  background: #4caf50;
+  color: #fff;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+.calculate-btn:hover {
+  background: #43a047;
+}
+
+.reset-btn {
+  background: #fff;
+  color: #333;
+  padding: 8px 18px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+
+.reset-btn:hover {
+  background: #f5f5f5;
+}
+
+.back-btn {
+  background: #b71c1c;
+  color: #fff;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+.back-btn:hover {
+  background: #a31414;
+}
+
+/* 🔹 Result Section */
+.result-section {
+  flex: 1;
+  max-width: 380px;
+}
+
+.result-box {
+  background: #fff;
+  padding: 25px;
+  border-radius: 12px;
+  border: 2px solid #b71c1c;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.15); /* ✅ deeper shadow */
+  text-align: center;
+  min-height: 320px; /* ✅ bigger card height */
+  transition: transform 0.2s ease;
+}
+
+.result-box:hover {
+  transform: translateY(-4px); /* ✅ hover lift effect */
+}
+
+.result-box h3 {
+  margin-bottom: 14px;
+  color: #b71c1c;
+  font-size: 18px;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.15);
+}
+
+.result-box p {
+  font-size: 14px;
+  color: #333;
+  margin: 6px 0;
+}
