@@ -1,10 +1,11 @@
-Django>=4.2
+Django
 gunicorn
 whitenoise
 djangorestframework
 dj-database-url
+mysqlclient
 python-dotenv
 django-cors-headers
 django-import-export
-pandas
-openpyxl
+pip freeze
+djangorestframework-simplejwt
