@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-change-this-key")
 DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", "192.168.31.207"]   # ✅ LAN IP add किया
+ALLOWED_HOSTS = ['*']
 
 # CUSTOM USER MODEL
 AUTH_USER_MODEL = 'accounts.CustomUser'
@@ -126,7 +126,7 @@ USE_TZ = True
 # STATIC FILES (React build)
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / "frontend/build/static"]
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # DEFAULT PRIMARY KEY
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

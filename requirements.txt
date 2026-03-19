@@ -1,0 +1,6 @@
+Django
+gunicorn
+whitenoise
+djangorestframework
+dj-database-url
+mysqlclient
