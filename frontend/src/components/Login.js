@@ -21,7 +21,7 @@ function Login() {
     setLoading(true);
 
     try {
-      let res = await fetch("http://127.0.0.1:8000/accounts/login/", {
+      let res = await fetch("https://faithcargo.onrender.com/accounts/login/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -35,7 +35,7 @@ function Login() {
       let data = await res.json();
 
       if (res.status !== 200) {
-        res = await fetch("http://127.0.0.1:8000/accounts/simple-login/", {
+        res = await fetch("https://faithcargo.onrender.com/accounts/simple-login/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

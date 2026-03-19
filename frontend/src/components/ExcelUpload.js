@@ -12,7 +12,7 @@ form.append("file",file)
 
 await fetch(
 
-"http://127.0.0.1:8000/api/rates/matrix/upload/",
+"https://faithcargo.onrender.com/api/rates/matrix/upload/",
 
 {
 method:"POST",

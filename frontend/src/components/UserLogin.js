@@ -21,7 +21,7 @@ function UserLogin() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/user/login/", {
+      const res = await fetch("https://faithcargo.onrender.com/api/user/login/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

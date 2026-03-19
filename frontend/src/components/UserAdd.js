@@ -22,7 +22,7 @@ function UserAdd() {
   // ✅ FETCH USERS (IMPORTANT FIX)
   const fetchUsers = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/user/list/");
+      const res = await fetch("https://faithcargo.onrender.com/api/user/list/");
       const data = await res.json();
 
       // 🔥 handle different backend formats
@@ -52,7 +52,7 @@ function UserAdd() {
     e.preventDefault();
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/user/add/", {
+      const res = await fetch("https://faithcargo.onrender.com/api/user/add/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -105,7 +105,7 @@ function UserAdd() {
     if (!window.confirm("Delete user?")) return;
 
     try {
-      await fetch(`http://127.0.0.1:8000/api/user/delete/${id}/`, {
+      await fetch(`https://faithcargo.onrender.com/api/user/delete/${id}/`, {
         method: "DELETE",
       });
 

@@ -8,7 +8,7 @@ const [matrix,setMatrix] = useState({})
 
 useEffect(()=>{
 
-fetch("http://127.0.0.1:8000/api/rates/matrix/")
+fetch("https://faithcargo.onrender.com/api/rates/matrix/")
 .then(res=>res.json())
 .then(data=>{
 

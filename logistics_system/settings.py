@@ -6,14 +6,14 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-change-this-key")
-DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
+DEBUG = False   # ✅ Production me always False
+
 ALLOWED_HOSTS = ['*']
 
 # CUSTOM USER MODEL
@@ -21,10 +21,8 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 
 # DJANGO REST FRAMEWORK
 REST_FRAMEWORK = {
-    'DEFAULT_PAGINATION_CLASS': None,  # ✅ Disable pagination
+    'DEFAULT_PAGINATION_CLASS': None,
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     ],
 }
@@ -51,14 +49,13 @@ INSTALLED_APPS = [
     'pickup',
     'pincode',
     'user_management',
-    "signup"
-    
+    'signup'
 ]
 
 # MIDDLEWARE
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'corsheaders.middleware.CorsMiddleware',   # ✅ CORS middleware सबसे ऊपर रखा
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -67,12 +64,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# CORS SETTINGS (React)
+# CORS SETTINGS
 CORS_ALLOW_ALL_ORIGINS = True
+
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://192.168.31.207:3000",   # ✅ LAN React frontend allow किया
+    "https://faith-cargo.vercel.app",   # ✅ Vercel frontend
 ]
 
 # URL CONFIG
@@ -97,16 +93,12 @@ TEMPLATES = [
 # WSGI
 WSGI_APPLICATION = 'logistics_system.wsgi.application'
 
-# MYSQL DATABASE (using .env for safety)
+# ✅ DATABASE (SQLite for now - WORKS ON RENDER)
 DATABASES = {
- 'default': {
-  'ENGINE': 'django.db.backends.mysql',
-  'NAME': 'faithcargo',
-  'USER': 'root',
-  'PASSWORD': '7890',
-  'HOST': 'localhost',
-  'PORT': '3306',
- }
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
 # PASSWORD VALIDATION
@@ -119,13 +111,12 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # LANGUAGE / TIME
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Asia/Kolkata'   # ✅ India timezone
+TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_TZ = True
 
-# STATIC FILES (React build)
+# STATIC FILES
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / "frontend/build/static"]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # DEFAULT PRIMARY KEY

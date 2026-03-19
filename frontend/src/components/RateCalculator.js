@@ -25,7 +25,7 @@ function RateCalculator() {
 
     try {
 
-      const response = await fetch("http://127.0.0.1:8000/rates/fcpl-rate-calculate/", {
+      const response = await fetch("https://faithcargo.onrender.com/rates/fcpl-rate-calculate/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

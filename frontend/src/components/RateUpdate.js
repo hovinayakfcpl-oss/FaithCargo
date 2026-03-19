@@ -43,7 +43,7 @@ useEffect(()=>{
 
 if(selectedOption !== "b2b") return
 
-fetch("http://127.0.0.1:8000/api/rates/matrix/")
+fetch("https://faithcargo.onrender.com/api/rates/matrix/")
 .then(res=>res.json())
 .then(data=>{
 
@@ -107,7 +107,7 @@ rate:Number(rates[f][t])
 try{
 
 const res=await fetch(
-"http://127.0.0.1:8000/api/rates/matrix/update/",
+"https://faithcargo.onrender.com/api/rates/matrix/update/",
 {
 method:"POST",
 headers:{ "Content-Type":"application/json"},
