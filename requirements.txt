@@ -4,3 +4,4 @@ whitenoise
 djangorestframework
 dj-database-url
 mysqlclient
+python-dotenv
