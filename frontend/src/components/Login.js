@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
-import logo from "../assets/logo.png";
+// ❗ TEMP: logo hata diya (error avoid karne ke liye)
+// import logo from "../assets/logo.png";
 
 function Login() {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ function Login() {
     setLoading(true);
 
     try {
-      let res = await fetch("https://faithcargo.onrender.com/accounts/login/", {
+      const res = await fetch("https://faithcargo.onrender.com/accounts/login/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -32,29 +33,21 @@ function Login() {
         }),
       });
 
-      let data = await res.json();
-
-      if (res.status !== 200) {
-        res = await fetch("https://faithcargo.onrender.com/accounts/simple-login/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username: username.trim(),
-            password: password.trim(),
-          }),
-        });
-
+      let data = {};
+      try {
         data = await res.json();
+      } catch (err) {
+        console.error("JSON error:", err);
       }
 
-      if (res.status === 200 && data.access) {
+      console.log("LOGIN RESPONSE:", data);
+
+      if (res.ok && data.access) {
         localStorage.setItem("token", data.access);
-        localStorage.setItem("refresh", data.refresh);
-        localStorage.setItem("username", data.username);
-        localStorage.setItem("is_superuser", data.is_superuser);
-        localStorage.setItem("is_staff", data.is_staff);
+        localStorage.setItem("refresh", data.refresh || "");
+        localStorage.setItem("username", data.username || "");
+        localStorage.setItem("is_superuser", data.is_superuser || false);
+        localStorage.setItem("is_staff", data.is_staff || false);
 
         alert(`Welcome ${data.username} 🚀`);
 
@@ -67,6 +60,7 @@ function Login() {
         alert(data.message || "Invalid credentials ❌");
       }
     } catch (err) {
+      console.error("Network error:", err);
       alert("Server / Network error ❌");
     }
 
@@ -75,6 +69,7 @@ function Login() {
 
   return (
     <div className="login-container">
+      
       {/* LEFT */}
       <div className="login-left">
         <h2>Manage your logistics easily 🚚</h2>
@@ -82,7 +77,10 @@ function Login() {
 
       {/* RIGHT */}
       <div className="login-right">
-        <img src={logo} alt="logo" className="login-logo" />
+        
+        {/* ❗ TEMP: logo hata diya */}
+        {/* <img src={logo} alt="logo" className="login-logo" /> */}
+
         <h2>Login</h2>
 
         <form onSubmit={handleLogin}>
@@ -107,7 +105,6 @@ function Login() {
           </button>
         </form>
 
-        {/* 🔥 NEW USER LOGIN BUTTON */}
         <div style={{ marginTop: "15px", textAlign: "center" }}>
           <button
             onClick={() => navigate("/user-login")}
