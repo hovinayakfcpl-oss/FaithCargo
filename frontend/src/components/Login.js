@@ -46,8 +46,7 @@ function Login() {
         localStorage.setItem("token", data.access);
         localStorage.setItem("refresh", data.refresh || "");
         localStorage.setItem("username", data.username || "");
-        localStorage.setItem("is_superuser", data.is_superuser || false);
-        localStorage.setItem("is_staff", data.is_staff || false);
+        localStorage.setItem("is_superuser", data.is_superuser ? "true" : "false");
 
         alert(`Welcome ${data.username} 🚀`);
 

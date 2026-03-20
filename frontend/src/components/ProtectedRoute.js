@@ -6,22 +6,15 @@ function ProtectedRoute({ children }) {
 
   const token = localStorage.getItem("token");
 
-  const isSuperuser =
-    localStorage.getItem("is_superuser") === "true" ||
-    localStorage.getItem("is_superuser") === "True";
+const isSuperuser = localStorage.getItem("is_superuser") === "true";
 
-  // 🔥 USER MODULES (from login)
-  const userModules = JSON.parse(localStorage.getItem("userModules") || "{}");
+if (!token || token === "undefined" || token === "null") {
+  return <Navigate to="/" replace />;
+}
 
-  // 🔹 No token → login
-  if (!token) {
-    return <Navigate to="/" replace />;
-  }
-
-  // 🔹 ADMIN → full access
-  if (isSuperuser) {
-    return children;
-  }
+if (isSuperuser) {
+  return children;
+}
 
   // 🔥 ROUTE → MODULE MAP
   const routePermissions = {
