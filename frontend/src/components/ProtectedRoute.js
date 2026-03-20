@@ -5,16 +5,20 @@ function ProtectedRoute({ children }) {
   const location = useLocation();
 
   const token = localStorage.getItem("token");
+  const isSuperuser = localStorage.getItem("is_superuser") === "true";
 
-const isSuperuser = localStorage.getItem("is_superuser") === "true";
+  // ✅ permissions object from localStorage
+  const userModules = JSON.parse(localStorage.getItem("permissions") || "{}");
 
-if (!token || token === "undefined" || token === "null") {
-  return <Navigate to="/" replace />;
-}
+  // 🔹 Token check
+  if (!token || token === "undefined" || token === "null") {
+    return <Navigate to="/" replace />;
+  }
 
-if (isSuperuser) {
-  return children;
-}
+  // 🔹 Admin always allowed
+  if (isSuperuser) {
+    return children;
+  }
 
   // 🔥 ROUTE → MODULE MAP
   const routePermissions = {

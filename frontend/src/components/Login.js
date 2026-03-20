@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
-// ❗ TEMP: logo hata diya (error avoid karne ke liye)
-// import logo from "../assets/logo.png";
 
 function Login() {
   const navigate = useNavigate();
@@ -24,9 +22,7 @@ function Login() {
     try {
       const res = await fetch("https://faithcargo.onrender.com/accounts/login/", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: username.trim(),
           password: password.trim(),
@@ -43,6 +39,7 @@ function Login() {
       console.log("LOGIN RESPONSE:", data);
 
       if (res.ok && data.access) {
+        // ✅ Save tokens and user info
         localStorage.setItem("token", data.access);
         localStorage.setItem("refresh", data.refresh || "");
         localStorage.setItem("username", data.username || "");
@@ -50,10 +47,11 @@ function Login() {
 
         alert(`Welcome ${data.username} 🚀`);
 
+        // ✅ Correct routes
         if (data.is_superuser) {
           navigate("/admin-dashboard");
         } else {
-          navigate("/user");
+          navigate("/user-dashboard");   // 🔥 FIXED
         }
       } else {
         alert(data.message || "Invalid credentials ❌");
@@ -68,7 +66,6 @@ function Login() {
 
   return (
     <div className="login-container">
-      
       {/* LEFT */}
       <div className="login-left">
         <h2>Manage your logistics easily 🚚</h2>
@@ -76,10 +73,6 @@ function Login() {
 
       {/* RIGHT */}
       <div className="login-right">
-        
-        {/* ❗ TEMP: logo hata diya */}
-        {/* <img src={logo} alt="logo" className="login-logo" /> */}
-
         <h2>Login</h2>
 
         <form onSubmit={handleLogin}>
@@ -119,7 +112,6 @@ function Login() {
             User Login
           </button>
         </div>
-
       </div>
     </div>
   );
