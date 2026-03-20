@@ -9,3 +9,4 @@ django-import-export
 pandas
 openpyxl
 djangorestframework-simplejwt
+mysqlclient
