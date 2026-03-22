@@ -1,5 +1,5 @@
 from django.db import models
-from vendors.models import Vendor
+from vendors.models import   Vendor
 
 
 # =====================================================

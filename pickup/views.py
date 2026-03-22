@@ -8,7 +8,7 @@ from rest_framework import viewsets
 
 from .models import PickupRequest
 from .serializers import PickupRequestSerializer
-from vendors.models import Vendor
+from vendors.models import   Vendor
 
 
 class PickupRequestViewSet(viewsets.ModelViewSet):

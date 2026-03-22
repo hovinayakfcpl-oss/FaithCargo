@@ -9,4 +9,4 @@ django-import-export
 pandas
 openpyxl
 djangorestframework-simplejwt
-PyMySQL
+psycopg2-binary

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from decimal import Decimal, InvalidOperation
 from .models import RateCard
-from vendors.models import VendorRate
+from vendors.models import   VendorRate
 
 # 🔹 RateCard Serializer (FCPL & B2B)
 class RateCardSerializer(serializers.ModelSerializer):

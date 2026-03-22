@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from .excel_upload import upload_rate_excel
 
-from vendors.models import VendorRate
+from vendors.models import   VendorRate
 from pincode.models import Pincode
 from .models import RateCard, RateMatrix
 

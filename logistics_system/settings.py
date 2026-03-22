@@ -5,8 +5,8 @@ Django settings for logistics_system project.
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-import pymysql
-pymysql.install_as_MySQLdb()
+
+
 
 
 load_dotenv()
@@ -99,12 +99,12 @@ WSGI_APPLICATION = 'logistics_system.wsgi.application'
 # ✅ DATABASE (SQLite for now - WORKS ON RENDER)
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('DB_NAME'),
         'USER': os.getenv('DB_USER'),
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
+        'PORT': '5432',
     }
 }
 
