@@ -94,7 +94,7 @@ WSGI_APPLICATION = 'logistics_system.wsgi.application'
 # ✅ DATABASE (POSTGRESQL - RENDER)
 DATABASES = {
     'default': dj_database_url.config(
-        default='postgresql://faithcargo_db_user:7890@dpg-d6voftfkijhs73cvfrfg-a.oregon-postgres.render.com:5432/faithcargo_db',
+        default=os.environ.get("DATABASE_URL"),
         conn_max_age=600,
         ssl_require=True
     )
