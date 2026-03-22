@@ -10,7 +10,8 @@ class Command(BaseCommand):
         self.stdout.write(f"📂 Loading Pincodes from: {csv_file}")
 
         # Purge old records
-        Pincode.objects.all().delete()
+        def get_pins():
+            return Pincode.objects.all()
 
         pincodes = []
         # Use tab delimiter
