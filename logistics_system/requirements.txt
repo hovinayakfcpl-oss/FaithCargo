@@ -1,0 +1,12 @@
+Django>=4.2
+gunicorn
+whitenoise
+djangorestframework
+dj-database-url
+python-dotenv
+django-cors-headers
+django-import-export
+pandas
+openpyxl
+djangorestframework-simplejwt
+psycopg2-binary
