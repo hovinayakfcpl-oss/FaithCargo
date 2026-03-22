@@ -4,18 +4,13 @@ Django settings for logistics_system project.
 
 from pathlib import Path
 import os
-from dotenv import load_dotenv
-
-
-os.getenv('DB_HOST')
-print("DB HOST:", os.environ.get('DB_HOST'))
-load_dotenv()
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-change-this-key")
-DEBUG = False   # ✅ Production me always False
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
@@ -71,7 +66,7 @@ MIDDLEWARE = [
 CORS_ALLOW_ALL_ORIGINS = True
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://faith-cargo.vercel.app",   # ✅ Vercel frontend
+    "https://faith-cargo.vercel.app",
 ]
 
 # URL CONFIG
@@ -96,16 +91,13 @@ TEMPLATES = [
 # WSGI
 WSGI_APPLICATION = 'logistics_system.wsgi.application'
 
-# ✅ DATABASE (SQLite for now - WORKS ON RENDER)
+# ✅ DATABASE (POSTGRESQL - RENDER)
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('DB_USER'),
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
-        'PORT': os.environ.get('DB_PORT'),
-    }
+    'default': dj_database_url.config(
+        default='postgresql://faithcargo_db_user:7890@dpg-d6voftfkijhs73cvfrfg-a.oregon-postgres.render.com:5432/faithcargo_db',
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
 
 # PASSWORD VALIDATION
