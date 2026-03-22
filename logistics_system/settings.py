@@ -7,8 +7,8 @@ import os
 from dotenv import load_dotenv
 
 
-
-
+os.getenv('DB_HOST')
+print("DB HOST:", os.environ.get('DB_HOST'))
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -100,11 +100,11 @@ WSGI_APPLICATION = 'logistics_system.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': '5432',
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT'),
     }
 }
 
