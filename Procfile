@@ -1,1 +1,1 @@
-web: gunicorn logistics_system.wsgi --bind 0.0.0.0:$PORT
+web: gunicorn logistics_system.wsgi:application --bind 0.0.0.0:$PORT
