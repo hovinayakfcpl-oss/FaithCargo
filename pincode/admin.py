@@ -13,3 +13,9 @@ from .models import RateMatrix, Charges
 
 admin.site.register(RateMatrix)
 admin.site.register(Charges)
+from import_export.admin import ImportExportModelAdmin
+
+
+@admin.register(Pincode)
+class PincodeAdmin(ImportExportModelAdmin):
+    pass
