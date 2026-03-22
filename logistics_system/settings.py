@@ -92,22 +92,29 @@ TEMPLATES = [
 WSGI_APPLICATION = 'logistics_system.wsgi.application'
 
 # ✅ DATABASE (POSTGRESQL - RENDER)
-DATABASE_URL = os.environ.get("DATABASE_URL")
 
-if DATABASE_URL:
-    DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True)
-    }
-else:
-    # ✅ LOCAL DEVELOPMENT (SQLite)
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        }
-    }
+import os
+
+DATABASES = {
+    'default': dj_database_url.parse(
+        "postgresql://faithcargo_db_user:BBpJl41XxxrQ43mnodSSeQfiJrxuDzbi@dpg-d6voftfkijhs73cvfrfg-a.oregon-postgres.render.com/faithcargo_db",
+        conn_max_age=600,
+        ssl_require=True
+    )
+}
 
 print("DATABASE_URL:", os.environ.get("DATABASE_URL"))
+import sys
+
+if 'runserver' not in sys.argv:
+    import django
+    django.setup()
+    from django.core.management import call_command
+
+    try:
+        call_command('migrate')
+    except Exception as e:
+        print("Migration error:", e)
 # PASSWORD VALIDATION
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
