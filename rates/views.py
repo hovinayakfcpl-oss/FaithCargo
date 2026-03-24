@@ -148,6 +148,10 @@ def b2b_rate_calculate(request):
         fuel = freight * Decimal("0.15")
 
         # ODA charge
+        oda_raw = dest_obj.is_oda
+        is_oda_flag = str(oda_raw).strip().lower() in ["true", "1", "yes", "oda"]
+
+# ODA charge
         oda_charge = Decimal("0")
         if is_oda_flag:
             oda_charge = max(Decimal("650"), chargeable_weight * Decimal("3"))
