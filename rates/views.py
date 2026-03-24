@@ -173,6 +173,8 @@ def b2b_rate_calculate(request):
             "destination": destination,
             "from_zone": from_zone,
             "to_zone": to_zone,
+            "origin_pincode": origin_obj.pincode,                   # ✅ Added
+            "destination_pincode": dest_obj.pincode,                # ✅ Added
             "chargeable_weight": float(round(chargeable_weight, 2)),
             "rate_per_kg": float(rate_per_kg),
 
