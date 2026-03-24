@@ -381,7 +381,11 @@ Charges Bifurcation ↓
 
 <div className="charge-row">
 <span>ODA Charge(3₹/KG)</span>
-<span>{result.oda === "Yes" ? `₹ ${result.oda_charge}` : "₹ 0"}</span>
+<span>
+  {result.oda === true || result.oda === "Yes" || result.oda === 1
+    ? `₹ ${result.oda_charge}`
+    : "₹ 0"}
+</span>
 </div>
 
 <div className="charge-row">
