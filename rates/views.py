@@ -36,8 +36,10 @@ def fcpl_rate_calculate(request):
 
         dimensions = request.data.get('dimensions', [])
 
-        origin_obj = Pincode.objects.get(pincode=origin)
-        dest_obj = Pincode.objects.get(pincode=destination)
+        origin_obj = Pincode.objects.filter(pincode=str(origin).strip()).first()
+        dest_obj = Pincode.objects.filter(pincode=str(destination).strip()).first()
+        if not origin_obj or not dest_obj:
+            return Response({"error": "Invalid Pincode"}, status=404)
 
         zone = dest_obj.zone
         is_oda = dest_obj.is_oda
@@ -116,8 +118,10 @@ def b2b_rate_calculate(request):
         appointment = request.data.get('appointment', False)
         dimensions = request.data.get('dimensions', [])
 
-        origin_obj = Pincode.objects.get(pincode=origin)
-        dest_obj = Pincode.objects.get(pincode=destination)
+        origin_obj = Pincode.objects.filter(pincode=str(origin).strip()).first()
+        dest_obj = Pincode.objects.filter(pincode=str(destination).strip()).first()
+        if not origin_obj or not dest_obj:
+            return Response({"error": "Invalid Pincode"}, status=404)
 
         from_zone = origin_obj.zone
         to_zone = dest_obj.zone
