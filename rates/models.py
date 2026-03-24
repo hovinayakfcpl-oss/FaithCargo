@@ -39,7 +39,7 @@ class RateCard(models.Model):
     # Charges
     docket_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     fuel_charge = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    oda_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    is_oda = models.BooleanField(default=False)
     insurance_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     appointment_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 

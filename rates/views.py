@@ -167,7 +167,7 @@ def b2b_rate_calculate(request):
 
         # Total
         total = freight + docket + fuel + oda_charge + insurance_charge + appointment_charge
-
+    
         return Response({
             "origin": origin,
             "destination": destination,
