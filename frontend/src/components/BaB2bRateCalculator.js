@@ -380,13 +380,14 @@ Charges Bifurcation ↓
 </div>
 
 <div className="charge-row">
-<span>ODA Charge(3₹/KG)</span>
-<span>
-  {String(result.oda).toLowerCase() === "true"
-    ? `₹ ${result.oda_charge}`
-    : "₹ 0"}
-</span>
+  <span>ODA Charge (3₹/KG)</span>
+  <span>
+    {result.oda
+      ? `₹ ${result.oda_charge}`
+      : "₹ 0"}
+  </span>
 </div>
+
 
 <div className="charge-row">
 <span>Fuel Surcharge (15%)</span>

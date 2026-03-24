@@ -148,10 +148,9 @@ def b2b_rate_calculate(request):
         fuel = freight * Decimal("0.15")
 
         # ODA charge
-        oda_raw = dest_obj.is_oda
-        is_oda_flag = str(oda_raw).strip().lower() in ["true", "1", "yes", "oda"]
+        # ODA charge
+        is_oda_flag = bool(dest_obj.is_oda)   # सीधे boolean में convert करो
 
-# ODA charge
         oda_charge = Decimal("0")
         if is_oda_flag:
             oda_charge = max(Decimal("650"), chargeable_weight * Decimal("3"))
@@ -186,7 +185,8 @@ def b2b_rate_calculate(request):
 
             "total_charge": float(round(total, 2)),
 
-            "oda": is_oda_flag
+            "oda": is_oda_flag,
+            "oda_charge": float(round(oda_charge, 2)),
         })
 
     except Pincode.DoesNotExist:
