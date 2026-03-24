@@ -115,7 +115,7 @@ def import_pincode_csv(request):
                 "city": city,
                 "state": state,
                 "zone": zone,
-                "is_oda": True if str(oda).lower() in ["yes","oda","true"] else False
+                "is_oda": True if str(oda).lower() in ["yes", "oda", "true", "1"] else False
             }
 
         )
