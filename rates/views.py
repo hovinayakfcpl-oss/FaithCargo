@@ -123,9 +123,7 @@ def b2b_rate_calculate(request):
         to_zone = dest_obj.zone
 
         # force string comparison for VARCHAR field
-        is_oda_value = str(dest_obj.is_oda).strip()
-        is_oda_flag = (is_oda_value == "1")
-
+        is_oda_flag = dest_obj.is_oda
         volumetric_weight = Decimal("0")
         for dim in dimensions:
             l = Decimal(str(dim.get("length", 0)))
@@ -180,7 +178,7 @@ def b2b_rate_calculate(request):
 
             "total_charge": float(round(total, 2)),
 
-            "oda": "Yes" if is_oda_flag else "No"
+            "oda": is_oda_flag
         })
 
     except Pincode.DoesNotExist:
