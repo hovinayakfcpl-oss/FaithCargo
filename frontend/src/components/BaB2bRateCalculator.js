@@ -423,6 +423,7 @@ Charges Bifurcation ↓
 <span>Handling Charge</span>
 <span>₹ {result.handling_charge}</span>
 </div>
+
 )}
 
 </div>
@@ -436,7 +437,13 @@ Enter shipment details and click Calculate
 </p>
 
 )}
-
+console.log("===== API RESPONSE START =====");
+console.log("FULL DATA:", data);
+console.log("ODA FLAG:", data.oda);
+console.log("ODA CHARGE:", data.oda_charge);
+console.log("TOTAL:", data.total_charge);
+console.log("DEST:", form.destination);
+console.log("===== API RESPONSE END =====");
 {error && <p className="error">{error}</p>}
 
 </div>
@@ -447,6 +454,6 @@ Enter shipment details and click Calculate
 
 )
 
-}
+
 
 export default B2BRateCalculator;
