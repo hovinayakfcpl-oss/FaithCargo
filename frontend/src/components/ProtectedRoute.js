@@ -5,7 +5,9 @@ function ProtectedRoute({ children }) {
   const location = useLocation();
 
   const token = localStorage.getItem("token");
-  const isSuperuser = localStorage.getItem("is_superuser") === "true";
+  const isSuperuser =
+    localStorage.getItem("is_superuser") === "true" ||
+    localStorage.getItem("is_superuser") === "True";
 
   // ✅ permissions object from localStorage
   const userModules = JSON.parse(localStorage.getItem("permissions") || "{}");
@@ -20,7 +22,7 @@ function ProtectedRoute({ children }) {
     return children;
   }
 
-  // 🔥 ROUTE → MODULE MAP
+  // 🔥 ROUTE → MODULE MAP (✅ UPDATED)
   const routePermissions = {
     "/fcpl-rate": "fcpl_rate",
     "/pickup": "pickup",
@@ -30,12 +32,16 @@ function ProtectedRoute({ children }) {
     "/pincode": "pincode",
     "/user-add": "user_management",
     "/ba-b2b-rate": "ba_b2b",
+
+    // ✅ NEW MODULES
+    "/create-order": "create_order",
+    "/shipment-details": "shipment_details",
   };
 
   const currentPath = location.pathname;
 
   // 🔹 Dashboard always allowed
-  if (currentPath === "/user-dashboard") {
+  if (currentPath === "/user-dashboard" || currentPath === "/admin-dashboard") {
     return children;
   }
 

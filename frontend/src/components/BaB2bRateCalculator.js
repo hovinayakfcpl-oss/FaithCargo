@@ -106,6 +106,9 @@ const calculateRate = async () => {
       setError(data.error);
     } else {
 
+      // =========================
+      // WEIGHT CALCULATION
+      // =========================
       data.volumetric_weight = volumetric.toFixed(2);
 
       if (Number(form.weight) > volumetric) {
@@ -116,20 +119,34 @@ const calculateRate = async () => {
         data.basis = "Volumetric Weight";
       }
 
+      // =========================
+      // BASE CHARGES
+      // =========================
+      const fov = 75;
+      const fuel = data.total_charge * 0.15;
       const gst = data.total_charge * 0.18;
+
+      data.fov_charge = fov.toFixed(2);
+      data.fuel_charge = fuel.toFixed(2);
       data.gst = gst.toFixed(2);
 
-      const fov = 75;
-      data.fov_charge = fov.toFixed(2);
-
-      const fuel = data.total_charge * 0.15;
-      data.fuel_charge = fuel.toFixed(2);
-
-      // BASE TOTAL
-      let total = Number(data.total_charge) + Number(gst) + Number(fov) + Number(fuel);
+      let total = Number(data.total_charge) + Number(fuel) + Number(fov) + Number(gst);
 
       // =========================
-      // COD / ToPay Charge
+      // 🔥 ODA CALCULATION (FIXED)
+      // =========================
+      let odaCharge = 0;
+
+      if (data.oda) {
+        const perKg = Number(data.chargeable_weight) * 3;
+        odaCharge = Math.max(650, perKg); // ✅ MIN 650 OR 3/kg
+      }
+
+      data.oda_charge = odaCharge.toFixed(2);
+      total += odaCharge;
+
+      // =========================
+      // COD / ToPay
       // =========================
       let codCharge = 0;
 
@@ -143,7 +160,7 @@ const calculateRate = async () => {
       total += codCharge;
 
       // =========================
-      // Handling Charge
+      // HANDLING
       // =========================
       let handling = 0;
       const totalQty = dimensions.reduce((sum, b) => sum + Number(b.qty), 0);
@@ -156,11 +173,10 @@ const calculateRate = async () => {
       data.handling_charge = handling.toFixed(2);
       total += handling;
 
+      // =========================
       // FINAL TOTAL
+      // =========================
       data.total_with_gst = total.toFixed(2);
-
-      // ODA flag already coming from backend
-      data.oda_flag = data.oda;
 
       setResult(data);
     }
@@ -169,6 +185,7 @@ const calculateRate = async () => {
   }
 
   setLoading(false);
+};
 }
 
 return(

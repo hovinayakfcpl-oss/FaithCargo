@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 
 // 🔹 Core Components
 import Login from "./components/Login";
-import UserLogin from "./components/UserLogin";   // ✅ NEW
+import UserLogin from "./components/UserLogin";
 import AdminDashboard from "./components/AdminDashboard";
 import UserDashboard from "./components/UserDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -18,6 +18,10 @@ import PickupAssign from "./components/PickupAssign";
 import PincodeManagement from "./components/PincodeManagement";
 import UserAdd from "./components/UserAdd";
 
+// ✅ NEW MODULES
+import CreateOrder from "./components/CreateOrder";
+import ShipmentDetails from "./components/ShipmentDetails";
+
 // 🔹 Auth Helpers
 import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
@@ -31,7 +35,7 @@ function App() {
         {/* 🔹 ADMIN LOGIN */}
         <Route path="/" element={<Login />} />
 
-        {/* 🔹 USER LOGIN ✅ NEW */}
+        {/* 🔹 USER LOGIN */}
         <Route path="/user-login" element={<UserLogin />} />
 
         {/* 🔹 Signup */}
@@ -137,6 +141,25 @@ function App() {
           element={
             <ProtectedRoute>
               <PincodeManagement />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ NEW ROUTES */}
+        <Route
+          path="/create-order"
+          element={
+            <ProtectedRoute>
+              <CreateOrder />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/shipment-details"
+          element={
+            <ProtectedRoute>
+              <ShipmentDetails />
             </ProtectedRoute>
           }
         />

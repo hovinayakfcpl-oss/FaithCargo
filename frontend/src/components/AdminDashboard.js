@@ -23,10 +23,10 @@ function AdminDashboard() {
   // 🔹 Navigate helper
   const goTo = (path) => {
     navigate(path);
-    setSidebarOpen(false); // mobile close
+    setSidebarOpen(false);
   };
 
-  // 🔹 Dashboard Cards
+  // 🔹 Dashboard Cards (✅ FIXED)
   const dashboardCards = [
     { title: "FCPL Rate Calculator", desc: "Calculate shipment rates", link: "/fcpl-rate" },
     { title: "Pickup Request", desc: "Manage pickup requests", link: "/pickup" },
@@ -35,7 +35,11 @@ function AdminDashboard() {
     { title: "Rate Update", desc: "Update shipping rates", link: "/rate-update" },
     { title: "Pincode Management", desc: "Manage service pincodes", link: "/pincode" },
     { title: "User Management", desc: "Add and manage users", link: "/user-add" },
-    { title: "BA & B2B Rate Calculator", desc: "Calculate BA & B2B shipment rates", link: "/ba-b2b-rate" } // ✅ नया option
+    { title: "BA & B2B Rate Calculator", desc: "Calculate BA & B2B shipment rates", link: "/ba-b2b-rate" },
+
+    // ✅ NEW OPTIONS (FIXED)
+    { title: "Create Order", desc: "Create new shipment order", link: "/create-order" },
+    { title: "Shipment Details", desc: "View and track shipments", link: "/shipment-details" }
   ];
 
   return (
@@ -71,7 +75,11 @@ function AdminDashboard() {
           <li onClick={() => goTo("/rate-update")}>🔄 Rate Update</li>
           <li onClick={() => goTo("/pincode")}>📍 Pincode Management</li>
           <li onClick={() => goTo("/user-add")}>👤 User Management</li>
-          <li onClick={() => goTo("/ba-b2b-rate")}>📊 BA & B2B Rate Calculator</li> {/* ✅ नया option */}
+          <li onClick={() => goTo("/ba-b2b-rate")}>📊 BA & B2B Rate Calculator</li>
+
+          {/* ✅ NEW SIDEBAR OPTIONS */}
+          <li onClick={() => goTo("/create-order")}>📝 Create Order</li>
+          <li onClick={() => goTo("/shipment-details")}>📦 Shipment Details</li>
         </ul>
       </aside>
 
