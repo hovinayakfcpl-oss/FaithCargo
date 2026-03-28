@@ -79,8 +79,9 @@ const calculateRate = async () => {
   setResult(null);
 
   let volumetric = 0;
+
   dimensions.forEach(box => {
-    const v = (box.length * box.width * box.height * box.qty) / 4500;
+    const v = (box.length * box.width * box.height * box.qty) / 5000;
     volumetric += Number(v);
   });
 
@@ -107,7 +108,7 @@ const calculateRate = async () => {
     } else {
 
       // =========================
-      // WEIGHT CALCULATION
+      // WEIGHT DISPLAY
       // =========================
       data.volumetric_weight = volumetric.toFixed(2);
 
@@ -120,30 +121,18 @@ const calculateRate = async () => {
       }
 
       // =========================
-      // BASE CHARGES
+      // GST + FOV
       // =========================
-      const fov = 75;
-      const fuel = data.total_charge * 0.15;
       const gst = data.total_charge * 0.18;
+      const fov = 75;
 
-      data.fov_charge = fov.toFixed(2);
-      data.fuel_charge = fuel.toFixed(2);
       data.gst = gst.toFixed(2);
-
-      let total = Number(data.total_charge) + Number(fuel) + Number(fov) + Number(gst);
+      data.fov_charge = fov.toFixed(2);
 
       // =========================
-      // 🔥 ODA CALCULATION (FIXED)
+      // TOTAL
       // =========================
-      let odaCharge = 0;
-
-      if (data.oda) {
-        const perKg = Number(data.chargeable_weight) * 3;
-        odaCharge = Math.max(650, perKg); // ✅ MIN 650 OR 3/kg
-      }
-
-      data.oda_charge = odaCharge.toFixed(2);
-      total += odaCharge;
+      let total = Number(data.total_charge) + Number(gst) + Number(fov);
 
       // =========================
       // COD / ToPay
@@ -163,6 +152,7 @@ const calculateRate = async () => {
       // HANDLING
       // =========================
       let handling = 0;
+
       const totalQty = dimensions.reduce((sum, b) => sum + Number(b.qty), 0);
 
       if (totalQty === 1 && Number(data.chargeable_weight) > 80) {
@@ -180,6 +170,7 @@ const calculateRate = async () => {
 
       setResult(data);
     }
+
   } catch {
     setError("Server Error");
   }

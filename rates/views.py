@@ -118,91 +118,118 @@ def b2b_rate_calculate(request):
         appointment = request.data.get('appointment', False)
         dimensions = request.data.get('dimensions', [])
 
+        # ✅ Pincode Fetch
         origin_obj = Pincode.objects.filter(pincode=str(origin).strip()).first()
         dest_obj = Pincode.objects.filter(pincode=str(destination).strip()).first()
+
         if not origin_obj or not dest_obj:
             return Response({"error": "Invalid Pincode"}, status=404)
 
         from_zone = origin_obj.zone
         to_zone = dest_obj.zone
 
-        # force string comparison for VARCHAR field
-        is_oda_flag = dest_obj.is_oda
+        # =========================
+        # ✅ ODA FLAG (FINAL FIX)
+        # =========================
+        is_oda = bool(dest_obj.is_oda)
+
+        # =========================
+        # WEIGHT CALCULATION
+        # =========================
         volumetric_weight = Decimal("0")
+
         for dim in dimensions:
             l = Decimal(str(dim.get("length", 0)))
             w = Decimal(str(dim.get("width", 0)))
             h = Decimal(str(dim.get("height", 0)))
             qty = Decimal(str(dim.get("qty", 1)))
+
             volumetric_weight += (l * w * h * qty) / Decimal("5000")
 
         chargeable_weight = max(weight, volumetric_weight)
 
+        # =========================
+        # RATE FETCH
+        # =========================
         matrix = RateMatrix.objects.get(from_zone=from_zone, to_zone=to_zone)
         rate_per_kg = Decimal(str(matrix.rate))
 
-        # Freight (main rate charge)
+        # =========================
+        # FREIGHT
+        # =========================
         freight = chargeable_weight * rate_per_kg
 
+        # =========================
+        # FIXED CHARGES
+        # =========================
         docket = Decimal("50")
         fuel = freight * Decimal("0.15")
 
-        # ODA charge
-        # ODA charge
-        is_oda_flag = bool(dest_obj.is_oda)   # सीधे boolean में convert करो
-
+        # =========================
+        # 🔥 ODA CALCULATION (FINAL)
+        # =========================
         oda_charge = Decimal("0")
-        if is_oda_flag:
-            oda_charge = max(Decimal("650"), chargeable_weight * Decimal("3"))
 
-        # Insurance
+        if is_oda:
+            per_kg = chargeable_weight * Decimal("3")
+            oda_charge = max(Decimal("650"), per_kg)
+
+        # =========================
+        # INSURANCE
+        # =========================
         insurance_charge = Decimal("0")
+
         if insurance and invoice_value > 0:
             insurance_charge = invoice_value * Decimal("0.02")
 
-        # Appointment
+        # =========================
+        # APPOINTMENT
+        # =========================
         appointment_charge = Decimal("0")
+
         if appointment:
             appointment_charge = Decimal("100")
 
-        # Total
-        total = freight + docket + fuel + oda_charge + insurance_charge + appointment_charge
-    
+        # =========================
+        # TOTAL (WITHOUT GST)
+        # =========================
+        total = (
+            freight +
+            docket +
+            fuel +
+            oda_charge +
+            insurance_charge +
+            appointment_charge
+        )
+
         return Response({
             "origin": origin,
             "destination": destination,
             "from_zone": from_zone,
             "to_zone": to_zone,
-            "origin_pincode": origin_obj.pincode,                   # ✅ Added
-            "destination_pincode": dest_obj.pincode,                # ✅ Added
+
             "chargeable_weight": float(round(chargeable_weight, 2)),
             "rate_per_kg": float(rate_per_kg),
 
             "freight_charge": float(round(freight, 2)),
-            "oda_charge": float(round(oda_charge, 2)),
-            "fuel_charge": float(round(fuel, 2)),
             "docket_charge": float(round(docket, 2)),
+            "fuel_charge": float(round(fuel, 2)),
+            "oda_charge": float(round(oda_charge, 2)),
             "insurance_charge": float(round(insurance_charge, 2)),
             "appointment_charge": float(round(appointment_charge, 2)),
 
             "total_charge": float(round(total, 2)),
 
-            "oda": is_oda_flag,
-            "oda_charge": float(round(oda_charge, 2)),
+            # ✅ IMPORTANT
+            "oda": is_oda
         })
 
     except Pincode.DoesNotExist:
         return Response({"error": "Invalid Pincode"}, status=404)
+
     except RateMatrix.DoesNotExist:
         return Response({"error": "Rate Matrix not found"}, status=404)
-    except Exception as e:
-        return Response({"error": str(e)}, status=400)
 
-
-    except Pincode.DoesNotExist:
-        return Response({"error": "Invalid Pincode"}, status=404)
-    except RateMatrix.DoesNotExist:
-        return Response({"error": "Rate Matrix not found"}, status=404)
     except Exception as e:
         return Response({"error": str(e)}, status=400)
 
