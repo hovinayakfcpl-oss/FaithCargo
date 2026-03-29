@@ -387,12 +387,12 @@ Charges Bifurcation ↓
 <span>₹ {result.freight_charge} ({result.rate_per_kg}/Kg)</span>
 </div>
 
-<div className="charge-row">
-  <span>ODA Charge (3₹/KG)</span>
-<span>
-  ₹ {result.oda_charge || 0}
-</span>
-</div>
+{result.is_oda && (
+  <div className="charge-row">
+    <span>ODA Charge (3₹/KG)</span>
+    <span>₹ {result.oda_charge}</span>
+  </div>
+)}
 
 
 <div className="charge-row">
