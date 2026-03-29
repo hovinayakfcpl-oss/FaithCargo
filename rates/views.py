@@ -165,24 +165,28 @@ def b2b_rate_calculate(request):
         total = freight + docket + fuel + oda_charge + insurance_charge + appointment_charge
 
         return Response({
-            "from_zone": from_zone,
-            "to_zone": to_zone,
+    "from_zone": from_zone,
+    "to_zone": to_zone,
 
-            "chargeable_weight": float(round(chargeable_weight, 2)),
-            "rate_per_kg": float(rate_per_kg),
+    "chargeable_weight": float(round(chargeable_weight, 2)),
+    "rate_per_kg": float(rate_per_kg),
 
-            "freight_charge": float(round(freight, 2)),
-            "docket_charge": float(round(docket, 2)),
-            "fuel_charge": float(round(fuel, 2)),
+    "freight_charge": float(round(freight, 2)),
+    "docket_charge": float(round(docket, 2)),
+    "fuel_charge": float(round(fuel, 2)),
 
-            "oda": is_oda,
-            "oda_charge": float(round(oda_charge, 2)),
+    # 🔥 FIX HERE
+    "oda": is_oda,
+    "oda_charge": float(round(oda_charge, 2)),
 
-            "insurance_charge": float(round(insurance_charge, 2)),
-            "appointment_charge": float(round(appointment_charge, 2)),
+    # EXTRA SAFETY
+    "is_oda": is_oda,
 
-            "total_charge": float(round(total, 2))
-        })
+    "insurance_charge": float(round(insurance_charge, 2)),
+    "appointment_charge": float(round(appointment_charge, 2)),
+
+    "total_charge": float(round(total, 2))
+})
 
     except Exception as e:
         return Response({"error": str(e)}, status=400)
