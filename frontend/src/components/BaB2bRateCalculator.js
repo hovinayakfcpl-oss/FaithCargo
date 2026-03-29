@@ -103,9 +103,18 @@ const calculateRate = async () => {
 
     const data = await res.json();
 
-    if (data.error) {
-      setError(data.error);
-    } else {
+  if (data.error) {
+    setError(data.error);
+  } else {
+
+  // 🔥 DEBUG LOG YAHAN ADD KAR
+  console.log("===== API RESPONSE START =====");
+  console.log("FULL DATA:", data);
+  console.log("ODA FLAG:", data.oda);
+  console.log("ODA CHARGE:", data.oda_charge);
+  console.log("TOTAL:", data.total_charge);
+  console.log("DEST:", form.destination);
+  console.log("===== API RESPONSE END =====");
 
       // =========================
       // WEIGHT DISPLAY
@@ -387,6 +396,12 @@ Charges Bifurcation ↓
 <span>₹ {result.freight_charge} ({result.rate_per_kg}/Kg)</span>
 </div>
 
+{result.oda && (
+  <div className="charge-row">
+    <span>ODA Charge (3₹/KG)</span>
+    <span>₹ {result.oda_charge}</span>
+  </div>
+)}
 
 
 
@@ -432,14 +447,6 @@ Enter shipment details and click Calculate
 </p>
 
 )}
-console.log("===== API RESPONSE START =====");
-console.log("FULL DATA:", data);
-console.log("ODA FLAG:", data.oda);
-console.log("ODA CHARGE:", data.oda_charge);
-console.log("TOTAL:", data.total_charge);
-console.log("DEST:", form.destination);
-console.log("===== API RESPONSE END =====");
-{error && <p className="error">{error}</p>}
 
 </div>
 

@@ -12,9 +12,8 @@ import json
 
 
 # =====================================================
-# FCPL RATE CALCULATOR
+# FCPL RATE CALCULATOR (FIXED)
 # =====================================================
-
 @api_view(['POST'])
 def fcpl_rate_calculate(request):
     try:
@@ -27,7 +26,6 @@ def fcpl_rate_calculate(request):
 
         insurance = request.data.get('insurance', False)
         appointment = request.data.get('appointment', False)
-
         dimensions = request.data.get('dimensions', [])
 
         origin_obj = Pincode.objects.filter(pincode=str(origin).strip()).first()
@@ -37,17 +35,9 @@ def fcpl_rate_calculate(request):
             return Response({"error": "Invalid Pincode"}, status=404)
 
         zone = dest_obj.zone
-        # 🔥 FINAL ODA FIX
-        oda_charge = Decimal("0")
+        is_oda = dest_obj.is_oda   # ✅ direct boolean
 
-        # SAFE ODA CHECK
-        raw_oda = dest_obj.is_oda
-        is_oda = str(raw_oda).strip().lower() in ["true", "t", "1", "yes"]
-
-        if is_oda:
-             per_kg_charge = chargeable_weight * Decimal("3")
-             oda_charge = max(Decimal("650"), per_kg_charge)
-
+        # ✅ WEIGHT CALCULATION FIRST
         volumetric_weight = Decimal("0")
 
         for dim in dimensions:
@@ -60,6 +50,7 @@ def fcpl_rate_calculate(request):
 
         chargeable_weight = max(weight, volumetric_weight)
 
+        # ✅ RATE
         rate = RateCard.objects.get(
             rate_type="fcpl",
             zone=zone,
@@ -67,18 +58,20 @@ def fcpl_rate_calculate(request):
         )
 
         base_charge = chargeable_weight * rate.per_kg_rate
-
         docket = rate.docket_charge
         fuel = base_charge * (rate.fuel_charge / Decimal("100"))
 
+        # ✅ ODA FIX (NO OVERWRITE)
         oda_charge = Decimal("0")
         if is_oda:
-            oda_charge = rate.oda_charge  # FCPL fixed ODA
+            oda_charge = rate.oda_charge
 
+        # ✅ INSURANCE
         insurance_charge = Decimal("0")
         if insurance and invoice_value > 0:
             insurance_charge = invoice_value * (rate.insurance_percent / Decimal("100"))
 
+        # ✅ APPOINTMENT
         appointment_charge = Decimal("0")
         if appointment:
             appointment_charge = rate.appointment_charge
@@ -107,9 +100,8 @@ def fcpl_rate_calculate(request):
 
 
 # =====================================================
-# BA / B2B RATE CALCULATOR
+# B2B RATE CALCULATOR (FIXED)
 # =====================================================
-
 @api_view(['POST'])
 def b2b_rate_calculate(request):
     try:
@@ -132,9 +124,9 @@ def b2b_rate_calculate(request):
         from_zone = origin_obj.zone
         to_zone = dest_obj.zone
 
-        is_oda = bool(dest_obj.is_oda)
+        is_oda = dest_obj.is_oda   # ✅ direct boolean
 
-        # Weight
+        # ✅ WEIGHT
         volumetric_weight = Decimal("0")
         for dim in dimensions:
             l = Decimal(str(dim.get("length", 0)))
@@ -146,24 +138,26 @@ def b2b_rate_calculate(request):
 
         chargeable_weight = max(weight, volumetric_weight)
 
+        # ✅ RATE
         matrix = RateMatrix.objects.get(from_zone=from_zone, to_zone=to_zone)
         rate_per_kg = Decimal(str(matrix.rate))
 
         freight = chargeable_weight * rate_per_kg
-
         docket = Decimal("50")
         fuel = freight * Decimal("0.15")
 
-        # 🔥 FINAL ODA FIX
+        # ✅ ODA FIX
         oda_charge = Decimal("0")
         if is_oda:
             per_kg_charge = chargeable_weight * Decimal("3")
             oda_charge = max(Decimal("650"), per_kg_charge)
 
+        # ✅ INSURANCE
         insurance_charge = Decimal("0")
         if insurance and invoice_value > 0:
             insurance_charge = invoice_value * Decimal("0.02")
 
+        # ✅ APPOINTMENT
         appointment_charge = Decimal("0")
         if appointment:
             appointment_charge = Decimal("100")
@@ -184,7 +178,6 @@ def b2b_rate_calculate(request):
             "oda": is_oda,
             "oda_charge": float(round(oda_charge, 2)),
 
-
             "insurance_charge": float(round(insurance_charge, 2)),
             "appointment_charge": float(round(appointment_charge, 2)),
 
@@ -198,7 +191,6 @@ def b2b_rate_calculate(request):
 # =====================================================
 # VENDOR RATE CALCULATOR
 # =====================================================
-
 @api_view(['POST'])
 def vendor_rate_calculate(request):
     try:
@@ -224,7 +216,6 @@ def vendor_rate_calculate(request):
 # =====================================================
 # MATRIX GET
 # =====================================================
-
 def get_matrix(request):
     matrix = RateMatrix.objects.all()
     data = []
@@ -242,7 +233,6 @@ def get_matrix(request):
 # =====================================================
 # MATRIX UPDATE
 # =====================================================
-
 @csrf_exempt
 def update_matrix(request):
     if request.method == "POST":
@@ -263,7 +253,6 @@ def update_matrix(request):
 # =====================================================
 # EXCEL UPLOAD
 # =====================================================
-
 @csrf_exempt
 def upload_matrix_excel(request):
     if request.method == "POST":
