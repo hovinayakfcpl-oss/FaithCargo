@@ -172,8 +172,9 @@ def b2b_rate_calculate(request):
             "docket_charge": float(round(docket, 2)),
             "fuel_charge": float(round(fuel, 2)),
 
+            "oda": is_oda,
             "oda_charge": float(round(oda_charge, 2)),
-            "is_oda": is_oda,
+
 
             "insurance_charge": float(round(insurance_charge, 2)),
             "appointment_charge": float(round(appointment_charge, 2)),
