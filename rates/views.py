@@ -37,7 +37,16 @@ def fcpl_rate_calculate(request):
             return Response({"error": "Invalid Pincode"}, status=404)
 
         zone = dest_obj.zone
-        is_oda = bool(dest_obj.is_oda)
+        # 🔥 FINAL ODA FIX
+        oda_charge = Decimal("0")
+
+        # SAFE ODA CHECK
+        raw_oda = dest_obj.is_oda
+        is_oda = str(raw_oda).strip().lower() in ["true", "t", "1", "yes"]
+
+        if is_oda:
+             per_kg_charge = chargeable_weight * Decimal("3")
+             oda_charge = max(Decimal("650"), per_kg_charge)
 
         volumetric_weight = Decimal("0")
 
