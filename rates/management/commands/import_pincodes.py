@@ -9,26 +9,23 @@ class Command(BaseCommand):
         csv_file = "new_pincode.csv"
         self.stdout.write(f"📂 Loading Pincodes from: {csv_file}")
 
+        # Purge old records
+        def get_pins():
+            return Pincode.objects.all()
+
         pincodes = []
-        # ✅ Use comma delimiter (your CSV is comma-separated)
+        # Use tab delimiter
         with open(csv_file, newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f, delimiter=",")
+            reader = csv.DictReader(f, delimiter="\t")
             self.stdout.write(f"👉 CSV Headers detected: {reader.fieldnames}")  # Debug
 
             for row in reader:
-                # ✅ Clean pincode (remove commas if any)
-                pin = str(row["pincode"]).replace(",", "").strip()
-
-                # ✅ Safe boolean conversion
-                val = str(row["is_oda"]).strip().lower()
-                is_oda = val in ["true", "1", "yes", "y"]
-
                 pincodes.append(Pincode(
-                    pincode=pin,
-                    city=row["city"].strip(),
-                    state=row["state"].strip(),
-                    zone=row["zone"].strip(),
-                    is_oda=is_oda
+                    pincode=row["Pincode"].strip(),
+                    city=row["City"].strip(),
+                    state=row["State"].strip(),
+                    zone=row["Zone"].strip(),
+                    is_oda=row["is_oda"].strip().lower() in ["true", "1", "yes", "no"]
                 ))
 
         Pincode.objects.bulk_create(pincodes, ignore_conflicts=True)
