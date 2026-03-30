@@ -191,6 +191,7 @@ def b2b_rate_calculate(request):
     except Exception as e:
         return Response({"error": str(e)}, status=400)
 
+    print("DEBUG ODA:", is_oda, chargeable_weight, oda_charge)
 
 # =====================================================
 # VENDOR RATE CALCULATOR
