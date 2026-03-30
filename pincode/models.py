@@ -68,7 +68,7 @@ class Charges(models.Model):
 
     cft = models.DecimalField(max_digits=10, decimal_places=2, default=4500)
 
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
 
     class Meta:
         db_table = "charges"

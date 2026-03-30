@@ -47,7 +47,7 @@ class RateCard(models.Model):
     weight_min = models.IntegerField(default=0)
     weight_max = models.IntegerField(default=0)
 
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
 
     def __str__(self):
         return f"{self.rate_type.upper()} | {self.zone} - {self.payment_mode} ({self.weight_min}-{self.weight_max} Kg)"
