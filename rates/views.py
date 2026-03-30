@@ -12,13 +12,14 @@ import json
 
 
 # =====================================================
-# FCPL RATE CALCULATOR (FIXED)
+# FCPL RATE CALCULATOR
 # =====================================================
 @api_view(['POST'])
 def fcpl_rate_calculate(request):
     try:
-        origin = request.data.get('origin')
-        destination = request.data.get('destination')
+        # ✅ CLEAN PINCODE INPUT
+        origin = str(request.data.get('origin')).replace(",", "").strip()
+        destination = str(request.data.get('destination')).replace(",", "").strip()
         payment_mode = request.data.get('paymentMode')
 
         weight = Decimal(str(request.data.get('weight', 0)))
@@ -28,29 +29,27 @@ def fcpl_rate_calculate(request):
         appointment = request.data.get('appointment', False)
         dimensions = request.data.get('dimensions', [])
 
-        origin_obj = Pincode.objects.filter(pincode=str(origin).strip()).first()
-        dest_obj = Pincode.objects.filter(pincode=str(destination).strip()).first()
+        origin_obj = Pincode.objects.filter(pincode=origin).first()
+        dest_obj = Pincode.objects.filter(pincode=destination).first()
 
         if not origin_obj or not dest_obj:
             return Response({"error": "Invalid Pincode"}, status=404)
 
         zone = dest_obj.zone
-        is_oda = dest_obj.is_oda   # ✅ direct boolean
+        is_oda = bool(dest_obj.is_oda)
 
-        # ✅ WEIGHT CALCULATION FIRST
+        # ✅ WEIGHT CALCULATION
         volumetric_weight = Decimal("0")
-
         for dim in dimensions:
             l = Decimal(str(dim.get("length", 0)))
             w = Decimal(str(dim.get("width", 0)))
             h = Decimal(str(dim.get("height", 0)))
             qty = Decimal(str(dim.get("qty", 1)))
-
             volumetric_weight += (l * w * h * qty) / Decimal("5000")
 
         chargeable_weight = max(weight, volumetric_weight)
 
-        # ✅ RATE
+        # ✅ RATE FETCH
         rate = RateCard.objects.get(
             rate_type="fcpl",
             zone=zone,
@@ -61,7 +60,7 @@ def fcpl_rate_calculate(request):
         docket = rate.docket_charge
         fuel = base_charge * (rate.fuel_charge / Decimal("100"))
 
-        # ✅ ODA FIX (NO OVERWRITE)
+        # ✅ ODA
         oda_charge = Decimal("0")
         if is_oda:
             oda_charge = rate.oda_charge
@@ -100,13 +99,14 @@ def fcpl_rate_calculate(request):
 
 
 # =====================================================
-# B2B RATE CALCULATOR (FIXED)
+# B2B RATE CALCULATOR
 # =====================================================
 @api_view(['POST'])
 def b2b_rate_calculate(request):
     try:
-        origin = request.data.get('origin')
-        destination = request.data.get('destination')
+        # ✅ CLEAN PINCODE INPUT (IMPORTANT FIX)
+        origin = str(request.data.get('origin')).replace(",", "").strip()
+        destination = str(request.data.get('destination')).replace(",", "").strip()
 
         weight = Decimal(str(request.data.get('weight', 0)))
         invoice_value = Decimal(str(request.data.get('invoiceValue', 0)))
@@ -115,8 +115,8 @@ def b2b_rate_calculate(request):
         appointment = request.data.get('appointment', False)
         dimensions = request.data.get('dimensions', [])
 
-        origin_obj = Pincode.objects.filter(pincode=str(origin).strip()).first()
-        dest_obj = Pincode.objects.filter(pincode=str(destination).strip()).first()
+        origin_obj = Pincode.objects.filter(pincode=origin).first()
+        dest_obj = Pincode.objects.filter(pincode=destination).first()
 
         if not origin_obj or not dest_obj:
             return Response({"error": "Invalid Pincode"}, status=404)
@@ -124,7 +124,7 @@ def b2b_rate_calculate(request):
         from_zone = origin_obj.zone
         to_zone = dest_obj.zone
 
-        is_oda = dest_obj.is_oda   # ✅ direct boolean
+        is_oda = bool(dest_obj.is_oda)
 
         # ✅ WEIGHT
         volumetric_weight = Decimal("0")
@@ -133,7 +133,6 @@ def b2b_rate_calculate(request):
             w = Decimal(str(dim.get("width", 0)))
             h = Decimal(str(dim.get("height", 0)))
             qty = Decimal(str(dim.get("qty", 1)))
-
             volumetric_weight += (l * w * h * qty) / Decimal("5000")
 
         chargeable_weight = max(weight, volumetric_weight)
@@ -146,7 +145,7 @@ def b2b_rate_calculate(request):
         docket = Decimal("50")
         fuel = freight * Decimal("0.15")
 
-        # ✅ ODA FIX
+        # ✅ ODA FINAL
         oda_charge = Decimal("0")
         if is_oda:
             per_kg_charge = chargeable_weight * Decimal("3")
@@ -164,34 +163,38 @@ def b2b_rate_calculate(request):
 
         total = freight + docket + fuel + oda_charge + insurance_charge + appointment_charge
 
+        # ✅ DEBUG (NOW WORKING)
+        print("DEBUG:", {
+            "origin": origin,
+            "destination": destination,
+            "is_oda": is_oda,
+            "weight": float(chargeable_weight),
+            "oda_charge": float(oda_charge)
+        })
+
         return Response({
-    "from_zone": from_zone,
-    "to_zone": to_zone,
+            "from_zone": from_zone,
+            "to_zone": to_zone,
 
-    "chargeable_weight": float(round(chargeable_weight, 2)),
-    "rate_per_kg": float(rate_per_kg),
+            "chargeable_weight": float(round(chargeable_weight, 2)),
+            "rate_per_kg": float(rate_per_kg),
 
-    "freight_charge": float(round(freight, 2)),
-    "docket_charge": float(round(docket, 2)),
-    "fuel_charge": float(round(fuel, 2)),
+            "freight_charge": float(round(freight, 2)),
+            "docket_charge": float(round(docket, 2)),
+            "fuel_charge": float(round(fuel, 2)),
 
-    # 🔥 FIX HERE
-    "oda": is_oda,
-    "oda_charge": float(round(oda_charge, 2)),
+            "oda_charge": float(round(oda_charge, 2)),
+            "is_oda": is_oda,
 
-    # EXTRA SAFETY
-    "is_oda": is_oda,
+            "insurance_charge": float(round(insurance_charge, 2)),
+            "appointment_charge": float(round(appointment_charge, 2)),
 
-    "insurance_charge": float(round(insurance_charge, 2)),
-    "appointment_charge": float(round(appointment_charge, 2)),
-
-    "total_charge": float(round(total, 2))
-})
+            "total_charge": float(round(total, 2))
+        })
 
     except Exception as e:
         return Response({"error": str(e)}, status=400)
 
-    print("DEBUG ODA:", is_oda, chargeable_weight, oda_charge)
 
 # =====================================================
 # VENDOR RATE CALCULATOR

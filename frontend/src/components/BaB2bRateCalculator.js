@@ -176,7 +176,13 @@ const calculateRate = async () => {
       // FINAL TOTAL
       // =========================
       data.total_with_gst = total.toFixed(2);
+      if (data.error) {
+      setError(data.error);
+      setResult(null);
+      return;
+    }
 
+      data.is_oda = data.is_oda ?? data.oda;
       setResult(data);
     }
 
@@ -390,7 +396,7 @@ Charges Bifurcation ↓
 <span>Rate / Kg</span>
 <span>₹ {result.rate_per_kg}</span>
 </div>
-{result.oda && (
+{result.is_oda && (
   <div className="charge-row">
     <span>ODA Charge (3₹/KG)</span>
     <span>₹ {result.oda_charge}</span>
