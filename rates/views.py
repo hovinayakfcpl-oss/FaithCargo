@@ -124,7 +124,12 @@ def b2b_rate_calculate(request):
         from_zone = origin_obj.zone
         to_zone = dest_obj.zone
 
-        is_oda = bool(dest_obj.is_oda)
+        is_oda = False
+
+        if origin_obj and origin_obj.is_oda:
+            is_oda = True
+        elif dest_obj and dest_obj.is_oda:
+            is_oda = True
 
         # ✅ WEIGHT
         volumetric_weight = Decimal("0")

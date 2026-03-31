@@ -396,12 +396,9 @@ Charges Bifurcation ↓
 <span>Rate / Kg</span>
 <span>₹ {result.rate_per_kg}</span>
 </div>
-{result.is_oda && (
-  <div className="charge-row">
-    <span>ODA Charge (3₹/KG)</span>
-    <span>₹ {result.oda_charge}</span>
-  </div>
-)}
+<span>
+  ODA Charge ({result.chargeable_weight} × 3₹ / min 650)
+</span>
 
 <div className="charge-row">
 <span>Rate Charge</span>
