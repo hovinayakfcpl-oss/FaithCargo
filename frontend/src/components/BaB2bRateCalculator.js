@@ -182,8 +182,13 @@ const calculateRate = async () => {
       return;
     }
 
-      data.is_oda = data.is_oda ?? data.oda;
-      setResult(data);
+      if (data.error) {
+        setError(data.error);
+         return;
+  }
+
+// ensure boolean
+      data.is_oda = Boolean(data.is_oda);
     }
 
   } catch {
@@ -396,9 +401,14 @@ Charges Bifurcation ↓
 <span>Rate / Kg</span>
 <span>₹ {result.rate_per_kg}</span>
 </div>
-<span>
-  ODA Charge ({result.chargeable_weight} × 3₹ / min 650)
-</span>
+{result.is_oda && (
+  <div className="charge-row">
+    <span>
+      ODA Charge ({result.chargeable_weight} × 3₹ / min 650)
+    </span>
+    <span>₹ {result.oda_charge}</span>
+  </div>
+)}
 
 <div className="charge-row">
 <span>Rate Charge</span>
