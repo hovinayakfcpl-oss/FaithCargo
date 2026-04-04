@@ -17,7 +17,6 @@ import json
 @api_view(['POST'])
 def fcpl_rate_calculate(request):
     try:
-        # ✅ CLEAN PINCODE INPUT
         origin = str(request.data.get('origin')).replace(",", "").strip()
         destination = str(request.data.get('destination')).replace(",", "").strip()
         payment_mode = request.data.get('paymentMode')
@@ -36,20 +35,32 @@ def fcpl_rate_calculate(request):
             return Response({"error": "Invalid Pincode"}, status=404)
 
         zone = dest_obj.zone
-        is_oda = bool(dest_obj.is_oda)
 
-        # ✅ WEIGHT CALCULATION
+        # ✅ ODA FIX (IMPORTANT)
+        is_oda = False
+        if origin_obj.is_oda or dest_obj.is_oda:
+            is_oda = True
+
+        # =========================
+        # WEIGHT
+        # =========================
         volumetric_weight = Decimal("0")
+        total_qty = 0
+
         for dim in dimensions:
             l = Decimal(str(dim.get("length", 0)))
             w = Decimal(str(dim.get("width", 0)))
             h = Decimal(str(dim.get("height", 0)))
             qty = Decimal(str(dim.get("qty", 1)))
+
             volumetric_weight += (l * w * h * qty) / Decimal("5000")
+            total_qty += qty
 
         chargeable_weight = max(weight, volumetric_weight)
 
-        # ✅ RATE FETCH
+        # =========================
+        # RATE
+        # =========================
         rate = RateCard.objects.get(
             rate_type="fcpl",
             zone=zone,
@@ -60,25 +71,48 @@ def fcpl_rate_calculate(request):
         docket = rate.docket_charge
         fuel = base_charge * (rate.fuel_charge / Decimal("100"))
 
-        # ✅ ODA
+        # =========================
+        # ✅ ODA NEW LOGIC
+        # =========================
         oda_charge = Decimal("0")
-        if is_oda:
-            oda_charge = rate.oda_charge
 
-        # ✅ INSURANCE
+        if is_oda:
+            per_kg = chargeable_weight * Decimal("3")
+            oda_charge = max(Decimal("650"), per_kg)
+
+        # =========================
+        # INSURANCE
+        # =========================
         insurance_charge = Decimal("0")
         if insurance and invoice_value > 0:
             insurance_charge = invoice_value * (rate.insurance_percent / Decimal("100"))
 
-        # ✅ APPOINTMENT
+        # =========================
+        # APPOINTMENT
+        # =========================
         appointment_charge = Decimal("0")
         if appointment:
             appointment_charge = rate.appointment_charge
 
+        # =========================
+        # TOTAL
+        # =========================
         total = base_charge + docket + fuel + oda_charge + insurance_charge + appointment_charge
+
+        # =========================
+        # DEBUG (IMPORTANT)
+        # =========================
+        print("FCPL DEBUG:", {
+            "origin": origin,
+            "destination": destination,
+            "is_oda": is_oda,
+            "chargeable_weight": float(chargeable_weight),
+            "oda_charge": float(oda_charge)
+        })
 
         return Response({
             "zone": zone,
+
             "chargeable_weight": float(round(chargeable_weight, 2)),
 
             "freight_charge": float(round(base_charge, 2)),

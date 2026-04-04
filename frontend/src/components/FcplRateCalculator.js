@@ -11,15 +11,16 @@ function FcplRateCalculator() {
     paymentMode: "Prepaid",
     weight: "",
     invoiceValue: "",
+    codAmount: "",
     insurance: false,
     appointment: false,
-    dimensions: [{ length: "", width: "", height: "", qty: "" }],
+    dimensions: [{ length: "", width: "", height: "", qty: 1 }],
   });
 
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Handle normal input change
+  // INPUT
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
@@ -28,76 +29,118 @@ function FcplRateCalculator() {
     });
   };
 
-  // 🔹 Handle dimension change
+  // DIMENSION
   const handleDimensionChange = (index, e) => {
     const { name, value } = e.target;
-    const newDimensions = [...formData.dimensions];
-    newDimensions[index][name] = value;
-    setFormData({ ...formData, dimensions: newDimensions });
+    const newDims = [...formData.dimensions];
+    newDims[index][name] = value;
+    setFormData({ ...formData, dimensions: newDims });
   };
 
-  // 🔹 Add dimension row
-  const addDimensionSet = () => {
-    setFormData({
-      ...formData,
-      dimensions: [
-        ...formData.dimensions,
-        { length: "", width: "", height: "", qty: "" },
-      ],
-    });
-  };
-
-  // 🔹 Remove dimension row
-  const removeDimensionSet = (index) => {
-    const newDimensions = formData.dimensions.filter((_, i) => i !== index);
-    setFormData({ ...formData, dimensions: newDimensions });
-  };
-
-  // 🔹 Calculate Rate (always uses latest backend rates)
+  // CALCULATE
   const calculateRate = async () => {
     setLoading(true);
     setResult(null);
 
+    let volumetric = 0;
+    let totalQty = 0;
+
+    formData.dimensions.forEach((box) => {
+      const v =
+        (box.length * box.width * box.height * box.qty) / 5000;
+      volumetric += Number(v);
+      totalQty += Number(box.qty || 0);
+    });
+
     try {
-      const response = await fetch("http://localhost:8000/api/rates/fcpl/calculate/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          weight: parseFloat(formData.weight || 0),
-          invoiceValue: parseFloat(formData.invoiceValue || 0),
-        }),
-      });
+      const res = await fetch(
+        "http://localhost:8000/api/rates/fcpl/calculate/",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...formData,
+            weight: Number(formData.weight),
+            invoiceValue: Number(formData.invoiceValue),
+          }),
+        }
+      );
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Server error occurred");
+      if (!res.ok) {
+        alert(data.error);
+        return;
       }
 
+      // =========================
+      // WEIGHT
+      // =========================
+      data.actual_weight = Number(formData.weight).toFixed(2);
+      data.volumetric_weight = volumetric.toFixed(2);
+
+      const cw = Math.max(Number(formData.weight), volumetric);
+      data.chargeable_weight = cw.toFixed(2);
+
+      // =========================
+      // RATE CALC
+      // =========================
+      data.rate_per_kg = (data.freight_charge / cw).toFixed(2);
+
+      // =========================
+      // ODA
+      // =========================
+      data.is_oda = data.is_oda ?? false;
+      data.oda_charge = data.is_oda
+        ? Math.max(650, cw * 3)
+        : 0;
+
+      // =========================
+      // GST + FOV
+      // =========================
+      const gst = data.total_charge * 0.18;
+      const fov = 75;
+
+      data.gst = gst.toFixed(2);
+      data.fov_charge = fov;
+
+      let total = Number(data.total_charge) + gst + fov;
+
+      // =========================
+      // COD / TOPAY
+      // =========================
+      let codCharge = 0;
+
+      if (formData.paymentMode === "COD") {
+        codCharge = 150;
+      }
+
+      data.cod_charge = codCharge;
+      total += codCharge;
+
+      // =========================
+      // HANDLING
+      // =========================
+      let handling = 0;
+
+      if (totalQty === 1 && cw > 70) {
+        handling = 750;
+      }
+
+      data.handling_charge = handling;
+      total += handling;
+
+      // =========================
+      // FINAL
+      // =========================
+      data.total_final = total.toFixed(2);
+
       setResult(data);
-
-    } catch (error) {
-      console.error("Error calculating rate:", error);
-      alert("Backend API not responding. Please check Django server.");
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      alert("Server Error");
     }
-  };
 
-  // 🔹 Reset Form
-  const resetForm = () => {
-    setFormData({
-      origin: "",
-      destination: "",
-      paymentMode: "Prepaid",
-      weight: "",
-      invoiceValue: "",
-      insurance: false,
-      appointment: false,
-      dimensions: [{ length: "", width: "", height: "", qty: "" }],
-    });
-    setResult(null);
+    setLoading(false);
   };
 
   return (
@@ -106,93 +149,94 @@ function FcplRateCalculator() {
 
       <div className="calculator-layout">
 
-        {/* Form Section */}
+        {/* FORM */}
         <div className="form-section">
-          <div className="form-grid">
-            <label>
-              Origin Pincode *
-              <input type="text" name="origin" value={formData.origin} onChange={handleChange} />
-            </label>
 
-            <label>
-              Destination Pincode *
-              <input type="text" name="destination" value={formData.destination} onChange={handleChange} />
-            </label>
+          <input placeholder="Origin" name="origin" value={formData.origin} onChange={handleChange} />
+          <input placeholder="Destination" name="destination" value={formData.destination} onChange={handleChange} />
 
-            <label>
-              Payment Mode *
-              <select name="paymentMode" value={formData.paymentMode} onChange={handleChange}>
-                <option value="Prepaid">Prepaid</option>
-                <option value="COD">COD</option>
-              </select>
-            </label>
+          <select name="paymentMode" value={formData.paymentMode} onChange={handleChange}>
+            <option>Prepaid</option>
+            <option>COD</option>
+            <option>ToPay</option>
+          </select>
 
-            <label>
-              Approx Weight (Kg) *
-              <input type="number" name="weight" value={formData.weight} onChange={handleChange} />
-            </label>
+          <input type="number" placeholder="Weight" name="weight" value={formData.weight} onChange={handleChange} />
 
-            <label>
-              Invoice Value
-              <input type="number" name="invoiceValue" value={formData.invoiceValue} onChange={handleChange} />
-            </label>
-          </div>
+          {/* COD INPUT ONLY */}
+          {formData.paymentMode === "COD" && (
+            <input
+              type="number"
+              placeholder="COD Amount"
+              name="codAmount"
+              value={formData.codAmount}
+              onChange={handleChange}
+            />
+          )}
 
-          {/* Dimensions */}
           <h4>Dimensions</h4>
-          {formData.dimensions.map((dim, index) => (
-            <div className="dimension-row" key={index}>
-              <input type="number" name="length" placeholder="Length" value={dim.length} onChange={(e) => handleDimensionChange(index, e)} />
-              <input type="number" name="width" placeholder="Width" value={dim.width} onChange={(e) => handleDimensionChange(index, e)} />
-              <input type="number" name="height" placeholder="Height" value={dim.height} onChange={(e) => handleDimensionChange(index, e)} />
-              <input type="number" name="qty" placeholder="Qty" value={dim.qty} onChange={(e) => handleDimensionChange(index, e)} />
-
-              {formData.dimensions.length > 1 && (
-                <button type="button" onClick={() => removeDimensionSet(index)}>❌</button>
-              )}
+          {formData.dimensions.map((dim, i) => (
+            <div key={i} className="dimension-row">
+              <input name="length" placeholder="L" value={dim.length} onChange={(e) => handleDimensionChange(i, e)} />
+              <input name="width" placeholder="W" value={dim.width} onChange={(e) => handleDimensionChange(i, e)} />
+              <input name="height" placeholder="H" value={dim.height} onChange={(e) => handleDimensionChange(i, e)} />
+              <input name="qty" placeholder="Qty" value={dim.qty} onChange={(e) => handleDimensionChange(i, e)} />
             </div>
           ))}
-          <button onClick={addDimensionSet}>+ Add Dimension</button>
 
-          {/* Options */}
-          <div className="options">
-            <label>
-              <input type="checkbox" name="insurance" checked={formData.insurance} onChange={handleChange} />
-              Insurance
-            </label>
-            <label>
-              <input type="checkbox" name="appointment" checked={formData.appointment} onChange={handleChange} />
-              Appointment Delivery
-            </label>
-          </div>
+          <button onClick={calculateRate}>
+            {loading ? "Calculating..." : "Calculate"}
+          </button>
 
-          {/* Buttons */}
-          <div className="buttons">
-            <button onClick={calculateRate} disabled={loading}>
-              {loading ? "Calculating..." : "Calculate"}
-            </button>
-            <button onClick={resetForm}>Reset</button>
-            <button onClick={() => navigate("/admin")}>Back</button>
-          </div>
         </div>
 
-        {/* Result Section */}
+        {/* RESULT */}
         <div className="result-section">
-          {result ? (
-            <div className="result-box">
-              <h3>Calculation Result</h3>
-              <p>Rate: ₹{result.rate}</p>
-              <p>Zone: {result.zone}</p>
-              <p>ODA: {result.is_oda ? "Yes" : "No"}</p>
-              <p>Chargeable Weight: {result.chargeable_weight} Kg</p>
-            </div>
-          ) : (
-            <div className="result-box">
-              <h3>Calculation Result</h3>
-              <p>Enter shipment details and click Calculate</p>
+
+          {result && (
+            <div className="invoice-card">
+
+              <h2>₹ {result.total_final}</h2>
+
+              {result.is_oda && (
+                <div className="oda-alert">⚠️ ODA Location</div>
+              )}
+
+              <table className="charges-table">
+                <tbody>
+
+                  <tr><td>Zone</td><td>{result.zone}</td></tr>
+                  <tr><td>Actual Weight</td><td>{result.actual_weight}</td></tr>
+                  <tr><td>Volumetric Weight</td><td>{result.volumetric_weight}</td></tr>
+                  <tr><td>Chargeable Weight</td><td>{result.chargeable_weight}</td></tr>
+                  <tr><td>Rate / Kg</td><td>{result.rate_per_kg}</td></tr>
+                  <tr><td>Rate Charge</td><td>₹ {result.freight_charge}</td></tr>
+
+                  <tr className="oda-row">
+                    <td>ODA Charge</td>
+                    <td>₹ {result.oda_charge}</td>
+                  </tr>
+
+                  <tr><td>Fuel (15%)</td><td>₹ {result.fuel_charge}</td></tr>
+                  <tr><td>FOV</td><td>₹ {result.fov_charge}</td></tr>
+                  <tr><td>GST</td><td>₹ {result.gst}</td></tr>
+
+                  {formData.paymentMode === "COD" && (
+                    <tr><td>COD Charge</td><td>₹ 150</td></tr>
+                  )}
+
+                  {result.handling_charge > 0 && (
+                    <tr><td>Handling</td><td>₹ {result.handling_charge}</td></tr>
+                  )}
+
+                </tbody>
+              </table>
+
             </div>
           )}
+
         </div>
+
       </div>
     </div>
   );
