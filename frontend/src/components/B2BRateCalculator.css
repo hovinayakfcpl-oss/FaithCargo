@@ -1,232 +1,142 @@
-body{
-  background:#f4f4f4;
-  font-family:Arial;
-}
-
-/* 🔥 MAIN WRAPPER */
-.main-container{
-  width:1200px;
-  margin:auto;
-}
-
-/* 🔥 NEW MAIN CARD */
-.main-card{
-  background:white;
-  padding:20px;
-  border-radius:15px;
-  box-shadow:0 5px 20px rgba(0,0,0,0.1);
+.main{
+background:#ececec;
+padding:20px;
 }
 
 .title{
-  text-align:center;
-  color:#c40000;
-  margin-bottom:10px;
+text-align:center;
+color:#6a1b9a;
+margin-bottom:20px;
 }
 
-.calculator-container{
-  display:flex;
-  gap:10px;
+.container{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:20px;
 }
 
 /* FORM */
 .form-card{
-  flex:2;
-  padding:10px;
+background:white;
+padding:20px;
+border-radius:12px;
+box-shadow:0 4px 10px rgba(0,0,0,0.1);
 }
 
-/* RESULT BIGGER */
-.result-card{
-  flex:1.3;
-}
-
-/* 🔥 TOP INPUT SMALL */
 .row{
-  display:flex;
-  gap:8px;
-  margin-bottom:10px;
-}
-
-.field{
-  flex:1;
-  display:flex;
-  flex-direction:column;
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+margin-bottom:10px;
 }
 
 input,select{
-  padding:5px;
-  border-radius:4px;
-  border:1px solid #ccc;
-  font-size:12px;
+padding:10px;
+border-radius:8px;
+border:1px solid #ccc;
+width:100%;
 }
 
-/* 🔥 INLINE INVOICE + COD */
-.invoice-row-inline{
-  display:flex;
-  gap:10px;
-  margin-bottom:5px;
+.dim-box{
+background:linear-gradient(135deg,#7b1fa2,#512da8);
+padding:15px;
+border-radius:12px;
+color:white;
 }
 
-.invoice-row-inline .field{
-  flex:1;
+.dim-row{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:10px;
+margin-top:10px;
 }
 
-/* OLD (optional safe) */
-.invoice-row{
-  width:200px;
-  margin-bottom:5px;
-  display:flex;
-  flex-direction:column;
-}
-
-/* 🔥 DIMENSION TITLE */
-.dim-title{
-  margin:5px 0;
-  font-size:14px;
-}
-
-/* 🔥 DIMENSION COMPACT */
-.dimension-row{
-  display:flex;
-  gap:5px;
-  margin-bottom:5px;
-}
-
-.dimension-row input{
-  flex:1;
-  padding:5px;
-  font-size:12px;
-}
-
-.dimension-row button{
-  background:red;
-  color:white;
-  border:none;
-  padding:3px 6px;
-  cursor:pointer;
-}
-
-/* 🔥 ADD BUTTON SMALL */
 .add-btn{
-  background:#c40000;
-  color:white;
-  padding:4px 6px;
-  border:none;
-  border-radius:4px;
-  margin-top:6px;
-  font-size:12px;
-  cursor:pointer;
-  width:35%;
+margin-top:10px;
+background:red;
+color:white;
+padding:8px;
+border:none;
+border-radius:6px;
 }
 
-/* CHECKBOX */
-.check{
-  display:flex;
-  gap:20px;
-  margin-top:10px;
-}
-
-/* BUTTONS */
-.button-row{
-  display:flex;
-  gap:10px;
-  margin-top:15px;
+.checkbox-row{
+display:flex;
+justify-content:space-between;
+margin-top:10px;
 }
 
 .calc-btn{
-  background:#2e7d32;
-  color:white;
-  padding:8px 15px;
-  border:none;
-  border-radius:6px;
-  font-size:13px;
+margin-top:15px;
+width:100%;
+background:green;
+color:white;
+padding:12px;
+border:none;
+border-radius:8px;
 }
 
-.reset-btn{
-  background:#888;
-  color:white;
-  padding:8px 15px;
-  border:none;
-  border-radius:6px;
-  font-size:13px;
+/* RESULT */
+.result-card{
+background:white;
+padding:20px;
+border-radius:12px;
 }
 
-/* 🔥 RESULT CARD */
+.result-title{
+text-align:center;
+color:#888;
+margin-bottom:10px;
+}
+
 .rate-card{
-  background:white;
-  border-radius:12px;
-  padding:12px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.15);
-  min-height:440px;
+background:linear-gradient(135deg,#7b1fa2,#3949ab);
+color:white;
+padding:15px;
+border-radius:12px;
 }
 
 .rate-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
 }
 
 .logo{
-  background:#c40000;
-  color:white;
-  width:55px;
-  height:55px;
-  border-radius:70%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:bold;
-  font-size:16px;
+background:white;
+color:black;
+padding:10px;
+border-radius:50%;
 }
 
-.rate-info h3{
-  font-size:18px;
-}
-
-.rate-price h2{
-  margin:0;
-  color:#c40000;
-  font-size:20px;
-}
-
-.rate-price p{
-  font-size:15px;
-}
-
-/* BUTTON */
 .bifurcation-btn{
-  background:#2ea44f;
-  color:white;
-  border:none;
-  padding:8px;
-  width:100%;
-  border-radius:20px;
-  margin:8px 0;
-  font-size:13px;
+margin:10px 0;
+background:green;
+color:white;
+border:none;
+padding:10px;
+width:100%;
+border-radius:20px;
 }
 
-/* 🔥 CHARGES BOX */
-.charges-box{
-  background:#fff5f5;
-  padding:10px;
-  border-radius:10px;
+.details{
+background:#3949ab;
+padding:10px;
+border-radius:10px;
 }
 
-.charge-row{
-  display:flex;
-  justify-content:space-between;
-  padding:4px 0;
-  border-bottom:1px solid #eee;
-  font-size:17px;
+.details .row{
+display:flex;
+justify-content:space-between;
+padding:6px 0;
+border-bottom:1px solid rgba(255,255,255,0.2);
 }
 
-.placeholder{
-  color:#777;
-  text-align:center;
-  margin-top:40px;
+.oda{
+color:yellow;
+font-weight:bold;
 }
 
-.error{
-  color:red;
-  margin-top:10px;
+.total{
+font-weight:bold;
 }
