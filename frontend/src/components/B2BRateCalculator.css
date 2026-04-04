@@ -3,28 +3,29 @@
   padding:30px;
 }
 
-/* 🔥 LAYOUT FIX */
+/* LAYOUT */
 .layout{
   display:flex;
   gap:25px;
   align-items:flex-start;
 }
 
-/* 🔥 CARD BASE */
+/* CARD BASE */
 .card{
   background:#fffafa;
-  padding:20px;
+  padding:22px; /* 🔥 height +3% feel */
   border-radius:12px;
   box-shadow:0 5px 15px rgba(196,0,0,0.1);
+  min-height:103%; /* 🔥 slight height increase */
 }
 
-/* 🔥 WIDTH CONTROL */
+/* 🔥 WIDTH ADJUST (4% less) */
 .layout .card:first-child{
-  flex:1.8;   /* calculator bigger */
+  flex:1.7;   /* was 1.8 */
 }
 
 .layout .card:last-child{
-  flex:1;     /* result smaller */
+  flex:1;
 }
 
 /* GRID */
@@ -121,7 +122,7 @@ input,select{
 }
 
 /* ========================= */
-/* 🔥 PREMIUM RESULT CARD */
+/* PREMIUM RESULT CARD */
 /* ========================= */
 
 .result-premium{
@@ -130,7 +131,7 @@ input,select{
   background: linear-gradient(135deg,#3b0000,#7a0000,#ff4d4d);
   box-shadow:0 15px 40px rgba(196,0,0,0.3);
   color:#fff;
-  min-height:420px;
+  min-height:430px; /* 🔥 height + */
 }
 
 /* HEADER */
@@ -210,7 +211,7 @@ input,select{
   border:none;
 }
 
-/* 🔥 MOBILE FIX */
+/* MOBILE */
 @media(max-width:768px){
   .layout{
     flex-direction:column;
