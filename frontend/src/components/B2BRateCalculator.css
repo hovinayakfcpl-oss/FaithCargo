@@ -3,94 +3,203 @@
   padding:30px;
 }
 
-/* ONLY 2 CARDS */
+/* REMOVE WHITE → LIGHT RED THEME */
+.card{
+  background:#fffafa; /* light red tint */
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 5px 15px rgba(196,0,0,0.1);
+}
+
+/* LAYOUT */
 .layout{
   display:flex;
   gap:20px;
 }
 
-/* CARD */
-.card{
-  background:#fff;
-  padding:20px;
-  border-radius:12px;
-  box-shadow:0 5px 15px rgba(0,0,0,0.1);
-  flex:1;
-}
-
-/* INPUT */
+/* GRID */
 .grid2{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:10px;
+  gap:12px;
   margin-bottom:10px;
 }
 
+/* INPUT */
 input,select{
   padding:10px;
   border-radius:8px;
-  border:1px solid #ddd;
+  border:1px solid #ffcccc;
+  background:#fff5f5;
+  font-size:14px;
 }
 
-/* DIM */
+/* DIMENSION */
 .dim{
-  background:#fff5f5;
+  background:#fff0f0;
   border:1px solid #ff4d4d;
   padding:10px;
   border-radius:10px;
+  margin-top:10px;
 }
 
+.dim h4{
+  color:#c40000;
+  font-size:14px;
+}
+
+/* DIM ROW */
 .dim-row{
   display:flex;
   gap:6px;
   margin-bottom:6px;
+  align-items:center;
 }
 
 .dim-row input{
-  width:60px;
+  width:55px;
+  padding:5px;
+  font-size:12px;
 }
 
+/* ADD BTN SMALL */
 .add-btn{
+  margin-top:6px;
   padding:6px 10px;
   font-size:12px;
   background:#ff4d4d;
   color:white;
   border:none;
   border-radius:6px;
+  cursor:pointer;
 }
 
+/* REMOVE BTN */
 .remove-btn{
-  background:black;
-  color:white;
+  background:#000;
+  color:#fff;
   border:none;
   padding:4px 6px;
-  border-radius:4px;
+  font-size:11px;
+  border-radius:5px;
+  cursor:pointer;
 }
 
-/* RESULT FIX */
-.result-box{
-  background:#000;   /* FINAL FIX */
-  color:#fff;
-  padding:15px;
-  border-radius:10px;
-}
-
-.row{
+/* CHECK */
+.check{
   display:flex;
   justify-content:space-between;
-  margin:5px 0;
+  margin:12px 0;
 }
 
+/* CALCULATE BTN */
 .calc-btn{
   width:100%;
-  background:#2e7d32;
+  background:#c40000;
   color:#fff;
-  padding:10px;
+  padding:12px;
   border:none;
   border-radius:8px;
-  margin-top:10px;
+  cursor:pointer;
 }
 
+/* PLACEHOLDER */
+.placeholder{
+  text-align:center;
+  color:#999;
+}
+
+/* ========================= */
+/* 🔥 PREMIUM RESULT DESIGN */
+/* ========================= */
+
+.result-premium{
+  border-radius:18px;
+  overflow:hidden;
+  background: linear-gradient(135deg,#3b0000,#7a0000,#ff4d4d);
+  box-shadow:0 15px 40px rgba(196,0,0,0.3);
+  color:#fff;
+}
+
+/* HEADER */
+.rp-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px;
+}
+
+/* LOGO */
+.rp-logo{
+  width:55px;
+  height:55px;
+  border-radius:12px;
+  background:#000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+  font-size:14px;
+}
+
+/* INFO */
+.rp-info h3{
+  margin:0;
+  font-size:16px;
+}
+
+.rp-info p{
+  margin:0;
+  font-size:12px;
+  opacity:0.8;
+}
+
+/* PRICE */
+.rp-price{
+  text-align:right;
+  font-size:18px;
+  font-weight:bold;
+}
+
+.rp-price span{
+  display:block;
+  font-size:11px;
+  opacity:0.7;
+}
+
+/* TOGGLE BUTTON */
+.rp-toggle{
+  background:rgba(255,255,255,0.15);
+  padding:10px;
+  text-align:center;
+  cursor:pointer;
+  font-size:13px;
+  transition:0.3s;
+}
+
+.rp-toggle:hover{
+  background:rgba(255,255,255,0.25);
+}
+
+/* BODY */
+.rp-body{
+  padding:15px;
+}
+
+/* ROW */
+.rp-row{
+  display:flex;
+  justify-content:space-between;
+  padding:7px 0;
+  border-bottom:1px solid rgba(255,255,255,0.2);
+  font-size:13px;
+}
+
+.rp-row:last-child{
+  border:none;
+}
+
+/* MOBILE */
 @media(max-width:768px){
   .layout{
     flex-direction:column;

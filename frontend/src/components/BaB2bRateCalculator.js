@@ -20,6 +20,7 @@ const [dimensions,setDimensions] = useState([
 
 const [result,setResult] = useState(null)
 const [loading,setLoading] = useState(false)
+const [show,setShow] = useState(true)
 
 // INPUT
 const handleChange = (e)=>{
@@ -30,7 +31,7 @@ const handleChange = (e)=>{
   })
 }
 
-// DIM
+// DIM CHANGE
 const handleDimChange = (i,e)=>{
   const {name,value} = e.target
   const newDims = [...dimensions]
@@ -38,12 +39,14 @@ const handleDimChange = (i,e)=>{
   setDimensions(newDims)
 }
 
+// ADD BOX
 const addBox = ()=>{
   setDimensions([...dimensions,{qty:1,length:"",width:"",height:""}])
 }
 
-const removeBox = (i)=>{
-  setDimensions(dimensions.filter((_,index)=>index!==i))
+// REMOVE BOX
+const removeBox = (index)=>{
+  setDimensions(dimensions.filter((_,i)=>i!==index))
 }
 
 // CALCULATE
@@ -79,12 +82,17 @@ dimensions:dimensions
 
 const data = await res.json()
 
+if(data.error){
+alert(data.error)
+setLoading(false)
+return
+}
+
 const actual = Number(form.weight)
 const chargeable = Math.max(actual, volumetric)
 
 let total = Number(data.total_charge)
 
-// charges
 const fov = 75
 const docket = 100
 const fuel = total * 0.15
@@ -145,7 +153,7 @@ return(
 
 <div className="layout">
 
-{/* LEFT */}
+{/* LEFT CARD */}
 <div className="card">
 
 <div className="grid2">
@@ -205,28 +213,75 @@ return(
 </div>
 
 {/* RIGHT RESULT */}
-<div className="card result-card">
+<div className="card">
 
 {result ? (
 
-<div className="result-box">
+<div className="result-premium">
 
-<h3>₹ {result.final}</h3>
+{/* HEADER */}
+<div className="rp-header">
+  <div className="rp-logo">FCPL</div>
 
-{result.is_oda && <div className="oda">ODA Location</div>}
+  <div className="rp-info">
+    <h3>FCPL Express</h3>
+    <p>Charged Wt: {result.chargeable} Kg</p>
+  </div>
 
-<div className="row"><span>Actual</span><span>{result.actual}</span></div>
-<div className="row"><span>Volumetric</span><span>{result.volumetric}</span></div>
-<div className="row"><span>Chargeable</span><span>{result.chargeable}</span></div>
+  <div className="rp-price">
+    ₹ {result.final}
+    <span>Total Cost</span>
+  </div>
+</div>
 
-<div className="row"><span>Freight</span><span>{result.freight_charge}</span></div>
-<div className="row"><span>Fuel</span><span>{result.fuel_charge}</span></div>
-<div className="row"><span>GST</span><span>{result.gst}</span></div>
+{/* TOGGLE */}
+<div className="rp-toggle" onClick={()=>setShow(!show)}>
+  Charges Breakdown {show ? "▲" : "▼"}
+</div>
+
+{/* BODY */}
+{show && (
+<div className="rp-body">
+
+<div className="rp-row"><span>Zone</span><span>{result.from_zone} → {result.to_zone}</span></div>
+<div className="rp-row"><span>Actual</span><span>{result.actual} Kg</span></div>
+<div className="rp-row"><span>Volumetric</span><span>{result.volumetric} Kg</span></div>
+
+<div className="rp-row"><span>Freight</span><span>₹ {result.freight_charge}</span></div>
+<div className="rp-row"><span>Docket</span><span>₹ 100</span></div>
+<div className="rp-row"><span>Fuel</span><span>₹ {result.fuel_charge}</span></div>
+
+{result.is_oda && (
+<div className="rp-row"><span>ODA</span><span>₹ {result.oda_charge}</span></div>
+)}
+
+{form.insurance && (
+<div className="rp-row"><span>Insurance</span><span>₹ {result.insurance}</span></div>
+)}
+
+{form.appointment && (
+<div className="rp-row"><span>Appointment</span><span>₹ {result.appointment}</span></div>
+)}
+
+<div className="rp-row"><span>FOV</span><span>₹ 75</span></div>
+
+{result.cod > 0 && (
+<div className="rp-row"><span>COD</span><span>₹ 150</span></div>
+)}
+
+{result.handling > 0 && (
+<div className="rp-row"><span>Handling</span><span>₹ 750</span></div>
+)}
+
+<div className="rp-row"><span>GST</span><span>₹ {result.gst}</span></div>
+
+</div>
+)}
 
 </div>
 
 ) : (
-<p className="placeholder">Fill details</p>
+<p className="placeholder">Fill Details and Check Rate</p>
 )}
 
 </div>
