@@ -54,7 +54,7 @@ function FcplRateCalculator() {
 
     try {
       const res = await fetch(
-        "http://localhost:8000/api/rates/fcpl/calculate/",
+        "https://faithcargo.onrender.com/api/rates/fcpl/calculate/",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
