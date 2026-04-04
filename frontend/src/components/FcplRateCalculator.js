@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./FCPLRateCalculator.css";
 
 function FcplRateCalculator() {
-  // eslint-disable-next-line no-unused-vars
-  navigate("/success");
+  const navigate = useNavigate(); // ✅ correct use
 
   const [formData, setFormData] = useState({
     origin: "",
@@ -74,37 +73,27 @@ function FcplRateCalculator() {
 
       const data = await res.json();
 
-      console.log("🔥 FULL API RESPONSE:", data);
-
       if (!res.ok) {
         alert(data.error);
         return;
       }
 
-      // =========================
       // WEIGHT
-      // =========================
       data.actual_weight = Number(formData.weight).toFixed(2);
       data.volumetric_weight = volumetric.toFixed(2);
 
       const cw = Math.max(Number(formData.weight), volumetric);
       data.chargeable_weight = cw.toFixed(2);
 
-      // =========================
-      // RATE PER KG SAFE
-      // =========================
+      // RATE PER KG
       data.rate_per_kg =
         cw > 0 ? (data.freight_charge / cw).toFixed(2) : "0.00";
 
-      // =========================
-      // ✅ ODA FIX (backend value use karo)
-      // =========================
+      // ODA
       data.is_oda = data.is_oda ?? false;
       data.oda_charge = Number(data.oda_charge || 0);
 
-      // =========================
       // GST + FOV
-      // =========================
       const gst = Number(data.total_charge) * 0.18;
       const fov = 75;
 
@@ -113,11 +102,8 @@ function FcplRateCalculator() {
 
       let total = Number(data.total_charge) + gst + fov;
 
-      // =========================
       // COD
-      // =========================
       let codCharge = 0;
-
       if (formData.paymentMode === "COD") {
         codCharge = 150;
       }
@@ -125,11 +111,8 @@ function FcplRateCalculator() {
       data.cod_charge = codCharge;
       total += codCharge;
 
-      // =========================
       // HANDLING
-      // =========================
       let handling = 0;
-
       if (totalQty === 1 && cw > 70) {
         handling = 750;
       }
@@ -137,12 +120,14 @@ function FcplRateCalculator() {
       data.handling_charge = handling;
       total += handling;
 
-      // =========================
       // FINAL TOTAL
-      // =========================
       data.total_final = total.toFixed(2);
 
       setResult(data);
+
+      // OPTIONAL redirect
+      // navigate("/success");
+
     } catch (err) {
       console.error(err);
       alert("Server Error");
@@ -171,7 +156,6 @@ function FcplRateCalculator() {
 
           <input type="number" placeholder="Weight" name="weight" value={formData.weight} onChange={handleChange} />
 
-          {/* COD INPUT */}
           {formData.paymentMode === "COD" && (
             <input
               type="number"

@@ -111,14 +111,9 @@ const calculateRate = async () => {
     data.volumetric_weight = volumetric.toFixed(2);
     data.chargeable_weight = Math.max(Number(form.weight), volumetric).toFixed(2);
 
-    // ODA FIX
+    // ODA
     data.is_oda = data.is_oda ?? false;
-    if (data.is_oda) {
-      const cw = Number(data.chargeable_weight || 0);
-      data.oda_charge = Number(data.oda_charge || Math.max(650, cw * 3));
-    } else {
-      data.oda_charge = 0;
-    }
+    data.oda_charge = data.is_oda ? Number(data.oda_charge || 650) : 0;
 
     // GST + FOV
     const gst = Number(data.total_charge) * 0.18;
@@ -176,9 +171,29 @@ return(
 <input name="destination" placeholder="Destination Pincode" value={form.destination} onChange={handleChange}/>
 <input type="number" name="weight" placeholder="Weight" value={form.weight} onChange={handleChange}/>
 
+{/* DIMENSIONS UI */}
+<h4>Dimensions</h4>
+
+{dimensions.map((dim,i)=>(
+<div key={i} className="dim-row">
+<input name="length" placeholder="L" value={dim.length} onChange={(e)=>handleDimChange(i,e)}/>
+<input name="width" placeholder="W" value={dim.width} onChange={(e)=>handleDimChange(i,e)}/>
+<input name="height" placeholder="H" value={dim.height} onChange={(e)=>handleDimChange(i,e)}/>
+<input name="qty" placeholder="Qty" value={dim.qty} onChange={(e)=>handleDimChange(i,e)}/>
+
+<button onClick={()=>removeBox(i)}>❌</button>
+</div>
+))}
+
+<button onClick={addBox}>+ Add Box</button>
+
 <button onClick={calculateRate}>
 {loading ? "Calculating..." : "Calculate"}
 </button>
+
+<button onClick={resetForm}>Reset</button>
+
+{error && <p style={{color:"red"}}>{error}</p>}
 
 </div>
 
@@ -189,81 +204,20 @@ return(
 
 <div className="invoice-card">
 
-{/* HEADER */}
-<div className="invoice-header">
-  <div className="logo">FCPL</div>
+<h2>₹ {result.total_with_gst}</h2>
 
-  <div>
-    <h3>Freight Invoice</h3>
-    <p>{result.from_zone} → {result.to_zone}</p>
-  </div>
+{result.is_oda && <div className="oda-alert">⚠️ ODA Location</div>}
 
-  <div className="total-box">
-    <h2>₹ {result.total_with_gst}</h2>
-    <span>Total</span>
-  </div>
-</div>
-
-{/* ODA ALERT */}
-{result.is_oda && (
-  <div className="oda-alert">
-    ⚠️ ODA Location – Extra Charges Applied
-  </div>
-)}
-
-{/* WEIGHT */}
-<div className="info-row">
-  <div>Actual: {form.weight} Kg</div>
-  <div>Volumetric: {result.volumetric_weight} Kg</div>
-  <div><b>Chargeable: {result.chargeable_weight} Kg</b></div>
-</div>
-
-{/* TABLE */}
-<table className="charges-table">
+<table>
 <tbody>
 
-<tr>
-<td>Freight</td>
-<td>₹ {result.freight_charge}</td>
-</tr>
-
-<tr>
-<td>Docket</td>
-<td>₹ {result.docket_charge}</td>
-</tr>
-
-<tr>
-<td>Fuel</td>
-<td>₹ {result.fuel_charge}</td>
-</tr>
-
-<tr className="oda-row">
-<td>ODA Charge</td>
-<td>₹ {Number(result.oda_charge || 0).toFixed(2)}</td>
-</tr>
-
-<tr>
-<td>FOV</td>
-<td>₹ {result.fov_charge}</td>
-</tr>
-
-<tr>
-<td>GST</td>
-<td>₹ {result.gst}</td>
-</tr>
-
-{(form.paymentMode === "COD" || form.paymentMode === "ToPay") && (
-<tr>
-<td>COD</td>
-<td>₹ {result.cod_charge}</td>
-</tr>
-)}
+<tr><td>Freight</td><td>₹ {result.freight_charge}</td></tr>
+<tr><td>Fuel</td><td>₹ {result.fuel_charge}</td></tr>
+<tr><td>ODA</td><td>₹ {result.oda_charge}</td></tr>
+<tr><td>GST</td><td>₹ {result.gst}</td></tr>
 
 {Number(result.handling_charge) > 0 && (
-<tr>
-<td>Handling</td>
-<td>₹ {result.handling_charge}</td>
-</tr>
+<tr><td>Handling</td><td>₹ {result.handling_charge}</td></tr>
 )}
 
 </tbody>
