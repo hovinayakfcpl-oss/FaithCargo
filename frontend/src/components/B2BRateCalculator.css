@@ -3,18 +3,28 @@
   padding:30px;
 }
 
-/* REMOVE WHITE → LIGHT RED THEME */
+/* 🔥 LAYOUT FIX */
+.layout{
+  display:flex;
+  gap:25px;
+  align-items:flex-start;
+}
+
+/* 🔥 CARD BASE */
 .card{
-  background:#fffafa; /* light red tint */
+  background:#fffafa;
   padding:20px;
   border-radius:12px;
   box-shadow:0 5px 15px rgba(196,0,0,0.1);
 }
 
-/* LAYOUT */
-.layout{
-  display:flex;
-  gap:20px;
+/* 🔥 WIDTH CONTROL */
+.layout .card:first-child{
+  flex:1.8;   /* calculator bigger */
+}
+
+.layout .card:last-child{
+  flex:1;     /* result smaller */
 }
 
 /* GRID */
@@ -62,7 +72,7 @@ input,select{
   font-size:12px;
 }
 
-/* ADD BTN SMALL */
+/* ADD BTN */
 .add-btn{
   margin-top:6px;
   padding:6px 10px;
@@ -101,6 +111,7 @@ input,select{
   border:none;
   border-radius:8px;
   cursor:pointer;
+  font-weight:bold;
 }
 
 /* PLACEHOLDER */
@@ -110,7 +121,7 @@ input,select{
 }
 
 /* ========================= */
-/* 🔥 PREMIUM RESULT DESIGN */
+/* 🔥 PREMIUM RESULT CARD */
 /* ========================= */
 
 .result-premium{
@@ -119,6 +130,7 @@ input,select{
   background: linear-gradient(135deg,#3b0000,#7a0000,#ff4d4d);
   box-shadow:0 15px 40px rgba(196,0,0,0.3);
   color:#fff;
+  min-height:420px;
 }
 
 /* HEADER */
@@ -139,7 +151,6 @@ input,select{
   align-items:center;
   justify-content:center;
   font-weight:bold;
-  font-size:14px;
 }
 
 /* INFO */
@@ -157,7 +168,7 @@ input,select{
 /* PRICE */
 .rp-price{
   text-align:right;
-  font-size:18px;
+  font-size:20px;
   font-weight:bold;
 }
 
@@ -167,7 +178,7 @@ input,select{
   opacity:0.7;
 }
 
-/* TOGGLE BUTTON */
+/* TOGGLE */
 .rp-toggle{
   background:rgba(255,255,255,0.15);
   padding:10px;
@@ -199,9 +210,14 @@ input,select{
   border:none;
 }
 
-/* MOBILE */
+/* 🔥 MOBILE FIX */
 @media(max-width:768px){
   .layout{
     flex-direction:column;
+  }
+
+  .layout .card:first-child,
+  .layout .card:last-child{
+    flex:1;
   }
 }
