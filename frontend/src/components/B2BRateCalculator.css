@@ -1,142 +1,204 @@
 .main{
-background:#f4f4f4;
-padding:30px;
+  background:#f4f4f4;
+  padding:30px;
 }
 
 .big-card{
-background:#fff;
-padding:25px;
-border-radius:12px;
-box-shadow:0 5px 15px rgba(0,0,0,0.1);
+  background:#fff;
+  padding:25px;
+  border-radius:12px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.1);
 }
 
 h2{
-text-align:center;
-color:#c40000;
-margin-bottom:20px;
+  text-align:center;
+  color:#c40000;
+  margin-bottom:20px;
 }
 
 .layout{
-display:flex;
-gap:20px;
-align-items:flex-start;
+  display:flex;
+  gap:20px;
+  align-items:flex-start;
 }
 
 .card{
-background:#fff;
-padding:20px;
-border-radius:10px;
-box-shadow:0 3px 10px rgba(0,0,0,0.1);
+  background:#fff;
+  padding:20px;
+  border-radius:10px;
+  box-shadow:0 3px 10px rgba(0,0,0,0.1);
 }
 
-/* FIX WIDTH */
+/* WIDTH */
 .calc{
-flex:1.6;
+  flex:1.6;
 }
 
 .result{
-flex:1;
+  flex:1;
 }
 
 /* GRID */
 .grid2{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:12px;
-margin-bottom:10px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-bottom:10px;
 }
 
 /* INPUT */
 input,select{
-padding:10px;
-border-radius:8px;
-border:1px solid #ddd;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  font-size:13px;
+  transition:0.2s;
 }
 
-/* DIM */
+input:focus,select:focus{
+  border-color:#c40000;
+  outline:none;
+}
+
+/* ================= DIMENSION FIX ================= */
+
 .dim{
-background:linear-gradient(135deg,#ff0000,#c40000);
-padding:12px;
-border-radius:10px;
-color:#fff;
-margin-top:10px;
+  background:#fff5f5; /* LIGHT RED */
+  border:1px solid #ff4d4d;
+  padding:12px;
+  border-radius:10px;
+  margin-top:10px;
+}
+
+.dim h4{
+  color:#c40000;
+  margin-bottom:8px;
 }
 
 .dim-row{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:8px;
-margin-bottom:6px;
+  display:flex;
+  gap:8px;
+  margin-bottom:6px;
+  align-items:center;
 }
 
+.dim-row input{
+  width:60px;
+  padding:6px;
+  font-size:12px;
+}
+
+/* ADD BUTTON */
 .add-btn{
-margin-top:8px;
-width:100%;
-background:#900000;
+  margin-top:8px;
+  width:100%;
+  background:#ff4d4d;
+  color:white;
+  border:none;
+  padding:8px;
+  border-radius:6px;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.add-btn:hover{
+  background:#e60000;
+}
+
+/* REMOVE BUTTON */
+.remove-btn{
+  background:#222;
+  color:white;
+  border:none;
+  padding:5px 8px;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:12px;
+}
+
+.remove-btn:hover{
+  background:#000;
 }
 
 /* CHECK */
 .check{
-display:flex;
-justify-content:space-between;
-margin:12px 0;
+  display:flex;
+  justify-content:space-between;
+  margin:12px 0;
+  font-size:14px;
 }
 
 /* BUTTON */
 .calc-btn{
-width:100%;
-background:#c40000;
-color:#fff;
-padding:12px;
-border:none;
-border-radius:8px;
+  width:100%;
+  background:#c40000;
+  color:#fff;
+  padding:12px;
+  border:none;
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.2s;
 }
 
-/* RESULT FIX */
+.calc-btn:hover{
+  background:#a00000;
+}
+
+/* ================= RESULT FIX ================= */
+
 .result-box{
-background:linear-gradient(135deg,#c40000,#7a0000);
-padding:12px;
-border-radius:10px;
-color:white;
-font-size:13px;
-position:relative;
-z-index:1;
+  background:linear-gradient(135deg,#c40000,#8b0000);
+  padding:15px;
+  border-radius:10px;
+  color:white;
+  font-size:13px;
 }
 
 .result-box h4{
-text-align:center;
-margin-bottom:10px;
+  text-align:center;
+  margin-bottom:12px;
+  font-size:20px;
 }
 
 /* ROW */
 .row{
-display:flex;
-justify-content:space-between;
-padding:5px 0;
-border-bottom:1px solid rgba(255,255,255,0.2);
+  display:flex;
+  justify-content:space-between;
+  padding:6px 0;
+  border-bottom:1px solid rgba(255,255,255,0.2);
 }
 
 .row:last-child{
-border:none;
+  border:none;
 }
 
 /* ODA */
 .oda{
-text-align:center;
-color:yellow;
-font-weight:bold;
-margin-bottom:6px;
+  text-align:center;
+  color:yellow;
+  font-weight:bold;
+  margin-bottom:8px;
 }
 
 /* PLACEHOLDER */
 .placeholder{
-text-align:center;
-color:#888;
+  text-align:center;
+  color:#888;
+  margin-top:20px;
 }
 
 /* MOBILE */
 @media(max-width:768px){
-.layout{
-flex-direction:column;
-}
+  .layout{
+    flex-direction:column;
+  }
+
+  .dim-row{
+    flex-wrap:wrap;
+  }
+
+  .dim-row input{
+    width:48%;
+  }
 }

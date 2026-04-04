@@ -1,21 +1,21 @@
 import React, { useState } from "react";
 import "./B2BRateCalculator.css";
 
-function B2BRateCalculator(){
+function B2BRateCalculator() {
 
 const [form,setForm] = useState({
-origin:"",
-destination:"",
-weight:"",
-invoiceValue:"",
-codAmount:"",
-paymentMode:"Prepaid",
-insurance:false,
-appointment:false
+  origin:"",
+  destination:"",
+  weight:"",
+  invoiceValue:"",
+  codAmount:"",
+  paymentMode:"Prepaid",
+  insurance:false,
+  appointment:false
 })
 
 const [dimensions,setDimensions] = useState([
-{qty:1,length:"",width:"",height:""}
+  {qty:1,length:"",width:"",height:""}
 ])
 
 const [result,setResult] = useState(null)
@@ -23,24 +23,30 @@ const [loading,setLoading] = useState(false)
 
 // INPUT
 const handleChange = (e)=>{
-const {name,value,type,checked} = e.target
-setForm({
-...form,
-[name]: type==="checkbox" ? checked : value
-})
+  const {name,value,type,checked} = e.target
+  setForm({
+    ...form,
+    [name]: type==="checkbox" ? checked : value
+  })
 }
 
 // DIM CHANGE
 const handleDimChange = (i,e)=>{
-const {name,value} = e.target
-const newDims = [...dimensions]
-newDims[i][name] = value
-setDimensions(newDims)
+  const {name,value} = e.target
+  const newDims = [...dimensions]
+  newDims[i][name] = value
+  setDimensions(newDims)
 }
 
 // ADD BOX
 const addBox = ()=>{
-setDimensions([...dimensions,{qty:1,length:"",width:"",height:""}])
+  setDimensions([...dimensions,{qty:1,length:"",width:"",height:""}])
+}
+
+// REMOVE BOX
+const removeBox = (index)=>{
+  const newDims = dimensions.filter((_,i)=>i !== index)
+  setDimensions(newDims)
 }
 
 // CALCULATE
@@ -53,9 +59,9 @@ let volumetric = 0
 let totalQty = 0
 
 dimensions.forEach(b=>{
-const v = (b.length * b.width * b.height * b.qty)/4000
-volumetric += Number(v)
-totalQty += Number(b.qty)
+  const v = (b.length * b.width * b.height * b.qty)/4000
+  volumetric += Number(v || 0)
+  totalQty += Number(b.qty || 0)
 })
 
 try{
@@ -78,6 +84,7 @@ const data = await res.json()
 
 if(data.error){
 alert(data.error)
+setLoading(false)
 return
 }
 
@@ -86,7 +93,7 @@ const chargeable = Math.max(actual, volumetric)
 
 let total = Number(data.total_charge)
 
-// FIXED CHARGES
+// FIXED
 const fov = 75
 const docket = 100
 const fuel = total * 0.15
@@ -156,7 +163,7 @@ return(
 
 <div className="layout">
 
-{/* CALCULATOR */}
+{/* LEFT */}
 <div className="card calc">
 
 <div className="grid2">
@@ -187,10 +194,16 @@ return(
 
 {dimensions.map((d,i)=>(
 <div key={i} className="dim-row">
-<input placeholder="Qty" name="qty" onChange={(e)=>handleDimChange(i,e)}/>
-<input placeholder="L" name="length" onChange={(e)=>handleDimChange(i,e)}/>
-<input placeholder="W" name="width" onChange={(e)=>handleDimChange(i,e)}/>
-<input placeholder="H" name="height" onChange={(e)=>handleDimChange(i,e)}/>
+
+<input value={d.qty} name="qty" onChange={(e)=>handleDimChange(i,e)} placeholder="Qty"/>
+<input value={d.length} name="length" onChange={(e)=>handleDimChange(i,e)} placeholder="L"/>
+<input value={d.width} name="width" onChange={(e)=>handleDimChange(i,e)} placeholder="W"/>
+<input value={d.height} name="height" onChange={(e)=>handleDimChange(i,e)} placeholder="H"/>
+
+{dimensions.length > 1 && (
+<button className="remove-btn" onClick={()=>removeBox(i)}>❌</button>
+)}
+
 </div>
 ))}
 
@@ -209,7 +222,7 @@ return(
 
 </div>
 
-{/* RESULT */}
+{/* RIGHT RESULT */}
 <div className="card result">
 
 {result ? (
