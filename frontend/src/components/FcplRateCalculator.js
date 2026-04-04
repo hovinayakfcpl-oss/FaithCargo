@@ -47,7 +47,12 @@ function FcplRateCalculator() {
 
     formData.dimensions.forEach((box) => {
       const v =
-        (box.length * box.width * box.height * box.qty) / 5000;
+        (Number(box.length) *
+          Number(box.width) *
+          Number(box.height) *
+          Number(box.qty)) /
+        5000;
+
       volumetric += Number(v);
       totalQty += Number(box.qty || 0);
     });
@@ -68,6 +73,8 @@ function FcplRateCalculator() {
 
       const data = await res.json();
 
+      console.log("🔥 FULL API RESPONSE:", data);
+
       if (!res.ok) {
         alert(data.error);
         return;
@@ -83,22 +90,21 @@ function FcplRateCalculator() {
       data.chargeable_weight = cw.toFixed(2);
 
       // =========================
-      // RATE CALC
+      // RATE PER KG SAFE
       // =========================
-      data.rate_per_kg = (data.freight_charge / cw).toFixed(2);
+      data.rate_per_kg =
+        cw > 0 ? (data.freight_charge / cw).toFixed(2) : "0.00";
 
       // =========================
-      // ODA
+      // ✅ ODA FIX (backend value use karo)
       // =========================
       data.is_oda = data.is_oda ?? false;
-      data.oda_charge = data.is_oda
-        ? Math.max(650, cw * 3)
-        : 0;
+      data.oda_charge = Number(data.oda_charge || 0);
 
       // =========================
       // GST + FOV
       // =========================
-      const gst = data.total_charge * 0.18;
+      const gst = Number(data.total_charge) * 0.18;
       const fov = 75;
 
       data.gst = gst.toFixed(2);
@@ -107,7 +113,7 @@ function FcplRateCalculator() {
       let total = Number(data.total_charge) + gst + fov;
 
       // =========================
-      // COD / TOPAY
+      // COD
       // =========================
       let codCharge = 0;
 
@@ -131,12 +137,13 @@ function FcplRateCalculator() {
       total += handling;
 
       // =========================
-      // FINAL
+      // FINAL TOTAL
       // =========================
       data.total_final = total.toFixed(2);
 
       setResult(data);
     } catch (err) {
+      console.error(err);
       alert("Server Error");
     }
 
@@ -163,7 +170,7 @@ function FcplRateCalculator() {
 
           <input type="number" placeholder="Weight" name="weight" value={formData.weight} onChange={handleChange} />
 
-          {/* COD INPUT ONLY */}
+          {/* COD INPUT */}
           {formData.paymentMode === "COD" && (
             <input
               type="number"
@@ -175,6 +182,7 @@ function FcplRateCalculator() {
           )}
 
           <h4>Dimensions</h4>
+
           {formData.dimensions.map((dim, i) => (
             <div key={i} className="dimension-row">
               <input name="length" placeholder="L" value={dim.length} onChange={(e) => handleDimensionChange(i, e)} />
@@ -212,14 +220,14 @@ function FcplRateCalculator() {
                   <tr><td>Rate / Kg</td><td>{result.rate_per_kg}</td></tr>
                   <tr><td>Rate Charge</td><td>₹ {result.freight_charge}</td></tr>
 
-                  <tr className="oda-row">
+                  <tr>
                     <td>ODA Charge</td>
                     <td>₹ {result.oda_charge}</td>
                   </tr>
 
                   <tr><td>Fuel (15%)</td><td>₹ {result.fuel_charge}</td></tr>
                   <tr><td>FOV</td><td>₹ {result.fov_charge}</td></tr>
-                  <tr><td>GST</td><td>₹ {result.gst}</td></tr>
+                  <tr><td>GST (18%)</td><td>₹ {result.gst}</td></tr>
 
                   {formData.paymentMode === "COD" && (
                     <tr><td>COD Charge</td><td>₹ 150</td></tr>
