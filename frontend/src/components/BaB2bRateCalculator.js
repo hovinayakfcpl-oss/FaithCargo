@@ -25,7 +25,6 @@ const [loading,setLoading] = useState(false)
 // INPUT CHANGE
 const handleChange = (e)=>{
 const {name,value,type,checked} = e.target
-
 setForm({
 ...form,
 [name]: type==="checkbox" ? checked : value
@@ -103,40 +102,25 @@ const calculateRate = async () => {
 
     const data = await res.json();
 
-    console.log("API RAW:", data);
-
     if (data.error) {
       setError(data.error);
       return;
     }
 
-    // =========================
     // WEIGHT
-    // =========================
     data.volumetric_weight = volumetric.toFixed(2);
+    data.chargeable_weight = Math.max(Number(form.weight), volumetric).toFixed(2);
 
-    if (Number(form.weight) > volumetric) {
-      data.chargeable_weight = Number(form.weight).toFixed(2);
-    } else {
-      data.chargeable_weight = volumetric.toFixed(2);
-    }
-
-    // =========================
-    // 🔥 FORCE ODA FIX
-    // =========================
+    // ODA FIX
     data.is_oda = data.is_oda ?? false;
-
     if (data.is_oda) {
       const cw = Number(data.chargeable_weight || 0);
-      const calcOda = Math.max(650, cw * 3);
-      data.oda_charge = Number(data.oda_charge || calcOda);
+      data.oda_charge = Number(data.oda_charge || Math.max(650, cw * 3));
     } else {
       data.oda_charge = 0;
     }
 
-    // =========================
     // GST + FOV
-    // =========================
     const gst = Number(data.total_charge) * 0.18;
     const fov = 75;
 
@@ -145,40 +129,28 @@ const calculateRate = async () => {
 
     let total = Number(data.total_charge) + gst + fov;
 
-    // =========================
     // COD
-    // =========================
     let codCharge = 0;
-
     if (form.paymentMode === "COD" || form.paymentMode === "ToPay") {
       const amount = Number(form.codAmount) || 0;
-      const percent = amount * 0.025;
-      codCharge = Math.max(150, percent);
+      codCharge = Math.max(150, amount * 0.025);
     }
 
     data.cod_charge = codCharge.toFixed(2);
     total += codCharge;
 
-    // =========================
     // HANDLING
-    // =========================
     let handling = 0;
     const totalQty = dimensions.reduce((sum, b) => sum + Number(b.qty), 0);
 
     if (totalQty === 1 && Number(data.chargeable_weight) > 80) {
-      const perKg = Number(data.chargeable_weight) * 2;
-      handling = Math.max(500, perKg);
+      handling = Math.max(500, Number(data.chargeable_weight) * 2);
     }
 
     data.handling_charge = handling.toFixed(2);
     total += handling;
 
-    // =========================
-    // FINAL
-    // =========================
     data.total_with_gst = total.toFixed(2);
-
-    console.log("FINAL RESULT:", data);
 
     setResult(data);
 
@@ -197,6 +169,7 @@ return(
 
 <div className="calculator-container">
 
+{/* FORM */}
 <div className="form-card">
 
 <input name="origin" placeholder="Origin Pincode" value={form.origin} onChange={handleChange}/>
@@ -209,72 +182,97 @@ return(
 
 </div>
 
+{/* RESULT */}
 <div className="result-card">
 
 {result ? (
 
-<div className="rate-card">
+<div className="invoice-card">
 
-<h2>₹ {result.total_with_gst}</h2>
+{/* HEADER */}
+<div className="invoice-header">
+  <div className="logo">FCPL</div>
 
-<p>Charged Wt : {result.chargeable_weight} Kg</p>
+  <div>
+    <h3>Freight Invoice</h3>
+    <p>{result.from_zone} → {result.to_zone}</p>
+  </div>
 
+  <div className="total-box">
+    <h2>₹ {result.total_with_gst}</h2>
+    <span>Total</span>
+  </div>
+</div>
+
+{/* ODA ALERT */}
 {result.is_oda && (
-  <div style={{color:"red", fontWeight:"bold"}}>
-    ⚠️ This is ODA Location
+  <div className="oda-alert">
+    ⚠️ ODA Location – Extra Charges Applied
   </div>
 )}
 
-<div className="charge-row">
-<span>Freight</span>
-<span>₹ {result.freight_charge}</span>
+{/* WEIGHT */}
+<div className="info-row">
+  <div>Actual: {form.weight} Kg</div>
+  <div>Volumetric: {result.volumetric_weight} Kg</div>
+  <div><b>Chargeable: {result.chargeable_weight} Kg</b></div>
 </div>
 
-<div className="charge-row">
-<span>ODA Charge</span>
-<span>₹ {Number(result.oda_charge || 0).toFixed(2)}</span>
-</div>
+{/* TABLE */}
+<table className="charges-table">
+<tbody>
 
-<div className="charge-row">
-<span>Fuel</span>
-<span>₹ {result.fuel_charge}</span>
-</div>
+<tr>
+<td>Freight</td>
+<td>₹ {result.freight_charge}</td>
+</tr>
 
-<div className="charge-row">
-<span>FOV</span>
-<span>₹ {result.fov_charge}</span>
-</div>
+<tr>
+<td>Docket</td>
+<td>₹ {result.docket_charge}</td>
+</tr>
 
-<div className="charge-row">
-<span>GST</span>
-<span>₹ {result.gst}</span>
-</div>
+<tr>
+<td>Fuel</td>
+<td>₹ {result.fuel_charge}</td>
+</tr>
+
+<tr className="oda-row">
+<td>ODA Charge</td>
+<td>₹ {Number(result.oda_charge || 0).toFixed(2)}</td>
+</tr>
+
+<tr>
+<td>FOV</td>
+<td>₹ {result.fov_charge}</td>
+</tr>
+
+<tr>
+<td>GST</td>
+<td>₹ {result.gst}</td>
+</tr>
 
 {(form.paymentMode === "COD" || form.paymentMode === "ToPay") && (
-<div className="charge-row">
-<span>COD</span>
-<span>₹ {result.cod_charge}</span>
-</div>
+<tr>
+<td>COD</td>
+<td>₹ {result.cod_charge}</td>
+</tr>
 )}
 
 {Number(result.handling_charge) > 0 && (
-<div className="charge-row">
-<span>Handling</span>
-<span>₹ {result.handling_charge}</span>
-</div>
+<tr>
+<td>Handling</td>
+<td>₹ {result.handling_charge}</td>
+</tr>
 )}
 
-{/* DEBUG */}
-<div style={{background:"#000", color:"#0f0", marginTop:"10px", padding:"5px"}}>
-{JSON.stringify(result)}
-</div>
+</tbody>
+</table>
 
 </div>
 
 ) : (
-
 <p>Enter shipment details and calculate</p>
-
 )}
 
 </div>
