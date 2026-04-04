@@ -3,172 +3,96 @@
   padding:30px;
 }
 
-/* BIG BACKGROUND CARD */
-.main-card{
-  background:#f9f9f9;
-  padding:25px;
-  border-radius:15px;
-  box-shadow:0 8px 25px rgba(0,0,0,0.1);
-}
-
-h2{
-  text-align:center;
-  color:#c40000;
-  margin-bottom:20px;
-}
-
-/* INNER 2 CARDS */
-.inner-layout{
+/* ONLY 2 CARDS */
+.layout{
   display:flex;
   gap:20px;
-  align-items:flex-start;
 }
 
-/* COMMON CARD */
+/* CARD */
 .card{
-  background:#ffffff;
+  background:#fff;
   padding:20px;
   border-radius:12px;
-  box-shadow:0 5px 15px rgba(0,0,0,0.08);
-}
-
-/* LEFT */
-.calc{
-  flex:1.6;
-}
-
-/* RIGHT RESULT */
-.result-card{
+  box-shadow:0 5px 15px rgba(0,0,0,0.1);
   flex:1;
 }
 
-/* GRID */
+/* INPUT */
 .grid2{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:12px;
+  gap:10px;
   margin-bottom:10px;
 }
 
-/* INPUT */
 input,select{
   padding:10px;
   border-radius:8px;
   border:1px solid #ddd;
-  font-size:14px;
 }
 
-/* DIMENSION BOX */
+/* DIM */
 .dim{
   background:#fff5f5;
   border:1px solid #ff4d4d;
   padding:10px;
   border-radius:10px;
-  margin-top:10px;
 }
 
-.dim h4{
-  color:#c40000;
-  font-size:14px;
-}
-
-/* ROW SMALL */
 .dim-row{
   display:flex;
   gap:6px;
   margin-bottom:6px;
-  align-items:center;
 }
 
 .dim-row input{
-  width:55px;
-  padding:5px;
-  font-size:12px;
+  width:60px;
 }
 
-/* SMALL ADD BUTTON */
 .add-btn{
-  margin-top:6px;
-  width:auto;
   padding:6px 10px;
   font-size:12px;
   background:#ff4d4d;
   color:white;
   border:none;
   border-radius:6px;
-  cursor:pointer;
 }
 
-/* REMOVE BUTTON */
 .remove-btn{
   background:black;
   color:white;
   border:none;
   padding:4px 6px;
-  font-size:11px;
-  border-radius:5px;
-  cursor:pointer;
+  border-radius:4px;
 }
 
-/* CHECK */
-.check{
-  display:flex;
-  justify-content:space-between;
-  margin:12px 0;
-}
-
-/* BUTTON */
-.calc-btn{
-  width:100%;
-  background:#2e7d32;
-  color:#fff;
-  padding:12px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-}
-
-/* RESULT BOX CLEAR FIX */
+/* RESULT FIX */
 .result-box{
-  background:#111;   /* DARK BLACK FIX */
+  background:#000;   /* FINAL FIX */
   color:#fff;
   padding:15px;
   border-radius:10px;
 }
 
-/* RESULT TEXT CLEAR */
-.result-box h4{
-  text-align:center;
-  font-size:20px;
-  margin-bottom:10px;
-  color:#00ff9c;
-}
-
-/* ROW */
 .row{
   display:flex;
   justify-content:space-between;
-  padding:6px 0;
-  border-bottom:1px solid rgba(255,255,255,0.1);
+  margin:5px 0;
 }
 
-/* ODA */
-.oda{
-  text-align:center;
-  color:yellow;
-  font-weight:bold;
-  margin-bottom:6px;
+.calc-btn{
+  width:100%;
+  background:#2e7d32;
+  color:#fff;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  margin-top:10px;
 }
 
-/* PLACEHOLDER */
-.placeholder{
-  text-align:center;
-  color:#999;
-}
-
-/* MOBILE */
 @media(max-width:768px){
-  .inner-layout{
+  .layout{
     flex-direction:column;
   }
 }
