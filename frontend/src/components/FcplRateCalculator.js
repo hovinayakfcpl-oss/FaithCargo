@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import "./FCPLRateCalculator.css";
 
 function FcplRateCalculator() {
-  const navigate = useNavigate();
+  // eslint-disable-next-line no-unused-vars
+  navigate("/success");
 
   const [formData, setFormData] = useState({
     origin: "",
