@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import "./B2BRateCalculator.css";
 
-function B2BRateCalculator() {
+function B2BRateCalculator(){
 
 const [form,setForm] = useState({
 origin:"",
 destination:"",
 weight:"",
 invoiceValue:"",
+codAmount:"",
 paymentMode:"Prepaid",
 insurance:false,
 appointment:false
@@ -23,177 +24,239 @@ const [loading,setLoading] = useState(false)
 // INPUT
 const handleChange = (e)=>{
 const {name,value,type,checked} = e.target
-setForm({...form,[name]: type==="checkbox"?checked:value})
+setForm({
+...form,
+[name]: type==="checkbox" ? checked : value
+})
 }
 
 // DIM
 const handleDimChange = (i,e)=>{
 const {name,value} = e.target
-const newDims=[...dimensions]
-newDims[i][name]=value
+const newDims = [...dimensions]
+newDims[i][name] = value
 setDimensions(newDims)
 }
 
-const addBox = ()=> setDimensions([...dimensions,{qty:1,length:"",width:"",height:""}])
-
-// ================= CALCULATE =================
+// CALCULATE
 const calculateRate = async ()=>{
 
 setLoading(true)
+setResult(null)
 
-let volumetric=0
+// volumetric
+let volumetric = 0
+let totalQty = 0
 
 dimensions.forEach(b=>{
-const v=(b.length*b.width*b.height*b.qty)/5000
-volumetric+=Number(v)
+const v = (b.length * b.width * b.height * b.qty)/4000
+volumetric += Number(v)
+totalQty += Number(b.qty)
 })
+
+try{
 
 const res = await fetch("https://faithcargo.onrender.com/api/rates/b2b/calculate/",{
 method:"POST",
 headers:{ "Content-Type":"application/json"},
 body: JSON.stringify({
-...form,
+origin:form.origin,
+destination:form.destination,
 weight:Number(form.weight),
 invoiceValue:Number(form.invoiceValue),
-dimensions
+insurance:form.insurance,
+appointment:form.appointment,
+dimensions:dimensions
 })
 })
 
 const data = await res.json()
 
-const gst = data.total_charge * 0.18
+if(data.error){
+alert(data.error)
+return
+}
+
+// weights
+const actual = Number(form.weight)
+const chargeable = Math.max(actual, volumetric)
+
+// base
+let total = Number(data.total_charge)
+
+// FOV
+const fov = 75
+total += fov
+
+// GST
+const gst = total * 0.18
+
+// COD
+let cod = 0
+if(form.paymentMode==="COD" || form.paymentMode==="ToPay"){
+cod = 150
+total += cod
+}
+
+// handling
+let handling = 0
+if(totalQty === 1 && chargeable > 70){
+handling = 750
+total += handling
+}
+
+// insurance
+let insurance = 0
+if(form.insurance){
+insurance = Number(form.invoiceValue) * 0.02
+total += insurance
+}
+
+// appointment
+let appointment = 0
+if(form.appointment){
+appointment = 1500
+total += appointment
+}
+
+// final
+total += gst
 
 setResult({
 ...data,
+actual,
+volumetric: volumetric.toFixed(2),
+chargeable: chargeable.toFixed(2),
 gst: gst.toFixed(2),
-total_final: (data.total_charge + gst).toFixed(2),
-volumetric: volumetric.toFixed(2)
+fov,
+cod,
+handling,
+insurance,
+appointment,
+final: total.toFixed(2)
 })
+
+}catch{
+alert("Server Error")
+}
 
 setLoading(false)
 }
 
-// ================= UI =================
 return(
 
 <div className="main">
 
-<h2 className="title">FCPL Rate Calculator</h2>
+<div className="big-card">
 
-<div className="container">
+<h2>FCPL Rate Calculator</h2>
 
-{/* ================= FORM ================= */}
-<div className="form-card">
+<div className="layout">
 
-<div className="row">
-<input placeholder="Origin Pincode *" name="origin" value={form.origin} onChange={handleChange}/>
-<input placeholder="Destination Pincode *" name="destination" value={form.destination} onChange={handleChange}/>
-</div>
+{/* CALCULATOR */}
+<div className="card calc">
 
-<div className="row">
-<select name="paymentMode" value={form.paymentMode} onChange={handleChange}>
+<input placeholder="Origin Pincode" name="origin" onChange={handleChange}/>
+<input placeholder="Destination Pincode" name="destination" onChange={handleChange}/>
+
+<select name="paymentMode" onChange={handleChange}>
 <option>Prepaid</option>
 <option>COD</option>
 <option>ToPay</option>
 </select>
 
-<input placeholder="Approx Weight (Kg) *" name="weight" value={form.weight} onChange={handleChange}/>
-</div>
+<input placeholder="Weight" name="weight" onChange={handleChange}/>
+<input placeholder="Invoice Value" name="invoiceValue" onChange={handleChange}/>
 
-<input placeholder="Invoice Value *" name="invoiceValue" value={form.invoiceValue} onChange={handleChange}/>
+{/* COD INPUT */}
+{(form.paymentMode==="COD" || form.paymentMode==="ToPay") && (
+<input placeholder="COD Amount" name="codAmount" onChange={handleChange}/>
+)}
 
 {/* DIMENSIONS */}
-<div className="dim-box">
-
-<h4>Dimensions in cms</h4>
+<div className="dim">
+<h4>Dimensions</h4>
 
 {dimensions.map((d,i)=>(
 <div key={i} className="dim-row">
-<input placeholder="Qty" name="qty" value={d.qty} onChange={(e)=>handleDimChange(i,e)}/>
-<input placeholder="L" name="length" value={d.length} onChange={(e)=>handleDimChange(i,e)}/>
-<input placeholder="H" name="height" value={d.height} onChange={(e)=>handleDimChange(i,e)}/>
-<input placeholder="W" name="width" value={d.width} onChange={(e)=>handleDimChange(i,e)}/>
+<input placeholder="Qty" name="qty" onChange={(e)=>handleDimChange(i,e)}/>
+<input placeholder="L" name="length" onChange={(e)=>handleDimChange(i,e)}/>
+<input placeholder="W" name="width" onChange={(e)=>handleDimChange(i,e)}/>
+<input placeholder="H" name="height" onChange={(e)=>handleDimChange(i,e)}/>
 </div>
 ))}
 
-<button className="add-btn" onClick={addBox}>+ Add Box</button>
-
 </div>
 
-{/* CHECKBOX */}
-<div className="checkbox-row">
+{/* CHECK */}
+<div className="check">
 <label><input type="checkbox" name="insurance" onChange={handleChange}/> Insurance</label>
 <label><input type="checkbox" name="appointment" onChange={handleChange}/> Appointment</label>
 </div>
 
-<button className="calc-btn" onClick={calculateRate}>
+<button onClick={calculateRate}>
 {loading ? "Calculating..." : "Calculate"}
 </button>
 
 </div>
 
-{/* ================= RESULT ================= */}
-<div className="result-card">
+{/* RESULT */}
+<div className="card result">
 
-<h3 className="result-title">Fill Details and Check Rate</h3>
+{result ? (
 
-{result && (
+<div className="result-box">
 
-<div className="rate-card">
+<h4>₹ {result.final}</h4>
 
-{/* HEADER */}
-<div className="rate-header">
-
-<div className="logo">FCPL</div>
-
-<div className="info">
-<h3>FCPL Lite 🚚</h3>
-<p>Charged Wt : {result.chargeable_weight} Kg</p>
+{/* ODA */}
+{result.is_oda && (
+<div style={{color:"yellow",textAlign:"center",marginBottom:"6px"}}>
+⚠️ ODA Location
 </div>
-
-<div className="price">
-<h2>₹ {result.total_final}</h2>
-<p>Min Amt: 350 + GST</p>
-</div>
-
-</div>
-
-<button className="bifurcation-btn">
-Charges Bifurcation ↓
-</button>
-
-{/* DETAILS */}
-<div className="details">
+)}
 
 <div className="row"><span>Zone</span><span>{result.from_zone} → {result.to_zone}</span></div>
+<div className="row"><span>Actual</span><span>{result.actual} Kg</span></div>
+<div className="row"><span>Volumetric</span><span>{result.volumetric} Kg</span></div>
+<div className="row"><span>Chargeable</span><span>{result.chargeable} Kg</span></div>
 
-<div className="row"><span>Weight Charge</span><span>₹ {result.freight_charge}</span></div>
+<div className="row"><span>Freight</span><span>₹ {result.freight_charge}</span></div>
+<div className="row"><span>Docket</span><span>₹ 100</span></div>
+<div className="row"><span>Fuel (15%)</span><span>₹ {result.fuel_charge}</span></div>
 
-<div className="row"><span>Docket Charge</span><span>₹ {result.docket_charge}</span></div>
-
-<div className="row"><span>Fuel Surcharge (15%)</span><span>₹ {result.fuel_charge}</span></div>
-
-<div className="row"><span>Insurance</span><span>₹ {result.insurance_charge}</span></div>
-
-<div className="row"><span>Appointment</span><span>₹ {result.appointment_charge}</span></div>
-
+{/* ODA */}
 {result.is_oda && (
-<div className="row oda">
-<span>ODA Charge</span>
-<span>₹ {result.oda_charge}</span>
-</div>
+<div className="row"><span>ODA</span><span>₹ {result.oda_charge}</span></div>
 )}
 
-<div className="row total">
-<span>GST (18%)</span>
-<span>₹ {result.gst}</span>
-</div>
-
-</div>
-
-</div>
-
+{form.insurance && (
+<div className="row"><span>Insurance</span><span>₹ {result.insurance}</span></div>
 )}
+
+{form.appointment && (
+<div className="row"><span>Appointment</span><span>₹ {result.appointment}</span></div>
+)}
+
+<div className="row"><span>FOV</span><span>₹ 75</span></div>
+
+{result.cod > 0 && (
+<div className="row"><span>COD</span><span>₹ 150</span></div>
+)}
+
+{result.handling > 0 && (
+<div className="row"><span>Handling</span><span>₹ 750</span></div>
+)}
+
+<div className="row"><span>GST</span><span>₹ {result.gst}</span></div>
+
+</div>
+
+) : (
+<p>Fill Details and Check Rate</p>
+)}
+
+</div>
 
 </div>
 

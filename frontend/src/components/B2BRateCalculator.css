@@ -1,142 +1,160 @@
+/* MAIN BACKGROUND */
 .main{
-background:#ececec;
-padding:20px;
+background:#f4f4f4;
+padding:25px;
+font-family: Arial, sans-serif;
 }
 
-.title{
+/* BIG CONTAINER CARD */
+.big-card{
+background:#ffffff;
+padding:25px;
+border-radius:14px;
+box-shadow:0 8px 20px rgba(0,0,0,0.08);
+}
+
+/* TITLE */
+.big-card h2{
 text-align:center;
-color:#6a1b9a;
+color:#c40000;
 margin-bottom:20px;
 }
 
-.container{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:20px;
+/* LAYOUT */
+.layout{
+display:flex;
+gap:25px;
+align-items:flex-start;
 }
 
-/* FORM */
-.form-card{
-background:white;
-padding:20px;
+/* COMMON CARD */
+.card{
+background:#fff;
+padding:18px;
 border-radius:12px;
-box-shadow:0 4px 10px rgba(0,0,0,0.1);
+box-shadow:0 4px 12px rgba(0,0,0,0.08);
 }
 
-.row{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:10px;
-margin-bottom:10px;
+/* CALCULATOR SIDE (WIDE) */
+.calc{
+flex:1.6;
 }
 
+/* RESULT SIDE (SMALL) */
+.result{
+flex:1;
+max-width:360px;
+}
+
+/* INPUTS */
 input,select{
-padding:10px;
-border-radius:8px;
-border:1px solid #ccc;
 width:100%;
+padding:10px;
+margin:6px 0;
+border-radius:8px;
+border:1px solid #ddd;
+font-size:14px;
+transition:0.2s;
 }
 
-.dim-box{
-background:linear-gradient(135deg,#7b1fa2,#512da8);
-padding:15px;
-border-radius:12px;
+input:focus,select:focus{
+border-color:#c40000;
+outline:none;
+box-shadow:0 0 5px rgba(196,0,0,0.2);
+}
+
+/* DIMENSION BOX */
+.dim{
+background:linear-gradient(135deg,#ff4b2b,#c40000);
 color:white;
+padding:12px;
+border-radius:10px;
+margin-top:12px;
+}
+
+.dim h4{
+margin-bottom:8px;
+font-size:14px;
 }
 
 .dim-row{
 display:grid;
 grid-template-columns:repeat(4,1fr);
-gap:10px;
-margin-top:10px;
+gap:6px;
 }
 
-.add-btn{
-margin-top:10px;
-background:red;
-color:white;
-padding:8px;
-border:none;
-border-radius:6px;
-}
-
-.checkbox-row{
+/* CHECKBOX ROW */
+.check{
 display:flex;
 justify-content:space-between;
-margin-top:10px;
+margin:12px 0;
+font-size:14px;
 }
 
-.calc-btn{
-margin-top:15px;
-width:100%;
-background:green;
+/* BUTTON */
+button{
+background:linear-gradient(135deg,#ff0000,#c40000);
 color:white;
 padding:12px;
 border:none;
-border-radius:8px;
-}
-
-/* RESULT */
-.result-card{
-background:white;
-padding:20px;
-border-radius:12px;
-}
-
-.result-title{
-text-align:center;
-color:#888;
-margin-bottom:10px;
-}
-
-.rate-card{
-background:linear-gradient(135deg,#7b1fa2,#3949ab);
-color:white;
-padding:15px;
-border-radius:12px;
-}
-
-.rate-header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
-
-.logo{
-background:white;
-color:black;
-padding:10px;
-border-radius:50%;
-}
-
-.bifurcation-btn{
-margin:10px 0;
-background:green;
-color:white;
-border:none;
-padding:10px;
-width:100%;
-border-radius:20px;
-}
-
-.details{
-background:#3949ab;
-padding:10px;
 border-radius:10px;
+font-weight:bold;
+cursor:pointer;
+transition:0.3s;
 }
 
-.details .row{
+button:hover{
+background:linear-gradient(135deg,#c40000,#900000);
+}
+
+/* ================= RESULT ================= */
+
+/* RESULT CARD */
+.result-box{
+background:linear-gradient(135deg,#c40000,#7a0000);
+color:white;
+padding:12px;
+border-radius:12px;
+font-size:13px;
+}
+
+/* TOTAL PRICE */
+.result-box h4{
+text-align:center;
+margin-bottom:10px;
+font-size:20px;
+}
+
+/* ROW */
+.row{
 display:flex;
 justify-content:space-between;
-padding:6px 0;
+padding:4px 0;
 border-bottom:1px solid rgba(255,255,255,0.2);
 }
 
-.oda{
-color:yellow;
-font-weight:bold;
+/* LAST ROW NO BORDER */
+.row:last-child{
+border-bottom:none;
 }
 
-.total{
-font-weight:bold;
+/* HIGHLIGHT ROWS */
+.row span:first-child{
+opacity:0.9;
+}
+
+/* OPTIONAL SMALL LABEL */
+.result p{
+text-align:center;
+color:#999;
+}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+.layout{
+flex-direction:column;
+}
+.result{
+max-width:100%;
+}
 }
