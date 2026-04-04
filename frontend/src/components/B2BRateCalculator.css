@@ -1,232 +1,111 @@
-body{
-  background:#f4f4f4;
-  font-family:Arial;
-}
-
-/* MAIN */
-.main-container{
-  width:1200px;
-  margin:auto;
+.container{
+padding:20px;
 }
 
 .title{
-  text-align:center;
-  color:#c40000;
-  margin-bottom:10px;
+text-align:center;
+color:#c40000;
 }
 
-.calculator-container{
-  display:flex;
-  gap:10px;
+.layout{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:20px;
 }
 
-/* FORM */
-.form-card{
-  flex:2;
-  padding:10px;
-}
-
-/* RESULT */
-.result-card{
-  flex:1.3;
-}
-
-/* INPUTS */
-.row{
-  display:flex;
-  gap:8px;
-  margin-bottom:10px;
-}
-
-.field{
-  flex:1;
-  display:flex;
-  flex-direction:column;
+.card{
+background:white;
+padding:20px;
+border-radius:12px;
+box-shadow:0 4px 10px rgba(0,0,0,0.1);
 }
 
 input,select{
-  padding:6px;
-  border-radius:5px;
-  border:1px solid #ccc;
-  font-size:13px;
+width:100%;
+margin:5px 0;
+padding:10px;
+border-radius:8px;
+border:1px solid #ccc;
 }
 
-/* DIMENSIONS */
-.dimension-row{
-  display:flex;
-  gap:5px;
-  margin-bottom:5px;
+.dim-box{
+background:linear-gradient(to right,#ff0000,#8b0000);
+padding:10px;
+border-radius:10px;
+color:white;
+margin-top:10px;
 }
 
-.dimension-row input{
-  flex:1;
-  padding:5px;
-  font-size:12px;
+.dim-row{
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:5px;
+margin-top:5px;
 }
 
-.dimension-row button{
-  background:red;
-  color:white;
-  border:none;
-  padding:3px 6px;
-  cursor:pointer;
+.btn{
+background:#c40000;
+color:white;
+padding:10px;
+width:100%;
+border:none;
+border-radius:8px;
+margin-top:10px;
 }
 
-/* BUTTONS */
-.add-btn{
-  background:#c40000;
-  color:white;
-  padding:5px;
-  border:none;
-  border-radius:4px;
-  margin-top:6px;
-  font-size:12px;
-  cursor:pointer;
-  width:40%;
+.result-card{
+background:linear-gradient(135deg,#ff0000,#8b0000);
+color:white;
+padding:20px;
+border-radius:12px;
 }
 
-.button-row{
-  display:flex;
-  gap:10px;
-  margin-top:15px;
-}
-
-.calc-btn{
-  background:#2e7d32;
-  color:white;
-  padding:8px 15px;
-  border:none;
-  border-radius:6px;
-  font-size:13px;
-}
-
-.reset-btn{
-  background:#888;
-  color:white;
-  padding:8px 15px;
-  border:none;
-  border-radius:6px;
-  font-size:13px;
-}
-
-/* ========================= */
-/* 🔥 INVOICE DESIGN */
-/* ========================= */
-
-.invoice-card{
-  background:#fff;
-  border-radius:12px;
-  padding:15px;
-  box-shadow:0 5px 20px rgba(0,0,0,0.1);
-}
-
-/* HEADER */
-.invoice-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  border-bottom:1px solid #eee;
-  padding-bottom:10px;
-  margin-bottom:10px;
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
 }
 
 .logo{
-  background:#c40000;
-  color:#fff;
-  width:55px;
-  height:55px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:bold;
-  font-size:16px;
+background:white;
+color:red;
+padding:8px;
+border-radius:50%;
+font-weight:bold;
 }
 
-/* TOTAL */
-.total-box{
-  text-align:right;
+.price{
+font-size:20px;
+font-weight:bold;
 }
 
-.total-box h2{
-  color:#c40000;
-  margin:0;
+.oda{
+background:#ffcccc;
+color:red;
+padding:8px;
+margin:10px 0;
+border-radius:8px;
+text-align:center;
 }
 
-.total-box span{
-  font-size:12px;
-  color:#555;
+.toggle{
+background:white;
+color:red;
+border:none;
+padding:8px;
+border-radius:20px;
+margin-top:10px;
 }
 
-/* ALERT */
-.oda-alert{
-  margin:10px 0;
-  padding:10px;
-  background:#ffe5e5;
-  color:#b30000;
-  border-radius:6px;
-  font-weight:bold;
-  text-align:center;
+.details{
+margin-top:10px;
+background:rgba(255,255,255,0.1);
+padding:10px;
+border-radius:8px;
 }
 
-/* WEIGHT INFO */
-.info-row{
-  display:flex;
-  justify-content:space-between;
-  margin:10px 0;
-  font-size:13px;
-  background:#fafafa;
-  padding:8px;
-  border-radius:6px;
-}
-
-/* TABLE */
-.charges-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:10px;
-}
-
-.charges-table td{
-  padding:8px;
-  border-bottom:1px solid #eee;
-  font-size:14px;
-}
-
-.charges-table tr:last-child td{
-  border-bottom:none;
-}
-
-/* 🔥 ODA HIGHLIGHT */
-.oda-row{
-  background:#fff3cd;
-  font-weight:bold;
-}
-
-/* TOTAL ROW */
-.total-row{
-  background:#e8f5e9;
-  font-weight:bold;
-  font-size:15px;
-}
-
-/* OLD SUPPORT */
-.rate-card{
-  background:white;
-  border-radius:12px;
-  padding:12px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.15);
-}
-
-/* PLACEHOLDER */
-.placeholder{
-  color:#777;
-  text-align:center;
-  margin-top:40px;
-}
-
-/* ERROR */
-.error{
-  color:red;
-  margin-top:10px;
+.details div{
+display:flex;
+justify-content:space-between;
+margin:5px 0;
 }
