@@ -103,6 +103,8 @@ const calculateRate = async () => {
 
     const data = await res.json();
 
+    console.log("API RAW:", data);
+
     if (data.error) {
       setError(data.error);
       return;
@@ -120,21 +122,31 @@ const calculateRate = async () => {
     }
 
     // =========================
+    // 🔥 FORCE ODA FIX
+    // =========================
+    data.is_oda = data.is_oda ?? false;
+
+    if (data.is_oda) {
+      const cw = Number(data.chargeable_weight || 0);
+      const calcOda = Math.max(650, cw * 3);
+      data.oda_charge = Number(data.oda_charge || calcOda);
+    } else {
+      data.oda_charge = 0;
+    }
+
+    // =========================
     // GST + FOV
     // =========================
-    const gst = data.total_charge * 0.18;
+    const gst = Number(data.total_charge) * 0.18;
     const fov = 75;
 
     data.gst = gst.toFixed(2);
     data.fov_charge = fov.toFixed(2);
 
-    // =========================
-    // TOTAL
-    // =========================
     let total = Number(data.total_charge) + gst + fov;
 
     // =========================
-    // COD / ToPay
+    // COD
     // =========================
     let codCharge = 0;
 
@@ -151,7 +163,6 @@ const calculateRate = async () => {
     // HANDLING
     // =========================
     let handling = 0;
-
     const totalQty = dimensions.reduce((sum, b) => sum + Number(b.qty), 0);
 
     if (totalQty === 1 && Number(data.chargeable_weight) > 80) {
@@ -163,14 +174,12 @@ const calculateRate = async () => {
     total += handling;
 
     // =========================
-    // FINAL TOTAL
+    // FINAL
     // =========================
     data.total_with_gst = total.toFixed(2);
 
-    // ✅ FIX
-    data.is_oda = data.is_oda ?? false;
+    console.log("FINAL RESULT:", data);
 
-    // ✅ MAIN FIX (VERY IMPORTANT)
     setResult(data);
 
   } catch {
@@ -188,7 +197,6 @@ return(
 
 <div className="calculator-container">
 
-{/* FORM */}
 <div className="form-card">
 
 <input name="origin" placeholder="Origin Pincode" value={form.origin} onChange={handleChange}/>
@@ -201,7 +209,6 @@ return(
 
 </div>
 
-{/* RESULT */}
 <div className="result-card">
 
 {result ? (
@@ -219,44 +226,48 @@ return(
 )}
 
 <div className="charge-row">
-<span>Freight Charge</span>
+<span>Freight</span>
 <span>₹ {result.freight_charge}</span>
 </div>
 
-{/* ✅ ODA FIX */}
 <div className="charge-row">
-<span>ODA Charge ({result.chargeable_weight} × 3₹ / min 650)</span>
-<span>₹ {result.is_oda ? result.oda_charge : 0}</span>
+<span>ODA Charge</span>
+<span>₹ {Number(result.oda_charge || 0).toFixed(2)}</span>
 </div>
 
 <div className="charge-row">
-<span>Fuel Charge</span>
+<span>Fuel</span>
 <span>₹ {result.fuel_charge}</span>
 </div>
 
 <div className="charge-row">
-<span>FOV Charge</span>
+<span>FOV</span>
 <span>₹ {result.fov_charge}</span>
 </div>
 
 <div className="charge-row">
-<span>GST (18%)</span>
+<span>GST</span>
 <span>₹ {result.gst}</span>
 </div>
 
 {(form.paymentMode === "COD" || form.paymentMode === "ToPay") && (
 <div className="charge-row">
-<span>COD / ToPay Charge</span>
+<span>COD</span>
 <span>₹ {result.cod_charge}</span>
 </div>
 )}
 
 {Number(result.handling_charge) > 0 && (
 <div className="charge-row">
-<span>Handling Charge</span>
+<span>Handling</span>
 <span>₹ {result.handling_charge}</span>
 </div>
 )}
+
+{/* DEBUG */}
+<div style={{background:"#000", color:"#0f0", marginTop:"10px", padding:"5px"}}>
+{JSON.stringify(result)}
+</div>
 
 </div>
 
