@@ -5,7 +5,7 @@ padding:25px;
 font-family: Arial, sans-serif;
 }
 
-/* BIG CONTAINER CARD */
+/* BIG CONTAINER */
 .big-card{
 background:#ffffff;
 padding:25px;
@@ -27,7 +27,7 @@ gap:25px;
 align-items:flex-start;
 }
 
-/* COMMON CARD */
+/* CARD */
 .card{
 background:#fff;
 padding:18px;
@@ -35,15 +35,24 @@ border-radius:12px;
 box-shadow:0 4px 12px rgba(0,0,0,0.08);
 }
 
-/* CALCULATOR SIDE (WIDE) */
+/* LEFT SIDE */
 .calc{
 flex:1.6;
 }
 
-/* RESULT SIDE (SMALL) */
+/* RIGHT SIDE */
 .result{
 flex:1;
 max-width:360px;
+position:relative;
+z-index:2; /* 🔥 FIX OVERLAY ISSUE */
+}
+
+/* GRID ROW (IMPORTANT) */
+.row2{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
 }
 
 /* INPUTS */
@@ -53,7 +62,7 @@ padding:10px;
 margin:6px 0;
 border-radius:8px;
 border:1px solid #ddd;
-font-size:14px;
+font-size:13px;
 transition:0.2s;
 }
 
@@ -77,25 +86,47 @@ margin-bottom:8px;
 font-size:14px;
 }
 
+/* DIM ROW */
 .dim-row{
 display:grid;
-grid-template-columns:repeat(4,1fr);
+grid-template-columns:0.6fr 1fr 1fr 1fr auto;
 gap:6px;
+margin-bottom:6px;
 }
 
-/* CHECKBOX ROW */
+/* ADD BUTTON */
+.add{
+background:#c40000;
+color:#fff;
+padding:8px;
+border-radius:8px;
+margin-top:5px;
+width:100%;
+}
+
+/* REMOVE BUTTON */
+.remove{
+background:#000;
+color:white;
+border:none;
+border-radius:6px;
+padding:5px 8px;
+cursor:pointer;
+}
+
+/* CHECKBOX */
 .check{
 display:flex;
 justify-content:space-between;
 margin:12px 0;
-font-size:14px;
+font-size:13px;
 }
 
-/* BUTTON */
+/* MAIN BUTTON */
 button{
 background:linear-gradient(135deg,#ff0000,#c40000);
 color:white;
-padding:12px;
+padding:10px;
 border:none;
 border-radius:10px;
 font-weight:bold;
@@ -115,14 +146,16 @@ background:linear-gradient(135deg,#c40000,#7a0000);
 color:white;
 padding:12px;
 border-radius:12px;
-font-size:13px;
+font-size:12.5px;
+position:relative;
+z-index:3; /* 🔥 FIX BLUR */
 }
 
-/* TOTAL PRICE */
+/* TOTAL */
 .result-box h4{
 text-align:center;
-margin-bottom:10px;
-font-size:20px;
+margin-bottom:8px;
+font-size:18px;
 }
 
 /* ROW */
@@ -133,17 +166,20 @@ padding:4px 0;
 border-bottom:1px solid rgba(255,255,255,0.2);
 }
 
-/* LAST ROW NO BORDER */
+/* LAST */
 .row:last-child{
 border-bottom:none;
 }
 
-/* HIGHLIGHT ROWS */
-.row span:first-child{
-opacity:0.9;
+/* ODA ALERT */
+.oda{
+text-align:center;
+color:yellow;
+font-weight:bold;
+margin-bottom:6px;
 }
 
-/* OPTIONAL SMALL LABEL */
+/* PLACEHOLDER TEXT */
 .result p{
 text-align:center;
 color:#999;
@@ -156,5 +192,8 @@ flex-direction:column;
 }
 .result{
 max-width:100%;
+}
+.row2{
+grid-template-columns:1fr;
 }
 }
