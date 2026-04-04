@@ -3,11 +3,12 @@
   padding:30px;
 }
 
-.big-card{
-  background:#fff;
+/* BIG BACKGROUND CARD */
+.main-card{
+  background:#f9f9f9;
   padding:25px;
-  border-radius:12px;
-  box-shadow:0 5px 15px rgba(0,0,0,0.1);
+  border-radius:15px;
+  box-shadow:0 8px 25px rgba(0,0,0,0.1);
 }
 
 h2{
@@ -16,25 +17,28 @@ h2{
   margin-bottom:20px;
 }
 
-.layout{
+/* INNER 2 CARDS */
+.inner-layout{
   display:flex;
   gap:20px;
   align-items:flex-start;
 }
 
+/* COMMON CARD */
 .card{
-  background:#fff;
+  background:#ffffff;
   padding:20px;
-  border-radius:10px;
-  box-shadow:0 3px 10px rgba(0,0,0,0.1);
+  border-radius:12px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.08);
 }
 
-/* WIDTH */
+/* LEFT */
 .calc{
   flex:1.6;
 }
 
-.result{
+/* RIGHT RESULT */
+.result-card{
   flex:1;
 }
 
@@ -51,73 +55,59 @@ input,select{
   padding:10px;
   border-radius:8px;
   border:1px solid #ddd;
-  font-size:13px;
-  transition:0.2s;
+  font-size:14px;
 }
 
-input:focus,select:focus{
-  border-color:#c40000;
-  outline:none;
-}
-
-/* ================= DIMENSION FIX ================= */
-
+/* DIMENSION BOX */
 .dim{
-  background:#fff5f5; /* LIGHT RED */
+  background:#fff5f5;
   border:1px solid #ff4d4d;
-  padding:12px;
+  padding:10px;
   border-radius:10px;
   margin-top:10px;
 }
 
 .dim h4{
   color:#c40000;
-  margin-bottom:8px;
+  font-size:14px;
 }
 
+/* ROW SMALL */
 .dim-row{
   display:flex;
-  gap:8px;
+  gap:6px;
   margin-bottom:6px;
   align-items:center;
 }
 
 .dim-row input{
-  width:60px;
-  padding:6px;
+  width:55px;
+  padding:5px;
   font-size:12px;
 }
 
-/* ADD BUTTON */
+/* SMALL ADD BUTTON */
 .add-btn{
-  margin-top:8px;
-  width:100%;
+  margin-top:6px;
+  width:auto;
+  padding:6px 10px;
+  font-size:12px;
   background:#ff4d4d;
   color:white;
   border:none;
-  padding:8px;
   border-radius:6px;
   cursor:pointer;
-  transition:0.2s;
-}
-
-.add-btn:hover{
-  background:#e60000;
 }
 
 /* REMOVE BUTTON */
 .remove-btn{
-  background:#222;
+  background:black;
   color:white;
   border:none;
-  padding:5px 8px;
-  border-radius:6px;
+  padding:4px 6px;
+  font-size:11px;
+  border-radius:5px;
   cursor:pointer;
-  font-size:12px;
-}
-
-.remove-btn:hover{
-  background:#000;
 }
 
 /* CHECK */
@@ -125,40 +115,33 @@ input:focus,select:focus{
   display:flex;
   justify-content:space-between;
   margin:12px 0;
-  font-size:14px;
 }
 
 /* BUTTON */
 .calc-btn{
   width:100%;
-  background:#c40000;
+  background:#2e7d32;
   color:#fff;
   padding:12px;
   border:none;
   border-radius:8px;
-  font-weight:bold;
   cursor:pointer;
-  transition:0.2s;
 }
 
-.calc-btn:hover{
-  background:#a00000;
-}
-
-/* ================= RESULT FIX ================= */
-
+/* RESULT BOX CLEAR FIX */
 .result-box{
-  background:linear-gradient(135deg,#c40000,#8b0000);
+  background:#111;   /* DARK BLACK FIX */
+  color:#fff;
   padding:15px;
   border-radius:10px;
-  color:white;
-  font-size:13px;
 }
 
+/* RESULT TEXT CLEAR */
 .result-box h4{
   text-align:center;
-  margin-bottom:12px;
   font-size:20px;
+  margin-bottom:10px;
+  color:#00ff9c;
 }
 
 /* ROW */
@@ -166,11 +149,7 @@ input:focus,select:focus{
   display:flex;
   justify-content:space-between;
   padding:6px 0;
-  border-bottom:1px solid rgba(255,255,255,0.2);
-}
-
-.row:last-child{
-  border:none;
+  border-bottom:1px solid rgba(255,255,255,0.1);
 }
 
 /* ODA */
@@ -178,27 +157,18 @@ input:focus,select:focus{
   text-align:center;
   color:yellow;
   font-weight:bold;
-  margin-bottom:8px;
+  margin-bottom:6px;
 }
 
 /* PLACEHOLDER */
 .placeholder{
   text-align:center;
-  color:#888;
-  margin-top:20px;
+  color:#999;
 }
 
 /* MOBILE */
 @media(max-width:768px){
-  .layout{
+  .inner-layout{
     flex-direction:column;
-  }
-
-  .dim-row{
-    flex-wrap:wrap;
-  }
-
-  .dim-row input{
-    width:48%;
   }
 }

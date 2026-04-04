@@ -157,13 +157,15 @@ return(
 
 <div className="main">
 
-<div className="big-card">
+{/* 🔥 BIG BACKGROUND CARD */}
+<div className="main-card">
 
 <h2>FCPL Rate Calculator</h2>
 
-<div className="layout">
+{/* 🔥 INNER TWO CARDS */}
+<div className="inner-layout">
 
-{/* LEFT */}
+{/* LEFT - CALCULATOR */}
 <div className="card calc">
 
 <div className="grid2">
@@ -207,7 +209,7 @@ return(
 </div>
 ))}
 
-<button className="add-btn" onClick={addBox}>+ Add Box</button>
+<button className="add-btn small">+ Add</button>
 
 </div>
 
@@ -222,8 +224,8 @@ return(
 
 </div>
 
-{/* RIGHT RESULT */}
-<div className="card result">
+{/* RIGHT - RESULT */}
+<div className="card result-card">
 
 {result ? (
 
