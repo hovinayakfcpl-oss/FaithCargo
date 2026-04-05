@@ -1,26 +1,10 @@
-from flask import Flask, jsonify
-import psycopg2
-from psycopg2.extras import RealDictCursor
-
-app = Flask(__name__)
-
-
-# 🔌 POSTGRES CONNECTION (Render compatible)
-def get_connection():
-    return psycopg2.connect(
-        dbname="your_db",
-        user="your_user",
-        password="your_password",
-        host="your_host",
-        port="5432"
-    )
+from django.http import JsonResponse
+from django.db import connection
 
 
 # 📦 SHIPMENT DETAIL (LR BASED)
-@app.route("/api/shipment/<int:lr_number>", methods=["GET"])
-def get_shipment_detail(lr_number):
-    conn = get_connection()
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
+def shipment_detail(request, lr_number):
+    cursor = connection.cursor()
 
     try:
         # 🔹 ORDER FETCH
@@ -28,71 +12,78 @@ def get_shipment_detail(lr_number):
             SELECT *
             FROM orders
             WHERE lr_number = %s
-        """, (lr_number,))
+        """, [lr_number])
 
         order = cursor.fetchone()
 
         if not order:
-            return jsonify({"error": "Shipment not found"}), 404
+            return JsonResponse({"error": "Shipment not found"}, status=404)
+
+        order_id = order[0]
 
         # 🔹 INVOICES
         cursor.execute("""
             SELECT invoice_no, invoice_value
             FROM invoices
             WHERE order_id = %s
-        """, (order["id"],))
+        """, [order_id])
 
-        invoices = cursor.fetchall()
+        invoices = [
+            {
+                "invoice_no": i[0],
+                "invoice_value": float(i[1])
+            }
+            for i in cursor.fetchall()
+        ]
 
         # 🔥 FINAL RESPONSE
-        return jsonify({
-            "lr": order["lr_number"],
-            "awb": order["awb_number"],
+        data = {
+            "lr": order[1],
+            "awb": order[2],
 
             "pickup": {
-                "name": order["pickup_name"],
-                "address": order["pickup_address"],
-                "pincode": order["pickup_pincode"],
-                "contact": order["pickup_contact"]
+                "name": order[3],
+                "address": order[4],
+                "pincode": order[5],
+                "contact": order[6]
             },
 
             "delivery": {
-                "name": order["delivery_name"],
-                "address": order["delivery_address"],
-                "pincode": order["delivery_pincode"],
-                "contact": order["delivery_contact"]
+                "name": order[7],
+                "address": order[8],
+                "pincode": order[9],
+                "contact": order[10]
             },
 
             "shipment": {
-                "material": order["material"],
-                "hsn": order["hsn_code"],
-                "boxes": order["boxes"],
-                "weight": float(order["weight"])
+                "material": order[11],
+                "hsn": order[12],
+                "boxes": order[13],
+                "weight": float(order[14])
             },
 
             "billing": {
-                "total_value": float(order["total_value"]),
-                "eway_bill": order["eway_bill"],
-                "insurance": order.get("insurance_type")
+                "total_value": float(order[15]),
+                "eway_bill": order[16],
+                "insurance": order[18] if len(order) > 18 else None
             },
 
-            "status": order.get("status", "booked"),
+            "status": order[17] if len(order) > 17 else "booked",
             "invoices": invoices
-        })
+        }
+
+        return JsonResponse(data)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return JsonResponse({"error": str(e)}, status=500)
 
     finally:
         cursor.close()
-        conn.close()
 
 
 # 📋 ALL SHIPMENTS
-@app.route("/api/shipments", methods=["GET"])
-def shipment_list():
-    conn = get_connection()
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
+def shipment_list(request):
+    cursor = connection.cursor()
 
     try:
         cursor.execute("""
@@ -106,31 +97,24 @@ def shipment_list():
 
         data = [
             {
-                "lr": r["lr_number"],
-                "route": f"{r['pickup_pincode']} → {r['delivery_pincode']}",
-                "value": float(r["total_value"]),
-                "status": r["status"],
-                "date": str(r["created_at"])
+                "lr": r[0],
+                "route": f"{r[1]} → {r[2]}",
+                "value": float(r[3]),
+                "status": r[4],
+                "date": str(r[5])
             }
             for r in rows
         ]
 
-        return jsonify(data)
+        return JsonResponse(data, safe=False)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return JsonResponse({"error": str(e)}, status=500)
 
     finally:
         cursor.close()
-        conn.close()
 
 
-# ❤️ HEALTH CHECK (important for Render)
-@app.route("/")
-def home():
-    return jsonify({"message": "API Running ✅"})
-
-
-# ▶️ RUN
-if __name__ == "__main__":
-    app.run(debug=True)
+# ❤️ HEALTH CHECK
+def home(request):
+    return JsonResponse({"message": "API Running ✅"})
