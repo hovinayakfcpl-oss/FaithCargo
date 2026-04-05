@@ -33,7 +33,7 @@ function CreateOrder() {
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
-  // 🔹 PINCODE → STATE AUTO
+  // PINCODE → STATE
   const fetchState = async (pincode, type) => {
     if (pincode.length === 6) {
       try {
@@ -41,16 +41,12 @@ function CreateOrder() {
         const data = await res.json();
         const state = data[0]?.PostOffice?.[0]?.State || "";
 
-        setForm(prev => ({
-          ...prev,
-          [type]: state
-        }));
-
+        setForm(prev => ({ ...prev, [type]: state }));
       } catch {}
     }
   };
 
-  // 🔹 INPUT CHANGE WITH LIMITS
+  // INPUT HANDLER
   const handleChange = (e) => {
     let { name, value } = e.target;
 
@@ -70,7 +66,7 @@ function CreateOrder() {
     setForm({ ...form, [name]: value });
   };
 
-  // 🔹 INVOICE
+  // INVOICE
   const handleInvoiceChange = (index, field, value) => {
     const updated = [...invoices];
     updated[index][field] = value;
@@ -82,7 +78,7 @@ function CreateOrder() {
 
   const totalValue = invoices.reduce((sum, i) => sum + Number(i.invoiceValue || 0), 0);
 
-  // 🔹 SUBMIT
+  // SUBMIT
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -110,8 +106,12 @@ function CreateOrder() {
       const data = await res.json();
 
       if (res.ok && data.lr_number) {
-        setSuccess("✅ Order Created! LR: " + data.lr_number);
 
+        // ✅ SUCCESS
+        setSuccess(`✅ Order Created Successfully! LR: ${data.lr_number}`);
+        alert(`Order Created ✅\nLR No: ${data.lr_number}`);
+
+        // RESET
         setForm({
           pickupCompany: "", pickupName: "", pickupAddress: "", pickupPincode: "", pickupState: "", pickupContact: "",
           deliveryCompany: "", deliveryName: "", deliveryAddress: "", deliveryPincode: "", deliveryState: "", deliveryContact: "",
@@ -134,42 +134,44 @@ function CreateOrder() {
   return (
     <div className="main">
 
-      <div className="card">
+      <div className="card wide">
 
-        {/* LOGO */}
         <div className="logo">
           <img src="/logo.png" alt="logo" />
         </div>
 
-        <h2>Create Order</h2>
+        <h2>Create Shipment</h2>
 
         {success && <p className="success">{success}</p>}
         {error && <p className="error">{error}</p>}
 
         <form onSubmit={handleSubmit}>
 
-          <h3>Pickup</h3>
-          <div className="grid">
+          {/* PICKUP */}
+          <h3>Pickup Details</h3>
+          <div className="row">
             <input name="pickupCompany" placeholder="Company" value={form.pickupCompany} onChange={handleChange}/>
-            <input name="pickupName" placeholder="Name" value={form.pickupName} onChange={handleChange}/>
+            <input name="pickupName" placeholder="Contact" value={form.pickupName} onChange={handleChange}/>
             <input name="pickupContact" placeholder="Mobile" value={form.pickupContact} onChange={handleChange}/>
             <input name="pickupPincode" placeholder="Pincode" value={form.pickupPincode} onChange={handleChange}/>
             <input value={form.pickupState} placeholder="State" disabled/>
           </div>
-          <textarea name="pickupAddress" placeholder="Address" value={form.pickupAddress} onChange={handleChange}></textarea>
+          <textarea name="pickupAddress" placeholder="Pickup Address" value={form.pickupAddress} onChange={handleChange}></textarea>
 
-          <h3>Delivery</h3>
-          <div className="grid">
+          {/* DELIVERY */}
+          <h3>Delivery Details</h3>
+          <div className="row">
             <input name="deliveryCompany" placeholder="Company" value={form.deliveryCompany} onChange={handleChange}/>
-            <input name="deliveryName" placeholder="Name" value={form.deliveryName} onChange={handleChange}/>
+            <input name="deliveryName" placeholder="Contact" value={form.deliveryName} onChange={handleChange}/>
             <input name="deliveryContact" placeholder="Mobile" value={form.deliveryContact} onChange={handleChange}/>
             <input name="deliveryPincode" placeholder="Pincode" value={form.deliveryPincode} onChange={handleChange}/>
             <input value={form.deliveryState} placeholder="State" disabled/>
           </div>
-          <textarea name="deliveryAddress" placeholder="Address" value={form.deliveryAddress} onChange={handleChange}></textarea>
+          <textarea name="deliveryAddress" placeholder="Delivery Address" value={form.deliveryAddress} onChange={handleChange}></textarea>
 
-          <h3>Shipment</h3>
-          <div className="grid">
+          {/* SHIPMENT */}
+          <h3>Shipment Info</h3>
+          <div className="row">
             <input name="material" placeholder="Material" value={form.material} onChange={handleChange}/>
             <input name="hsn" placeholder="HSN" value={form.hsn} onChange={handleChange}/>
             <input name="boxes" type="number" placeholder="Boxes" value={form.boxes} onChange={handleChange}/>
@@ -177,6 +179,7 @@ function CreateOrder() {
             <input name="insurance" placeholder="Insurance" value={form.insurance} onChange={handleChange}/>
           </div>
 
+          {/* INVOICES */}
           <h3>Invoices</h3>
           {invoices.map((inv, i) => (
             <div className="invoiceRow" key={i}>
@@ -195,7 +198,7 @@ function CreateOrder() {
           )}
 
           <button className="submitBtn" disabled={loading}>
-            {loading ? "Saving..." : "Save Order"}
+            {loading ? "Saving..." : "Create Order"}
           </button>
 
         </form>
