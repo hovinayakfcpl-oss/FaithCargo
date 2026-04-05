@@ -3,206 +3,134 @@ import "./CreateOrder.css";
 
 function CreateOrder() {
 
-  const BASE_URL = "https://faithcargo.onrender.com";
+  const [showModal, setShowModal] = useState(false);
+  const [type, setType] = useState(""); // pickup / delivery
 
-  const [form, setForm] = useState({
-    pickupCompany: "",
-    pickupName: "",
-    pickupAddress: "",
-    pickupPincode: "",
-    pickupState: "",
-    pickupContact: "",
-
-    deliveryCompany: "",
-    deliveryName: "",
-    deliveryAddress: "",
-    deliveryPincode: "",
-    deliveryState: "",
-    deliveryContact: "",
-
-    material: "",
-    hsn: "",
-    boxes: "",
-    weight: "",
-    insurance: "",
-    ewayBill: ""
+  const [location, setLocation] = useState({
+    company: "",
+    name: "",
+    address: "",
+    pincode: "",
+    state: "",
+    mobile: ""
   });
 
-  const [invoices, setInvoices] = useState([{ invoiceNo: "", invoiceValue: "" }]);
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
+  const [pickup, setPickup] = useState(null);
+  const [delivery, setDelivery] = useState(null);
 
   // PINCODE → STATE
-  const fetchState = async (pincode, type) => {
+  const fetchState = async (pincode) => {
     if (pincode.length === 6) {
       try {
         const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
         const data = await res.json();
         const state = data[0]?.PostOffice?.[0]?.State || "";
 
-        setForm(prev => ({ ...prev, [type]: state }));
+        setLocation(prev => ({ ...prev, state }));
       } catch {}
     }
   };
 
-  // INPUT HANDLER
+  // INPUT HANDLE
   const handleChange = (e) => {
     let { name, value } = e.target;
 
-    if (name.includes("Pincode")) {
+    if (name === "pincode") {
       value = value.replace(/\D/g, "").slice(0, 6);
-      fetchState(value, name === "pickupPincode" ? "pickupState" : "deliveryState");
+      fetchState(value);
     }
 
-    if (name.includes("Contact")) {
+    if (name === "mobile") {
       value = value.replace(/\D/g, "").slice(0, 10);
     }
 
-    if (name === "ewayBill") {
-      value = value.replace(/\D/g, "").slice(0, 14);
-    }
-
-    setForm({ ...form, [name]: value });
+    setLocation({ ...location, [name]: value });
   };
 
-  // INVOICE
-  const handleInvoiceChange = (index, field, value) => {
-    const updated = [...invoices];
-    updated[index][field] = value;
-    setInvoices(updated);
-  };
+  // SAVE LOCATION
+  const saveLocation = () => {
+    if (type === "pickup") setPickup(location);
+    else setDelivery(location);
 
-  const addInvoice = () => setInvoices([...invoices, { invoiceNo: "", invoiceValue: "" }]);
-  const removeInvoice = (index) => setInvoices(invoices.filter((_, i) => i !== index));
+    setShowModal(false);
 
-  const totalValue = invoices.reduce((sum, i) => sum + Number(i.invoiceValue || 0), 0);
-
-  // SUBMIT
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
-
-    const payload = {
-      ...form,
-      boxes: Number(form.boxes),
-      weight: Number(form.weight),
-      total_value: totalValue,
-      invoices: invoices.map(i => ({
-        invoice_no: i.invoiceNo,
-        invoice_value: Number(i.invoiceValue)
-      }))
-    };
-
-    try {
-      const res = await fetch(`${BASE_URL}/api/create-order/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.lr_number) {
-
-        // ✅ SUCCESS
-        setSuccess(`✅ Order Created Successfully! LR: ${data.lr_number}`);
-        alert(`Order Created ✅\nLR No: ${data.lr_number}`);
-
-        // RESET
-        setForm({
-          pickupCompany: "", pickupName: "", pickupAddress: "", pickupPincode: "", pickupState: "", pickupContact: "",
-          deliveryCompany: "", deliveryName: "", deliveryAddress: "", deliveryPincode: "", deliveryState: "", deliveryContact: "",
-          material: "", hsn: "", boxes: "", weight: "", insurance: "", ewayBill: ""
-        });
-
-        setInvoices([{ invoiceNo: "", invoiceValue: "" }]);
-
-      } else {
-        setError(data.error || "Error ❌");
-      }
-
-    } catch {
-      setError("Server Error ❌");
-    }
-
-    setLoading(false);
+    setLocation({
+      company: "",
+      name: "",
+      address: "",
+      pincode: "",
+      state: "",
+      mobile: ""
+    });
   };
 
   return (
-    <div className="main">
+    <div className="container">
 
-      <div className="card wide">
+      {/* LEFT */}
+      <div className="left">
+        <h2>Create Order</h2>
+      </div>
 
-        <div className="logo">
-          <img src="/logo.png" alt="logo" />
-        </div>
+      {/* RIGHT PANEL */}
+      <div className="right">
 
-        <h2>Create Shipment</h2>
+        {/* DELIVERY CARD */}
+        <div className="card deliveryCard">
 
-        {success && <p className="success">{success}</p>}
-        {error && <p className="error">{error}</p>}
+          <h3>📍 Delivery Details</h3>
 
-        <form onSubmit={handleSubmit}>
-
-          {/* PICKUP */}
-          <h3>Pickup Details</h3>
-          <div className="row">
-            <input name="pickupCompany" placeholder="Company" value={form.pickupCompany} onChange={handleChange}/>
-            <input name="pickupName" placeholder="Contact" value={form.pickupName} onChange={handleChange}/>
-            <input name="pickupContact" placeholder="Mobile" value={form.pickupContact} onChange={handleChange}/>
-            <input name="pickupPincode" placeholder="Pincode" value={form.pickupPincode} onChange={handleChange}/>
-            <input value={form.pickupState} placeholder="State" disabled/>
-          </div>
-          <textarea name="pickupAddress" placeholder="Pickup Address" value={form.pickupAddress} onChange={handleChange}></textarea>
-
-          {/* DELIVERY */}
-          <h3>Delivery Details</h3>
-          <div className="row">
-            <input name="deliveryCompany" placeholder="Company" value={form.deliveryCompany} onChange={handleChange}/>
-            <input name="deliveryName" placeholder="Contact" value={form.deliveryName} onChange={handleChange}/>
-            <input name="deliveryContact" placeholder="Mobile" value={form.deliveryContact} onChange={handleChange}/>
-            <input name="deliveryPincode" placeholder="Pincode" value={form.deliveryPincode} onChange={handleChange}/>
-            <input value={form.deliveryState} placeholder="State" disabled/>
-          </div>
-          <textarea name="deliveryAddress" placeholder="Delivery Address" value={form.deliveryAddress} onChange={handleChange}></textarea>
-
-          {/* SHIPMENT */}
-          <h3>Shipment Info</h3>
-          <div className="row">
-            <input name="material" placeholder="Material" value={form.material} onChange={handleChange}/>
-            <input name="hsn" placeholder="HSN" value={form.hsn} onChange={handleChange}/>
-            <input name="boxes" type="number" placeholder="Boxes" value={form.boxes} onChange={handleChange}/>
-            <input name="weight" type="number" placeholder="Weight" value={form.weight} onChange={handleChange}/>
-            <input name="insurance" placeholder="Insurance" value={form.insurance} onChange={handleChange}/>
-          </div>
-
-          {/* INVOICES */}
-          <h3>Invoices</h3>
-          {invoices.map((inv, i) => (
-            <div className="invoiceRow" key={i}>
-              <input placeholder="Invoice No" value={inv.invoiceNo} onChange={(e)=>handleInvoiceChange(i,"invoiceNo",e.target.value)}/>
-              <input type="number" placeholder="Value" value={inv.invoiceValue} onChange={(e)=>handleInvoiceChange(i,"invoiceValue",e.target.value)}/>
-              {i>0 && <button type="button" onClick={()=>removeInvoice(i)}>❌</button>}
-            </div>
-          ))}
-
-          <button type="button" onClick={addInvoice}>➕ Add Invoice</button>
-
-          <h4>Total: ₹ {totalValue}</h4>
-
-          {totalValue >= 50000 && (
-            <input name="ewayBill" placeholder="E-Way Bill (14 digit)" value={form.ewayBill} onChange={handleChange}/>
-          )}
-
-          <button className="submitBtn" disabled={loading}>
-            {loading ? "Saving..." : "Create Order"}
+          <button
+            className="selectBtn"
+            onClick={() => {
+              setType("pickup");
+              setShowModal(true);
+            }}
+          >
+            {pickup ? pickup.company : "Select Pickup Location"}
           </button>
 
-        </form>
+          <button
+            className="selectBtn gray"
+            onClick={() => {
+              setType("delivery");
+              setShowModal(true);
+            }}
+          >
+            {delivery ? delivery.company : "Select Drop Location"}
+          </button>
+
+        </div>
+
       </div>
+
+      {/* MODAL */}
+      {showModal && (
+        <div className="modal">
+
+          <div className="modalContent">
+
+            <h3>{type === "pickup" ? "Pickup Location" : "Delivery Location"}</h3>
+
+            <input name="company" placeholder="Company Name" onChange={handleChange} />
+            <input name="name" placeholder="Contact Person" onChange={handleChange} />
+            <input name="mobile" placeholder="Mobile" onChange={handleChange} />
+            <input name="pincode" placeholder="Pincode" onChange={handleChange} />
+
+            <input value={location.state} placeholder="State" disabled />
+
+            <textarea name="address" placeholder="Full Address" onChange={handleChange}></textarea>
+
+            <div className="modalBtns">
+              <button onClick={saveLocation}>Save</button>
+              <button className="cancel" onClick={() => setShowModal(false)}>Cancel</button>
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
     </div>
   );
 }
