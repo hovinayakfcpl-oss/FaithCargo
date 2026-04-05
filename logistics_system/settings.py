@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     'pickup',
     'pincode',
     'user_management',
-    'signup'
+    'signup',
+    'shipments'
 ]
 
 # MIDDLEWARE
