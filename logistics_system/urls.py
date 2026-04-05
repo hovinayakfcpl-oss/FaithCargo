@@ -18,5 +18,6 @@ urlpatterns = [
     # ✅ API endpoints
     path("api/pincode/", include("pincode.urls")),
     path('api/user/', include('user_management.urls')),
+    path("api/", include("shipments.urls")),
     
 ]
