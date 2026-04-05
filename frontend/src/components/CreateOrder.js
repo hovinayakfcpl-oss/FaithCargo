@@ -10,15 +10,15 @@ function CreateOrder() {
     pickupName: "",
     pickupAddress: "",
     pickupPincode: "",
+    pickupState: "",
     pickupContact: "",
-    pickupAppointment: "",
 
     deliveryCompany: "",
     deliveryName: "",
     deliveryAddress: "",
     deliveryPincode: "",
+    deliveryState: "",
     deliveryContact: "",
-    deliveryAppointment: "",
 
     material: "",
     hsn: "",
@@ -28,85 +28,72 @@ function CreateOrder() {
     ewayBill: ""
   });
 
-  const [invoices, setInvoices] = useState([
-    { invoiceNo: "", invoiceValue: "" }
-  ]);
-
+  const [invoices, setInvoices] = useState([{ invoiceNo: "", invoiceValue: "" }]);
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
-  // INPUT CHANGE
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  // 🔹 PINCODE → STATE AUTO
+  const fetchState = async (pincode, type) => {
+    if (pincode.length === 6) {
+      try {
+        const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+        const data = await res.json();
+        const state = data[0]?.PostOffice?.[0]?.State || "";
+
+        setForm(prev => ({
+          ...prev,
+          [type]: state
+        }));
+
+      } catch {}
+    }
   };
 
-  // INVOICE CHANGE
+  // 🔹 INPUT CHANGE WITH LIMITS
+  const handleChange = (e) => {
+    let { name, value } = e.target;
+
+    if (name.includes("Pincode")) {
+      value = value.replace(/\D/g, "").slice(0, 6);
+      fetchState(value, name === "pickupPincode" ? "pickupState" : "deliveryState");
+    }
+
+    if (name.includes("Contact")) {
+      value = value.replace(/\D/g, "").slice(0, 10);
+    }
+
+    if (name === "ewayBill") {
+      value = value.replace(/\D/g, "").slice(0, 14);
+    }
+
+    setForm({ ...form, [name]: value });
+  };
+
+  // 🔹 INVOICE
   const handleInvoiceChange = (index, field, value) => {
     const updated = [...invoices];
     updated[index][field] = value;
     setInvoices(updated);
   };
 
-  const addInvoice = () => {
-    setInvoices([...invoices, { invoiceNo: "", invoiceValue: "" }]);
-  };
+  const addInvoice = () => setInvoices([...invoices, { invoiceNo: "", invoiceValue: "" }]);
+  const removeInvoice = (index) => setInvoices(invoices.filter((_, i) => i !== index));
 
-  const removeInvoice = (index) => {
-    setInvoices(invoices.filter((_, i) => i !== index));
-  };
+  const totalValue = invoices.reduce((sum, i) => sum + Number(i.invoiceValue || 0), 0);
 
-  // TOTAL
-  const totalValue = invoices.reduce(
-    (sum, inv) => sum + Number(inv.invoiceValue || 0),
-    0
-  );
-
-  // VALIDATION
-  const validate = () => {
-    if (!form.pickupName) return "Pickup Name required";
-    if (!form.deliveryName) return "Delivery Name required";
-    if (!form.boxes) return "Boxes required";
-    if (!form.weight) return "Weight required";
-    return "";
-  };
-
-  // SUBMIT
+  // 🔹 SUBMIT
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const err = validate();
-    if (err) {
-      setError(err);
-      return;
-    }
-
     setLoading(true);
     setError("");
+    setSuccess("");
 
     const payload = {
-      pickup_name: form.pickupName,
-      pickup_company: form.pickupCompany,
-      pickup_address: form.pickupAddress,
-      pickup_pincode: form.pickupPincode,
-      pickup_contact: form.pickupContact,
-      pickup_appointment: form.pickupAppointment,
-
-      delivery_name: form.deliveryName,
-      delivery_company: form.deliveryCompany,
-      delivery_address: form.deliveryAddress,
-      delivery_pincode: form.deliveryPincode,
-      delivery_contact: form.deliveryContact,
-      delivery_appointment: form.deliveryAppointment,
-
-      material: form.material,
-      hsn: form.hsn,
+      ...form,
       boxes: Number(form.boxes),
       weight: Number(form.weight),
-      insurance: form.insurance,
-      eway_bill: form.ewayBill,
-
       total_value: totalValue,
-
       invoices: invoices.map(i => ({
         invoice_no: i.invoiceNo,
         invoice_value: Number(i.invoiceValue)
@@ -116,50 +103,28 @@ function CreateOrder() {
     try {
       const res = await fetch(`${BASE_URL}/api/create-order/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
       const data = await res.json();
-      console.log("API RESPONSE:", data);
 
       if (res.ok && data.lr_number) {
-        alert("✅ Order Created! LR No: " + data.lr_number);
+        setSuccess("✅ Order Created! LR: " + data.lr_number);
 
-        // RESET FORM
         setForm({
-          pickupCompany: "",
-          pickupName: "",
-          pickupAddress: "",
-          pickupPincode: "",
-          pickupContact: "",
-          pickupAppointment: "",
-
-          deliveryCompany: "",
-          deliveryName: "",
-          deliveryAddress: "",
-          deliveryPincode: "",
-          deliveryContact: "",
-          deliveryAppointment: "",
-
-          material: "",
-          hsn: "",
-          boxes: "",
-          weight: "",
-          insurance: "",
-          ewayBill: ""
+          pickupCompany: "", pickupName: "", pickupAddress: "", pickupPincode: "", pickupState: "", pickupContact: "",
+          deliveryCompany: "", deliveryName: "", deliveryAddress: "", deliveryPincode: "", deliveryState: "", deliveryContact: "",
+          material: "", hsn: "", boxes: "", weight: "", insurance: "", ewayBill: ""
         });
 
         setInvoices([{ invoiceNo: "", invoiceValue: "" }]);
 
       } else {
-        setError(data.error || "Something went wrong");
+        setError(data.error || "Error ❌");
       }
 
-    } catch (err) {
-      console.error(err);
+    } catch {
       setError("Server Error ❌");
     }
 
@@ -171,75 +136,53 @@ function CreateOrder() {
 
       <div className="card">
 
+        {/* LOGO */}
         <div className="logo">
           <img src="/logo.png" alt="logo" />
         </div>
 
         <h2>Create Order</h2>
 
-        {error && <p style={{ color: "red" }}>{error}</p>}
+        {success && <p className="success">{success}</p>}
+        {error && <p className="error">{error}</p>}
 
         <form onSubmit={handleSubmit}>
 
-          {/* PICKUP */}
-          <h3>Pickup Details</h3>
-
+          <h3>Pickup</h3>
           <div className="grid">
-            <input name="pickupCompany" placeholder="Company Name" value={form.pickupCompany} onChange={handleChange}/>
-            <input name="pickupName" placeholder="Contact Person" value={form.pickupName} onChange={handleChange}/>
+            <input name="pickupCompany" placeholder="Company" value={form.pickupCompany} onChange={handleChange}/>
+            <input name="pickupName" placeholder="Name" value={form.pickupName} onChange={handleChange}/>
             <input name="pickupContact" placeholder="Mobile" value={form.pickupContact} onChange={handleChange}/>
             <input name="pickupPincode" placeholder="Pincode" value={form.pickupPincode} onChange={handleChange}/>
+            <input value={form.pickupState} placeholder="State" disabled/>
           </div>
+          <textarea name="pickupAddress" placeholder="Address" value={form.pickupAddress} onChange={handleChange}></textarea>
 
-          <textarea name="pickupAddress" placeholder="Pickup Address" value={form.pickupAddress} onChange={handleChange}></textarea>
-
-          <input name="pickupAppointment" type="date" value={form.pickupAppointment} onChange={handleChange} />
-
-          {/* DELIVERY */}
-          <h3>Delivery Details</h3>
-
+          <h3>Delivery</h3>
           <div className="grid">
-            <input name="deliveryCompany" placeholder="Company Name" value={form.deliveryCompany} onChange={handleChange}/>
-            <input name="deliveryName" placeholder="Contact Person" value={form.deliveryName} onChange={handleChange}/>
+            <input name="deliveryCompany" placeholder="Company" value={form.deliveryCompany} onChange={handleChange}/>
+            <input name="deliveryName" placeholder="Name" value={form.deliveryName} onChange={handleChange}/>
             <input name="deliveryContact" placeholder="Mobile" value={form.deliveryContact} onChange={handleChange}/>
             <input name="deliveryPincode" placeholder="Pincode" value={form.deliveryPincode} onChange={handleChange}/>
+            <input value={form.deliveryState} placeholder="State" disabled/>
           </div>
+          <textarea name="deliveryAddress" placeholder="Address" value={form.deliveryAddress} onChange={handleChange}></textarea>
 
-          <textarea name="deliveryAddress" placeholder="Delivery Address" value={form.deliveryAddress} onChange={handleChange}></textarea>
-
-          <input name="deliveryAppointment" type="date" value={form.deliveryAppointment} onChange={handleChange} />
-
-          {/* SHIPMENT */}
-          <h3>Shipment Details</h3>
-
+          <h3>Shipment</h3>
           <div className="grid">
             <input name="material" placeholder="Material" value={form.material} onChange={handleChange}/>
-            <input name="hsn" placeholder="HSN Code" value={form.hsn} onChange={handleChange}/>
+            <input name="hsn" placeholder="HSN" value={form.hsn} onChange={handleChange}/>
             <input name="boxes" type="number" placeholder="Boxes" value={form.boxes} onChange={handleChange}/>
-            <input name="weight" type="number" placeholder="Weight (kg)" value={form.weight} onChange={handleChange}/>
-            <input name="insurance" placeholder="Insurance Value" value={form.insurance} onChange={handleChange}/>
+            <input name="weight" type="number" placeholder="Weight" value={form.weight} onChange={handleChange}/>
+            <input name="insurance" placeholder="Insurance" value={form.insurance} onChange={handleChange}/>
           </div>
 
-          {/* INVOICE */}
           <h3>Invoices</h3>
-
-          {invoices.map((inv, index) => (
-            <div className="invoiceRow" key={index}>
-              <input
-                placeholder="Invoice No"
-                value={inv.invoiceNo}
-                onChange={(e)=>handleInvoiceChange(index,"invoiceNo",e.target.value)}
-              />
-              <input
-                type="number"
-                placeholder="Value"
-                value={inv.invoiceValue}
-                onChange={(e)=>handleInvoiceChange(index,"invoiceValue",e.target.value)}
-              />
-
-              {index > 0 && (
-                <button type="button" onClick={()=>removeInvoice(index)}>❌</button>
-              )}
+          {invoices.map((inv, i) => (
+            <div className="invoiceRow" key={i}>
+              <input placeholder="Invoice No" value={inv.invoiceNo} onChange={(e)=>handleInvoiceChange(i,"invoiceNo",e.target.value)}/>
+              <input type="number" placeholder="Value" value={inv.invoiceValue} onChange={(e)=>handleInvoiceChange(i,"invoiceValue",e.target.value)}/>
+              {i>0 && <button type="button" onClick={()=>removeInvoice(i)}>❌</button>}
             </div>
           ))}
 
@@ -248,7 +191,7 @@ function CreateOrder() {
           <h4>Total: ₹ {totalValue}</h4>
 
           {totalValue >= 50000 && (
-            <input name="ewayBill" placeholder="E-Way Bill" value={form.ewayBill} onChange={handleChange}/>
+            <input name="ewayBill" placeholder="E-Way Bill (14 digit)" value={form.ewayBill} onChange={handleChange}/>
           )}
 
           <button className="submitBtn" disabled={loading}>

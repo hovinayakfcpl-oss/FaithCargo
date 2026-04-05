@@ -20,7 +20,6 @@ function ShipmentDetail() {
       const data = await res.json();
       setShipments(data || []);
     } catch (err) {
-      console.error(err);
       alert("❌ Failed to load shipments");
     }
     setLoading(false);
@@ -30,7 +29,7 @@ function ShipmentDetail() {
     s.lr?.toString().includes(search)
   );
 
-  // 🧾 DOCKET PRINT
+  // 🧾 DOCKET PRINT (PRO)
   const printDocket = async (lr) => {
     try {
       const res = await fetch(`${BASE_URL}/api/shipment/${lr}/`);
@@ -39,61 +38,75 @@ function ShipmentDetail() {
       const html = `
       <html>
       <head>
+        <title>Docket</title>
         <style>
           body{font-family:Arial;padding:20px}
-          .box{border:2px solid #000;padding:15px}
+          .container{border:2px solid #000;padding:20px}
           .header{display:flex;justify-content:space-between}
-          .section{margin-top:10px}
-          .barcode{text-align:center;margin-top:15px}
+          .logo{height:60px}
+          .company{font-size:20px;font-weight:bold}
+          .address{font-size:13px;color:#333}
+          .section{margin-top:12px}
+          .row{display:flex;justify-content:space-between}
+          .barcode{text-align:center;margin-top:20px}
         </style>
       </head>
 
       <body>
-      <div class="box">
+      <div class="container">
 
         <div class="header">
           <div>
-            <h2>FAITH CARGO PVT LTD</h2>
-            <p>4/15 Kirti Nagar Industrial Area</p>
-            <p>New Delhi - 110015</p>
+            <img src="/logo.png" class="logo"/>
+            <div class="company">FAITH CARGO PVT LTD</div>
+            <div class="address">
+              4/15 Kirti Nagar Industrial Area<br/>
+              New Delhi - 110015
+            </div>
           </div>
-          <div><b>LR:</b> ${data.lr}</div>
+
+          <div>
+            <b>LR NO:</b><br/>
+            ${data.lr}
+          </div>
         </div>
 
         <hr/>
 
         <div class="section">
-          <b>Consignor:</b> ${data.pickup?.name || "-"}<br/>
+          <b>Consignor:</b><br/>
+          ${data.pickup?.name || "-"}<br/>
           ${data.pickup?.address || "-"}
         </div>
 
         <div class="section">
-          <b>Consignee:</b> ${data.delivery?.name || "-"}<br/>
+          <b>Consignee:</b><br/>
+          ${data.delivery?.name || "-"}<br/>
           ${data.delivery?.address || "-"}
         </div>
 
-        <div class="section">
-          Boxes: ${data.shipment?.boxes || 0} |
-          Weight: ${data.shipment?.weight || 0} kg
+        <div class="section row">
+          <div><b>Boxes:</b> ${data.shipment?.boxes || 0}</div>
+          <div><b>Weight:</b> ${data.shipment?.weight || 0} kg</div>
         </div>
 
         <div class="section">
-          <b>Total:</b> ₹ ${data.totalValue || 0}
+          <b>Total Value:</b> ₹ ${data.totalValue || 0}
         </div>
 
         <div class="section">
-          <b>E-Way:</b> ${data.ewayBill || "-"}
+          <b>E-Way Bill:</b> ${data.ewayBill || "-"}
         </div>
 
         <div class="section">
           <b>Invoices:</b><br/>
           ${(data.invoices || []).map(i => `
-            <div>${i.invoiceNo} - ₹${i.invoiceValue}</div>
+            ${i.invoiceNo} - ₹${i.invoiceValue}<br/>
           `).join("")}
         </div>
 
         <div class="barcode">
-          <img src="https://barcode.tec-it.com/barcode.ashx?data=${data.lr}&code=Code128"/>
+          <img src="https://barcode.tec-it.com/barcode.ashx?data=${data.lr}&code=Code128&scale=2"/>
         </div>
 
       </div>
@@ -101,16 +114,17 @@ function ShipmentDetail() {
       </html>
       `;
 
-      const win = window.open("");
+      const win = window.open("", "_blank");
       win.document.write(html);
+      win.document.close();
       win.print();
 
-    } catch (err) {
+    } catch {
       alert("❌ Print failed");
     }
   };
 
-  // 🏷️ THERMAL LABEL (4x6 EXACT)
+  // 🏷️ THERMAL LABEL (4x6)
   const printLabel = async (lr) => {
     try {
       const res = await fetch(`${BASE_URL}/api/shipment/${lr}/`);
@@ -119,13 +133,12 @@ function ShipmentDetail() {
       let html = "";
 
       for (let i = 1; i <= (data.shipment?.boxes || 1); i++) {
-
         html += `
         <div style="
           width:4in;
           height:6in;
           border:2px solid black;
-          padding:10px;
+          padding:12px;
           font-family:Arial;
           page-break-after:always;
         ">
@@ -134,7 +147,7 @@ function ShipmentDetail() {
 
           <div style="text-align:center">
             <img src="https://barcode.tec-it.com/barcode.ashx?data=${data.lr}&code=Code128"/>
-            <div>LR: ${data.lr}</div>
+            <div><b>LR:</b> ${data.lr}</div>
           </div>
 
           <hr/>
@@ -166,8 +179,9 @@ function ShipmentDetail() {
         `;
       }
 
-      const win = window.open("");
+      const win = window.open("", "_blank");
       win.document.write(html);
+      win.document.close();
       win.print();
 
     } catch {
@@ -250,6 +264,7 @@ function ShipmentDetail() {
         )}
 
       </div>
+
     </div>
   );
 }
