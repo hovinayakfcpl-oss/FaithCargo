@@ -1,31 +1,75 @@
-.create-order-container {
-  max-width: 800px;
-  margin: auto;
-  padding: 20px;
-  background: #fff;
-  border-radius: 10px;
+.main{
+background:#f4f6f9;
+min-height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
 }
 
-input {
-  display: block;
-  width: 100%;
-  margin: 8px 0;
-  padding: 10px;
+.card{
+background:#fff;
+width:800px;
+padding:25px;
+border-radius:12px;
+box-shadow:0 5px 20px rgba(0,0,0,0.1);
 }
 
-.invoice-row {
-  display: flex;
-  gap: 10px;
+.logo{
+text-align:center;
+margin-bottom:10px;
 }
 
-.add-btn {
-  margin-top: 10px;
+.logo img{
+height:60px;
 }
 
-.submit-btn {
-  margin-top: 20px;
-  padding: 10px;
-  background: green;
-  color: white;
-  border: none;
+h2{
+text-align:center;
+margin-bottom:20px;
+}
+
+h3{
+margin-top:20px;
+margin-bottom:10px;
+color:#333;
+}
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+}
+
+input, textarea{
+width:100%;
+padding:10px;
+border:1px solid #ccc;
+border-radius:6px;
+margin-bottom:10px;
+}
+
+textarea{
+resize:none;
+height:60px;
+}
+
+.invoiceRow{
+display:flex;
+gap:10px;
+margin-bottom:10px;
+}
+
+.submitBtn{
+width:100%;
+padding:12px;
+background:#e63946;
+color:white;
+border:none;
+border-radius:6px;
+font-size:16px;
+cursor:pointer;
+}
+
+.submitBtn:hover{
+background:#c82333;
 }

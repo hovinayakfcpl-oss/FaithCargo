@@ -1,24 +1,34 @@
 import React, { useState } from "react";
+import "./CreateOrder.css";
 
 function CreateOrder() {
 
   const BASE_URL = "https://faithcargo.onrender.com";
 
   const [form, setForm] = useState({
+
+    // Pickup
+    pickupCompany: "",
     pickupName: "",
     pickupAddress: "",
     pickupPincode: "",
     pickupContact: "",
+    pickupAppointment: "",
 
+    // Delivery
+    deliveryCompany: "",
     deliveryName: "",
     deliveryAddress: "",
     deliveryPincode: "",
     deliveryContact: "",
+    deliveryAppointment: "",
 
+    // Shipment
     material: "",
     hsn: "",
     boxes: "",
     weight: "",
+    insurance: "",
     ewayBill: ""
   });
 
@@ -66,9 +76,7 @@ function CreateOrder() {
     try {
       const res = await fetch(`${BASE_URL}/api/create-order/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
@@ -76,103 +84,102 @@ function CreateOrder() {
 
       if (res.ok && data.lr_number) {
         alert("✅ Order Created! LR No: " + data.lr_number);
-
-        // reset form
-        setForm({
-          pickupName: "",
-          pickupAddress: "",
-          pickupPincode: "",
-          pickupContact: "",
-          deliveryName: "",
-          deliveryAddress: "",
-          deliveryPincode: "",
-          deliveryContact: "",
-          material: "",
-          hsn: "",
-          boxes: "",
-          weight: "",
-          ewayBill: ""
-        });
-
-        setInvoices([{ invoiceNo: "", invoiceValue: "" }]);
-
       } else {
-        alert("❌ " + (data.error || "Something went wrong"));
+        alert("❌ " + (data.error || "Error"));
       }
 
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert("❌ Server Error");
     }
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Create Order</h2>
+    <div className="main">
 
-      <form onSubmit={handleSubmit}>
+      <div className="card">
 
-        <h3>Pickup</h3>
-        <input name="pickupName" value={form.pickupName} onChange={handleChange} placeholder="Name" />
-        <input name="pickupAddress" value={form.pickupAddress} onChange={handleChange} placeholder="Address" />
-        <input name="pickupPincode" value={form.pickupPincode} onChange={handleChange} placeholder="Pincode" />
-        <input name="pickupContact" value={form.pickupContact} onChange={handleChange} placeholder="Contact" />
+        <div className="logo">
+          <img src="/logo.png" alt="logo" />
+        </div>
 
-        <h3>Delivery</h3>
-        <input name="deliveryName" value={form.deliveryName} onChange={handleChange} placeholder="Name" />
-        <input name="deliveryAddress" value={form.deliveryAddress} onChange={handleChange} placeholder="Address" />
-        <input name="deliveryPincode" value={form.deliveryPincode} onChange={handleChange} placeholder="Pincode" />
-        <input name="deliveryContact" value={form.deliveryContact} onChange={handleChange} placeholder="Contact" />
+        <h2>Create Order</h2>
 
-        <h3>Shipment</h3>
-        <input name="material" value={form.material} onChange={handleChange} placeholder="Material" />
-        <input name="hsn" value={form.hsn} onChange={handleChange} placeholder="HSN" />
-        <input name="boxes" type="number" value={form.boxes} onChange={handleChange} placeholder="Boxes" />
-        <input name="weight" type="number" value={form.weight} onChange={handleChange} placeholder="Weight" />
+        <form onSubmit={handleSubmit}>
 
-        <h3>Invoices</h3>
+          {/* PICKUP */}
+          <h3>Pickup Details</h3>
 
-        {invoices.map((inv, index) => (
-          <div key={index}>
-            <input
-              placeholder="Invoice No"
-              value={inv.invoiceNo}
-              onChange={(e) =>
-                handleInvoiceChange(index, "invoiceNo", e.target.value)
-              }
-            />
-            <input
-              type="number"
-              placeholder="Value"
-              value={inv.invoiceValue}
-              onChange={(e) =>
-                handleInvoiceChange(index, "invoiceValue", e.target.value)
-              }
-            />
-
-            {index > 0 && (
-              <button type="button" onClick={() => removeInvoice(index)}>❌</button>
-            )}
+          <div className="grid">
+            <input name="pickupCompany" placeholder="Company Name" onChange={handleChange}/>
+            <input name="pickupName" placeholder="Contact Person" onChange={handleChange}/>
+            <input name="pickupContact" placeholder="Mobile" onChange={handleChange}/>
+            <input name="pickupPincode" placeholder="Pincode" onChange={handleChange}/>
           </div>
-        ))}
 
-        <button type="button" onClick={addInvoice}>➕ Add Invoice</button>
+          <textarea name="pickupAddress" placeholder="Pickup Address" onChange={handleChange}></textarea>
 
-        <h4>Total: ₹ {totalValue}</h4>
+          <input name="pickupAppointment" type="date" onChange={handleChange} />
 
-        {totalValue >= 50000 && (
-          <input
-            name="ewayBill"
-            value={form.ewayBill}
-            onChange={handleChange}
-            placeholder="E-Way Bill"
-          />
-        )}
+          {/* DELIVERY */}
+          <h3>Delivery Details</h3>
 
-        <br /><br />
-        <button type="submit">Save Order</button>
+          <div className="grid">
+            <input name="deliveryCompany" placeholder="Company Name" onChange={handleChange}/>
+            <input name="deliveryName" placeholder="Contact Person" onChange={handleChange}/>
+            <input name="deliveryContact" placeholder="Mobile" onChange={handleChange}/>
+            <input name="deliveryPincode" placeholder="Pincode" onChange={handleChange}/>
+          </div>
 
-      </form>
+          <textarea name="deliveryAddress" placeholder="Delivery Address" onChange={handleChange}></textarea>
+
+          <input name="deliveryAppointment" type="date" onChange={handleChange} />
+
+          {/* SHIPMENT */}
+          <h3>Shipment Details</h3>
+
+          <div className="grid">
+            <input name="material" placeholder="Material" onChange={handleChange}/>
+            <input name="hsn" placeholder="HSN Code" onChange={handleChange}/>
+            <input name="boxes" type="number" placeholder="Boxes" onChange={handleChange}/>
+            <input name="weight" type="number" placeholder="Weight (kg)" onChange={handleChange}/>
+            <input name="insurance" placeholder="Insurance Value" onChange={handleChange}/>
+          </div>
+
+          {/* INVOICE */}
+          <h3>Invoices</h3>
+
+          {invoices.map((inv, index) => (
+            <div className="invoiceRow" key={index}>
+              <input
+                placeholder="Invoice No"
+                value={inv.invoiceNo}
+                onChange={(e)=>handleInvoiceChange(index,"invoiceNo",e.target.value)}
+              />
+              <input
+                type="number"
+                placeholder="Value"
+                value={inv.invoiceValue}
+                onChange={(e)=>handleInvoiceChange(index,"invoiceValue",e.target.value)}
+              />
+
+              {index > 0 && (
+                <button type="button" onClick={()=>removeInvoice(index)}>❌</button>
+              )}
+            </div>
+          ))}
+
+          <button type="button" onClick={addInvoice}>➕ Add Invoice</button>
+
+          <h4>Total: ₹ {totalValue}</h4>
+
+          {totalValue >= 50000 && (
+            <input name="ewayBill" placeholder="E-Way Bill" onChange={handleChange}/>
+          )}
+
+          <button className="submitBtn">Save Order</button>
+
+        </form>
+      </div>
     </div>
   );
 }
