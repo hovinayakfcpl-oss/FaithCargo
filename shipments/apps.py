@@ -1,31 +1,33 @@
 from flask import Flask, jsonify
-import cx_Oracle  # ya psycopg2 / mysql depending on DB
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
 
 
-# 🔌 DB CONNECTION
+# 🔌 POSTGRES CONNECTION (Render compatible)
 def get_connection():
-    return cx_Oracle.connect("user/password@localhost:1521/XE")
+    return psycopg2.connect(
+        dbname="your_db",
+        user="your_user",
+        password="your_password",
+        host="your_host",
+        port="5432"
+    )
 
 
-# 📦 SHIPMENT DETAIL (ADVANCED)
-@app.route("/shipment/<int:lr_number>", methods=["GET"])
+# 📦 SHIPMENT DETAIL (LR BASED)
+@app.route("/api/shipment/<int:lr_number>", methods=["GET"])
 def get_shipment_detail(lr_number):
     conn = get_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
         # 🔹 ORDER FETCH
         cursor.execute("""
-            SELECT 
-                id, lr_number, awb_number,
-                pickup_name, pickup_address, pickup_pincode, pickup_contact,
-                delivery_name, delivery_address, delivery_pincode, delivery_contact,
-                material, hsn_code, boxes, weight,
-                total_value, eway_bill, status, insurance_type
+            SELECT *
             FROM orders
-            WHERE lr_number = :1
+            WHERE lr_number = %s
         """, (lr_number,))
 
         order = cursor.fetchone()
@@ -33,61 +35,50 @@ def get_shipment_detail(lr_number):
         if not order:
             return jsonify({"error": "Shipment not found"}), 404
 
-        order_id = order[0]
-
-        # 🔹 INVOICE FETCH
+        # 🔹 INVOICES
         cursor.execute("""
             SELECT invoice_no, invoice_value
             FROM invoices
-            WHERE order_id = :1
-        """, (order_id,))
+            WHERE order_id = %s
+        """, (order["id"],))
 
-        invoices = [
-            {
-                "invoice_no": i[0],
-                "invoice_value": float(i[1])
-            }
-            for i in cursor.fetchall()
-        ]
+        invoices = cursor.fetchall()
 
         # 🔥 FINAL RESPONSE
-        response = {
-            "lr": order[1],
-            "awb": order[2],
+        return jsonify({
+            "lr": order["lr_number"],
+            "awb": order["awb_number"],
 
             "pickup": {
-                "name": order[3],
-                "address": order[4],
-                "pincode": order[5],
-                "contact": order[6]
+                "name": order["pickup_name"],
+                "address": order["pickup_address"],
+                "pincode": order["pickup_pincode"],
+                "contact": order["pickup_contact"]
             },
 
             "delivery": {
-                "name": order[7],
-                "address": order[8],
-                "pincode": order[9],
-                "contact": order[10]
+                "name": order["delivery_name"],
+                "address": order["delivery_address"],
+                "pincode": order["delivery_pincode"],
+                "contact": order["delivery_contact"]
             },
 
             "shipment": {
-                "material": order[11],
-                "hsn": order[12],
-                "boxes": order[13],
-                "weight": float(order[14])
+                "material": order["material"],
+                "hsn": order["hsn_code"],
+                "boxes": order["boxes"],
+                "weight": float(order["weight"])
             },
 
             "billing": {
-                "total_value": float(order[15]),
-                "eway_bill": order[16],
-                "insurance": order[18]
+                "total_value": float(order["total_value"]),
+                "eway_bill": order["eway_bill"],
+                "insurance": order.get("insurance_type")
             },
 
-            "status": order[17],
-
+            "status": order.get("status", "booked"),
             "invoices": invoices
-        }
-
-        return jsonify(response)
+        })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -97,15 +88,16 @@ def get_shipment_detail(lr_number):
         conn.close()
 
 
-# 📋 ALL SHIPMENTS LIST
-@app.route("/shipments", methods=["GET"])
+# 📋 ALL SHIPMENTS
+@app.route("/api/shipments", methods=["GET"])
 def shipment_list():
     conn = get_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
         cursor.execute("""
-            SELECT lr_number, pickup_pincode, delivery_pincode, total_value, status, created_at
+            SELECT lr_number, pickup_pincode, delivery_pincode,
+                   total_value, status, created_at
             FROM orders
             ORDER BY id DESC
         """)
@@ -114,11 +106,11 @@ def shipment_list():
 
         data = [
             {
-                "lr": r[0],
-                "route": f"{r[1]} → {r[2]}",
-                "value": float(r[3]),
-                "status": r[4],
-                "date": str(r[5])
+                "lr": r["lr_number"],
+                "route": f"{r['pickup_pincode']} → {r['delivery_pincode']}",
+                "value": float(r["total_value"]),
+                "status": r["status"],
+                "date": str(r["created_at"])
             }
             for r in rows
         ]
@@ -131,6 +123,12 @@ def shipment_list():
     finally:
         cursor.close()
         conn.close()
+
+
+# ❤️ HEALTH CHECK (important for Render)
+@app.route("/")
+def home():
+    return jsonify({"message": "API Running ✅"})
 
 
 # ▶️ RUN
