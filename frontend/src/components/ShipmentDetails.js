@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import "./Shipment.css";
+import "./ShipmentDetail.css";
 
 function ShipmentDetail() {
 
