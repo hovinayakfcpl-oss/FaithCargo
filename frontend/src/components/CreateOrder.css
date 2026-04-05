@@ -1,110 +1,108 @@
-/* LAYOUT */
-.container{
-display:flex;
-gap:20px;
-padding:20px;
-background:#f4f6f9;
-min-height:100vh;
+.app {
+  background: #f4f6f9;
+  min-height: 100vh;
+  padding: 20px;
+  font-family: sans-serif;
 }
 
-.left{
-flex:3;
+.dark {
+  background: #0f172a;
+  color: white;
 }
 
-.right{
-flex:1;
+.header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
 }
 
-/* CARD */
-.card{
-background:#fff;
-padding:15px;
-border-radius:12px;
-box-shadow:0 5px 15px rgba(0,0,0,0.08);
+.layout {
+  display: flex;
+  gap: 20px;
 }
 
-/* DELIVERY CARD */
-.deliveryCard h3{
-margin-bottom:15px;
+.left {
+  flex: 2;
 }
 
-/* SELECT BUTTON */
-.selectBtn{
-width:100%;
-padding:12px;
-margin-bottom:10px;
-border-radius:8px;
-border:2px solid #2563eb;
-background:#fff;
-cursor:pointer;
-text-align:left;
-font-weight:500;
-transition:0.3s;
+.right {
+  flex: 1;
 }
 
-.selectBtn:hover{
-background:#2563eb;
-color:white;
+.card {
+  background: white;
+  padding: 18px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+  animation: fade 0.3s ease;
 }
 
-.selectBtn.gray{
-border-color:#ccc;
-background:#f9f9f9;
+.dark .card {
+  background: #1e293b;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  margin-top: 10px;
+  padding: 10px;
+  border: none;
+  background: #111;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.uploadBox {
+  border: 2px dashed #aaa;
+  padding: 20px;
+  text-align: center;
+  margin-top: 10px;
 }
 
 /* MODAL */
-.modal{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.5);
-display:flex;
-justify-content:center;
-align-items:center;
-z-index:1000;
+.modal {
+  position: fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background: rgba(0,0,0,0.5);
+  display:flex;
+  justify-content:center;
+  align-items:center;
 }
 
-/* MODAL CONTENT */
-.modalContent{
-background:#fff;
-padding:20px;
-width:400px;
-border-radius:12px;
-box-shadow:0 10px 30px rgba(0,0,0,0.2);
+.modalBox {
+  background:white;
+  padding:20px;
+  border-radius:12px;
+  width:400px;
+  animation: slide 0.3s ease;
 }
 
-/* INPUT */
-input, textarea{
-width:100%;
-padding:10px;
-border:1px solid #ddd;
-border-radius:8px;
-margin-bottom:10px;
+.dark .modalBox {
+  background:#1e293b;
 }
 
-/* TEXTAREA */
-textarea{
-height:60px;
-resize:none;
+@keyframes fade {
+  from {opacity:0}
+  to {opacity:1}
 }
 
-/* BUTTONS */
-.modalBtns{
-display:flex;
-justify-content:space-between;
-}
-
-.modalBtns button{
-padding:10px;
-border:none;
-border-radius:8px;
-cursor:pointer;
-background:#2563eb;
-color:white;
-}
-
-.cancel{
-background:#ccc !important;
+@keyframes slide {
+  from {transform: translateY(50px)}
+  to {transform: translateY(0)}
 }

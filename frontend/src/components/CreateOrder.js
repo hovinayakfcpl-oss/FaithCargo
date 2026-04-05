@@ -1,138 +1,195 @@
 import React, { useState } from "react";
 import "./CreateOrder.css";
 
-function CreateOrder() {
+export default function CreateOrder() {
 
-  const [showModal, setShowModal] = useState(false);
-  const [type, setType] = useState(""); // pickup / delivery
+  const [dark, setDark] = useState(false);
+  const [showPickupModal, setShowPickupModal] = useState(false);
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
 
-  const [location, setLocation] = useState({
-    company: "",
-    name: "",
-    address: "",
-    pincode: "",
-    state: "",
-    mobile: ""
+  const [pickup, setPickup] = useState({});
+  const [delivery, setDelivery] = useState({});
+
+  const [form, setForm] = useState({
+    description: "",
+    boxes: "",
+    weight: "",
+    ewayBill: ""
   });
 
-  const [pickup, setPickup] = useState(null);
-  const [delivery, setDelivery] = useState(null);
+  const [invoices, setInvoices] = useState([{ no: "", value: "" }]);
+  const total = invoices.reduce((s, i) => s + Number(i.value || 0), 0);
 
-  // PINCODE → STATE
-  const fetchState = async (pincode) => {
-    if (pincode.length === 6) {
-      try {
-        const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
-        const data = await res.json();
-        const state = data[0]?.PostOffice?.[0]?.State || "";
+  // PINCODE API
+  const fetchState = async (pin, type) => {
+    if (pin.length === 6) {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+      const data = await res.json();
+      const state = data[0]?.PostOffice?.[0]?.State || "";
 
-        setLocation(prev => ({ ...prev, state }));
-      } catch {}
+      if (type === "pickup") setPickup(prev => ({ ...prev, state }));
+      else setDelivery(prev => ({ ...prev, state }));
     }
-  };
-
-  // INPUT HANDLE
-  const handleChange = (e) => {
-    let { name, value } = e.target;
-
-    if (name === "pincode") {
-      value = value.replace(/\D/g, "").slice(0, 6);
-      fetchState(value);
-    }
-
-    if (name === "mobile") {
-      value = value.replace(/\D/g, "").slice(0, 10);
-    }
-
-    setLocation({ ...location, [name]: value });
-  };
-
-  // SAVE LOCATION
-  const saveLocation = () => {
-    if (type === "pickup") setPickup(location);
-    else setDelivery(location);
-
-    setShowModal(false);
-
-    setLocation({
-      company: "",
-      name: "",
-      address: "",
-      pincode: "",
-      state: "",
-      mobile: ""
-    });
   };
 
   return (
-    <div className="container">
+    <div className={dark ? "app dark" : "app"}>
 
-      {/* LEFT */}
-      <div className="left">
-        <h2>Create Order</h2>
+      {/* HEADER */}
+      <div className="header">
+        <h2>Create New Order</h2>
+        <button onClick={() => setDark(!dark)}>🌙</button>
       </div>
 
-      {/* RIGHT PANEL */}
-      <div className="right">
+      <div className="layout">
 
-        {/* DELIVERY CARD */}
-        <div className="card deliveryCard">
+        {/* LEFT SIDE */}
+        <div className="left">
 
-          <h3>📍 Delivery Details</h3>
+          {/* UPLOAD */}
+          <div className="card upload">
+            <h3>Upload your invoice</h3>
+            <div className="uploadBox">
+              Drag & Drop PDF or Click
+              <input type="file" />
+            </div>
+          </div>
 
-          <button
-            className="selectBtn"
-            onClick={() => {
-              setType("pickup");
-              setShowModal(true);
-            }}
-          >
-            {pickup ? pickup.company : "Select Pickup Location"}
-          </button>
+          {/* LR */}
+          <div className="card">
+            <h3>LR Details</h3>
+            <input placeholder="Enter LR number"/>
+          </div>
 
-          <button
-            className="selectBtn gray"
-            onClick={() => {
-              setType("delivery");
-              setShowModal(true);
-            }}
-          >
-            {delivery ? delivery.company : "Select Drop Location"}
-          </button>
+          {/* ORDER */}
+          <div className="card">
+            <h3>Order Details</h3>
+            <input placeholder="Description"
+              onChange={(e)=>setForm({...form, description:e.target.value})}
+            />
+            <div className="row">
+              <input placeholder="Boxes"/>
+              <input placeholder="Weight"/>
+            </div>
+          </div>
+
+          {/* INVOICE */}
+          <div className="card">
+            <h3>Invoice Details</h3>
+
+            {invoices.map((inv, i) => (
+              <div className="row" key={i}>
+                <input placeholder="Invoice No"
+                  onChange={(e)=>{
+                    let arr=[...invoices]; arr[i].no=e.target.value; setInvoices(arr);
+                  }}
+                />
+                <input placeholder="Amount"
+                  onChange={(e)=>{
+                    let arr=[...invoices]; arr[i].value=e.target.value; setInvoices(arr);
+                  }}
+                />
+              </div>
+            ))}
+
+            <button onClick={()=>setInvoices([...invoices,{no:"",value:""}])}>
+              + Add
+            </button>
+
+            <p>Total ₹ {total}</p>
+
+            {total >= 50000 && (
+              <input placeholder="E-way bill"/>
+            )}
+          </div>
+
+        </div>
+
+        {/* RIGHT SIDE */}
+        <div className="right">
+
+          <div className="card">
+            <h3>Delivery Details</h3>
+
+            <button onClick={()=>setShowPickupModal(true)}>
+              {pickup.name || "Select Pickup Location"}
+            </button>
+
+            <button onClick={()=>setShowDeliveryModal(true)}>
+              {delivery.name || "Select Drop Location"}
+            </button>
+          </div>
+
+          <div className="card">
+            <h3>Weights & Dimensions</h3>
+            <p>Total Boxes: {form.boxes}</p>
+            <p>Weight: {form.weight} kg</p>
+          </div>
 
         </div>
 
       </div>
 
-      {/* MODAL */}
-      {showModal && (
+      {/* PICKUP MODAL */}
+      {showPickupModal && (
         <div className="modal">
+          <div className="modalBox">
 
-          <div className="modalContent">
+            <h2>Add Pickup Address</h2>
 
-            <h3>{type === "pickup" ? "Pickup Location" : "Delivery Location"}</h3>
+            <input placeholder="Facility Name"
+              onChange={(e)=>setPickup({...pickup, name:e.target.value})}
+            />
 
-            <input name="company" placeholder="Company Name" onChange={handleChange} />
-            <input name="name" placeholder="Contact Person" onChange={handleChange} />
-            <input name="mobile" placeholder="Mobile" onChange={handleChange} />
-            <input name="pincode" placeholder="Pincode" onChange={handleChange} />
+            <input placeholder="Mobile"
+              onChange={(e)=>setPickup({...pickup, contact:e.target.value})}
+            />
 
-            <input value={location.state} placeholder="State" disabled />
+            <input placeholder="Pincode"
+              onChange={(e)=>{
+                setPickup({...pickup, pincode:e.target.value});
+                fetchState(e.target.value,"pickup");
+              }}
+            />
 
-            <textarea name="address" placeholder="Full Address" onChange={handleChange}></textarea>
+            <input value={pickup.state || ""} placeholder="State" disabled/>
 
-            <div className="modalBtns">
-              <button onClick={saveLocation}>Save</button>
-              <button className="cancel" onClick={() => setShowModal(false)}>Cancel</button>
-            </div>
+            <button onClick={()=>setShowPickupModal(false)}>Save</button>
 
           </div>
+        </div>
+      )}
 
+      {/* DELIVERY MODAL */}
+      {showDeliveryModal && (
+        <div className="modal">
+          <div className="modalBox">
+
+            <h2>Add Delivery Address</h2>
+
+            <input placeholder="Name"
+              onChange={(e)=>setDelivery({...delivery, name:e.target.value})}
+            />
+
+            <input placeholder="Mobile"
+              onChange={(e)=>setDelivery({...delivery, contact:e.target.value})}
+            />
+
+            <input placeholder="Pincode"
+              onChange={(e)=>{
+                setDelivery({...delivery, pincode:e.target.value});
+                fetchState(e.target.value,"delivery");
+              }}
+            />
+
+            <input value={delivery.state || ""} placeholder="State" disabled/>
+
+            <button onClick={()=>setShowDeliveryModal(false)}>Save</button>
+
+          </div>
         </div>
       )}
 
     </div>
   );
 }
-
-export default CreateOrder;
