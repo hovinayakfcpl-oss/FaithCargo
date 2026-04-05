@@ -1,19 +1,14 @@
-.app {
+body {
   background: #f4f6f9;
-  min-height: 100vh;
+  font-family: Arial;
+}
+
+.main {
   padding: 20px;
-  font-family: sans-serif;
 }
 
-.dark {
-  background: #0f172a;
-  color: white;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
+.topbar {
+  margin-bottom: 15px;
 }
 
 .layout {
@@ -32,41 +27,50 @@
 .card {
   background: white;
   padding: 18px;
-  border-radius: 12px;
+  border-radius: 10px;
   margin-bottom: 15px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-  animation: fade 0.3s ease;
+  border: 1px solid #eee;
 }
 
-.dark .card {
-  background: #1e293b;
+.upload {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-input {
-  width: 100%;
-  padding: 10px;
-  margin-top: 8px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
+.linkBtn {
+  background: none;
+  border: none;
+  color: blue;
+  cursor: pointer;
 }
 
 .row {
   display: flex;
   gap: 10px;
+  margin-top: 10px;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
 }
 
 button {
-  margin-top: 10px;
+  width: 100%;
   padding: 10px;
+  margin-top: 10px;
+  border-radius: 6px;
   border: none;
   background: #111;
   color: white;
-  border-radius: 8px;
   cursor: pointer;
 }
 
 .uploadBox {
-  border: 2px dashed #aaa;
+  border: 2px dashed #ccc;
   padding: 20px;
   text-align: center;
   margin-top: 10px;
@@ -86,23 +90,13 @@ button {
 }
 
 .modalBox {
-  background:white;
-  padding:20px;
-  border-radius:12px;
-  width:400px;
-  animation: slide 0.3s ease;
+  width: 400px;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
 }
 
-.dark .modalBox {
-  background:#1e293b;
-}
-
-@keyframes fade {
-  from {opacity:0}
-  to {opacity:1}
-}
-
-@keyframes slide {
-  from {transform: translateY(50px)}
-  to {transform: translateY(0)}
+.modalBtns {
+  display: flex;
+  gap: 10px;
 }

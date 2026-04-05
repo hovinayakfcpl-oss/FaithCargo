@@ -3,127 +3,144 @@ import "./CreateOrder.css";
 
 export default function CreateOrder() {
 
-  const [dark, setDark] = useState(false);
-  const [showPickupModal, setShowPickupModal] = useState(false);
-  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [showPickup, setShowPickup] = useState(false);
+  const [showDelivery, setShowDelivery] = useState(false);
 
   const [pickup, setPickup] = useState({});
   const [delivery, setDelivery] = useState({});
 
-  const [form, setForm] = useState({
-    description: "",
-    boxes: "",
-    weight: "",
-    ewayBill: ""
+  const [invoice, setInvoice] = useState({
+    invoiceNo: "",
+    amount: "",
+    eway: ""
   });
 
-  const [invoices, setInvoices] = useState([{ no: "", value: "" }]);
-  const total = invoices.reduce((s, i) => s + Number(i.value || 0), 0);
-
-  // PINCODE API
+  // PINCODE → STATE
   const fetchState = async (pin, type) => {
     if (pin.length === 6) {
       const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
       const data = await res.json();
       const state = data[0]?.PostOffice?.[0]?.State || "";
 
-      if (type === "pickup") setPickup(prev => ({ ...prev, state }));
-      else setDelivery(prev => ({ ...prev, state }));
+      if (type === "pickup") setPickup(p => ({ ...p, state }));
+      else setDelivery(d => ({ ...d, state }));
     }
   };
 
   return (
-    <div className={dark ? "app dark" : "app"}>
+    <div className="main">
 
       {/* HEADER */}
-      <div className="header">
+      <div className="topbar">
         <h2>Create New Order</h2>
-        <button onClick={() => setDark(!dark)}>🌙</button>
+      </div>
+
+      {/* UPLOAD */}
+      <div className="card upload">
+        <div>
+          <h3>Upload your invoice</h3>
+          <p>Autofill order details from your invoice in seconds.</p>
+        </div>
+        <button className="linkBtn">Upload file</button>
       </div>
 
       <div className="layout">
 
-        {/* LEFT SIDE */}
+        {/* LEFT */}
         <div className="left">
-
-          {/* UPLOAD */}
-          <div className="card upload">
-            <h3>Upload your invoice</h3>
-            <div className="uploadBox">
-              Drag & Drop PDF or Click
-              <input type="file" />
-            </div>
-          </div>
 
           {/* LR */}
           <div className="card">
-            <h3>LR Details</h3>
+            <h4>LR Details</h4>
+            <div className="row">
+              <label><input type="radio" checked readOnly/> Manual</label>
+              <label><input type="radio"/> Automatic</label>
+            </div>
             <input placeholder="Enter LR number"/>
           </div>
 
           {/* ORDER */}
           <div className="card">
-            <h3>Order Details</h3>
-            <input placeholder="Description"
-              onChange={(e)=>setForm({...form, description:e.target.value})}
-            />
+            <h4>Order Details</h4>
+            <input placeholder="Enter order description"/>
             <div className="row">
-              <input placeholder="Boxes"/>
-              <input placeholder="Weight"/>
+              <input placeholder="Reference ID"/>
+              <input placeholder="No. of boxes"/>
             </div>
           </div>
 
           {/* INVOICE */}
           <div className="card">
-            <h3>Invoice Details</h3>
+            <h4>Invoice Details</h4>
 
-            {invoices.map((inv, i) => (
-              <div className="row" key={i}>
-                <input placeholder="Invoice No"
-                  onChange={(e)=>{
-                    let arr=[...invoices]; arr[i].no=e.target.value; setInvoices(arr);
-                  }}
-                />
-                <input placeholder="Amount"
-                  onChange={(e)=>{
-                    let arr=[...invoices]; arr[i].value=e.target.value; setInvoices(arr);
-                  }}
-                />
-              </div>
-            ))}
+            <label>Payment Mode</label>
+            <div className="row">
+              <label><input type="radio" checked readOnly/> Prepaid</label>
+            </div>
 
-            <button onClick={()=>setInvoices([...invoices,{no:"",value:""}])}>
-              + Add
-            </button>
+            <div className="row">
+              <input placeholder="E-Way Bill"
+                onChange={(e)=>setInvoice({...invoice, eway:e.target.value})}
+              />
+              <input placeholder="Invoice No"
+                onChange={(e)=>setInvoice({...invoice, invoiceNo:e.target.value})}
+              />
+              <input placeholder="Amount"
+                onChange={(e)=>setInvoice({...invoice, amount:e.target.value})}
+              />
+            </div>
 
-            <p>Total ₹ {total}</p>
+            <p className="total">Total ₹ {invoice.amount || 0}</p>
+          </div>
 
-            {total >= 50000 && (
-              <input placeholder="E-way bill"/>
-            )}
+          {/* INSURANCE */}
+          <div className="card">
+            <h4>Insure your shipment</h4>
+            <p>Are you sure you want to ship at your own risk?</p>
+
+            <div className="row">
+              <label><input type="radio"/> Owner Risk</label>
+              <label><input type="radio"/> Carrier Risk</label>
+            </div>
           </div>
 
         </div>
 
-        {/* RIGHT SIDE */}
+        {/* RIGHT */}
         <div className="right">
 
+          {/* DELIVERY */}
           <div className="card">
-            <h3>Delivery Details</h3>
+            <h4>Delivery Details</h4>
 
-            <button onClick={()=>setShowPickupModal(true)}>
+            <button onClick={()=>setShowPickup(true)}>
               {pickup.name || "Select Pickup Location"}
             </button>
 
-            <button onClick={()=>setShowDeliveryModal(true)}>
+            <button onClick={()=>setShowDelivery(true)}>
               {delivery.name || "Select Drop Location"}
             </button>
           </div>
 
+          {/* WEIGHT */}
           <div className="card">
-            <h3>Weights & Dimensions</h3>
-            <p>Total Boxes: {form.boxes}</p>
-            <p>Weight: {form.weight} kg</p>
+            <h4>Weights & Dimensions</h4>
+            <p>Total shipment weight</p>
+            <input placeholder="Kgs"/>
+            <p>Total boxes: 0</p>
+          </div>
+
+          {/* UPLOAD DOC */}
+          <div className="card">
+            <h4>Upload Documents</h4>
+
+            <div className="uploadBox">
+              Upload Document (PNG, JPG, PDF)
+            </div>
+
+            <div className="uploadBox">
+              Secondary Document
+            </div>
           </div>
 
         </div>
@@ -131,10 +148,9 @@ export default function CreateOrder() {
       </div>
 
       {/* PICKUP MODAL */}
-      {showPickupModal && (
+      {showPickup && (
         <div className="modal">
           <div className="modalBox">
-
             <h2>Add Pickup Address</h2>
 
             <input placeholder="Facility Name"
@@ -142,7 +158,11 @@ export default function CreateOrder() {
             />
 
             <input placeholder="Mobile"
-              onChange={(e)=>setPickup({...pickup, contact:e.target.value})}
+              onChange={(e)=>setPickup({...pickup, mobile:e.target.value})}
+            />
+
+            <input placeholder="Address"
+              onChange={(e)=>setPickup({...pickup, address:e.target.value})}
             />
 
             <input placeholder="Pincode"
@@ -154,17 +174,19 @@ export default function CreateOrder() {
 
             <input value={pickup.state || ""} placeholder="State" disabled/>
 
-            <button onClick={()=>setShowPickupModal(false)}>Save</button>
+            <div className="modalBtns">
+              <button onClick={()=>setShowPickup(false)}>Cancel</button>
+              <button onClick={()=>setShowPickup(false)}>Add Pickup Address</button>
+            </div>
 
           </div>
         </div>
       )}
 
       {/* DELIVERY MODAL */}
-      {showDeliveryModal && (
+      {showDelivery && (
         <div className="modal">
           <div className="modalBox">
-
             <h2>Add Delivery Address</h2>
 
             <input placeholder="Name"
@@ -172,7 +194,11 @@ export default function CreateOrder() {
             />
 
             <input placeholder="Mobile"
-              onChange={(e)=>setDelivery({...delivery, contact:e.target.value})}
+              onChange={(e)=>setDelivery({...delivery, mobile:e.target.value})}
+            />
+
+            <input placeholder="Address"
+              onChange={(e)=>setDelivery({...delivery, address:e.target.value})}
             />
 
             <input placeholder="Pincode"
@@ -184,7 +210,10 @@ export default function CreateOrder() {
 
             <input value={delivery.state || ""} placeholder="State" disabled/>
 
-            <button onClick={()=>setShowDeliveryModal(false)}>Save</button>
+            <div className="modalBtns">
+              <button onClick={()=>setShowDelivery(false)}>Cancel</button>
+              <button onClick={()=>setShowDelivery(false)}>Add Delivery Address</button>
+            </div>
 
           </div>
         </div>
