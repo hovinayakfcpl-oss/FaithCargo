@@ -12,7 +12,7 @@ function ShipmentDetail() {
   }, []);
 
   const fetchShipments = async () => {
-    const res = await fetch(`${BASE_URL}/shipments/`);
+    const res = await fetch(`${BASE_URL}/api/shipments/`);
     const data = await res.json();
     setShipments(data);
   };
@@ -21,9 +21,8 @@ function ShipmentDetail() {
     s.lr.toString().includes(search)
   );
 
-  // 🧾 Docket Print (FULL DATA)
   const printDocket = async (lr) => {
-    const res = await fetch(`${BASE_URL}/shipment/${lr}/`);
+    const res = await fetch(`${BASE_URL}/api/shipment/${lr}/`);
     const data = await res.json();
 
     const html = `
@@ -34,7 +33,6 @@ function ShipmentDetail() {
       <p><b>Delivery:</b> ${data.delivery.address}</p>
       <p><b>Total:</b> ₹${data.totalValue}</p>
       <p><b>Eway:</b> ${data.ewayBill || "-"}</p>
-
       <h3>Invoices</h3>
       ${data.invoices.map(i => `<p>${i.invoiceNo} - ₹${i.invoiceValue}</p>`).join("")}
     `;
@@ -44,9 +42,8 @@ function ShipmentDetail() {
     win.print();
   };
 
-  // 🏷️ Label Print
   const printLabel = async (lr) => {
-    const res = await fetch(`${BASE_URL}/shipment/${lr}/`);
+    const res = await fetch(`${BASE_URL}/api/shipment/${lr}/`);
     const data = await res.json();
 
     let labels = "";
@@ -94,13 +91,8 @@ function ShipmentDetail() {
               <td>{s.route}</td>
               <td>₹ {s.value}</td>
               <td>
-                <button onClick={() => printDocket(s.lr)}>
-                  🧾 Docket
-                </button>
-
-                <button onClick={() => printLabel(s.lr)}>
-                  🏷️ Label
-                </button>
+                <button onClick={() => printDocket(s.lr)}>🧾 Docket</button>
+                <button onClick={() => printLabel(s.lr)}>🏷️ Label</button>
               </td>
             </tr>
           ))}

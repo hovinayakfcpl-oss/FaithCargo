@@ -26,47 +26,45 @@ function CreateOrder() {
     { invoiceNo: "", invoiceValue: "" }
   ]);
 
-  // 🔹 Input Change
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // 🔹 Invoice Change
   const handleInvoiceChange = (index, field, value) => {
     const updated = [...invoices];
     updated[index][field] = value;
     setInvoices(updated);
   };
 
-  // ➕ Add Invoice
   const addInvoice = () => {
     setInvoices([...invoices, { invoiceNo: "", invoiceValue: "" }]);
   };
 
-  // ❌ Remove Invoice
   const removeInvoice = (index) => {
-    const updated = invoices.filter((_, i) => i !== index);
-    setInvoices(updated);
+    setInvoices(invoices.filter((_, i) => i !== index));
   };
 
-  // 💰 Total
   const totalValue = invoices.reduce(
     (sum, inv) => sum + Number(inv.invoiceValue || 0),
     0
   );
 
-  // 🚀 Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const payload = {
       ...form,
-      invoices,
-      totalValue
+      boxes: Number(form.boxes),
+      weight: Number(form.weight),
+      totalValue,
+      invoices: invoices.map(i => ({
+        invoiceNo: i.invoiceNo,
+        invoiceValue: Number(i.invoiceValue)
+      }))
     };
 
     try {
-      const res = await fetch(`${BASE_URL}/create-order/`, {
+      const res = await fetch(`${BASE_URL}/api/create-order/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -76,14 +74,35 @@ function CreateOrder() {
 
       const data = await res.json();
 
-      if (data.lr_number) {
+      if (res.ok && data.lr_number) {
         alert("✅ Order Created! LR No: " + data.lr_number);
+
+        // reset form
+        setForm({
+          pickupName: "",
+          pickupAddress: "",
+          pickupPincode: "",
+          pickupContact: "",
+          deliveryName: "",
+          deliveryAddress: "",
+          deliveryPincode: "",
+          deliveryContact: "",
+          material: "",
+          hsn: "",
+          boxes: "",
+          weight: "",
+          ewayBill: ""
+        });
+
+        setInvoices([{ invoiceNo: "", invoiceValue: "" }]);
+
       } else {
-        alert("❌ Error: " + data.error);
+        alert("❌ " + (data.error || "Something went wrong"));
       }
 
     } catch (err) {
-      alert("Server Error");
+      console.error(err);
+      alert("❌ Server Error");
     }
   };
 
@@ -94,22 +113,22 @@ function CreateOrder() {
       <form onSubmit={handleSubmit}>
 
         <h3>Pickup</h3>
-        <input name="pickupName" placeholder="Name" onChange={handleChange} />
-        <input name="pickupAddress" placeholder="Address" onChange={handleChange} />
-        <input name="pickupPincode" placeholder="Pincode" onChange={handleChange} />
-        <input name="pickupContact" placeholder="Contact" onChange={handleChange} />
+        <input name="pickupName" value={form.pickupName} onChange={handleChange} placeholder="Name" />
+        <input name="pickupAddress" value={form.pickupAddress} onChange={handleChange} placeholder="Address" />
+        <input name="pickupPincode" value={form.pickupPincode} onChange={handleChange} placeholder="Pincode" />
+        <input name="pickupContact" value={form.pickupContact} onChange={handleChange} placeholder="Contact" />
 
         <h3>Delivery</h3>
-        <input name="deliveryName" placeholder="Name" onChange={handleChange} />
-        <input name="deliveryAddress" placeholder="Address" onChange={handleChange} />
-        <input name="deliveryPincode" placeholder="Pincode" onChange={handleChange} />
-        <input name="deliveryContact" placeholder="Contact" onChange={handleChange} />
+        <input name="deliveryName" value={form.deliveryName} onChange={handleChange} placeholder="Name" />
+        <input name="deliveryAddress" value={form.deliveryAddress} onChange={handleChange} placeholder="Address" />
+        <input name="deliveryPincode" value={form.deliveryPincode} onChange={handleChange} placeholder="Pincode" />
+        <input name="deliveryContact" value={form.deliveryContact} onChange={handleChange} placeholder="Contact" />
 
         <h3>Shipment</h3>
-        <input name="material" placeholder="Material" onChange={handleChange} />
-        <input name="hsn" placeholder="HSN" onChange={handleChange} />
-        <input name="boxes" type="number" placeholder="Boxes" onChange={handleChange} />
-        <input name="weight" type="number" placeholder="Weight" onChange={handleChange} />
+        <input name="material" value={form.material} onChange={handleChange} placeholder="Material" />
+        <input name="hsn" value={form.hsn} onChange={handleChange} placeholder="HSN" />
+        <input name="boxes" type="number" value={form.boxes} onChange={handleChange} placeholder="Boxes" />
+        <input name="weight" type="number" value={form.weight} onChange={handleChange} placeholder="Weight" />
 
         <h3>Invoices</h3>
 
@@ -132,30 +151,25 @@ function CreateOrder() {
             />
 
             {index > 0 && (
-              <button type="button" onClick={() => removeInvoice(index)}>
-                ❌
-              </button>
+              <button type="button" onClick={() => removeInvoice(index)}>❌</button>
             )}
           </div>
         ))}
 
-        <button type="button" onClick={addInvoice}>
-          ➕ Add Invoice
-        </button>
+        <button type="button" onClick={addInvoice}>➕ Add Invoice</button>
 
         <h4>Total: ₹ {totalValue}</h4>
 
-        {/* E-Way */}
         {totalValue >= 50000 && (
           <input
             name="ewayBill"
-            placeholder="E-Way Bill"
+            value={form.ewayBill}
             onChange={handleChange}
+            placeholder="E-Way Bill"
           />
         )}
 
         <br /><br />
-
         <button type="submit">Save Order</button>
 
       </form>
