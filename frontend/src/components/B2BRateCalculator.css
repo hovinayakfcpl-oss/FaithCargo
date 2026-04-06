@@ -16,12 +16,12 @@
   padding:24px; /* 🔥 height +4% */
   border-radius:12px;
   box-shadow:0 5px 15px rgba(196,0,0,0.1);
-  min-height:107%; /* 🔥 height increase */
+  min-height:115%; /* 🔥 height increase */
 }
 
 /* 🔥 WIDTH REDUCE (3% MORE) */
 .layout .card:first-child{
-  flex:1.65;   /* was 1.7 */
+  flex:1.30;   /* was 1.7 */
 }
 
 .layout .card:last-child{
@@ -38,7 +38,7 @@
 
 /* INPUT */
 input,select{
-  padding:10px;
+  padding:7px;
   border-radius:8px;
   border:1px solid #ffcccc;
   background:#fff5f5;
@@ -76,8 +76,8 @@ input,select{
 /* ADD BTN */
 .add-btn{
   margin-top:6px;
-  padding:6px 10px;
-  font-size:12px;
+  padding:6px 6px;
+  font-size:11px;
   background:#ff4d4d;
   color:white;
   border:none;
