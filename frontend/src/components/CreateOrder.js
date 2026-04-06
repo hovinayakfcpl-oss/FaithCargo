@@ -1,220 +1,211 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { 
+  Truck, MapPin, Package, FileText, Upload, 
+  Save, Calculator, CheckCircle, Printer 
+} from "lucide-react";
 import "./CreateOrder.css";
 
-const BASE_URL = "http://127.0.0.1:8000";
+const API_BASE = "https://faithcargo.onrender.com/api";
 
 export default function CreateOrder() {
-  const [locations, setLocations] = useState([]);
-  const [pickupId, setPickupId] = useState("");
-  const [deliveryId, setDeliveryId] = useState("");
+  const [boxes, setBoxes] = useState([]);
+  const [showLR, setShowLR] = useState(false);
+  const [lrNumber, setLrNumber] = useState("");
+  const [loading, setLoading] = useState(false);
   
-  const [form, setForm] = useState({
-    lr_type: "Manual",
-    lr_number: "",
-    description: "",
-    reference_id: "",
-    boxes: "",
-    weight: "",
-    payment_mode: "Prepaid",
-    eway_bill: "",
-    invoice_number: "",
-    amount: "",
-    insurance: "owner",
-  });
+  const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "" });
+  const [delivery, setDelivery] = useState({ name: "", contact: "", address: "", pincode: "", state: "" });
+  const [orderDetails, setOrderDetails] = useState({ material: "", hsn: "1234", weight: "", boxesCount: 0 });
+  const [invoice, setInvoice] = useState({ no: "", value: "", ewayBill: "" });
 
-  // Load Locations
-  useEffect(() => {
-    fetch(`${BASE_URL}/get-locations/`)
-      .then(res => res.json())
-      .then(data => setLocations(data))
-      .catch(err => console.log("Error fetching locations", err));
-  }, []);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+  const fetchState = async (pin, type) => {
+    if (pin.length === 6) {
+      try {
+        const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+        const data = await res.json();
+        const stateName = data[0]?.PostOffice?.[0]?.State || "Not Found";
+        if (type === "pickup") setPickup(prev => ({ ...prev, pincode: pin, state: stateName }));
+        else setDelivery(prev => ({ ...prev, pincode: pin, state: stateName }));
+      } catch (err) { console.error("Pincode Error", err); }
+    }
   };
 
-  const createOrder = async () => {
-    // Apka existing createOrder logic yahan aayega
-    console.log("Order Data:", { ...form, pickupId, deliveryId });
-    alert("Order data logged in console!");
+  const handleBoxCountChange = (count) => {
+    const num = parseInt(count) || 0;
+    setOrderDetails(prev => ({ ...prev, boxesCount: num }));
+    setBoxes(Array.from({ length: num }, (_, i) => ({ id: i + 1, l: "", w: "", h: "" })));
+  };
+
+  const updateDim = (index, field, value) => {
+    const updatedBoxes = [...boxes];
+    updatedBoxes[index][field] = value;
+    setBoxes(updatedBoxes);
+  };
+
+  // 🚀 BACKEND SUBMISSION LOGIC
+  const handleCreateOrder = async () => {
+    if (!pickup.pincode || !delivery.pincode || !orderDetails.weight) {
+      alert("Please fill basic shipment details!");
+      return;
+    }
+
+    setLoading(true);
+
+    // Backend (Django) payload mapping
+    const payload = {
+      pickupName: pickup.name,
+      pickupContact: pickup.contact,
+      pickupAddress: pickup.address,
+      pickupPincode: pickup.pincode,
+      
+      deliveryName: delivery.name,
+      deliveryContact: delivery.contact,
+      deliveryAddress: delivery.address,
+      deliveryPincode: delivery.pincode,
+      
+      material: orderDetails.material,
+      hsn: orderDetails.hsn,
+      boxes: orderDetails.boxesCount,
+      weight: orderDetails.weight,
+      
+      total_value: invoice.value || 0,
+      eway_bill: invoice.ewayBill,
+      insurance_type: "owner",
+      
+      // Backend expects a list of invoices
+      invoices: [
+        {
+          invoice_no: invoice.no,
+          invoice_value: invoice.value || 0
+        }
+      ]
+    };
+
+    try {
+      const response = await fetch(`${API_BASE}/create-order/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (result.lr_number) {
+        setLrNumber(result.lr_number);
+        setShowLR(true);
+      } else {
+        alert("Error: " + (result.error || "Failed to create order"));
+      }
+    } catch (error) {
+      alert("Server error. Please check your connection.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="create-order-container">
-      {/* Header */}
-      <div className="header">
-        <button className="back-btn">←</button>
-        <h2>Create New Order</h2>
-      </div>
-
-      {/* Main Content Layout */}
-      <div className="order-grid">
-        
-        {/* LEFT COLUMN */}
-        <div className="column-left">
-          
-          {/* Upload Invoice Banner */}
-          <div className="card banner-card">
-            <div className="banner-text">
-              <h3>Upload your invoice <span className="badge">new</span></h3>
-              <p>Autofill order details from your invoice in seconds.</p>
-            </div>
-            <button className="upload-btn-outline">📤 Upload file</button>
-          </div>
-
-          {/* LR Details */}
-          <div className="card">
-            <h4><i className="icon-lr"></i> LR Details</h4>
-            <div className="radio-group">
-              <label>
-                <input type="radio" name="lr_type" value="Manual" checked={form.lr_type === "Manual"} onChange={handleInputChange} /> Manual
-              </label>
-              <label>
-                <input type="radio" name="lr_type" value="Automatic" checked={form.lr_type === "Automatic"} onChange={handleInputChange} /> Automatic
-              </label>
-            </div>
-            <input 
-              type="text" 
-              name="lr_number" 
-              placeholder="Enter LR number" 
-              className="full-input"
-              onChange={handleInputChange} 
-            />
-          </div>
-
-          {/* Order Details */}
-          <div className="card">
-            <h4><i className="icon-order"></i> Order Details</h4>
-            <div className="input-group">
-              <label>Description</label>
-              <input type="text" name="description" placeholder="Enter order description" className="full-input" onChange={handleInputChange}/>
-            </div>
-            <div className="row">
-              <div className="input-field">
-                <label>Your reference ID / order ID</label>
-                <input type="text" name="reference_id" placeholder="Enter ID" onChange={handleInputChange}/>
-              </div>
-              <div className="input-field">
-                <label>No. of boxes</label>
-                <input type="number" name="boxes" placeholder="Enter no. of boxes" onChange={handleInputChange}/>
-              </div>
-            </div>
-          </div>
-
-          {/* Invoice Details */}
-          <div className="card">
-            <h4><i className="icon-invoice"></i> Invoice Details</h4>
-            <div className="radio-group">
-              <label><input type="radio" checked readOnly /> Prepaid</label>
-            </div>
-            <div className="row">
-              <div className="input-field">
-                <label>E-Way Bill Number</label>
-                <input type="text" name="eway_bill" placeholder="Enter E-Way Bill" onChange={handleInputChange}/>
-              </div>
-              <div className="input-field">
-                <label>Invoice Number</label>
-                <input type="text" name="invoice_number" placeholder="Enter invoice number" onChange={handleInputChange}/>
-              </div>
-              <div className="input-field">
-                <label>Amount</label>
-                <div className="amount-input">
-                    <span>₹</span>
-                    <input type="number" name="amount" placeholder="Enter amount" onChange={handleInputChange}/>
-                </div>
-              </div>
-            </div>
-            <div className="checkbox-row">
-              <input type="checkbox" id="eway-later" />
-              <label htmlFor="eway-later">I will add E-Way Bill later/not required</label>
-            </div>
-          </div>
-
-          {/* Insurance */}
-          <div className="card">
-            <h4><i className="icon-insure"></i> Insure your shipment</h4>
-            <p className="sub-text">Are you sure you want to ship the item at your own risk?</p>
-            <div className="radio-group">
-              <label>
-                <input type="radio" name="insurance" value="owner" checked={form.insurance === "owner"} onChange={handleInputChange} /> Yes, Ship with Owners Risk
-              </label>
-              <label>
-                <input type="radio" name="insurance" value="carrier" checked={form.insurance === "carrier"} onChange={handleInputChange} /> Get Delhivery's Insurance
-              </label>
-            </div>
-          </div>
-
-          <button className="primary-submit-btn" onClick={createOrder}>Create Order</button>
+    <div className="order-wrapper">
+      <header className="order-header">
+        <div className="header-left">
+          <Truck size={24} color="#2563eb" />
+          <h1>Create New Shipment</h1>
         </div>
+      </header>
 
-        {/* RIGHT COLUMN */}
-        <div className="column-right">
-          
-          {/* Delivery Details */}
-          <div className="card">
-            <h4><i className="icon-delivery"></i> Delivery Details</h4>
-            <div className="location-selects">
-                <select className="select-box" value={pickupId} onChange={(e)=>setPickupId(e.target.value)}>
-                    <option value="">Select Pickup Location</option>
-                    {locations.filter(l=>l.type==="pickup").map(l=>(
-                        <option key={l.id} value={l.id}>{l.name} ({l.pincode})</option>
-                    ))}
-                </select>
-                <div className="location-line"></div>
-                <select className="select-box" value={deliveryId} onChange={(e)=>setDeliveryId(e.target.value)}>
-                    <option value="">Select Drop Location</option>
-                    {locations.filter(l=>l.type==="delivery").map(l=>(
-                        <option key={l.id} value={l.id}>{l.name} ({l.pincode})</option>
-                    ))}
-                </select>
+      <main className="order-container">
+        <div className="form-grid">
+          <div className="form-left">
+            {/* Pickup */}
+            <div className="section-card">
+              <div className="card-head"><MapPin size={18} /> Pickup Details</div>
+              <div className="inner-grid">
+                <input type="text" placeholder="Sender Name" onChange={(e)=>setPickup({...pickup, name: e.target.value})} />
+                <input type="text" placeholder="Contact No" onChange={(e)=>setPickup({...pickup, contact: e.target.value})} />
+                <input type="text" className="span-2" placeholder="Full Address" onChange={(e)=>setPickup({...pickup, address: e.target.value})} />
+                <input type="text" placeholder="Pincode" maxLength="6" onChange={(e) => fetchState(e.target.value, "pickup")} />
+                <input type="text" placeholder="State" value={pickup.state} readOnly className="readonly-input" />
+              </div>
             </div>
-          </div>
 
-          {/* Weights & Dimensions */}
-          <div className="card">
-            <h4><i className="icon-weight"></i> Weights & Dimensions</h4>
-            <button className="add-box-btn">+ Add Box Size</button>
-            <p className="centered-info">0 boxes left</p>
-            <hr />
-            <div className="row-space">
-                <span>Total shipment weight</span>
-                <div className="weight-input">
-                    <input type="number" name="weight" onChange={handleInputChange}/>
-                    <span>Kgs</span>
+            {/* Delivery */}
+            <div className="section-card">
+              <div className="card-head"><MapPin size={18} color="#10b981" /> Delivery Details</div>
+              <div className="inner-grid">
+                <input type="text" placeholder="Receiver Name" onChange={(e)=>setDelivery({...delivery, name: e.target.value})} />
+                <input type="text" placeholder="Contact No" onChange={(e)=>setDelivery({...delivery, contact: e.target.value})} />
+                <input type="text" className="span-2" placeholder="Full Address" onChange={(e)=>setDelivery({...delivery, address: e.target.value})} />
+                <input type="text" placeholder="Pincode" maxLength="6" onChange={(e) => fetchState(e.target.value, "delivery")} />
+                <input type="text" placeholder="State" value={delivery.state} readOnly className="readonly-input" />
+              </div>
+            </div>
+
+            {/* Invoice */}
+            <div className="section-card">
+              <div className="card-head"><FileText size={18} /> Invoice & Documents</div>
+              <div className="inner-grid">
+                <input type="text" placeholder="Invoice No." onChange={(e)=>setInvoice({...invoice, no: e.target.value})} />
+                <input type="number" placeholder="Invoice Value (₹)" onChange={(e)=>setInvoice({...invoice, value: e.target.value})} />
+                <input type="text" className="span-2" placeholder="E-way Bill Number (Optional)" onChange={(e)=>setInvoice({...invoice, ewayBill: e.target.value})} />
+                <div className="upload-box span-2">
+                  <Upload size={20} />
+                  <p>Click to upload Invoice PDF</p>
+                  <input type="file" className="file-hidden" />
                 </div>
-            </div>
-            <div className="row-space">
-                <span>Total no. of boxes</span>
-                <strong>{form.boxes || 0}</strong>
+              </div>
             </div>
           </div>
 
-          {/* Upload Documents */}
-          <div className="card">
-            <h4><i className="icon-docs"></i> Upload Documents</h4>
-            <div className="upload-zone">
-                <p>Invoice Document (Mandatory)</p>
-                <div className="drop-area">
-                    <p>Upload Document (PNG, JPG, PDF)</p>
+          <div className="form-right">
+            <div className="section-card">
+              <div className="card-head"><Package size={18} /> Box & Dimensions</div>
+              <div className="inner-grid">
+                <input type="text" placeholder="Material Type" className="span-2" onChange={(e)=>setOrderDetails({...orderDetails, material: e.target.value})} />
+                <input type="number" placeholder="Total Weight (Kg)" onChange={(e)=>setOrderDetails({...orderDetails, weight: e.target.value})} />
+                <input type="number" placeholder="No. of Boxes" onChange={(e)=>handleBoxCountChange(e.target.value)} />
+              </div>
+
+              {boxes.length > 0 && (
+                <div className="dimensions-list">
+                  <p className="dim-label">Dimensions (Inch)</p>
+                  {boxes.map((box, index) => (
+                    <div key={index} className="dim-row">
+                      <span>Box {index+1}</span>
+                      <input type="number" placeholder="L" onChange={(e) => updateDim(index, 'l', e.target.value)} />
+                      <input type="number" placeholder="W" onChange={(e) => updateDim(index, 'w', e.target.value)} />
+                      <input type="number" placeholder="H" onChange={(e) => updateDim(index, 'h', e.target.value)} />
+                    </div>
+                  ))}
                 </div>
+              )}
+            </div>
+
+            <div className="action-card">
+              <div className="price-display">
+                <span className="label">Estimated Freight</span>
+                <span className="value">₹ 0.00</span>
+              </div>
+              <div className="btn-stack">
+                <button className="btn-secondary"><Calculator size={16} /> Check Freight</button>
+                <button className="btn-primary" onClick={handleCreateOrder} disabled={loading}>
+                  {loading ? "Processing..." : "Submit Order"}
+                </button>
+              </div>
             </div>
           </div>
-
-          {/* Shipping Mode */}
-          <div className="card shipping-mode">
-             <div className="row-space">
-                <div>
-                    <h4>Shipping Mode</h4>
-                    <p>SURFACE</p>
-                </div>
-                <i className="icon-truck"></i>
-             </div>
-          </div>
-
         </div>
-      </div>
+      </main>
+
+      {showLR && (
+        <div className="success-overlay">
+          <div className="success-box">
+            <CheckCircle size={48} color="#10b981" />
+            <h3>Order Created!</h3>
+            <p>LR Number: <strong>{lrNumber}</strong></p>
+            <button className="btn-print" onClick={() => window.print()}><Printer size={16} /> Print Docket</button>
+            <button className="btn-close" onClick={()=>setShowLR(false)}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
