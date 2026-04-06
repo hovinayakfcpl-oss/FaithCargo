@@ -15,9 +15,11 @@ urlpatterns = [
     path("pincode/", include("pincode.urls")),
     path("signup/", include("signup.urls")),
     path('accounts/', include('accounts.urls')),
-    # ✅ API endpoints
+    
+    # ✅ API endpoints - Shipments fix kiya gaya hai
     path("api/pincode/", include("pincode.urls")),
     path('api/user/', include('user_management.urls')),
-    path("api/", include("shipments.urls")),
     
+    # Yahan "shipments/" add kiya hai taaki /api/shipments/ logic kaam kare
+    path("api/shipments/", include("shipments.urls")), 
 ]
