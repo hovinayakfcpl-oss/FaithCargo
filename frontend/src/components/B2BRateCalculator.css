@@ -1,237 +1,232 @@
-/* ==================== GLOBAL STYLES ==================== */
-:root {
-  --primary-blue: #2563eb;
-  --success-green: #10b981;
-  --dark-slate: #1e293b;
-  --light-bg: #f1f5f9;
-  --border-color: #e2e8f0;
-  --text-main: #334155;
-  --text-muted: #64748b;
-  --white: #ffffff;
-  --danger-red: #dc2626;
+.main{
+  background:#f4f4f4;
+  padding:30px;
+
+  display:flex;
+  justify-content:center;   /* 🔥 center layout */
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box; /* Padding ko width ke andar rakhta hai */
+/* LAYOUT */
+.layout{
+  display:flex;
+  gap:25px;
+  align-items:flex-start;
+
+  max-width:1050px;   /* 🔥 width control */
+  width:100%;
 }
 
-body {
-  background-color: var(--light-bg);
-  font-family: 'Inter', -apple-system, sans-serif;
-  color: var(--text-main);
-  overflow-x: hidden; /* Horizontal scroll ko rokne ke liye */
+/* CARD BASE */
+.card{
+  background:#fffafa;
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 5px 15px rgba(196,0,0,0.1);
+  min-height:auto;   /* 🔥 fix extra height */
 }
 
-/* ==================== MAIN WRAPPER ==================== */
-.main {
-  width: 100%;
-  min-height: 100vh;
-  padding: 20px; /* Top-Bottom padding thodi kam ki hai */
-  display: flex;
-  justify-content: center;
+/* WIDTH CONTROL */
+.layout .card:first-child{
+  flex:1.2;
+  max-width:600px;
 }
 
-.layout {
-  width: 100%;
-  max-width: 1200px; /* Content ko center mein limit karta hai */
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* Dono boxes ko barabar 50/50 split kiya hai */
-  gap: 20px;
-  align-items: start;
+.layout .card:last-child{
+  flex:1;
+  max-width:420px;
 }
 
-/* ==================== CARDS ==================== */
-.card {
-  background: var(--white);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  width: 100%; /* Card apne container se bahar nahi jayega */
-  height: auto;
+/* GRID */
+.grid2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:8px;
 }
 
-.grid2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 12px;
+/* INPUT */
+input,select{
+  padding:5px 6px;
+  border-radius:6px;
+  border:1px solid #ffcccc;
+  background:#fff5f5;
+  font-size:12px;
+  height:28px;
 }
 
-/* ==================== INPUTS & SELECT ==================== */
-input, select {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 14px;
-  color: var(--text-main);
-  background: #fff;
-  transition: border-color 0.2s;
+/* DIMENSION */
+.dim{
+  background:#fff0f0;
+  border:1px solid #ff4d4d;
+  padding:10px;
+  border-radius:10px;
+  margin-top:10px;
 }
 
-input:focus, select:focus {
-  border-color: var(--primary-blue);
-  outline: none;
+.dim h4{
+  color:#c40000;
+  font-size:13px;
 }
 
-/* ==================== DIMENSIONS SECTION ==================== */
-.dim {
-  margin-top: 15px;
-  padding: 15px;
-  background: #fff5f5;
-  border-radius: 10px;
-  border: 1px solid #feb2b2;
+/* DIM ROW */
+.dim-row{
+  display:flex;
+  gap:6px;
+  margin-bottom:6px;
+  align-items:center;
 }
 
-.dim h4 {
-  font-size: 13px;
-  color: var(--danger-red);
-  margin-bottom: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
+.dim-row input{
+  width:45px;
+  padding:3px;
+  font-size:10px;
+  height:24px;
 }
 
-.dim-row {
-  display: grid;
-  grid-template-columns: 50px 1fr 1fr 1fr 30px; /* Inputs ko barabar set kiya */
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 8px;
+/* ADD BTN */
+.add-btn{
+  margin-top:6px;
+  padding:5px 8px;
+  font-size:11px;
+  background:#ff4d4d;
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
 }
 
-.dim-row input {
-  padding: 6px;
-  text-align: center;
+/* REMOVE BTN */
+.remove-btn{
+  background:#000;
+  color:#fff;
+  border:none;
+  padding:4px 6px;
+  font-size:11px;
+  border-radius:5px;
+  cursor:pointer;
 }
 
-.add-btn-small {
-  background: var(--danger-red);
-  color: white;
-  border: none;
-  padding: 5px 15px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 12px;
-  cursor: pointer;
-  width: auto;
-  margin-top: 5px;
+/* CHECK */
+.check{
+  display:flex;
+  justify-content:space-between;
+  margin:12px 0;
 }
 
-.remove-btn {
-  background: transparent;
-  color: #94a3b8;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
+/* CALCULATE BTN */
+.calc-btn{
+  width:100%;
+  background:#c40000;
+  color:#fff;
+  padding:10px;   /* 🔥 compact */
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:bold;
 }
 
-/* ==================== CHECKBOX GROUP ==================== */
-.check {
-  display: flex;
-  flex-direction: column; /* Inputs ke niche align karne ke liye */
-  gap: 12px;
-  margin: 15px 0;
+/* PLACEHOLDER */
+.placeholder{
+  text-align:center;
+  color:#999;
 }
 
-.check label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
+/* RESULT CARD */
+.result-premium{
+  border-radius:18px;
+  overflow:hidden;
+  background: linear-gradient(135deg,#3b0000,#7a0000,#ff4d4d);
+  box-shadow:0 15px 40px rgba(196,0,0,0.3);
+  color:#fff;
+  min-height:420px;
 }
 
-/* ==================== ACTION BUTTONS ==================== */
-.calc-btn {
-  width: 100%;
-  background: #15803d;
-  color: white;
-  padding: 12px;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 16px;
-  border: none;
-  cursor: pointer;
-  transition: 0.2s;
+/* HEADER */
+.rp-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px;
 }
 
-.calc-btn:hover {
-  background: #166534;
+/* LOGO */
+.rp-logo{
+  width:50px;
+  height:50px;
+  border-radius:10px;
+  background:#000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
 }
 
-/* ==================== RESULT STYLING ==================== */
-.result-premium {
-  width: 100%;
+/* INFO */
+.rp-info h3{
+  margin:0;
+  font-size:15px;
 }
 
-.rp-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 15px;
-  border-bottom: 2px solid var(--light-bg);
+.rp-info p{
+  margin:0;
+  font-size:11px;
+  opacity:0.8;
 }
 
-.rp-logo {
-  background: var(--danger-red);
-  color: white;
-  padding: 6px 10px;
-  font-weight: 800;
-  border-radius: 6px;
-  font-size: 14px;
+/* PRICE */
+.rp-price{
+  text-align:right;
+  font-size:18px;
+  font-weight:bold;
 }
 
-.rp-price {
-  text-align: right;
-  font-size: 22px;
-  font-weight: 800;
+.rp-price span{
+  display:block;
+  font-size:10px;
+  opacity:0.7;
 }
 
-.rp-price span {
-  display: block;
-  font-size: 11px;
-  color: var(--success-green);
+/* TOGGLE */
+.rp-toggle{
+  background:rgba(255,255,255,0.15);
+  padding:8px;
+  text-align:center;
+  cursor:pointer;
+  font-size:12px;
+  transition:0.3s;
 }
 
-.rp-toggle {
-  text-align: center;
-  padding: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--primary-blue);
-  background: #f0f7ff;
-  margin: 15px 0;
-  border-radius: 8px;
-  cursor: pointer;
+.rp-toggle:hover{
+  background:rgba(255,255,255,0.25);
 }
 
-.rp-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  font-size: 13px;
-  border-bottom: 1px solid #f8fafc;
+/* BODY */
+.rp-body{
+  padding:12px;
 }
 
-.placeholder {
-  text-align: center;
-  color: var(--text-muted);
-  padding: 30px 0;
-  font-size: 1rem;
+/* ROW */
+.rp-row{
+  display:flex;
+  justify-content:space-between;
+  padding:6px 0;
+  border-bottom:1px solid rgba(255,255,255,0.2);
+  font-size:12px;
 }
 
-/* ==================== RESPONSIVE ==================== */
-@media (max-width: 900px) {
-  .layout {
-    grid-template-columns: 1fr; /* Mobile par ek ke niche ek aayega */
-    max-width: 500px;
+.rp-row:last-child{
+  border:none;
+}
+
+/* MOBILE */
+@media(max-width:768px){
+  .layout{
+    flex-direction:column;
+    max-width:100%;
   }
-  
-  .main {
-    padding: 10px;
+
+  .layout .card:first-child,
+  .layout .card:last-child{
+    max-width:100%;
   }
 }
