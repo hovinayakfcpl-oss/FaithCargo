@@ -6,279 +6,260 @@
 }
 
 /* ==================== PAGE ==================== */
-.create-order-page {
+.create-order-container {
   min-height: 100vh;
-  background: linear-gradient(135deg,#eef2f7,#dfe9f3);
-  font-family: "Segoe UI", sans-serif;
+  background-color: #f8f9fb; /* Image jaisa light gray background */
+  font-family: 'Inter', "Segoe UI", sans-serif;
+  padding-bottom: 50px;
 }
 
 /* ==================== HEADER ==================== */
 .header {
   background: #fff;
   border-bottom: 1px solid #e5e7eb;
+  padding: 15px 40px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1000;
 }
 
-.header-content {
-  max-width: 1500px;
-  margin: auto;
-  padding: 12px 20px;
+.back-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+}
+
+.header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* ==================== LAYOUT ==================== */
+.order-grid {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr; /* Left column slightly bigger */
+  gap: 24px;
+  max-width: 1400px;
+  margin: 24px auto;
+  padding: 0 40px;
+}
+
+/* ==================== CARD STYLING ==================== */
+.card {
+  background: #fff;
+  border: 1px solid #e0e6ed;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.card h4 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #333;
+}
+
+/* ==================== BANNER CARD (Upload Invoice) ==================== */
+.banner-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-left: 4px solid #4a90e2;
 }
 
-.header h1 {
-  font-size: 18px;
-  font-weight: 600;
+.badge {
+  background: #e1f0ff;
+  color: #4a90e2;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  margin-left: 8px;
 }
 
-/* ==================== MAIN ==================== */
-.main-content {
-  max-width: 1500px;
-  margin: auto;
-  padding: 20px;
-}
-
-.grid-layout {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 20px;
-}
-
-/* ==================== CARD ==================== */
-.card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 18px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-  transition: 0.3s;
-}
-
-.card:hover {
-  transform: translateY(-3px);
-}
-
-/* ==================== TITLE ==================== */
-.card-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.card-title h2 {
-  font-size: 16px;
-}
-
-/* ==================== INPUT ==================== */
-.input-field,
-.select-field,
-.textarea-field {
-  width: 100%;
-  padding: 8px 10px;   /* 👈 smaller input */
+.banner-text p {
   font-size: 13px;
-  border-radius: 6px;
-  border: 1px solid #d1d5db;
-  margin-bottom: 8px;
-  transition: 0.2s;
+  color: #666;
+  margin-top: 4px;
 }
 
-.input-field:focus,
-.select-field:focus,
-.textarea-field:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 6px rgba(37,99,235,0.2);
-  outline: none;
-}
-
-.textarea-field {
-  height: 60px;
-  resize: none;
-}
-
-/* ==================== GRID ==================== */
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-/* ==================== BUTTON ==================== */
-button {
-  cursor: pointer;
-  border: none;
-}
-
-.submit-btn {
-  width: 100%;
-  padding: 12px;
-  background: linear-gradient(135deg,#111827,#374151);
-  color: white;
-  border-radius: 8px;
-  font-weight: 600;
-  margin-top: 10px;
-}
-
-.submit-btn:hover {
-  background: black;
-}
-
-/* ==================== ADD BUTTON ==================== */
-.add-btn,
-.add-location-btn,
-.add-box-btn {
-  border: 1px dashed #2563eb;
-  background: #eff6ff;
-  padding: 8px;
-  border-radius: 6px;
-  font-size: 13px;
-}
-
-.add-btn:hover {
-  background: #dbeafe;
-}
-
-/* ==================== REMOVE BTN ==================== */
-.remove-btn {
-  background: #fee2e2;
-  color: red;
-  padding: 6px;
-  border-radius: 6px;
-}
-
-/* ==================== LOCATION FLOW ==================== */
-.location-flow {
+/* ==================== INPUTS & LABELS ==================== */
+.input-group, .input-field {
+  margin-bottom: 16px;
   display: flex;
-  gap: 10px;
-}
-
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.orange { background: orange; }
-.green { background: green; }
-
-.line {
-  height: 30px;
-  width: 2px;
-  background: #ccc;
-}
-
-/* ==================== BOX ==================== */
-.box-form {
-  background: #f9fafb;
-  padding: 10px;
-  border-radius: 8px;
-}
-
-.box-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  flex-direction: column;
   gap: 6px;
 }
 
-.box-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px;
-  background: #f3f4f6;
+label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+input[type="text"], 
+input[type="number"], 
+.select-box, 
+select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
   border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s;
 }
 
-/* ==================== TOTAL ==================== */
-.total-row {
+input:focus, select:focus {
+  border-color: #4a90e2;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+/* ==================== ROW SYSTEM ==================== */
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.row-space {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
-  margin-top: 5px;
+  align-items: center;
+  padding: 10px 0;
 }
 
-/* ==================== UPLOAD ==================== */
-.upload-box {
-  border: 2px dashed #ccc;
-  padding: 15px;
-  text-align: center;
-  border-radius: 8px;
+/* ==================== SPECIAL INPUTS ==================== */
+.amount-input {
+  display: flex;
+  align-items: center;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.amount-input span {
+  padding: 0 12px;
+  background: #f3f4f6;
+  color: #666;
+}
+
+.amount-input input {
+  border: none;
+}
+
+/* ==================== RADIO & CHECKBOX ==================== */
+.radio-group {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 15px;
+}
+
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #333;
   cursor: pointer;
 }
 
-.upload-box:hover {
-  background: #f9fafb;
-}
-
-.file-input {
-  display: none;
-}
-
-/* ==================== MODAL ==================== */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.5);
+.checkbox-row {
   display: flex;
-  justify-content: center;
   align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #4b5563;
+  margin-top: 10px;
 }
 
-.modal-box {
-  background: #fff;
-  width: 350px;
-  padding: 20px;
-  border-radius: 10px;
+/* ==================== RIGHT SIDE SPECIFICS ==================== */
+.location-selects {
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
-.save-btn {
-  background: #2563eb;
-  color: white;
+.location-line {
+  border-left: 2px dashed #d1d5db;
+  height: 25px;
+  margin-left: 10px;
+}
+
+.add-box-btn {
+  width: 100%;
   padding: 10px;
+  border: 1px dashed #4a90e2;
+  background: #f0f7ff;
+  color: #4a90e2;
   border-radius: 6px;
+  font-weight: 500;
+  margin-bottom: 12px;
 }
 
-/* ==================== TOAST ==================== */
-.toast {
-  position: fixed;
-  top: 20px;
-  right: -300px;
-  padding: 12px 18px;
+.weight-input {
+  display: flex;
+  align-items: center;
+  border: 1px solid #d1d5db;
   border-radius: 6px;
+  width: 120px;
+}
+
+.weight-input input { border: none; padding: 8px; width: 60%; text-align: center; }
+.weight-input span { background: #f3f4f6; padding: 8px; font-size: 12px; width: 40%; text-align: center; border-left: 1px solid #d1d5db; }
+
+/* ==================== UPLOAD AREA ==================== */
+.drop-area {
+  border: 1px dashed #d1d5db;
+  padding: 30px;
+  text-align: center;
+  border-radius: 8px;
+  margin-top: 8px;
+  background: #fafafa;
+  cursor: pointer;
+}
+
+.drop-area p {
+  color: #4a90e2;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ==================== SUBMIT BUTTON ==================== */
+.primary-submit-btn {
+  width: 100%;
+  padding: 16px;
+  background: #1f2937; /* Dark Delhivery theme */
   color: white;
-  transition: 0.4s;
-  z-index: 9999;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background 0.2s;
 }
 
-.toast.show {
-  right: 20px;
-}
-
-.toast.success {
-  background: #22c55e;
-}
-
-.toast.error {
-  background: #ef4444;
+.primary-submit-btn:hover {
+  background: #000;
 }
 
 /* ==================== RESPONSIVE ==================== */
-@media(max-width:900px){
-  .grid-layout{
-    grid-template-columns:1fr;
+@media (max-width: 1024px) {
+  .order-grid {
+    grid-template-columns: 1fr;
+    padding: 0 20px;
   }
-
-  .form-row{
-    grid-template-columns:1fr;
-  }
-
-  .box-inputs{
-    grid-template-columns:1fr;
-  }
+  .header { padding: 15px 20px; }
 }
