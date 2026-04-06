@@ -1,91 +1,87 @@
 .main{
   background:#f4f4f4;
-  padding:20px; /* 🔥 reduce padding */
+  padding:30px;
 }
 
 /* LAYOUT */
 .layout{
   display:flex;
-  gap:18px; /* 🔥 gap reduce */
+  gap:25px;
   align-items:flex-start;
-  max-width:1200px;   /* 🔥 FIX OVERFLOW */
-  margin:auto;        /* center */
 }
 
 /* CARD BASE */
 .card{
   background:#fffafa;
-  padding:18px; /* 🔥 compact */
+  padding:24px; /* 🔥 height +4% */
   border-radius:12px;
   box-shadow:0 5px 15px rgba(196,0,0,0.1);
-  min-height:auto; /* 🔥 remove extra height */
+  min-height:107%; /* 🔥 height increase */
 }
 
-/* WIDTH FIX */
+/* 🔥 WIDTH REDUCE (3% MORE) */
 .layout .card:first-child{
-  flex:1.5;   /* 🔥 reduce width */
-  max-width:750px; /* 🔥 hard limit */
+  flex:1.65;   /* was 1.7 */
 }
 
 .layout .card:last-child{
   flex:1;
-  max-width:400px;
 }
 
 /* GRID */
 .grid2{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:8px; /* 🔥 tighter */
-  margin-bottom:8px;
+  gap:12px;
+  margin-bottom:10px;
 }
 
 /* INPUT */
 input,select{
-  padding:7px;  /* 🔥 smaller */
-  border-radius:6px;
+  padding:10px;
+  border-radius:8px;
   border:1px solid #ffcccc;
   background:#fff5f5;
-  font-size:12px; /* 🔥 compact */
+  font-size:14px;
 }
 
 /* DIMENSION */
 .dim{
   background:#fff0f0;
   border:1px solid #ff4d4d;
-  padding:8px; /* 🔥 smaller */
-  border-radius:8px;
-  margin-top:8px;
+  padding:10px;
+  border-radius:10px;
+  margin-top:10px;
 }
 
 .dim h4{
   color:#c40000;
-  font-size:13px;
+  font-size:14px;
 }
 
 /* DIM ROW */
 .dim-row{
   display:flex;
-  gap:4px;
-  margin-bottom:5px;
+  gap:6px;
+  margin-bottom:6px;
   align-items:center;
 }
 
 .dim-row input{
-  width:48px; /* 🔥 smaller */
-  padding:4px;
-  font-size:11px;
+  width:55px;
+  padding:5px;
+  font-size:12px;
 }
 
 /* ADD BTN */
 .add-btn{
-  margin-top:5px;
-  padding:5px 8px; /* 🔥 smaller */
-  font-size:11px;
+  margin-top:6px;
+  padding:6px 10px;
+  font-size:12px;
   background:#ff4d4d;
   color:white;
   border:none;
-  border-radius:5px;
+  border-radius:6px;
   cursor:pointer;
 }
 
@@ -94,9 +90,9 @@ input,select{
   background:#000;
   color:#fff;
   border:none;
-  padding:3px 5px;
-  font-size:10px;
-  border-radius:4px;
+  padding:4px 6px;
+  font-size:11px;
+  border-radius:5px;
   cursor:pointer;
 }
 
@@ -104,8 +100,7 @@ input,select{
 .check{
   display:flex;
   justify-content:space-between;
-  margin:10px 0;
-  font-size:12px;
+  margin:12px 0;
 }
 
 /* CALCULATE BTN */
@@ -113,21 +108,30 @@ input,select{
   width:100%;
   background:#c40000;
   color:#fff;
-  padding:10px; /* 🔥 smaller */
+  padding:12px;
   border:none;
-  border-radius:6px;
+  border-radius:8px;
   cursor:pointer;
-  font-size:13px;
+  font-weight:bold;
 }
 
-/* RESULT CARD */
+/* PLACEHOLDER */
+.placeholder{
+  text-align:center;
+  color:#999;
+}
+
+/* ========================= */
+/* PREMIUM RESULT CARD */
+/* ========================= */
+
 .result-premium{
-  border-radius:14px;
+  border-radius:18px;
   overflow:hidden;
   background: linear-gradient(135deg,#3b0000,#7a0000,#ff4d4d);
-  box-shadow:0 10px 25px rgba(196,0,0,0.3);
+  box-shadow:0 15px 40px rgba(196,0,0,0.3);
   color:#fff;
-  min-height:380px; /* 🔥 reduce height */
+  min-height:450px; /* 🔥 height + */
 }
 
 /* HEADER */
@@ -135,54 +139,76 @@ input,select{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding:12px;
+  padding:15px;
 }
 
 /* LOGO */
 .rp-logo{
-  width:45px;  /* 🔥 smaller */
-  height:45px;
-  border-radius:10px;
+  width:55px;
+  height:55px;
+  border-radius:12px;
   background:#000;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:12px;
+  font-weight:bold;
 }
 
 /* INFO */
 .rp-info h3{
-  font-size:14px;
+  margin:0;
+  font-size:16px;
 }
 
 .rp-info p{
-  font-size:11px;
+  margin:0;
+  font-size:12px;
+  opacity:0.8;
 }
 
 /* PRICE */
 .rp-price{
-  font-size:16px;
+  text-align:right;
+  font-size:20px;
+  font-weight:bold;
 }
 
 .rp-price span{
-  font-size:10px;
+  display:block;
+  font-size:11px;
+  opacity:0.7;
 }
 
 /* TOGGLE */
 .rp-toggle{
-  padding:8px;
-  font-size:12px;
+  background:rgba(255,255,255,0.15);
+  padding:10px;
+  text-align:center;
+  cursor:pointer;
+  font-size:13px;
+  transition:0.3s;
+}
+
+.rp-toggle:hover{
+  background:rgba(255,255,255,0.25);
 }
 
 /* BODY */
 .rp-body{
-  padding:12px;
+  padding:15px;
 }
 
 /* ROW */
 .rp-row{
-  padding:6px 0;
-  font-size:12px;
+  display:flex;
+  justify-content:space-between;
+  padding:7px 0;
+  border-bottom:1px solid rgba(255,255,255,0.2);
+  font-size:13px;
+}
+
+.rp-row:last-child{
+  border:none;
 }
 
 /* MOBILE */
@@ -191,11 +217,8 @@ input,select{
     flex-direction:column;
   }
 
-  .layout .card{
-    max-width:100%;
-  }
-
-  .grid2{
-    grid-template-columns:1fr;
+  .layout .card:first-child,
+  .layout .card:last-child{
+    flex:1;
   }
 }
