@@ -1,38 +1,40 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import API_BASE_URL from "../config";
-import "./UserManagement.css"; // आपकी CSS अब यहीं से लोड होगी
+import "./UserManagement.css";
 
 function UserManagement() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [newUser, setNewUser] = useState({ username: "", password: "", role: "User" });
+  const [newUser, setNewUser] = useState({ username: "", password: "" });
   
-  // सभी मॉड्यूल्स की लिस्ट (Sidebar के अनुसार)
+  // 🔥 बैकएंड मॉडल (CustomUser) के फील्ड्स के साथ सिंक किया गया
   const [permissions, setPermissions] = useState({
     fcpl_rate: false,
-    pickup_request: false,
+    pickup: false,          // Backend field name: pickup
     vendor_manage: false,
     vendor_rates: false,
     rate_update: false,
-    pincode_manage: false,
+    pincode: false,         // Backend field name: pincode
     user_management: false,
-    ba_b2b_rate: false,
-    create_order: false,    // New Module
-    shipment_details: false // New Module
+    ba_b2b: false,          // Backend field name: ba_b2b
+    create_order: false,
+    shipment_details: false
   });
 
   const token = localStorage.getItem("token");
-  const config = { headers: { Authorization: `Bearer ${token}` } };
+  // नोट: अगर आपका बैकएंड टोकन मांगता है तो इसे रखें, वरना हटा दें
+  const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
 
   useEffect(() => {
     fetchUsers();
-  }, [token]);
+  }, []);
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE_URL}/auth/users/`, config);
+      // आपके द्वारा पहले दिए गए बैकएंड API पाथ के अनुसार
+      const res = await axios.get(`${API_BASE_URL}/api/users/`, config);
       setUsers(res.data);
     } catch (err) {
       console.error("Error fetching users:", err);
@@ -41,33 +43,33 @@ function UserManagement() {
     }
   };
 
-  // चेकबॉक्स हैंडल करने का फंक्शन
   const handleCheckChange = (e) => {
     setPermissions({ ...permissions, [e.target.name]: e.target.checked });
   };
 
   const addUser = async () => {
-    if (!newUser.username || !newUser.password) return alert("Please fill all fields");
+    if (!newUser.username || !newUser.password) return alert("Please fill Username and Password");
 
-    // यूजर डेटा और परमिशन को एक साथ भेजना
     const payload = { ...newUser, ...permissions };
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/auth/register/`, payload, config);
-      alert("User Created with Selected Modules!");
-      setUsers([...users, res.data]);
-      // फॉर्म रिसेट करें
-      setNewUser({ username: "", password: "", role: "User" });
+      // बैकएंड add_user API पाथ के अनुसार
+      await axios.post(`${API_BASE_URL}/api/add-user/`, payload, config);
+      alert("User Created Successfully!");
+      
+      // फॉर्म रिसेट
+      setNewUser({ username: "", password: "" });
       setPermissions(Object.fromEntries(Object.keys(permissions).map(k => [k, false])));
+      fetchUsers(); // लिस्ट अपडेट करें
     } catch (err) {
-      alert("Error adding user. Backend fields check karein.");
+      alert("Error adding user. Check if backend fields match.");
     }
   };
 
   const deleteUser = async (id) => {
-    if (!window.confirm("Are you sure?")) return;
+    if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
-      await axios.delete(`${API_BASE_URL}/auth/users/${id}/`, config);
+      await axios.delete(`${API_BASE_URL}/api/delete-user/${id}/`, config);
       setUsers(users.filter(u => u.id !== id));
     } catch (err) {
       alert("Error deleting user");
@@ -97,13 +99,6 @@ function UserManagement() {
               value={newUser.password}
               onChange={e => setNewUser({ ...newUser, password: e.target.value })}
             />
-            <select
-              value={newUser.role}
-              onChange={e => setNewUser({ ...newUser, role: e.target.value })}
-            >
-              <option value="User">Standard User</option>
-              <option value="Admin">System Admin</option>
-            </select>
           </div>
 
           <div className="permissions-section">
@@ -128,21 +123,24 @@ function UserManagement() {
 
         {/* User Table */}
         <div className="list-card">
-          <h3>Active Enrollment List</h3>
+          <div className="list-header-row">
+            <h3>Active Enrollment List</h3>
+            <span className="user-count">Total: {users.length}</span>
+          </div>
           {loading ? <p>Loading...</p> : (
             <table className="user-table">
               <thead>
                 <tr>
+                  <th>ID</th>
                   <th>Username</th>
-                  <th>Role</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map(u => (
                   <tr key={u.id}>
+                    <td>{u.id}</td>
                     <td>{u.username}</td>
-                    <td><span className={`badge ${u.role.toLowerCase()}`}>{u.role}</span></td>
                     <td>
                       <button className="btn-delete" onClick={() => deleteUser(u.id)}>Delete</button>
                     </td>
