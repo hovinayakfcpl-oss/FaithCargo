@@ -2,30 +2,31 @@ import React, { useState, useEffect } from "react";
 import "./UserAdd.css";
 
 function UserAdd() {
-
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
+  // ✅ New & Updated Module List
   const [permissions, setPermissions] = useState({
-    rateCalculator: false,
-    pickupRequest: false,
-    vendorManage: false,
-    vendorRates: false,
-    rateUpdate: false,
-    pincodeManagement: false,
-    userManagement: false,
-    baB2bRateCalculator: false,
+    fcpl_rate: false,
+    pickup: false,
+    vendor_manage: false,
+    vendor_rates: false,
+    rate_update: false,
+    pincode: false,
+    user_management: false,
+    ba_b2b: false,
+    create_order: false,    // New Module
+    shipment_details: false // New Module
   });
 
   const [users, setUsers] = useState([]);
 
-  // ✅ FETCH USERS (IMPORTANT FIX)
+  // ✅ FETCH USERS
   const fetchUsers = async () => {
     try {
       const res = await fetch("https://faithcargo.onrender.com/api/user/list/");
       const data = await res.json();
-
-      // 🔥 handle different backend formats
       if (Array.isArray(data)) {
         setUsers(data);
       } else if (data.users) {
@@ -33,9 +34,8 @@ function UserAdd() {
       } else {
         setUsers([]);
       }
-
     } catch {
-      console.log("Fetch error");
+      console.log("Error fetching user list");
     }
   };
 
@@ -50,145 +50,143 @@ function UserAdd() {
   // ✅ ADD USER
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     try {
       const res = await fetch("https://faithcargo.onrender.com/api/user/add/", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username,
           password,
-          fcpl_rate: permissions.rateCalculator,
-          pickup: permissions.pickupRequest,
-          vendor_manage: permissions.vendorManage,
-          vendor_rates: permissions.vendorRates,
-          rate_update: permissions.rateUpdate,
-          pincode: permissions.pincodeManagement,
-          user_management: permissions.userManagement,
-          ba_b2b: permissions.baB2bRateCalculator,
+          ...permissions // Spreading all permissions directly
         }),
       });
 
       const data = await res.json();
 
-      if (res.status === 200) {
-        alert("User Created ✅");
-
+      if (res.status === 200 || res.ok) {
+        alert("User Account Created ✅");
         setUsername("");
         setPassword("");
-
-        setPermissions({
-          rateCalculator: false,
-          pickupRequest: false,
-          vendorManage: false,
-          vendorRates: false,
-          rateUpdate: false,
-          pincodeManagement: false,
-          userManagement: false,
-          baB2bRateCalculator: false,
-        });
-
-        fetchUsers(); // refresh
+        // Reset all permissions to false
+        setPermissions(Object.fromEntries(Object.keys(permissions).map(k => [k, false])));
+        fetchUsers();
       } else {
-        alert(data.error || "Error ❌");
+        alert(data.error || "Failed to create user ❌");
       }
-
     } catch {
-      alert("Server error ❌");
+      alert("Server connection error ❌");
+    } finally {
+      setLoading(false);
     }
   };
 
   // ✅ DELETE USER
   const deleteUser = async (id) => {
-    if (!window.confirm("Delete user?")) return;
-
+    if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
-      await fetch(`https://faithcargo.onrender.com/api/user/delete/${id}/`, {
+      const res = await fetch(`https://faithcargo.onrender.com/api/user/delete/${id}/`, {
         method: "DELETE",
       });
-
-      fetchUsers();
+      if (res.ok) fetchUsers();
     } catch {
-      alert("Delete failed ❌");
+      alert("Delete request failed ❌");
     }
   };
 
   return (
+    <div className="user-page-container">
+      <div className="admin-header">
+        <h1><i className="fas fa-user-shield"></i> User Control Center</h1>
+        <p>Manage system access and module permissions for staff accounts.</p>
+      </div>
 
-    <div className="user-page">
+      <div className="user-layout">
+        {/* --- LEFT: CREATE USER CARD --- */}
+        <div className="glass-card add-user-form">
+          <div className="card-top">
+            <h3><i className="fas fa-plus-circle"></i> Create New Account</h3>
+          </div>
+          
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label>Credentials</label>
+              <input 
+                placeholder="Username" 
+                value={username} 
+                onChange={(e)=>setUsername(e.target.value)} 
+                required 
+              />
+              <input 
+                type="password" 
+                placeholder="Password" 
+                value={password} 
+                onChange={(e)=>setPassword(e.target.value)} 
+                required 
+              />
+            </div>
 
-      {/* 🔥 LEFT CARD */}
-      <div className="card add-user-card">
+            <div className="permission-header">
+              <label>Module Access Permissions</label>
+            </div>
 
-        <h2>Add User</h2>
+            <div className="checkbox-grid">
+              {Object.keys(permissions).map((key) => (
+                <label className="checkbox-item" key={key}>
+                  <input 
+                    type="checkbox" 
+                    name={key} 
+                    checked={permissions[key]} 
+                    onChange={handleCheckbox}
+                  />
+                  <span className="custom-box"></span>
+                  <span className="label-text">{key.replace(/_/g, ' ').toUpperCase()}</span>
+                </label>
+              ))}
+            </div>
 
-        <form onSubmit={handleSubmit}>
+            <button type="submit" className="submit-btn" disabled={loading}>
+              {loading ? "Processing..." : "Register User"}
+            </button>
+          </form>
+        </div>
 
-          <label>Username</label>
-          <input value={username} onChange={(e)=>setUsername(e.target.value)} required/>
-
-          <label>Password</label>
-          <input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} required/>
-
-          <h3>Allow Modules</h3>
-
-          <div className="checkbox-group">
-            <label><input type="checkbox" name="rateCalculator" checked={permissions.rateCalculator} onChange={handleCheckbox}/> FCPL Rate Calculator</label>
-            <label><input type="checkbox" name="pickupRequest" checked={permissions.pickupRequest} onChange={handleCheckbox}/> Pickup Request</label>
-            <label><input type="checkbox" name="vendorManage" checked={permissions.vendorManage} onChange={handleCheckbox}/> Vendor Manage</label>
-            <label><input type="checkbox" name="vendorRates" checked={permissions.vendorRates} onChange={handleCheckbox}/> Vendor Rates</label>
-            <label><input type="checkbox" name="rateUpdate" checked={permissions.rateUpdate} onChange={handleCheckbox}/> Rate Update</label>
-            <label><input type="checkbox" name="pincodeManagement" checked={permissions.pincodeManagement} onChange={handleCheckbox}/> Pincode Management</label>
-            <label><input type="checkbox" name="userManagement" checked={permissions.userManagement} onChange={handleCheckbox}/> User Management</label>
-            <label><input type="checkbox" name="baB2bRateCalculator" checked={permissions.baB2bRateCalculator} onChange={handleCheckbox}/> BA & B2B Rate Calculator</label>
+        {/* --- RIGHT: USER LIST CARD --- */}
+        <div className="glass-card user-list-table">
+          <div className="card-top space-between">
+            <h3><i className="fas fa-list-ul"></i> Active Users</h3>
+            <span className="user-badge">{users.length} Users</span>
           </div>
 
-          <button type="submit" className="add-btn">Add User</button>
-
-        </form>
-
+          <div className="table-wrapper">
+            <table className="modern-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.length > 0 ? users.map((u)=>(
+                  <tr key={u.id}>
+                    <td className="id-col">#{u.id}</td>
+                    <td className="user-col"><strong>{u.username}</strong></td>
+                    <td className="action-col">
+                      <button className="row-delete-btn" onClick={()=>deleteUser(u.id)}>
+                        <i className="fas fa-trash-alt"></i>
+                      </button>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr><td colSpan="3" className="no-data">No users found.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-
-      {/* 🔥 RIGHT CARD */}
-      <div className="card user-list-card">
-
-        <h3>Total Users: {users.length}</h3>
-
-        <table className="user-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Username</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {users.length > 0 ? users.map((u)=>(
-              <tr key={u.id}>
-                <td>{u.id}</td>
-                <td>{u.username}</td>
-                <td>
-                  <button
-                    className="delete-btn"
-                    onClick={()=>deleteUser(u.id)}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            )) : (
-              <tr>
-                <td colSpan="3">No Users Found</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-
-      </div>
-
     </div>
   );
 }

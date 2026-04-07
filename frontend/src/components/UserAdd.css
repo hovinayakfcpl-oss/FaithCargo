@@ -1,131 +1,213 @@
-/* 🔥 PAGE LAYOUT (SIDE BY SIDE) */
-.user-page{
-  display:flex;
-  gap:25px;
-  justify-content:center;
-  align-items:flex-start;
-  min-height:100vh;
-  background:#f4f6f9;
-  padding:30px;
+/* UserAdd.css - Professional SaaS Design */
+
+/* --- 1. MAIN PAGE LAYOUT --- */
+.user-page {
+  display: flex;
+  gap: 35px;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  background: #f0f2f5; /* Light subtle grey */
+  padding: 40px 20px;
+  font-family: 'Inter', sans-serif;
 }
 
-/* REMOVE CENTER ONLY */
-.user-add-container{
-  display:block;
+/* --- 2. CARD BASE DESIGN --- */
+.card {
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); /* Soft shadow */
+  width: 450px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 🔥 CARD COMMON */
-.card{
-  background:#fff;
-  padding:25px;
-  border-radius:12px;
-  box-shadow:0 8px 20px rgba(0,0,0,0.15);
-  width:420px;
-  transition:0.2s;
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 40px rgba(196, 0, 0, 0.12);
 }
 
-.card:hover{
-  transform:translateY(-5px);
+/* --- 3. TITLES & HEADINGS --- */
+.card h2, .card h3 {
+  margin-top: 0;
+  margin-bottom: 25px;
+  text-align: center;
+  color: #1a1a1a;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
 }
 
-/* 🔥 TITLE */
-.card h2{
-  margin-bottom:20px;
-  text-align:center;
-  color:#c40000;
+.card h3 {
+  color: #c40000;
+  font-size: 18px;
+  border-bottom: 2px solid #fff0f0;
+  padding-bottom: 15px;
 }
 
-/* LABEL */
-.card label{
-  display:block;
-  margin:10px 0 5px;
-  font-weight:600;
-  color:#555;
+/* --- 4. FORM ELEMENTS --- */
+.card label {
+  display: block;
+  margin: 12px 0 6px;
+  font-weight: 600;
+  color: #4a4a4a;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* INPUT */
 .card input[type="text"],
-.card input[type="password"]{
-  width:100%;
-  padding:10px;
-  border:1px solid #ddd;
-  border-radius:6px;
-  margin-bottom:12px;
-  transition:0.2s;
+.card input[type="password"] {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #edf2f7;
+  border-radius: 10px;
+  margin-bottom: 5px;
+  font-size: 14px;
+  transition: all 0.2s;
+  background: #f8fafc;
 }
 
-/* FOCUS RED */
-.card input:focus{
-  border-color:#c40000;
-  outline:none;
-  box-shadow:0 0 3px rgba(196,0,0,0.3);
+.card input:focus {
+  border-color: #c40000;
+  background: #fff;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(196, 0, 0, 0.1);
 }
 
-/* CHECKBOX */
-.checkbox-group{
-  margin:12px 0;
+/* --- 5. MODULE PERMISSIONS SECTION --- */
+.card h3 {
+  margin-top: 25px;
 }
 
-.checkbox-group label{
-  display:block;
-  margin-bottom:6px;
-  color:#444;
-  font-size:14px;
+.checkbox-group {
+  display: grid;
+  grid-template-columns: 1fr; /* Stacked for cleaner look */
+  gap: 10px;
+  margin: 20px 0;
+  max-height: 300px;
+  overflow-y: auto; /* Scroll if many modules */
+  padding-right: 5px;
 }
 
-/* 🔥 BUTTON RED */
-.add-btn{
-  width:100%;
-  padding:12px;
-  background:#c40000;
-  color:#fff;
-  border:none;
-  border-radius:6px;
-  font-weight:bold;
-  cursor:pointer;
-  transition:0.3s;
+/* Custom Checkbox Styling */
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 10px 15px;
+  background: #fffafa;
+  border: 1px solid #ffe5e5;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  text-transform: none; /* Reset uppercase for modules */
 }
 
-.add-btn:hover{
-  background:#a00000;
+.checkbox-group label:hover {
+  background: #ffebeb;
+  border-color: #c40000;
 }
 
-/* 🔥 RIGHT CARD TABLE */
-.user-list-card h3{
-  text-align:center;
-  color:#c40000;
+.checkbox-group input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #c40000;
+  cursor: pointer;
 }
 
-/* TABLE */
-.user-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:10px;
+/* --- 6. ACTION BUTTONS --- */
+.add-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #c40000 0%, #a00000 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(196, 0, 0, 0.3);
+  transition: all 0.3s;
+  margin-top: 10px;
 }
 
-.user-table th,
-.user-table td{
-  border:1px solid #eee;
-  padding:8px;
-  text-align:center;
-  font-size:13px;
+.add-btn:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 20px rgba(196, 0, 0, 0.4);
+  transform: scale(1.02);
 }
 
-.user-table th{
-  background:#ffe5e5;
-  color:#c40000;
+/* --- 7. USER LIST TABLE --- */
+.user-list-card {
+  width: 500px; /* Slightly wider for table */
 }
 
-/* 🔥 DELETE BUTTON */
-.delete-btn{
-  background:#c40000;
-  color:white;
-  border:none;
-  padding:5px 10px;
-  border-radius:4px;
-  cursor:pointer;
+.user-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px; /* Gaps between rows */
+  margin-top: 15px;
 }
 
-.delete-btn:hover{
-  background:#900000;
+.user-table th {
+  background: transparent;
+  color: #888;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 10px;
+  border: none;
+}
+
+.user-table td {
+  background: #fff;
+  padding: 15px 10px;
+  border-top: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+  color: #2d3748;
+}
+
+/* Row Styling */
+.user-table tr td:first-child { border-left: 1px solid #f0f0f0; border-radius: 10px 0 0 10px; font-weight: bold; color: #c40000; }
+.user-table tr td:last-child { border-right: 1px solid #f0f0f0; border-radius: 0 10px 10px 0; }
+
+.user-table tr:hover td {
+  background: #f8fafc;
+}
+
+/* --- 8. DELETE BUTTON --- */
+.delete-btn {
+  background: #fff1f1;
+  color: #c40000;
+  border: 1px solid #ffcccc;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.delete-btn:hover {
+  background: #c40000;
+  color: #fff;
+}
+
+/* --- 9. RESPONSIVE --- */
+@media (max-width: 900px) {
+  .user-page {
+    flex-direction: column;
+    align-items: center;
+  }
+  .card {
+    width: 100%;
+    max-width: 500px;
+  }
 }
