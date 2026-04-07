@@ -3,10 +3,12 @@
    ========================================================================== */
 :root {
   --fc-red: #d32f2f;          /* Faith Cargo Red */
+  --fc-red-hover: #b91c1c;
   --fc-dark: #1e293b;         /* Professional Navy/Black */
   --fc-bg: #f1f5f9;           /* Light Gray Background */
   --fc-border: #e2e8f0;       /* Soft Border Color */
   --fc-success: #10b981;      /* Success Green */
+  --fc-accent: #3b82f6;       /* Blue for calculation actions */
   --fc-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
   --fc-radius: 14px;
 }
@@ -79,11 +81,12 @@ body {
   border-color: var(--fc-red);
   color: var(--fc-red);
   background: #fff5f5;
+  font-weight: 700;
 }
 
 /* ==========================================================================
    3. MAIN LAYOUT & GRID
-   ========================================================================== */
+   ========================================================================= */
 .order-container {
   max-width: 1400px;
   margin: 30px auto;
@@ -125,6 +128,12 @@ body {
   text-transform: uppercase;
   display: flex;
   align-items: center;
+  justify-content: space-between; /* Space for add button */
+}
+
+.card-title-content {
+  display: flex;
+  align-items: center;
   gap: 10px;
 }
 
@@ -158,13 +167,66 @@ input:focus {
 .readonly-input {
   background: #f8fafc;
   font-weight: 700;
-  color: var(--fc-red);
+  color: #475569;
   border-style: dashed;
   cursor: not-allowed;
 }
 
 /* ==========================================================================
-   5. VOLUMETRIC CALCULATOR UI
+   5. INVOICE LIST & E-WAY BILL (NEW UPDATES)
+   ========================================================================== */
+.invoice-row-item {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 80px 40px;
+  gap: 10px;
+  margin-bottom: 12px;
+  align-items: center;
+  background: #f8fafc;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.btn-add-inv {
+  background: #fff;
+  border: 1.5px solid var(--fc-red);
+  color: var(--fc-red);
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-add-inv:hover {
+  background: var(--fc-red);
+  color: #fff;
+}
+
+.eway-alert-box {
+  background: #fff1f2;
+  border: 2px solid #fca5a5;
+  padding: 15px;
+  border-radius: 12px;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-top: 15px;
+  animation: fadeIn 0.4s ease;
+}
+
+.eway-input-field {
+  background: white !important;
+  border-color: #fca5a5 !important;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   6. VOLUMETRIC CALCULATOR UI
    ========================================================================== */
 .volumetric-box {
   margin-top: 25px;
@@ -216,7 +278,7 @@ input:focus {
 }
 
 /* ==========================================================================
-   6. STICKY SIDEBAR & ACTIONS
+   7. STICKY SIDEBAR & ACTIONS (UPDATED BUTTON COLORS)
    ========================================================================== */
 .sticky-action-bar {
   position: sticky;
@@ -251,23 +313,31 @@ input:focus {
   color: #fff;
 }
 
+/* BLUE CALCULATE BUTTON */
 .btn-calc {
   width: 100%;
   padding: 15px;
-  background: #fff;
-  border: 1.5px solid var(--fc-border);
+  background: #eff6ff; /* Very Light Blue */
+  border: 2px solid var(--fc-accent);
+  color: var(--fc-accent);
   border-radius: 12px;
   font-weight: 800;
   cursor: pointer;
   margin-bottom: 12px;
-  transition: 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: 0.3s;
 }
 
 .btn-calc:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: var(--fc-accent);
+  color: #ffffff;
+  box-shadow: 0 8px 15px rgba(59, 130, 246, 0.3);
 }
 
+/* RED SUBMIT BUTTON */
 .btn-submit {
   width: 100%;
   padding: 18px;
@@ -287,18 +357,20 @@ input:focus {
 }
 
 .btn-submit:hover:not(:disabled) {
-  background: #b91c1c;
+  background: var(--fc-red-hover);
   transform: translateY(-3px);
+  box-shadow: 0 15px 25px rgba(211, 47, 47, 0.5);
 }
 
 .btn-submit:disabled {
-  background: #fca5a5;
+  background: #cbd5e1;
+  color: #94a3b8;
   cursor: not-allowed;
   box-shadow: none;
 }
 
 /* ==========================================================================
-   7. DOCKET STYLING (PRINT VIEW)
+   8. DOCKET STYLING (PRINT VIEW)
    ========================================================================== */
 .docket-container {
   width: 100%;
@@ -408,7 +480,7 @@ input:focus {
 }
 
 /* ==========================================================================
-   8. MODALS & OVERLAYS
+   9. MODALS & OVERLAYS
    ========================================================================== */
 .success-overlay {
   position: fixed;
@@ -443,12 +515,12 @@ input:focus {
 }
 
 .mini-docket-preview {
-  transform: scale(0.45);
-  transform-origin: top center;
   height: 250px;
-  overflow: hidden;
+  overflow-y: auto;
   border: 1px solid #ddd;
   margin-bottom: 20px;
+  background: #f8fafc;
+  border-radius: 12px;
 }
 
 .btn-print-main {
@@ -462,8 +534,17 @@ input:focus {
   margin-right: 12px;
 }
 
+.btn-reset {
+  background: #fff;
+  border: 1.5px solid #ddd;
+  padding: 16px 35px;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 /* ==========================================================================
-   9. RESPONSIVE & PRINT MEDIA
+   10. RESPONSIVE & PRINT MEDIA
    ========================================================================== */
 @media (max-width: 1100px) {
   .form-grid {
