@@ -1,127 +1,202 @@
+/* ==========================================================================
+   1. GLOBAL RESET & PREMIUM VARIABLES
+   ========================================================================== */
 :root {
-  --red: #e11d48;
-  --dark-red: #9f1239;
-  --black: #09090b;
-  --card-bg: #18181b;
-  --border: #27272a;
-  --text: #fafafa;
-  --muted: #a1a1aa;
+  --fc-red: #d32f2f;          /* Faith Cargo Red */
+  --fc-dark: #1e293b;         /* Professional Navy/Black */
+  --fc-bg: #f1f5f9;           /* Light Gray Background */
+  --fc-border: #e2e8f0;       /* Soft Border Color */
+  --fc-success: #10b981;      /* Success Green */
+  --fc-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  --fc-radius: 14px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  background-color: var(--black);
-  color: var(--text);
-  margin: 0;
-  font-family: 'Inter', sans-serif;
+  background-color: var(--fc-bg);
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  color: var(--fc-dark);
+  line-height: 1.6;
 }
 
-.order-page-dark {
-  padding-bottom: 50px;
-}
-
-/* --- Summary Bar --- */
-.summary-bar {
-  background: rgba(24, 24, 27, 0.8);
-  backdrop-filter: blur(10px);
-  padding: 12px 5%;
+/* ==========================================================================
+   2. TOP NAVIGATION / HEADER (NO-PRINT)
+   ========================================================================== */
+.order-header {
+  background: #ffffff;
+  padding: 12px 6%;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--fc-border);
   position: sticky;
   top: 0;
   z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.2rem; }
-.red-text { color: var(--red); }
+.header-brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
 
-.pills { display: flex; gap: 12px; }
-.pill { background: #27272a; padding: 6px 15px; border-radius: 50px; font-size: 13px; }
-.red-pill { border: 1px solid var(--red); color: var(--red); }
+.brand-text h1 {
+  font-size: 1.2rem;
+  font-weight: 900;
+  margin: 0;
+  color: var(--fc-red);
+  letter-spacing: -0.5px;
+}
 
-/* --- Layout --- */
-.main-grid {
-  max-width: 1300px;
+.brand-text span {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  display: block;
+}
+
+.header-status {
+  display: flex;
+  gap: 15px;
+}
+
+.stat-item {
+  background: var(--fc-bg);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  border: 1px solid var(--fc-border);
+}
+
+.stat-item.highlight {
+  border-color: var(--fc-red);
+  color: var(--fc-red);
+  background: #fff5f5;
+}
+
+/* ==========================================================================
+   3. MAIN LAYOUT & GRID
+   ========================================================================== */
+.order-container {
+  max-width: 1400px;
   margin: 30px auto;
+  padding: 0 25px;
+}
+
+.form-grid {
   display: grid;
-  grid-template-columns: 1fr 400px;
-  gap: 25px;
-  padding: 0 20px;
+  grid-template-columns: 1fr 420px;
+  gap: 30px;
 }
 
-/* --- Cards & Forms --- */
-.premium-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
+/* ==========================================================================
+   4. FORM CARDS & INPUTS
+   ========================================================================== */
+.section-card {
+  background: #ffffff;
+  border-radius: var(--fc-radius);
+  padding: 25px;
   margin-bottom: 25px;
-  transition: 0.3s;
+  border: 1px solid var(--fc-border);
+  box-shadow: var(--fc-shadow);
+  transition: transform 0.2s ease;
 }
 
-.premium-card:hover { border-color: #3f3f46; }
+.section-card:hover {
+  transform: translateY(-2px);
+}
 
-.card-header {
+.border-red {
+  border-top: 4px solid var(--fc-red);
+}
+
+.card-head {
+  font-weight: 700;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 20px;
+  text-transform: uppercase;
   display: flex;
   align-items: center;
   gap: 10px;
-  font-weight: 700;
-  margin-bottom: 20px;
-  font-size: 1rem;
 }
 
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-.grid-1 { display: flex; flex-direction: column; gap: 15px; }
-.span-full { grid-column: span 2; }
+.inner-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.span-2 {
+  grid-column: span 2;
+}
 
 input {
-  background: #09090b;
-  border: 1px solid var(--border);
-  padding: 12px 15px;
-  border-radius: 8px;
-  color: white;
+  width: 100%;
+  padding: 13px 16px;
+  border: 1.5px solid var(--fc-border);
+  border-radius: 10px;
   font-size: 14px;
+  background: #fdfdfd;
   transition: 0.2s;
 }
 
-input:focus { border-color: var(--red); outline: none; box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.1); }
-.locked-input { border-style: dashed; color: var(--red); font-weight: 600; }
-.warning-border { border-color: #f59e0b; color: #f59e0b; }
+input:focus {
+  outline: none;
+  border-color: var(--fc-red);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.08);
+}
 
-/* --- Upload Area --- */
-.file-upload {
-  border: 2px dashed var(--border);
+.readonly-input {
+  background: #f8fafc;
+  font-weight: 700;
+  color: var(--fc-red);
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   5. VOLUMETRIC CALCULATOR UI
+   ========================================================================== */
+.volumetric-box {
+  margin-top: 25px;
+  background: #fffcfc;
   padding: 20px;
-  border-radius: 10px;
-  text-align: center;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  transition: 0.3s;
+  border-radius: 12px;
+  border: 1px solid #fee2e2;
 }
 
-.file-upload:hover { border-color: var(--red); background: #27272a; }
-
-/* --- Dimension Rows --- */
-.dim-list {
-  margin-top: 20px;
-  background: #09090b;
-  padding: 15px;
-  border-radius: 10px;
-}
-
-.dim-list header {
-  font-size: 12px;
-  color: var(--muted);
+.vol-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 15px;
+  color: #475569;
 }
 
-.dim-row-new {
+.vol-badge {
+  color: var(--fc-red);
+  background: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #fee2e2;
+}
+
+.vol-rows {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.vol-row {
   display: grid;
   grid-template-columns: 40px 1fr 1fr 1fr;
   gap: 10px;
@@ -129,78 +204,293 @@ input:focus { border-color: var(--red); outline: none; box-shadow: 0 0 0 2px rgb
   align-items: center;
 }
 
-.box-label { font-size: 12px; font-weight: bold; color: var(--red); }
-
-/* --- Final Action Box --- */
-.sticky-sidebar { position: sticky; top: 90px; }
-
-.action-box {
-  background: var(--red);
-  padding: 30px;
-  border-radius: 16px;
-  text-align: center;
-  box-shadow: 0 20px 40px rgba(225, 29, 72, 0.2);
+.vol-row span {
+  font-size: 11px;
+  font-weight: 900;
+  color: #94a3b8;
 }
 
-.final-price span { font-size: 14px; opacity: 0.8; }
-.final-price h1 { font-size: 2.5rem; margin: 10px 0; font-weight: 900; }
-.final-price p { font-size: 12px; opacity: 0.7; }
+.vol-row input {
+  padding: 10px;
+  text-align: center;
+}
 
-.btn-stack-new { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+/* ==========================================================================
+   6. STICKY SIDEBAR & ACTIONS
+   ========================================================================== */
+.sticky-action-bar {
+  position: sticky;
+  top: 100px;
+}
 
-.primary-btn, .secondary-btn {
+.pricing-summary {
+  background: var(--fc-dark);
+  color: #ffffff;
+  padding: 30px;
+  border-radius: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.price-total {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #334155;
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #fff;
+}
+
+.btn-calc {
+  width: 100%;
   padding: 15px;
-  border-radius: 8px;
+  background: #fff;
+  border: 1.5px solid var(--fc-border);
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: 0.2s;
+}
+
+.btn-calc:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 18px;
+  background: var(--fc-red);
+  color: #fff;
   border: none;
-  font-weight: 700;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  transition: 0.2s;
+  box-shadow: 0 10px 15px -3px rgba(211, 47, 47, 0.4);
+  transition: 0.3s;
 }
 
-.primary-btn { background: black; color: white; }
-.secondary-btn { background: white; color: black; }
-.primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-submit:hover:not(:disabled) {
+  background: #b91c1c;
+  transform: translateY(-3px);
+}
 
-/* --- Modal --- */
-.premium-modal-overlay {
+.btn-submit:disabled {
+  background: #fca5a5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   7. DOCKET STYLING (PRINT VIEW)
+   ========================================================================== */
+.docket-container {
+  width: 100%;
+  background: #fff;
+  border: 2.5px solid #000;
+  padding: 30px;
+  color: #000;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.docket-header {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 2.5px solid #000;
+  padding-bottom: 15px;
+  margin-bottom: 15px;
+}
+
+.docket-brand h2 {
+  font-size: 28px;
+  margin: 0;
+  font-weight: 900;
+}
+
+.docket-tagline {
+  font-weight: 900;
+  font-size: 14px;
+  border-bottom: 1px solid #000;
+  display: inline-block;
+  margin-bottom: 5px;
+}
+
+.docket-lr-info {
+  text-align: right;
+}
+
+.lr-text {
+  font-size: 24px;
+  font-weight: 900;
+  margin-top: 5px;
+}
+
+.docket-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1.5px solid #000;
+}
+
+.docket-side {
+  padding: 12px;
+  border-right: 1.5px solid #000;
+}
+
+.docket-side:last-child {
+  border-right: none;
+}
+
+.box-title {
+  background: #000;
+  color: #fff;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.docket-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.docket-table th, .docket-table td {
+  border: 1.5px solid #000;
+  padding: 10px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.docket-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+}
+
+.docket-sigs {
+  display: flex;
+  flex-direction: column;
+  gap: 50px;
+  text-align: center;
+}
+
+.sig-area {
+  border-top: 1.5px solid #000;
+  width: 180px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.docket-copy {
+  text-align: center;
+  margin-top: 20px;
+  font-weight: 900;
+  border-top: 1px dashed #000;
+  padding-top: 10px;
+  font-size: 12px;
+}
+
+/* ==========================================================================
+   8. MODALS & OVERLAYS
+   ========================================================================== */
+.success-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.9);
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
 }
 
-.premium-modal {
-  background: var(--card-bg);
+.success-modal {
+  background: #fff;
   padding: 40px;
-  border-radius: 20px;
+  border-radius: 30px;
   text-align: center;
-  border: 1px solid var(--red);
   width: 90%;
-  max-width: 450px;
+  max-width: 550px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
-.success-icon-wrap { color: var(--red); margin-bottom: 20px; }
-.lr-badge {
-  background: #000;
-  border: 2px dashed var(--red);
-  font-size: 2.2rem;
-  font-weight: 900;
+.lr-badge-large {
+  background: #fff1f2;
+  border: 3px dashed var(--fc-red);
   padding: 20px;
-  margin: 20px 0;
+  font-size: 2.5rem;
+  font-weight: 900;
+  margin: 25px 0;
+  color: var(--fc-dark);
+  border-radius: 15px;
 }
 
-.modal-actions { display: flex; gap: 10px; }
-.btn-print { flex: 1; background: var(--red); color: white; padding: 15px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer;}
-.btn-close { flex: 1; background: white; color: black; padding: 15px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer;}
+.mini-docket-preview {
+  transform: scale(0.45);
+  transform-origin: top center;
+  height: 250px;
+  overflow: hidden;
+  border: 1px solid #ddd;
+  margin-bottom: 20px;
+}
 
-@media (max-width: 1024px) {
-  .main-grid { grid-template-columns: 1fr; }
-  .sticky-sidebar { position: static; }
+.btn-print-main {
+  background: var(--fc-red);
+  color: #fff;
+  border: none;
+  padding: 16px 35px;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-right: 12px;
+}
+
+/* ==========================================================================
+   9. RESPONSIVE & PRINT MEDIA
+   ========================================================================== */
+@media (max-width: 1100px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .sticky-action-bar {
+    position: static;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  body {
+    background: #fff;
+  }
+  @page {
+    margin: 1cm;
+  }
+}
+
+.print-only {
+  display: none;
 }
