@@ -163,6 +163,25 @@ function App() {
             </ProtectedRoute>
           }
         />
+        // उदाहरण: BA & B2B Rate Calculator के लिए
+<Route
+  path="/ba-b2b-rate"
+  element={
+    <ProtectedRoute requiredModule="ba_b2b">
+      <BaB2bRateCalculator />
+    </ProtectedRoute>
+  }
+/>
+
+// उदाहरण: Create Order के लिए
+<Route
+  path="/create-order"
+  element={
+    <ProtectedRoute requiredModule="create_order">
+      <CreateOrder />
+    </ProtectedRoute>
+  }
+/>
 
         {/* 🔥 DEFAULT FALLBACK */}
         <Route path="*" element={<Navigate to="/" />} />

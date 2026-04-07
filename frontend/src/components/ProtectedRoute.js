@@ -5,24 +5,27 @@ function ProtectedRoute({ children }) {
   const location = useLocation();
 
   const token = localStorage.getItem("token");
-  const isSuperuser =
-    localStorage.getItem("is_superuser") === "true" ||
+  
+  // ✅ Superuser check (String or Boolean both handled)
+  const isSuperuser = 
+    localStorage.getItem("is_superuser") === "true" || 
     localStorage.getItem("is_superuser") === "True";
 
-  // ✅ permissions object from localStorage
-  const userModules = JSON.parse(localStorage.getItem("permissions") || "{}");
+  // 🔥 FIX HERE: 'permissions' की जगह 'userModules' का इस्तेमाल करें
+  // क्योंकि आपने UserLogin.js में इसी नाम से सेव किया है
+  const userModules = JSON.parse(localStorage.getItem("userModules") || "{}");
 
-  // 🔹 Token check
+  // 🔹 Token check: अगर लॉगिन नहीं है तो बाहर भेजें
   if (!token || token === "undefined" || token === "null") {
     return <Navigate to="/" replace />;
   }
 
-  // 🔹 Admin always allowed
+  // 🔹 Admin/Superuser को हमेशा हर जगह जाने की अनुमति है
   if (isSuperuser) {
     return children;
   }
 
-  // 🔥 ROUTE → MODULE MAP (✅ UPDATED)
+  // 🔥 ROUTE → MODULE MAP (मैपिंग एकदम सही है)
   const routePermissions = {
     "/fcpl-rate": "fcpl_rate",
     "/pickup": "pickup",
@@ -32,24 +35,23 @@ function ProtectedRoute({ children }) {
     "/pincode": "pincode",
     "/user-add": "user_management",
     "/ba-b2b-rate": "ba_b2b",
-
-    // ✅ NEW MODULES
     "/create-order": "create_order",
     "/shipment-details": "shipment_details",
   };
 
   const currentPath = location.pathname;
 
-  // 🔹 Dashboard always allowed
+  // 🔹 Dashboard हमेशा एक्सेसिबल रहेंगे
   if (currentPath === "/user-dashboard" || currentPath === "/admin-dashboard") {
     return children;
   }
 
-  // 🔹 Check module access
+  // 🔹 परमिशन चेक करें
   const requiredPermission = routePermissions[currentPath];
 
+  // अगर रास्ता (Path) सुरक्षित है और यूजर के पास उसकी परमिशन नहीं है
   if (requiredPermission && !userModules[requiredPermission]) {
-    alert("Access Denied ❌");
+    alert(`Access Denied ❌: You don't have access to ${requiredPermission.replace('_', ' ')}`);
     return <Navigate to="/user-dashboard" replace />;
   }
 
