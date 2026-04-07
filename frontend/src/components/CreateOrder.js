@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   Truck, MapPin, Package, FileText, Upload, 
-  Save, Calculator, CheckCircle, Printer 
+  Calculator, CheckCircle, Printer, Plus, Info, Scale
 } from "lucide-react";
 import "./CreateOrder.css";
 
@@ -15,112 +15,81 @@ export default function CreateOrder() {
   
   const [freightData, setFreightData] = useState({ freight: 0, gst: 0, total: 0 });
 
-  const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "" });
-  const [delivery, setDelivery] = useState({ name: "", contact: "", address: "", pincode: "", state: "" });
+  const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "" });
+  const [delivery, setDelivery] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "" });
   const [orderDetails, setOrderDetails] = useState({ material: "", hsn: "1234", weight: "", boxesCount: 0 });
   const [invoice, setInvoice] = useState({ no: "", value: "", ewayBill: "" });
 
-  // 📍 Pincode to State (Backend Sync)
-  const fetchState = async (pin, type) => {
+  // 📍 1. Smart Pincode Fetch (City + State)
+  const fetchLocation = async (pin, type) => {
     if (pin.length === 6) {
       try {
-        // Option: Aap apne backend ke 'get-locations' ka use bhi kar sakte hain
         const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
         const data = await res.json();
-        const stateName = data[0]?.PostOffice?.[0]?.State || "Not Found";
-        if (type === "pickup") setPickup(prev => ({ ...prev, state: stateName }));
-        else setDelivery(prev => ({ ...prev, state: stateName }));
-      } catch (err) { console.error("Pincode Error", err); }
+        if (data[0].Status === "Success") {
+          const po = data[0].PostOffice[0];
+          const update = { state: po.State, city: po.District };
+          if (type === "pickup") setPickup(prev => ({ ...prev, ...update }));
+          else setDelivery(prev => ({ ...prev, ...update }));
+        }
+      } catch (err) { console.error("Location Fetch Error"); }
     }
   };
 
-  // 💰 1. CHECK FREIGHT
-  const handleCheckFreight = async () => {
-    if (!pickup.pincode || !delivery.pincode || !orderDetails.weight) {
-      alert("Please enter Pickup, Delivery Pincode and Weight first!");
-      return;
-    }
+  // 📦 2. Volumetric Weight Logic (L*W*H / 1728 * 10)
+  const volWeight = useMemo(() => {
+    const totalCft = boxes.reduce((acc, b) => {
+      return acc + (parseFloat(b.l || 0) * parseFloat(b.w || 0) * parseFloat(b.h || 0)) / 1728;
+    }, 0);
+    return (totalCft * 10).toFixed(2);
+  }, [boxes]);
 
+  // ⚖️ 3. Final Charged Weight (Actual vs Volumetric)
+  const chargedWeight = Math.max(parseFloat(orderDetails.weight || 0), parseFloat(volWeight));
+
+  const handleCheckFreight = async () => {
+    if (!pickup.pincode || !delivery.pincode || !chargedWeight) {
+      alert("Pincode and Weight are required!"); return;
+    }
     try {
-      // Backend ke naye calculate-freight path par bhej rahe hain
       const res = await fetch(`${API_BASE}/shipments/calculate-freight/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          origin: pickup.pincode,
-          destination: delivery.pincode,
-          weight: orderDetails.weight
+          origin: pickup.pincode, 
+          destination: delivery.pincode, 
+          weight: chargedWeight 
         }),
       });
       const data = await res.json();
       if (data.success) {
-        setFreightData({ 
-          freight: data.freight_charge, 
-          gst: data.gst, 
-          total: data.total_charge + data.gst
-        });
-      } else {
-        alert(data.error || "Rate not found for this route.");
-      }
-    } catch (err) {
-      alert("Error connecting to Rate Calculator.");
-    }
+        setFreightData({ freight: data.freight_charge, gst: data.gst, total: data.total_charge + data.gst });
+      } else { alert(data.error); }
+    } catch { alert("Rate calculation failed."); }
   };
 
-  // 📦 2. CREATE ORDER
   const handleCreateOrder = async () => {
-    if (!pickup.name || !delivery.name || !pickup.pincode || !delivery.pincode) {
-      alert("Please fill all mandatory sender and receiver details!");
-      return;
-    }
-
-    if (parseFloat(invoice.value) >= 50000 && !invoice.ewayBill) {
-      alert("E-way bill is mandatory for invoice value above ₹50,000!");
-      return;
-    }
-
+    if (!pickup.name || !delivery.name) { alert("Mandatory fields missing!"); return; }
     setLoading(true);
-
-    // Payload match with your views.py
     const payload = {
-      pickupName: pickup.name,
-      pickupContact: pickup.contact,
-      pickupAddress: pickup.address,
-      pickupPincode: pickup.pincode,
-      deliveryName: delivery.name,
-      deliveryContact: delivery.contact,
-      deliveryAddress: delivery.address,
-      deliveryPincode: delivery.pincode,
-      material: orderDetails.material,
-      hsn: orderDetails.hsn,
-      boxes: orderDetails.boxesCount,
-      weight: orderDetails.weight,
-      total_value: invoice.value || 0,
-      eway_bill: invoice.ewayBill,
+      pickupName: pickup.name, pickupContact: pickup.contact, pickupAddress: `${pickup.address}, ${pickup.city}`, pickupPincode: pickup.pincode,
+      deliveryName: delivery.name, deliveryContact: delivery.contact, deliveryAddress: `${delivery.address}, ${delivery.city}`, deliveryPincode: delivery.pincode,
+      material: orderDetails.material, boxes: orderDetails.boxesCount, weight: chargedWeight,
+      total_value: invoice.value || 0, eway_bill: invoice.ewayBill,
       invoices: [{ invoice_no: invoice.no, invoice_value: invoice.value || 0 }]
     };
 
     try {
-      const response = await fetch(`${API_BASE}/shipments/create-order/`, {
+      const res = await fetch(`${API_BASE}/shipments/create-order/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
-      const result = await response.json();
-
-      if (result.success) {
-        // Backend se formatted LR (FCPL0001) aayega
-        setLrNumber(result.lr_number);
-        setShowLR(true);
-      } else {
-        alert("Error: " + (result.error || "Failed to create order"));
-      }
-    } catch (error) {
-      alert("Server error. Please check your connection.");
-    } finally {
-      setLoading(false);
-    }
+      const result = await res.json();
+      if (result.success) { setLrNumber(result.lr_number); setShowLR(true); }
+      else { alert(result.error); }
+    } catch { alert("Server error."); }
+    finally { setLoading(false); }
   };
 
   const handleBoxCountChange = (count) => {
@@ -136,111 +105,111 @@ export default function CreateOrder() {
   };
 
   return (
-    <div className="order-wrapper">
-      <header className="order-header">
-        <div className="header-left">
-          <Truck size={24} color="#2563eb" />
-          <h1>Create New Shipment (Faith Cargo)</h1>
+    <div className="order-page-dark">
+      {/* ⚡ Sticky Summary Header */}
+      <nav className="summary-bar">
+        <div className="brand"><Truck size={24} className="red-text" /> <span>FAITH CARGO</span></div>
+        <div className="pills">
+          <div className="pill">Charged Wt: <strong>{chargedWeight} Kg</strong></div>
+          <div className="pill red-pill">Price: <strong>₹{freightData.total.toFixed(2)}</strong></div>
         </div>
-      </header>
+      </nav>
 
-      <main className="order-container">
-        <div className="form-grid">
-          <div className="form-left">
-            {/* Pickup Card */}
-            <div className="section-card">
-              <div className="card-head"><MapPin size={18} /> Pickup Details</div>
-              <div className="inner-grid">
-                <input type="text" placeholder="Sender Name" value={pickup.name} onChange={(e)=>setPickup({...pickup, name: e.target.value})} />
-                <input type="text" placeholder="Contact No" value={pickup.contact} onChange={(e)=>setPickup({...pickup, contact: e.target.value})} />
-                <input type="text" className="span-2" placeholder="Full Address" value={pickup.address} onChange={(e)=>setPickup({...pickup, address: e.target.value})} />
-                <input type="text" placeholder="Pincode" maxLength="6" value={pickup.pincode} onChange={(e) => { setPickup({...pickup, pincode: e.target.value}); fetchState(e.target.value, "pickup"); }} />
-                <input type="text" placeholder="State" value={pickup.state} readOnly className="readonly-input" />
-              </div>
+      <div className="main-grid">
+        {/* Left Side: Forms */}
+        <div className="form-sections">
+          <section className="premium-card">
+            <div className="card-header"><MapPin size={18} /> Pickup Details</div>
+            <div className="grid-2">
+              <input placeholder="Sender Name" value={pickup.name} onChange={e=>setPickup({...pickup, name: e.target.value})} />
+              <input placeholder="Contact No" value={pickup.contact} onChange={e=>setPickup({...pickup, contact: e.target.value})} />
+              <input className="span-full" placeholder="Street Address" value={pickup.address} onChange={e=>setPickup({...pickup, address: e.target.value})} />
+              <input placeholder="Pincode" maxLength="6" onChange={e=>{setPickup({...pickup, pincode: e.target.value}); fetchLocation(e.target.value, "pickup")}} />
+              <input placeholder="City/State" value={pickup.city ? `${pickup.city}, ${pickup.state}` : ""} readOnly className="locked-input" />
             </div>
+          </section>
 
-            {/* Delivery Card */}
-            <div className="section-card">
-              <div className="card-head"><MapPin size={18} color="#10b981" /> Delivery Details</div>
-              <div className="inner-grid">
-                <input type="text" placeholder="Receiver Name" value={delivery.name} onChange={(e)=>setDelivery({...delivery, name: e.target.value})} />
-                <input type="text" placeholder="Contact No" value={delivery.contact} onChange={(e)=>setDelivery({...delivery, contact: e.target.value})} />
-                <input type="text" className="span-2" placeholder="Full Address" value={delivery.address} onChange={(e)=>setDelivery({...delivery, address: e.target.value})} />
-                <input type="text" placeholder="Pincode" maxLength="6" value={delivery.pincode} onChange={(e) => { setDelivery({...delivery, pincode: e.target.value}); fetchState(e.target.value, "delivery"); }} />
-                <input type="text" placeholder="State" value={delivery.state} readOnly className="readonly-input" />
-              </div>
+          <section className="premium-card">
+            <div className="card-header"><MapPin size={18} className="green-text" /> Delivery Details</div>
+            <div className="grid-2">
+              <input placeholder="Receiver Name" value={delivery.name} onChange={e=>setDelivery({...delivery, name: e.target.value})} />
+              <input placeholder="Contact No" value={delivery.contact} onChange={e=>setDelivery({...delivery, contact: e.target.value})} />
+              <input className="span-full" placeholder="Street Address" value={delivery.address} onChange={e=>setDelivery({...delivery, address: e.target.value})} />
+              <input placeholder="Pincode" maxLength="6" onChange={e=>{setDelivery({...delivery, pincode: e.target.value}); fetchLocation(e.target.value, "delivery")}} />
+              <input placeholder="City/State" value={delivery.city ? `${delivery.city}, ${delivery.state}` : ""} readOnly className="locked-input" />
             </div>
+          </section>
 
-            {/* Invoice Card */}
-            <div className="section-card">
-              <div className="card-head"><FileText size={18} /> Invoice & Documents</div>
-              <div className="inner-grid">
-                <input type="text" placeholder="Invoice No." value={invoice.no} onChange={(e)=>setInvoice({...invoice, no: e.target.value})} />
-                <input type="number" placeholder="Invoice Value (₹)" value={invoice.value} onChange={(e)=>setInvoice({...invoice, value: e.target.value})} />
-                {parseFloat(invoice.value) >= 50000 && (
-                  <input type="text" className="span-2 highlight-input" placeholder="Enter E-way Bill Number (Mandatory)" value={invoice.ewayBill} onChange={(e)=>setInvoice({...invoice, ewayBill: e.target.value})} />
-                )}
-                <div className="upload-box span-2">
-                  <Upload size={20} />
-                  <p>Upload Invoice PDF (Optional)</p>
-                  <input type="file" className="file-hidden" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="form-right">
-            <div className="section-card">
-              <div className="card-head"><Package size={18} /> Box & Dimensions</div>
-              <div className="inner-grid">
-                <input type="text" placeholder="Material Type" className="span-2" value={orderDetails.material} onChange={(e)=>setOrderDetails({...orderDetails, material: e.target.value})} />
-                <input type="number" placeholder="Total Weight (Kg)" value={orderDetails.weight} onChange={(e)=>setOrderDetails({...orderDetails, weight: e.target.value})} />
-                <input type="number" placeholder="No. of Boxes" value={orderDetails.boxesCount} onChange={(e)=>handleBoxCountChange(e.target.value)} />
-              </div>
-
-              {boxes.length > 0 && (
-                <div className="dimensions-list">
-                  <p className="dim-label">Dimensions (Inch)</p>
-                  {boxes.map((box, index) => (
-                    <div key={index} className="dim-row">
-                      <span>Box {index+1}</span>
-                      <input type="number" placeholder="L" onChange={(e) => updateDim(index, 'l', e.target.value)} />
-                      <input type="number" placeholder="W" onChange={(e) => updateDim(index, 'w', e.target.value)} />
-                      <input type="number" placeholder="H" onChange={(e) => updateDim(index, 'h', e.target.value)} />
-                    </div>
-                  ))}
-                </div>
+          <section className="premium-card">
+            <div className="card-header"><FileText size={18} /> Documents & Invoice</div>
+            <div className="grid-2">
+              <input placeholder="Invoice No." value={invoice.no} onChange={e=>setInvoice({...invoice, no: e.target.value})} />
+              <input type="number" placeholder="Value (₹)" onChange={e=>setInvoice({...invoice, value: e.target.value})} />
+              {parseFloat(invoice.value) >= 50000 && (
+                <input className="span-full warning-border" placeholder="E-way Bill Number (Mandatory)" onChange={e=>setInvoice({...invoice, ewayBill: e.target.value})} />
               )}
+              <label className="file-upload span-full">
+                <Upload size={20} />
+                <span>Upload Invoice PDF</span>
+                <input type="file" hidden />
+              </label>
+            </div>
+          </section>
+        </div>
+
+        {/* Right Side: Weight & Action */}
+        <div className="sticky-sidebar">
+          <section className="premium-card">
+            <div className="card-header"><Package size={18} /> Box & Weight</div>
+            <div className="grid-1">
+              <input placeholder="Material Description" onChange={e=>setOrderDetails({...orderDetails, material: e.target.value})} />
+              <div className="weight-input-group">
+                <input type="number" placeholder="Actual Wt (Kg)" onChange={e=>setOrderDetails({...orderDetails, weight: e.target.value})} />
+                <input type="number" placeholder="No. of Boxes" onChange={e=>handleBoxCountChange(e.target.value)} />
+              </div>
             </div>
 
-            <div className="action-card">
-              <div className="price-display">
-                <span className="label">Estimated Total</span>
-                <span className="value">₹ {freightData.total.toFixed(2)}</span>
-                <small>(Freight: ₹{freightData.freight.toFixed(2)} + GST)</small>
+            {boxes.length > 0 && (
+              <div className="dim-list">
+                <header>Dimensions (Inch) <span>Vol. Wt: {volWeight} Kg</span></header>
+                {boxes.map((box, i) => (
+                  <div key={i} className="dim-row-new">
+                    <span className="box-label">#{i+1}</span>
+                    <input placeholder="L" onChange={e=>updateDim(i, 'l', e.target.value)} />
+                    <input placeholder="W" onChange={e=>updateDim(i, 'w', e.target.value)} />
+                    <input placeholder="H" onChange={e=>updateDim(i, 'h', e.target.value)} />
+                  </div>
+                ))}
               </div>
-              <div className="btn-stack">
-                <button className="btn-secondary" onClick={handleCheckFreight}><Calculator size={16} /> Calculate Price</button>
-                <button className="btn-primary" onClick={handleCreateOrder} disabled={loading}>
-                  {loading ? "Processing..." : "Generate LR Number"}
-                </button>
-              </div>
+            )}
+          </section>
+
+          <div className="action-box">
+            <div className="final-price">
+              <span>Total Estimated Price</span>
+              <h1>₹ {freightData.total.toFixed(2)}</h1>
+              <p>Inc. GST @ 18%</p>
+            </div>
+            <div className="btn-stack-new">
+              <button className="secondary-btn" onClick={handleCheckFreight}><Calculator size={18} /> Calculate</button>
+              <button className="primary-btn" onClick={handleCreateOrder} disabled={loading || !freightData.freight}>
+                {loading ? "Processing..." : "Generate LR Number"}
+              </button>
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Success Modal */}
       {showLR && (
-        <div className="success-overlay">
-          <div className="success-box">
-            <CheckCircle size={48} color="#10b981" />
-            <h3>Success! Order Saved</h3>
-            <p className="lr-display">LR Number: <strong>{lrNumber}</strong></p>
-            <div className="btn-group">
-              <button className="btn-print" onClick={() => window.print()}><Printer size={16} /> Print Docket</button>
-              <button className="btn-close" onClick={() => window.location.href = "/shipment-details"}>View List</button>
-              <button className="btn-secondary" onClick={() => window.location.reload()}>Next Order</button>
+        <div className="premium-modal-overlay">
+          <div className="premium-modal">
+            <div className="success-icon-wrap"><CheckCircle size={60} /></div>
+            <h2>Order Created!</h2>
+            <div className="lr-badge">{lrNumber}</div>
+            <div className="modal-actions">
+              <button className="btn-print" onClick={() => window.print()}><Printer size={18} /> Print Docket</button>
+              <button className="btn-close" onClick={() => window.location.reload()}>Book Next</button>
             </div>
           </div>
         </div>
