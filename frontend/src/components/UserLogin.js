@@ -27,74 +27,101 @@ function UserLogin() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username,
-          password,
+          username: username.trim(),
+          password: password.trim(),
         }),
       });
 
       const data = await res.json();
 
-if (res.status === 200 && data.status === "success") {
+      if (res.status === 200 && data.status === "success") {
+        // 1. पुराने डेटा को साफ़ करें ताकि नया डेटा ही काम करे
+        localStorage.clear();
 
-  // 🔥 ADD THIS LINE (MOST IMPORTANT)
-  localStorage.setItem("token", "user-login-token");
+        // 2. नए टोकन और मॉड्यूल परमिशन सेव करें
+        localStorage.setItem("token", "user-login-token");
+        localStorage.setItem("is_superuser", "false"); // स्टाफ लॉगिन के लिए false
+        
+        // 🔥 यह लाइन आपके नए मॉड्यूल्स (Create Order, Shipment) को Sidebar में दिखाएगी
+        localStorage.setItem("userModules", JSON.stringify(data.modules));
+        
+        // यूजर का नाम सेव करें
+        localStorage.setItem("username", data.username);
 
-  localStorage.setItem("userModules", JSON.stringify(data.modules));
-  localStorage.setItem("userName", data.username);
+        alert(`Welcome ${data.username} 🚀`);
 
-  alert(`Welcome ${data.username} 🚀`);
+        // 3. डैशबोर्ड पर भेजें
+        navigate("/user-dashboard");
+        
+        // 4. 🔥 सिस्‍टम को रिफ्रेश करें ताकि Sidebar डेटाबेस से आई नई Permissions को तुरंत पढ़ सके
+        window.location.reload();
 
-  navigate("/user-dashboard");
-} else {
+      } else {
         alert(data.error || "Invalid credentials ❌");
       }
     } catch (err) {
-      console.error(err);
-      alert("Server error ❌");
+      console.error("Login Error:", err);
+      alert("Server error ❌. Please check your internet or backend.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
     <div className="user-login-container">
-      {/* LEFT */}
+      {/* LEFT DECORATION */}
       <div className="user-login-left">
-        <h2>User Access Panel 🔐</h2>
-        <p>Login to access your assigned modules</p>
+        <div className="overlay-content">
+          <h2>Faith Cargo Logistics 🔐</h2>
+          <p>Login with your staff credentials to access assigned modules.</p>
+        </div>
       </div>
 
-      {/* RIGHT */}
+      {/* RIGHT LOGIN FORM */}
       <div className="user-login-right">
-        <img src={logo} alt="logo" className="login-logo" />
+        <div className="login-form-wrapper">
+          <img src={logo} alt="Faith Cargo Logo" className="login-logo" />
+          <h2>Staff Portal Login</h2>
+          <p className="subtitle">Enter your details below</p>
 
-        <h2>User Login</h2>
+          <form onSubmit={handleLogin} className="login-form">
+            <div className="input-field">
+              <i className="fas fa-user"></i>
+              <input
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
 
-        <form onSubmit={handleLogin}>
-          <input
-            type="text"
-            placeholder="Username"
-            className="input-box"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
+            <div className="input-field">
+              <i className="fas fa-lock"></i>
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
 
-          <input
-            type="password"
-            placeholder="Password"
-            className="input-box"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+            <button type="submit" className="login-btn" disabled={loading}>
+              {loading ? (
+                <span><i className="fas fa-spinner fa-spin"></i> Verifying...</span>
+              ) : (
+                "Login to Dashboard"
+              )}
+            </button>
+          </form>
 
-          <button type="submit" className="login-btn" disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-
-        <p className="back-link" onClick={() => navigate("/")}>
-          ← Back to Admin Login
-        </p>
+          <div className="form-footer">
+            <p className="back-link" onClick={() => navigate("/")}>
+              <i className="fas fa-arrow-left"></i> Back to Admin Login
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
