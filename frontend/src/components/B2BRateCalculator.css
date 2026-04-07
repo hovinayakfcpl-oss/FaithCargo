@@ -1,232 +1,276 @@
-.main{
-  background:#f4f4f4;
-  padding:30px;
+/* B2BRateCalculator.css */
 
-  display:flex;
-  justify-content:center;   /* 🔥 center layout */
+.main {
+  background: #f8f9fa;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, sans-serif;
 }
 
-/* LAYOUT */
-.layout{
-  display:flex;
-  gap:25px;
-  align-items:flex-start;
+/* TOP HEADING */
+.header-section {
+  text-align: center;
+  margin-bottom: 30px;
+}
 
-  max-width:1050px;   /* 🔥 width control */
-  width:100%;
+.header-section h1 {
+  color: #c40000;
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.header-section p {
+  color: #666;
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+/* LAYOUT CONTROL */
+.layout {
+  display: flex;
+  gap: 30px;
+  align-items: flex-start;
+  max-width: 1100px;
+  width: 100%;
 }
 
 /* CARD BASE */
-.card{
-  background:#fffafa;
-  padding:20px;
-  border-radius:12px;
-  box-shadow:0 5px 15px rgba(196,0,0,0.1);
-  min-height:auto;   /* 🔥 fix extra height */
+.card {
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  border: 1px solid #eee;
 }
 
-/* WIDTH CONTROL */
-.layout .card:first-child{
-  flex:1.2;
-  max-width:600px;
+/* WIDTHS */
+.layout .card:first-child {
+  flex: 1.3;
+  max-width: 650px;
 }
 
-.layout .card:last-child{
-  flex:1;
-  max-width:420px;
+.layout .card:last-child {
+  flex: 1;
+  max-width: 450px;
+  position: sticky;
+  top: 20px;
 }
 
-/* GRID */
-.grid2{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  margin-bottom:8px;
+/* GRID & INPUTS */
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
 }
 
-/* INPUT */
-input,select{
-  padding:5px 6px;
-  border-radius:6px;
-  border:1px solid #ffcccc;
-  background:#fff5f5;
-  font-size:12px;
-  height:28px;
+input, select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #ececec;
+  background: #fff;
+  font-size: 13px;
+  transition: all 0.3s ease;
+  color: #333;
 }
 
-/* DIMENSION */
-.dim{
-  background:#fff0f0;
-  border:1px solid #ff4d4d;
-  padding:10px;
-  border-radius:10px;
-  margin-top:10px;
+input:focus, select:focus {
+  border-color: #c40000;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(196, 0, 0, 0.1);
 }
 
-.dim h4{
-  color:#c40000;
-  font-size:13px;
+/* DIMENSION SECTION */
+.dim-section {
+  background: #fff5f5;
+  border: 1px dashed #ffcccc;
+  padding: 15px;
+  border-radius: 12px;
+  margin: 20px 0;
 }
 
-/* DIM ROW */
-.dim-row{
-  display:flex;
-  gap:6px;
-  margin-bottom:6px;
-  align-items:center;
+.dim-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
-.dim-row input{
-  width:45px;
-  padding:3px;
-  font-size:10px;
-  height:24px;
+.dim-header h4 {
+  color: #c40000;
+  margin: 0;
+  font-size: 14px;
+  text-transform: uppercase;
 }
 
-/* ADD BTN */
-.add-btn{
-  margin-top:6px;
-  padding:5px 8px;
-  font-size:11px;
-  background:#ff4d4d;
-  color:white;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
+.dim-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 35px;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
 }
 
-/* REMOVE BTN */
-.remove-btn{
-  background:#000;
-  color:#fff;
-  border:none;
-  padding:4px 6px;
-  font-size:11px;
-  border-radius:5px;
-  cursor:pointer;
+.dim-row input {
+  height: 32px;
+  text-align: center;
 }
 
-/* CHECK */
-.check{
-  display:flex;
-  justify-content:space-between;
-  margin:12px 0;
+/* BUTTONS */
+.add-btn-small {
+  padding: 5px 12px;
+  font-size: 12px;
+  background: #333;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.3s;
 }
 
-/* CALCULATE BTN */
-.calc-btn{
-  width:100%;
-  background:#c40000;
-  color:#fff;
-  padding:10px;   /* 🔥 compact */
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:bold;
+.add-btn-small:hover { background: #000; }
+
+.remove-btn {
+  background: #ffeded;
+  color: #c40000;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.calc-btn {
+  width: 100%;
+  background: #c40000;
+  color: #fff;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  transition: 0.3s;
+  box-shadow: 0 4px 12px rgba(196, 0, 0, 0.2);
+}
+
+.calc-btn:hover {
+  background: #a00000;
+  transform: translateY(-1px);
+}
+
+.calc-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* CHECKBOXES */
+.check-group {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.check-group label {
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #555;
+}
+
+/* RESULT CARD (Aapka Preferred Design) */
+.result-premium {
+  border-radius: 20px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #2b0000 0%, #7a0000 50%, #c40000 100%);
+  box-shadow: 0 15px 35px rgba(196, 0, 0, 0.3);
+  color: #fff;
+}
+
+.rp-header {
+  padding: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.rp-logo {
+  width: 50px;
+  height: 50px;
+  background: #fff;
+  color: #c40000;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 18px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.rp-info h3 { font-size: 16px; margin: 0; font-weight: 700; }
+.rp-info p { font-size: 12px; opacity: 0.8; margin: 3px 0 0; }
+
+.rp-price { text-align: right; font-size: 24px; font-weight: 800; }
+.rp-price span { display: block; font-size: 10px; font-weight: 400; opacity: 0.7; }
+
+.rp-toggle {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rp-body { padding: 20px; }
+
+.rp-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 13px;
+}
+
+.rp-row.highlighted {
+  background: rgba(255, 255, 255, 0.1);
+  margin: 5px -20px;
+  padding: 10px 20px;
+  font-weight: bold;
+}
+
+.rp-total-final {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 15px;
+  margin-top: 10px;
+  border-top: 2px solid rgba(255, 255, 255, 0.3);
+  font-size: 18px;
+  font-weight: 800;
 }
 
 /* PLACEHOLDER */
-.placeholder{
-  text-align:center;
-  color:#999;
+.placeholder-content {
+  text-align: center;
+  padding: 60px 20px;
+  color: #aaa;
 }
 
-/* RESULT CARD */
-.result-premium{
-  border-radius:18px;
-  overflow:hidden;
-  background: linear-gradient(135deg,#3b0000,#7a0000,#ff4d4d);
-  box-shadow:0 15px 40px rgba(196,0,0,0.3);
-  color:#fff;
-  min-height:420px;
-}
-
-/* HEADER */
-.rp-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:15px;
-}
-
-/* LOGO */
-.rp-logo{
-  width:50px;
-  height:50px;
-  border-radius:10px;
-  background:#000;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:bold;
-}
-
-/* INFO */
-.rp-info h3{
-  margin:0;
-  font-size:15px;
-}
-
-.rp-info p{
-  margin:0;
-  font-size:11px;
-  opacity:0.8;
-}
-
-/* PRICE */
-.rp-price{
-  text-align:right;
-  font-size:18px;
-  font-weight:bold;
-}
-
-.rp-price span{
-  display:block;
-  font-size:10px;
-  opacity:0.7;
-}
-
-/* TOGGLE */
-.rp-toggle{
-  background:rgba(255,255,255,0.15);
-  padding:8px;
-  text-align:center;
-  cursor:pointer;
-  font-size:12px;
-  transition:0.3s;
-}
-
-.rp-toggle:hover{
-  background:rgba(255,255,255,0.25);
-}
-
-/* BODY */
-.rp-body{
-  padding:12px;
-}
-
-/* ROW */
-.rp-row{
-  display:flex;
-  justify-content:space-between;
-  padding:6px 0;
-  border-bottom:1px solid rgba(255,255,255,0.2);
-  font-size:12px;
-}
-
-.rp-row:last-child{
-  border:none;
-}
-
-/* MOBILE */
-@media(max-width:768px){
-  .layout{
-    flex-direction:column;
-    max-width:100%;
-  }
-
-  .layout .card:first-child,
-  .layout .card:last-child{
-    max-width:100%;
+/* MOBILE RESPONSIVE */
+@media (max-width: 850px) {
+  .layout { flex-direction: column; }
+  .layout .card:first-child, .layout .card:last-child {
+    max-width: 100%;
   }
 }

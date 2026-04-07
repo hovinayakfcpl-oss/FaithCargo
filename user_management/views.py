@@ -2,8 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import CustomUser
 
-
-# ✅ ADD USER API
+# ✅ ADD USER API (Updated with 2 new modules)
 @api_view(['POST'])
 def add_user(request):
     data = request.data
@@ -17,6 +16,7 @@ def add_user(request):
     if CustomUser.objects.filter(username=username).exists():
         return Response({"error": "Username already exists"}, status=400)
 
+    # डेटाबेस में नए मॉड्यूल्स की वैल्यू भी सेव कर रहे हैं
     user = CustomUser.objects.create(
         username=username,
         password=password,
@@ -29,12 +29,16 @@ def add_user(request):
         pincode=data.get("pincode", False),
         user_management=data.get("user_management", False),
         ba_b2b=data.get("ba_b2b", False),
+        
+        # 🔥 ADDED NEW MODULES HERE
+        create_order=data.get("create_order", False),
+        shipment_details=data.get("shipment_details", False),
     )
 
-    return Response({"status": "User created successfully"})
+    return Response({"status": "User created successfully", "id": user.id})
 
 
-# ✅ USER LOGIN API
+# ✅ USER LOGIN API (Updated to return new modules)
 @api_view(['POST'])
 def user_login(request):
     username = request.data.get("username")
@@ -55,6 +59,10 @@ def user_login(request):
                 "pincode": user.pincode,
                 "user_management": user.user_management,
                 "ba_b2b": user.ba_b2b,
+                
+                # 🔥 ADDED NEW MODULES IN RESPONSE
+                "create_order": user.create_order,
+                "shipment_details": user.shipment_details,
             }
         })
 
@@ -62,11 +70,14 @@ def user_login(request):
         return Response({"error": "Invalid username or password"}, status=400)
 
 
-# ✅ 🔥 ADD THIS (MOST IMPORTANT)
+# ✅ USER LIST API
 @api_view(['GET'])
 def user_list(request):
+    # 'role' फील्ड अगर आपके मॉडल में है तो उसे भी यहाँ जोड़ सकते हैं
     users = CustomUser.objects.all().values("id", "username")
     return Response(list(users))
+
+
 # ✅ DELETE USER API
 @api_view(['DELETE'])
 def delete_user(request, id):
