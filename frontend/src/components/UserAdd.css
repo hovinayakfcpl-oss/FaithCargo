@@ -1,213 +1,274 @@
-/* UserAdd.css - Professional SaaS Design */
+/* UserAdd.css - Faith Cargo Premium Dashboard */
 
-/* --- 1. MAIN PAGE LAYOUT --- */
-.user-page {
-  display: flex;
-  gap: 35px;
-  justify-content: center;
-  align-items: flex-start;
+:root {
+  --primary-red: #c40000;
+  --dark-red: #990000;
+  --bg-color: #f4f7fa;
+  --text-main: #2d3748;
+  --text-muted: #718096;
+  --glass-white: rgba(255, 255, 255, 0.9);
+}
+
+.user-page-container {
+  background: radial-gradient(circle at top right, #fff5f5, #f4f7fa);
   min-height: 100vh;
-  background: #f0f2f5; /* Light subtle grey */
-  padding: 40px 20px;
-  font-family: 'Inter', sans-serif;
+  padding: 40px;
+  font-family: 'Segoe UI', sans-serif;
 }
 
-/* --- 2. CARD BASE DESIGN --- */
-.card {
-  background: #ffffff;
-  padding: 30px;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); /* Soft shadow */
-  width: 450px;
-  border: 1px solid rgba(0, 0, 0, 0.03);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 15px 40px rgba(196, 0, 0, 0.12);
-}
-
-/* --- 3. TITLES & HEADINGS --- */
-.card h2, .card h3 {
-  margin-top: 0;
-  margin-bottom: 25px;
+/* --- 1. HEADER STYLE --- */
+.admin-header-v2 {
   text-align: center;
-  color: #1a1a1a;
-  font-size: 22px;
+  margin-bottom: 40px;
+  animation: fadeInDown 0.8s ease-out;
+}
+
+.admin-header-v2 h1 {
+  color: var(--primary-red);
+  font-size: 2.5rem;
   font-weight: 800;
-  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+  letter-spacing: -1px;
 }
 
-.card h3 {
-  color: #c40000;
-  font-size: 18px;
-  border-bottom: 2px solid #fff0f0;
-  padding-bottom: 15px;
+.admin-header-v2 p {
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
-/* --- 4. FORM ELEMENTS --- */
-.card label {
-  display: block;
-  margin: 12px 0 6px;
-  font-weight: 600;
-  color: #4a4a4a;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.card input[type="text"],
-.card input[type="password"] {
-  width: 100%;
-  padding: 12px 15px;
-  border: 2px solid #edf2f7;
-  border-radius: 10px;
-  margin-bottom: 5px;
-  font-size: 14px;
-  transition: all 0.2s;
-  background: #f8fafc;
-}
-
-.card input:focus {
-  border-color: #c40000;
-  background: #fff;
-  outline: none;
-  box-shadow: 0 0 0 4px rgba(196, 0, 0, 0.1);
-}
-
-/* --- 5. MODULE PERMISSIONS SECTION --- */
-.card h3 {
-  margin-top: 25px;
-}
-
-.checkbox-group {
+/* --- 2. MAIN LAYOUT GRID --- */
+.user-main-grid {
   display: grid;
-  grid-template-columns: 1fr; /* Stacked for cleaner look */
-  gap: 10px;
-  margin: 20px 0;
-  max-height: 300px;
-  overflow-y: auto; /* Scroll if many modules */
-  padding-right: 5px;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 30px;
+  max-width: 1300px;
+  margin: 0 auto;
 }
 
-/* Custom Checkbox Styling */
-.checkbox-group label {
+/* --- 3. GLASS PANEL (CARDS) --- */
+.glass-panel {
+  background: var(--glass-white);
+  backdrop-filter: blur(10px);
+  border-radius: 24px;
+  padding: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.glass-panel:hover {
+  transform: translateY(-5px);
+}
+
+.panel-header h3 {
+  color: var(--text-main);
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 25px;
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 0;
-  padding: 10px 15px;
-  background: #fffafa;
-  border: 1px solid #ffe5e5;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.2s;
-  font-size: 13px;
-  font-weight: 500;
-  color: #333;
-  text-transform: none; /* Reset uppercase for modules */
 }
 
-.checkbox-group label:hover {
-  background: #ffebeb;
-  border-color: #c40000;
+.panel-header i {
+  color: var(--primary-red);
 }
 
-.checkbox-group input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: #c40000;
-  cursor: pointer;
+/* --- 4. MODERN FORM INPUTS --- */
+.input-group-v2 {
+  margin-bottom: 20px;
 }
 
-/* --- 6. ACTION BUTTONS --- */
-.add-btn {
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, #c40000 0%, #a00000 100%);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
+.input-group-v2 label {
+  display: block;
+  font-size: 0.85rem;
   font-weight: 700;
-  font-size: 15px;
-  cursor: pointer;
-  box-shadow: 0 4px 15px rgba(196, 0, 0, 0.3);
-  transition: all 0.3s;
-  margin-top: 10px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  margin-left: 5px;
 }
 
-.add-btn:hover {
-  filter: brightness(1.1);
-  box-shadow: 0 6px 20px rgba(196, 0, 0, 0.4);
-  transform: scale(1.02);
-}
-
-/* --- 7. USER LIST TABLE --- */
-.user-list-card {
-  width: 500px; /* Slightly wider for table */
-}
-
-.user-table {
+.input-group-v2 input {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 8px; /* Gaps between rows */
-  margin-top: 15px;
+  padding: 14px 18px;
+  background: #f1f5f9;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  font-size: 1rem;
+  transition: all 0.3s;
 }
 
-.user-table th {
-  background: transparent;
-  color: #888;
-  font-size: 12px;
+.input-group-v2 input:focus {
+  background: #fff;
+  border-color: var(--primary-red);
+  box-shadow: 0 0 0 4px rgba(196, 0, 0, 0.1);
+  outline: none;
+}
+
+/* --- 5. PERMISSION TILES (MOST ATTRACTIVE PART) --- */
+.permission-label-v2 {
+  margin: 30px 0 15px;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+}
+
+.permission-label-v2 span {
+  font-weight: 800;
+  color: var(--text-main);
+  font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 1px;
-  padding: 10px;
-  border: none;
 }
 
-.user-table td {
+.permission-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.perm-tile {
+  position: relative;
+  cursor: pointer;
+  display: block;
+}
+
+.perm-tile input {
+  position: absolute;
+  opacity: 0;
+}
+
+.tile-content {
   background: #fff;
-  padding: 15px 10px;
-  border-top: 1px solid #f0f0f0;
-  border-bottom: 1px solid #f0f0f0;
-  font-size: 14px;
-  color: #2d3748;
+  border: 2px solid #edf2f7;
+  padding: 15px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s;
 }
 
-/* Row Styling */
-.user-table tr td:first-child { border-left: 1px solid #f0f0f0; border-radius: 10px 0 0 10px; font-weight: bold; color: #c40000; }
-.user-table tr td:last-child { border-right: 1px solid #f0f0f0; border-radius: 0 10px 10px 0; }
+.tile-content i {
+  width: 35px;
+  height: 35px;
+  background: #f7fafc;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 1rem;
+}
 
-.user-table tr:hover td {
-  background: #f8fafc;
+.tile-content span {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-main);
+  text-transform: uppercase;
+}
+
+/* Checked State for Tiles */
+.perm-tile input:checked + .tile-content {
+  border-color: var(--primary-red);
+  background: #fff5f5;
+  transform: scale(0.98);
+}
+
+.perm-tile input:checked + .tile-content i {
+  background: var(--primary-red);
+  color: white;
+}
+
+.perm-tile input:checked + .tile-content span {
+  color: var(--primary-red);
+}
+
+/* --- 6. GRAND SUBMIT BUTTON --- */
+.grand-submit-btn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, var(--primary-red), var(--dark-red));
+  color: white;
+  border: none;
+  border-radius: 16px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(196, 0, 0, 0.3);
+  transition: all 0.3s;
+}
+
+.grand-submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(196, 0, 0, 0.4);
+}
+
+.grand-submit-btn:disabled {
+  background: #cbd5e0;
+  cursor: not-allowed;
+}
+
+/* --- 7. FAITH TABLE STYLE --- */
+.faith-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.faith-table th {
+  text-align: left;
+  padding: 15px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  border-bottom: 2px solid #f7fafc;
+}
+
+.faith-table td {
+  padding: 18px 15px;
+  border-bottom: 1px solid #f7fafc;
+}
+
+.id-tag {
+  background: #edf2f7;
+  color: var(--text-main);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-weight: bold;
+}
+
+.user-name-cell {
+  font-weight: 700;
+  color: var(--text-main);
 }
 
 /* --- 8. DELETE BUTTON --- */
-.delete-btn {
-  background: #fff1f1;
-  color: #c40000;
-  border: 1px solid #ffcccc;
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
+.icon-del-btn {
+  width: 38px;
+  height: 38px;
+  background: #fff5f5;
+  color: var(--primary-red);
+  border: none;
+  border-radius: 10px;
   cursor: pointer;
   transition: 0.2s;
 }
 
-.delete-btn:hover {
-  background: #c40000;
-  color: #fff;
+.icon-del-btn:hover {
+  background: var(--primary-red);
+  color: white;
 }
 
-/* --- 9. RESPONSIVE --- */
-@media (max-width: 900px) {
-  .user-page {
-    flex-direction: column;
-    align-items: center;
-  }
-  .card {
-    width: 100%;
-    max-width: 500px;
+/* Animation */
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .user-main-grid {
+    grid-template-columns: 1fr;
   }
 }

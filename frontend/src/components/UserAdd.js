@@ -5,8 +5,9 @@ function UserAdd() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState([]);
 
-  // ✅ New & Updated Module List
+  // ✅ Permissions mapping to match your Django Model exactly
   const [permissions, setPermissions] = useState({
     fcpl_rate: false,
     pickup: false,
@@ -16,26 +17,35 @@ function UserAdd() {
     pincode: false,
     user_management: false,
     ba_b2b: false,
-    create_order: false,    // New Module
-    shipment_details: false // New Module
+    create_order: false,    // 🔥 New Module from models.py
+    shipment_details: false // 🔥 New Module from models.py
   });
 
-  const [users, setUsers] = useState([]);
+  // ✅ Icons Mapping for attractive UI
+  const getIcon = (key) => {
+    const icons = {
+      fcpl_rate: "fa-calculator",
+      pickup: "fa-truck-loading",
+      vendor_manage: "fa-tasks",
+      vendor_rates: "fa-hand-holding-usd",
+      rate_update: "fa-sync-alt",
+      pincode: "fa-map-marker-alt",
+      user_management: "fa-user-cog",
+      ba_b2b: "fa-chart-line",
+      create_order: "fa-edit",
+      shipment_details: "fa-box-open"
+    };
+    return icons[key] || "fa-check-circle";
+  };
 
   // ✅ FETCH USERS
   const fetchUsers = async () => {
     try {
       const res = await fetch("https://faithcargo.onrender.com/api/user/list/");
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setUsers(data);
-      } else if (data.users) {
-        setUsers(data.users);
-      } else {
-        setUsers([]);
-      }
-    } catch {
-      console.log("Error fetching user list");
+      setUsers(Array.isArray(data) ? data : data.users || []);
+    } catch (err) {
+      console.error("Fetch error:", err);
     }
   };
 
@@ -59,17 +69,17 @@ function UserAdd() {
         body: JSON.stringify({
           username,
           password,
-          ...permissions // Spreading all permissions directly
+          ...permissions 
         }),
       });
 
       const data = await res.json();
 
-      if (res.status === 200 || res.ok) {
-        alert("User Account Created ✅");
+      if (res.ok) {
+        alert("User Account Created Successfully ✅");
         setUsername("");
         setPassword("");
-        // Reset all permissions to false
+        // Reset permissions
         setPermissions(Object.fromEntries(Object.keys(permissions).map(k => [k, false])));
         fetchUsers();
       } else {
@@ -91,96 +101,109 @@ function UserAdd() {
       });
       if (res.ok) fetchUsers();
     } catch {
-      alert("Delete request failed ❌");
+      alert("Delete failed ❌");
     }
   };
 
   return (
     <div className="user-page-container">
-      <div className="admin-header">
-        <h1><i className="fas fa-user-shield"></i> User Control Center</h1>
-        <p>Manage system access and module permissions for staff accounts.</p>
+      {/* Header Section */}
+      <div className="admin-header-v2">
+        <div className="header-content">
+          <h1><i className="fas fa-shield-alt"></i> Faith Cargo Admin</h1>
+          <p>Access Control & User Permission Management</p>
+        </div>
       </div>
 
-      <div className="user-layout">
-        {/* --- LEFT: CREATE USER CARD --- */}
-        <div className="glass-card add-user-form">
-          <div className="card-top">
-            <h3><i className="fas fa-plus-circle"></i> Create New Account</h3>
+      <div className="user-main-grid">
+        {/* --- LEFT: CREATE USER --- */}
+        <div className="glass-panel add-user-section">
+          <div className="panel-header">
+            <h3><i className="fas fa-user-plus"></i> New Account</h3>
           </div>
           
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label>Credentials</label>
+          <form onSubmit={handleSubmit} className="modern-form">
+            <div className="input-group-v2">
+              <label><i className="fas fa-user"></i> Username</label>
               <input 
-                placeholder="Username" 
+                placeholder="Staff username..." 
                 value={username} 
                 onChange={(e)=>setUsername(e.target.value)} 
                 required 
               />
+            </div>
+
+            <div className="input-group-v2">
+              <label><i className="fas fa-key"></i> Password</label>
               <input 
                 type="password" 
-                placeholder="Password" 
+                placeholder="Secure password..." 
                 value={password} 
                 onChange={(e)=>setPassword(e.target.value)} 
                 required 
               />
             </div>
 
-            <div className="permission-header">
-              <label>Module Access Permissions</label>
+            <div className="permission-label-v2">
+              <span>Module Access Control</span>
             </div>
 
-            <div className="checkbox-grid">
+            <div className="permission-tile-grid">
               {Object.keys(permissions).map((key) => (
-                <label className="checkbox-item" key={key}>
+                <label key={key} className={`perm-tile ${permissions[key] ? 'selected' : ''}`}>
                   <input 
                     type="checkbox" 
                     name={key} 
                     checked={permissions[key]} 
                     onChange={handleCheckbox}
                   />
-                  <span className="custom-box"></span>
-                  <span className="label-text">{key.replace(/_/g, ' ').toUpperCase()}</span>
+                  <div className="tile-content">
+                    <i className={`fas ${getIcon(key)}`}></i>
+                    <span>{key.replace(/_/g, ' ')}</span>
+                  </div>
                 </label>
               ))}
             </div>
 
-            <button type="submit" className="submit-btn" disabled={loading}>
-              {loading ? "Processing..." : "Register User"}
+            <button type="submit" className="grand-submit-btn" disabled={loading}>
+              {loading ? (
+                <><i className="fas fa-spinner fa-spin"></i> Creating...</>
+              ) : (
+                "Register User"
+              )}
             </button>
           </form>
         </div>
 
-        {/* --- RIGHT: USER LIST CARD --- */}
-        <div className="glass-card user-list-table">
-          <div className="card-top space-between">
-            <h3><i className="fas fa-list-ul"></i> Active Users</h3>
-            <span className="user-badge">{users.length} Users</span>
+        {/* --- RIGHT: USER LIST --- */}
+        <div className="glass-panel user-list-section">
+          <div className="panel-header flex-between">
+            <h3><i className="fas fa-users-cog"></i> Staff Members</h3>
+            <span className="count-chip">{users.length} Active</span>
           </div>
 
-          <div className="table-wrapper">
-            <table className="modern-table">
+          <div className="table-responsive">
+            <table className="faith-table">
               <thead>
                 <tr>
                   <th>ID</th>
                   <th>Username</th>
-                  <th>Action</th>
+                  <th className="text-right">Manage</th>
                 </tr>
               </thead>
               <tbody>
                 {users.length > 0 ? users.map((u)=>(
                   <tr key={u.id}>
-                    <td className="id-col">#{u.id}</td>
-                    <td className="user-col"><strong>{u.username}</strong></td>
-                    <td className="action-col">
-                      <button className="row-delete-btn" onClick={()=>deleteUser(u.id)}>
-                        <i className="fas fa-trash-alt"></i>
+                    <td><span className="id-tag">#{u.id}</span></td>
+                    <td className="user-name-cell">{u.username}</td>
+                    <td className="text-right">
+                      <button className="icon-del-btn" onClick={()=>deleteUser(u.id)}>
+                        <i className="fas fa-trash"></i>
                       </button>
                     </td>
                   </tr>
                 )) : (
-                  <tr><td colSpan="3" className="no-data">No users found.</td></tr>
+                  <tr><td colSpan="3" className="empty-state">No Staff Accounts Found</td></tr>
                 )}
               </tbody>
             </table>
