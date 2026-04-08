@@ -164,7 +164,7 @@ export default function CreateOrder() {
 
   const volWeight = useMemo(() => {
     const totalCft = boxes.reduce((acc, b) => 
-      acc + (parseFloat(b.l||0) * parseFloat(b.w||0) * parseFloat(b.h||0)) / 1728, 0);
+      acc + (parseFloat(b.l||0) * parseFloat(b.w||0) * parseFloat(b.h||0)) / 4000, 0);
     return (totalCft * 10).toFixed(2);
   }, [boxes]);
 
