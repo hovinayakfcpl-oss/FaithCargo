@@ -4,12 +4,15 @@ import {
   Truck, MapPin, Package, FileText, Plus, Trash2,
   Calculator, CheckCircle, Printer, ChevronRight, AlertCircle, 
   ShieldCheck, Box, Info, Navigation, CreditCard, Upload, Phone,
-  Settings, User, LogOut, Search, RefreshCw, Layers
+  Settings, User, LogOut, Search, RefreshCw, Layers, FileUp, X,
+  FileSearch, Download, ClipboardCheck, History, BarChart3
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import "./CreateOrder.css";
 
-// --- PROFESSIONAL DOCKET COMPONENT (OPTIMIZED FOR A4 PRINT) ---
+// ================================================================
+// 1. PREMIUM DOCKET COMPONENT (PRINT VERSION)
+// ================================================================
 const ShipmentDocket = ({ data, lrNumber, totalValue, ewayBill, billing, showFreight, copyType }) => {
   const barcodeRef = useRef(null);
   
@@ -17,8 +20,8 @@ const ShipmentDocket = ({ data, lrNumber, totalValue, ewayBill, billing, showFre
     if (lrNumber && barcodeRef.current) {
       JsBarcode(barcodeRef.current, lrNumber, {
         format: "CODE128", 
-        width: 1.5, 
-        height: 35, 
+        width: 1.2, 
+        height: 30, 
         displayValue: false, 
         margin: 0,
         lineColor: "#000"
@@ -27,480 +30,492 @@ const ShipmentDocket = ({ data, lrNumber, totalValue, ewayBill, billing, showFre
   }, [lrNumber]);
 
   return (
-    <div className="docket-container">
-      {/* Top Banner for Copy Identification */}
-      <div className={`copy-ribbon ${copyType.toLowerCase()}`}>
-        <span>{copyType} COPY</span>
-      </div>
-      
-      <div className="docket-watermark">FAITH CARGO</div>
-      
-      <div className="docket-header">
-        <div className="brand-block">
-          <img src={logo} alt="FCPL Logo" className="docket-main-logo" />
-          <div className="brand-text">
-            <h1>FAITH CARGO PVT LTD</h1>
-            <p className="iso-tag">AN ISO 9001:2015 CERTIFIED LOGISTICS COMPANY</p>
-            <div className="reg-details">
-              <span><strong>GSTIN:</strong> 07AAFCF2947K1ZD</span> | <span><strong>CIN:</strong> U60231DL2021PTC384521</span>
+    <div className="docket-page">
+      <div className={`docket-inner-border ${copyType.toLowerCase()}`}>
+        {/* Top Header Section */}
+        <div className="docket-header-top">
+          <div className="docket-logo-section">
+            <img src={logo} alt="Faith Cargo Logo" className="docket-logo" />
+            <div className="company-info">
+              <h1 className="company-name">FAITH CARGO PVT. LTD.</h1>
+              <p className="company-tagline">Excellence in Express & Logistics Solutions</p>
+              <p className="company-meta">ISO 9001:2015 Certified | GSTIN: 07AAFCF2947K1ZD</p>
+            </div>
+          </div>
+          
+          <div className="docket-lr-section">
+            <div className="copy-type-badge">{copyType} COPY</div>
+            <div className="barcode-box">
+              <canvas ref={barcodeRef}></canvas>
+              <p className="lr-text">{lrNumber}</p>
+            </div>
+            <div className="lr-date-box">
+              <div className="date-item">DATE: <strong>{new Date().toLocaleDateString('en-IN')}</strong></div>
+              <div className="date-item">FROM: <strong>{data.pickup.city || "DELHI"}</strong></div>
             </div>
           </div>
         </div>
 
-        <div className="lr-meta-block">
-          <div className="lr-title-box">CONSIGNMENT NOTE</div>
-          <div className="barcode-wrapper">
-             <canvas ref={barcodeRef}></canvas>
-             <p className="lr-id-text">{lrNumber}</p>
-          </div>
-          <div className="date-loc-row">
-            <span>Date: <strong>{new Date().toLocaleDateString('en-IN')}</strong></span>
-            <span>Origin: <strong>DELHI</strong></span>
-          </div>
+        <div className="ho-address-strip">
+          H.O: 4/15, Kirti Nagar Industrial Area, New Delhi-110015 | Helpline: +91 9818641504 | Website: www.faithcargo.com
         </div>
-      </div>
 
-      <div className="office-address-strip">
-        <strong>H.O:</strong> 4/15, Kirti Nagar Industrial Area, New Delhi-110015 | 
-        <strong> Helpline:</strong> +91 9818641504 | 
-        <strong> Email:</strong> info@faithcargo.com
-      </div>
-
-      <div className="party-details-grid">
-        <div className="party-box consignor">
-          <div className="party-label">CONSIGNOR (SENDER)</div>
-          <div className="party-info">
-            <h3>{data.pickup.name || "_________________________________"}</h3>
-            <p className="address-area">{data.pickup.address || "No address provided"}</p>
-            <div className="party-sub-details">
+        {/* Address Grid */}
+        <div className="docket-address-grid">
+          <div className="address-column sender">
+            <div className="column-title"><MapPin size={12}/> CONSIGNOR (SENDER)</div>
+            <div className="address-content">
+              <h3>{data.pickup.name || "N/A"}</h3>
+              <p className="addr-text">{data.pickup.address}</p>
               <p><strong>GST:</strong> {data.pickup.gst || "URD"}</p>
-              <p><strong>City:</strong> {data.pickup.city}, {data.pickup.state} - {data.pickup.pincode}</p>
-              <p><strong>Contact:</strong> +91 {data.pickup.contact || "XXXXXXXXXX"}</p>
+              <p><strong>PH:</strong> +91 {data.pickup.contact}</p>
+              <p><strong>PIN:</strong> {data.pickup.pincode} ({data.pickup.city})</p>
             </div>
           </div>
-        </div>
-
-        <div className="party-box consignee">
-          <div className="party-label">CONSIGNEE (RECEIVER)</div>
-          <div className="party-info">
-            <h3>{data.delivery.name || "_________________________________"}</h3>
-            <p className="address-area">{data.delivery.address || "No address provided"}</p>
-            <div className="party-sub-details">
+          <div className="address-column receiver">
+            <div className="column-title"><Truck size={12}/> CONSIGNEE (RECEIVER)</div>
+            <div className="address-content">
+              <h3>{data.delivery.name || "N/A"}</h3>
+              <p className="addr-text">{data.delivery.address}</p>
               <p><strong>GST:</strong> {data.delivery.gst || "URD"}</p>
-              <p><strong>City:</strong> {data.delivery.city}, {data.delivery.state} - {data.delivery.pincode}</p>
-              <p><strong>Contact:</strong> +91 {data.delivery.contact || "XXXXXXXXXX"}</p>
+              <p><strong>PH:</strong> +91 {data.delivery.contact}</p>
+              <p><strong>PIN:</strong> {data.delivery.pincode} ({data.delivery.city})</p>
             </div>
           </div>
         </div>
-      </div>
 
-      <table className="docket-item-table">
-        <thead>
-          <tr>
-            <th>PKGS</th>
-            <th>CONTENT DESCRIPTION (SAID TO CONTAIN)</th>
-            <th>ACTUAL WT</th>
-            <th>CHARGED WT</th>
-            <th>INVOICE / E-WAY BILL</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr className="data-row">
-            <td className="qty-cell">{data.orderDetails.boxesCount}</td>
-            <td className="desc-cell">
-              <span className="material-name">{data.orderDetails.material || "GENERAL MERCHANDISE"}</span>
-              <div className="extra-info">
-                <span>Method: SURFACE</span> | <span>Risk: OWNER'S RISK</span>
-              </div>
-            </td>
-            <td className="wt-cell">{data.orderDetails.weight} Kg</td>
-            <td className="wt-cell highlighted">{data.chargedWeight} Kg</td>
-            <td className="bill-cell">
-               {data.invoices.map((inv, idx) => (
-                 <div key={idx}>Inv: {inv.no} (₹{inv.value})</div>
-               ))}
-               {ewayBill && <div className="ewb-tag">EWB: {ewayBill}</div>}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+        {/* Shipment Details Table */}
+        <table className="docket-main-table">
+          <thead>
+            <tr>
+              <th width="8%">PKGS</th>
+              <th width="45%">DESCRIPTION OF GOODS (SAID TO CONTAIN)</th>
+              <th width="15%">ACTUAL WT.</th>
+              <th width="15%">CHARGED WT.</th>
+              <th width="17%">INV / E-WAY BILL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="data-row">
+              <td className="center-text"><strong>{data.orderDetails.boxesCount}</strong></td>
+              <td>
+                <div className="desc-flex">
+                  <span className="material-type">{data.orderDetails.material || "GENERAL MERCHANDISE"}</span>
+                  <div className="risk-tag">CARRIER'S RISK: NO (OWNER'S RISK)</div>
+                </div>
+              </td>
+              <td className="center-text">{data.orderDetails.weight} Kg</td>
+              <td className="center-text highlighted-wt">{data.chargedWeight} Kg</td>
+              <td>
+                <div className="inv-mini-list">
+                  {data.invoices.map((inv, i) => (
+                    <div key={i} className="inv-p">#{inv.no} (₹{inv.value})</div>
+                  ))}
+                  {ewayBill && <div className="ewb-badge">EWB: {ewayBill}</div>}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-      <div className="bottom-meta-grid">
-        <div className="terms-column">
-          <h5>TERMS & CONDITIONS:</h5>
-          <ul>
-            <li>Goods carried at owner's risk. No liability for leakage/breakage.</li>
-            <li>Subject to Delhi Jurisdiction. Claims within 7 days.</li>
-            <li><strong>Customer Care: 9818641504</strong></li>
-          </ul>
-        </div>
-        
-        <div className="billing-column">
-          <div className="bill-row">
-             <span>Freight:</span>
-             <strong>{showFreight ? `₹${billing.total}` : "AS PER AGMT / TO-PAY"}</strong>
+        {/* Footer Billing Section */}
+        <div className="docket-footer-grid">
+          <div className="footer-terms">
+            <h4>TERMS & CONDITIONS:</h4>
+            <ol>
+              <li>The company is not responsible for any leakage or breakage.</li>
+              <li>Insurance of goods is the responsibility of the consignor.</li>
+              <li>Subject to Delhi Jurisdiction only. Claims must be filed within 7 days.</li>
+              <li>No claims will be entertained without an original booking receipt.</li>
+            </ol>
+            <div className="tracking-footer">Track at: <strong>www.faithcargo.com</strong></div>
           </div>
-          <div className="bill-row highlight">
-             <span>Payment Mode:</span>
-             <strong>CREDIT / B2B</strong>
-          </div>
-        </div>
 
-        <div className="auth-column">
-           <div className="signature-space consignor-sig">
+          <div className="footer-billing">
+            <div className="bill-item">
+              <span>FREIGHT CHARGES:</span>
+              <strong>{showFreight ? `₹${billing.total}` : "AS PER AGMT"}</strong>
+            </div>
+            <div className="bill-item">
+              <span>PAYMENT MODE:</span>
+              <strong>{data.paymentMode}</strong>
+            </div>
+            <div className="bill-item total-row">
+              <span>GRAND TOTAL:</span>
+              <strong>{showFreight ? `₹${billing.total}` : "TO-PAY / TBB"}</strong>
+            </div>
+          </div>
+
+          <div className="footer-signatures">
+            <div className="sig-box">
               <div className="sig-line"></div>
-              <span>Customer Signature</span>
-           </div>
-           <div className="signature-space office-stamp">
-              <p className="stamp-text">FOR FAITH CARGO PVT LTD</p>
-              <div className="stamp-box">AUTH SIGNATORY</div>
-           </div>
+              <span>CONSIGNOR SIGNATURE</span>
+            </div>
+            <div className="sig-box office-stamp">
+              <p>For <strong>FAITH CARGO PVT LTD</strong></p>
+              <div className="stamp-placeholder">AUTHORIZED SIGNATORY</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-// --- MAIN APPLICATION COMPONENT ---
+// ================================================================
+// 2. MAIN CREATE ORDER APPLICATION
+// ================================================================
 export default function CreateOrder() {
-  // Application State
-  const [lrSequence, setLrSequence] = useState(1); // Starting from 1
-  const [boxes, setBoxes] = useState([]);
+  // Application Control States
+  const [lrSequence, setLrSequence] = useState(10521);
+  const [loading, setLoading] = useState(false);
   const [showLR, setShowLR] = useState(false);
   const [lrNumber, setLrNumber] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [ewayBill, setEwayBill] = useState("");
-  const [showFreight, setShowFreight] = useState(true);
-  
-  // Form States
+  const [activeTab, setActiveTab] = useState("booking");
+
+  // Form Data States
   const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gst: "" });
   const [delivery, setDelivery] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gst: "" });
-  const [orderDetails, setOrderDetails] = useState({ material: "", weight: "", boxesCount: 0 });
+  const [orderDetails, setOrderDetails] = useState({ material: "CLOTHES", weight: "", boxesCount: 0 });
+  const [boxes, setBoxes] = useState([]);
   const [invoices, setInvoices] = useState([{ id: Date.now(), no: "", value: "", file: null }]);
+  const [ewayBill, setEwayBill] = useState("");
+  const [paymentMode, setPaymentMode] = useState("CREDIT");
+  const [showFreight, setShowFreight] = useState(true);
 
-  // Calculations
+  // --- Calculations Logic ---
   const volWeight = useMemo(() => {
-    const totalVolume = boxes.reduce((acc, b) => 
-      acc + (parseFloat(b.l||0) * parseFloat(b.w||0) * parseFloat(b.h||0)), 0);
-    return (totalVolume / 4000).toFixed(2); 
+    const totalVol = boxes.reduce((acc, b) => acc + (parseFloat(b.l || 0) * parseFloat(b.w || 0) * parseFloat(b.h || 0)), 0);
+    return (totalVol / 4500).toFixed(2); // Cargo Standard Factor
   }, [boxes]);
 
   const chargedWeight = Math.max(parseFloat(orderDetails.weight || 0), parseFloat(volWeight));
 
   const billingSummary = useMemo(() => {
-    const rate = 12.5; // Base Rate
-    const base = chargedWeight * rate;
-    const gst = base * 0.18;
+    const perKg = 18.00;
+    const docketFee = 150;
+    const fuelSurcharge = 0.10; // 10%
+    const base = chargedWeight * perKg;
+    const withFuel = base + (base * fuelSurcharge) + docketFee;
+    const gst = withFuel * 0.18;
     return {
       base: base.toFixed(2),
+      fuel: (base * fuelSurcharge).toFixed(2),
+      docket: docketFee.toFixed(2),
       gst: gst.toFixed(2),
-      total: (base + gst).toFixed(2)
+      total: Math.round(withFuel + gst)
     };
   }, [chargedWeight]);
 
-  const totalInvoiceValue = useMemo(() => 
-    invoices.reduce((sum, inv) => sum + (parseFloat(inv.value) || 0), 0), 
-  [invoices]);
+  const totalInvoiceVal = invoices.reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
 
-  const needsEwayBill = totalInvoiceValue >= 50000;
-
-  // Handlers
-  const fetchLocation = async (pin, type) => {
-    if (pin.length === 6) {
+  // --- Handlers ---
+  const handlePincode = async (val, target) => {
+    if (val.length === 6) {
       try {
-        const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
-        const data = await res.json();
+        const response = await fetch(`https://api.postalpincode.in/pincode/${val}`);
+        const data = await response.json();
         if (data[0].Status === "Success") {
-          const po = data[0].PostOffice[0];
-          const loc = { state: po.State, city: po.District };
-          if (type === "pickup") setPickup(p => ({ ...p, ...loc }));
-          else setDelivery(d => ({ ...d, ...loc }));
+          const res = data[0].PostOffice[0];
+          const update = { city: res.District, state: res.State };
+          target === 'pickup' ? setPickup(p => ({ ...p, ...update })) : setDelivery(d => ({ ...d, ...update }));
         }
-      } catch (err) { console.error("Pincode API Error"); }
+      } catch (e) { console.error("Pin API Fail"); }
     }
   };
 
-  const handleCreateOrder = () => {
-    if (!pickup.name || !delivery.name || !orderDetails.weight) {
-      alert("Please fill mandatory fields (Consignor, Consignee, Weight)");
-      return;
-    }
-    if (needsEwayBill && !ewayBill) {
-      alert("E-Way Bill is required for value > ₹50,000");
-      return;
-    }
+  const addBoxRow = (count) => {
+    const n = parseInt(count) || 0;
+    setOrderDetails(prev => ({ ...prev, boxesCount: n }));
+    setBoxes(Array.from({ length: n }, (_, i) => ({ id: i, l: "", w: "", h: "" })));
+  };
 
+  const handleInvoiceFile = (id, file) => {
+    if (file) {
+      setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, file: file } : inv));
+    }
+  };
+
+  const submitOrder = () => {
+    if (!pickup.name || !delivery.name || !orderDetails.weight) {
+      alert("Please fill mandatory company and weight details.");
+      return;
+    }
     setLoading(true);
-    // Simulating API Save
     setTimeout(() => {
-      const formattedLR = `FCPL${String(lrSequence).padStart(4, '0')}`;
-      setLrNumber(formattedLR);
-      setLrSequence(prev => prev + 1); // Increment for next entry
+      const finalLR = `FCP${lrSequence}DEL`;
+      setLrNumber(finalLR);
+      setLrSequence(s => s + 1);
       setShowLR(true);
       setLoading(false);
     }, 1500);
   };
 
-  const resetForm = () => {
-    window.location.reload(); // Simple reset
-  };
-
   return (
-    <div className="app-container">
-      {/* SIDEBAR NAVIGATION */}
-      <aside className="app-sidebar no-print">
-        <div className="brand-identity">
-          <img src={logo} alt="FCPL" />
-          <div className="brand-status">
-            <span className="online-indicator"></span>
-            <span>SYSTEM LIVE</span>
+    <div className="enterprise-layout">
+      {/* 1. SIDE NAVIGATION */}
+      <aside className="sidebar-nav no-print">
+        <div className="sidebar-brand">
+          <img src={logo} alt="Faith Cargo" />
+          <div className="status-badge">
+            <span className="dot"></span> NODE-01 ACTIVE
           </div>
         </div>
 
-        <nav className="nav-group">
-          <p className="nav-heading">MAIN MENU</p>
-          <div className="nav-item active"><Plus size={18}/> New Booking</div>
-          <div className="nav-item"><Layers size={18}/> Bulk Upload</div>
-          <div className="nav-item"><Navigation size={18}/> Track Vehicle</div>
-          <div className="nav-item"><FileText size={18}/> Reports</div>
+        <div className="nav-sections">
+          <div className="section-label">OPERATIONS</div>
+          <button className={`nav-btn ${activeTab === 'booking' ? 'active' : ''}`} onClick={() => setActiveTab('booking')}>
+            <Plus size={18}/> New Booking
+          </button>
+          <button className="nav-btn"><Layers size={18}/> Manifest List</button>
+          <button className="nav-btn"><Navigation size={18}/> DRS Management</button>
           
-          <p className="nav-heading">ACCOUNTS</p>
-          <div className="nav-item"><CreditCard size={18}/> Billing</div>
-          <div className="nav-item"><User size={18}/> Clients</div>
-          <div className="nav-item"><Settings size={18}/> Settings</div>
-        </nav>
+          <div className="section-label">REPORTS</div>
+          <button className="nav-btn"><BarChart3 size={18}/> Sales Analytics</button>
+          <button className="nav-btn"><FileSearch size={18}/> Audit Logs</button>
+          <button className="nav-btn"><History size={18}/> History</button>
+        </div>
 
-        <div className="sidebar-footer">
-          <div className="support-box">
-             <Phone size={14} />
-             <div>
-               <p>24/7 Support</p>
-               <strong>9818641504</strong>
-             </div>
+        <div className="sidebar-user-card">
+          <div className="u-info">
+            <div className="u-avatar">AD</div>
+            <div className="u-text">
+              <p>Admin User</p>
+              <span>Delhi Branch</span>
+            </div>
           </div>
-          <button className="logout-btn"><LogOut size={16}/> Exit</button>
+          <button className="logout-icon"><LogOut size={16}/></button>
         </div>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
-      <main className="app-main">
-        <header className="main-header no-print">
-          <div className="header-info">
-            <h1>Booking Console <small>v5.2</small></h1>
-            <p>Faith Cargo Logistics Management System</p>
+      {/* 2. MAIN CONTENT AREA */}
+      <main className="main-viewport">
+        <header className="viewport-header no-print">
+          <div className="header-left">
+            <h2>Create New Consignment</h2>
+            <p>System Date: {new Date().toDateString()}</p>
           </div>
-          <div className="header-actions">
-             <div className="search-bar">
-                <Search size={16} />
-                <input type="text" placeholder="Search LR or Invoice..." />
-             </div>
-             <div className="user-profile">
-                <div className="profile-img">AD</div>
-                <span>Admin</span>
-             </div>
+          <div className="header-right">
+            <div className="global-search">
+              <Search size={16}/>
+              <input type="text" placeholder="Track LR Number..." />
+            </div>
+            <button className="icon-circle"><Settings size={18}/></button>
           </div>
         </header>
 
-        <div className="dashboard-content no-print">
-          <div className="form-grid">
-            {/* COLUMN 1: ADDRESSES */}
-            <div className="form-column">
-              {/* CONSIGNOR CARD */}
-              <div className="content-card">
-                <div className="card-header consignor-border">
-                   <div className="header-icon"><MapPin size={20}/></div>
-                   <h3>Consignor (Sender Details)</h3>
+        <div className="content-container no-print">
+          <div className="booking-grid">
+            
+            {/* LEFT COLUMN: Addresses */}
+            <div className="booking-col">
+              {/* Consignor Card */}
+              <section className="card">
+                <div className="card-top red-line">
+                  <MapPin size={18} className="text-red-600"/>
+                  <h3>Consignor Information</h3>
                 </div>
-                <div className="card-body">
-                  <div className="input-row">
-                    <div className="input-wrap">
-                      <label>Sender Name / Company *</label>
-                      <input type="text" value={pickup.name} onChange={e=>setPickup({...pickup, name:e.target.value.toUpperCase()})} placeholder="Enter Business Name" />
-                    </div>
-                    <div className="input-wrap">
-                      <label>GST Number</label>
-                      <input type="text" value={pickup.gst} onChange={e=>setPickup({...pickup, gst:e.target.value.toUpperCase()})} placeholder="Optional" />
-                    </div>
+                <div className="card-content grid-2">
+                  <div className="field full">
+                    <label>Company Name *</label>
+                    <input type="text" value={pickup.name} onChange={e => setPickup({...pickup, name: e.target.value.toUpperCase()})} placeholder="Sender Company Ltd"/>
                   </div>
-                  <div className="input-row">
-                    <div className="input-wrap">
-                      <label>Contact Mobile *</label>
-                      <input type="tel" value={pickup.contact} onChange={e=>setPickup({...pickup, contact:e.target.value})} maxLength={10} placeholder="10 Digit Number" />
-                    </div>
-                    <div className="input-wrap">
-                      <label>Pickup Pincode *</label>
-                      <input type="text" value={pickup.pincode} onChange={e=>{setPickup({...pickup, pincode:e.target.value}); fetchLocation(e.target.value, 'pickup')}} maxLength={6} placeholder="6 Digit" />
-                    </div>
+                  <div className="field">
+                    <label>Pincode *</label>
+                    <input type="text" maxLength={6} value={pickup.pincode} onChange={e => {setPickup({...pickup, pincode: e.target.value}); handlePincode(e.target.value, 'pickup')}}/>
                   </div>
-                  <div className="input-wrap">
-                    <label>Pickup Full Address *</label>
-                    <textarea rows="2" value={pickup.address} onChange={e=>setPickup({...pickup, address:e.target.value})} placeholder="Building, Street, Landmark..." />
+                  <div className="field">
+                    <label>Contact No *</label>
+                    <input type="tel" maxLength={10} value={pickup.contact} onChange={e => setPickup({...pickup, contact: e.target.value})}/>
                   </div>
-                  <div className="location-pill">
-                    {pickup.city ? `${pickup.city}, ${pickup.state}` : "Waiting for pincode..."}
+                  <div className="field">
+                    <label>City</label>
+                    <input type="text" value={pickup.city} readOnly className="read-only-input"/>
+                  </div>
+                  <div className="field">
+                    <label>State</label>
+                    <input type="text" value={pickup.state} readOnly className="read-only-input"/>
+                  </div>
+                  <div className="field full">
+                    <label>Full Address *</label>
+                    <textarea rows="2" value={pickup.address} onChange={e => setPickup({...pickup, address: e.target.value})}></textarea>
                   </div>
                 </div>
-              </div>
+              </section>
 
-              {/* CONSIGNEE CARD */}
-              <div className="content-card">
-                <div className="card-header consignee-border">
-                   <div className="header-icon"><Truck size={20}/></div>
-                   <h3>Consignee (Receiver Details)</h3>
+              {/* Consignee Card */}
+              <section className="card mt-6">
+                <div className="card-top blue-line">
+                  <Truck size={18} className="text-blue-600"/>
+                  <h3>Consignee Information</h3>
                 </div>
-                <div className="card-body">
-                   <div className="input-row">
-                    <div className="input-wrap">
-                      <label>Receiver Name / Company *</label>
-                      <input type="text" value={delivery.name} onChange={e=>setDelivery({...delivery, name:e.target.value.toUpperCase()})} placeholder="Enter Receiver Name" />
-                    </div>
-                    <div className="input-wrap">
-                      <label>Receiver Mobile *</label>
-                      <input type="tel" value={delivery.contact} onChange={e=>setDelivery({...delivery, contact:e.target.value})} maxLength={10} />
-                    </div>
+                <div className="card-content grid-2">
+                  <div className="field full">
+                    <label>Receiver Name *</label>
+                    <input type="text" value={delivery.name} onChange={e => setDelivery({...delivery, name: e.target.value.toUpperCase()})} placeholder="Receiver Pvt Ltd"/>
                   </div>
-                  <div className="input-wrap">
+                  <div className="field">
+                    <label>Pincode *</label>
+                    <input type="text" maxLength={6} value={delivery.pincode} onChange={e => {setDelivery({...delivery, pincode: e.target.value}); handlePincode(e.target.value, 'delivery')}}/>
+                  </div>
+                  <div className="field">
+                    <label>Contact No *</label>
+                    <input type="tel" maxLength={10} value={delivery.contact} onChange={e => setDelivery({...delivery, contact: e.target.value})}/>
+                  </div>
+                  <div className="field">
+                    <label>City</label>
+                    <input type="text" value={delivery.city} readOnly className="read-only-input"/>
+                  </div>
+                  <div className="field">
+                    <label>State</label>
+                    <input type="text" value={delivery.state} readOnly className="read-only-input"/>
+                  </div>
+                  <div className="field full">
                     <label>Delivery Address *</label>
-                    <textarea rows="2" value={delivery.address} onChange={e=>setDelivery({...delivery, address:e.target.value})} />
-                  </div>
-                  <div className="input-row">
-                    <div className="input-wrap">
-                      <label>Delivery Pincode</label>
-                      <input type="text" value={delivery.pincode} onChange={e=>{setDelivery({...delivery, pincode:e.target.value}); fetchLocation(e.target.value, 'delivery')}} maxLength={6} />
-                    </div>
-                    <div className="input-wrap">
-                      <label>City & State</label>
-                      <input className="readonly-input" value={delivery.city ? `${delivery.city}, ${delivery.state}` : ""} readOnly />
-                    </div>
+                    <textarea rows="2" value={delivery.address} onChange={e => setDelivery({...delivery, address: e.target.value})}></textarea>
                   </div>
                 </div>
-              </div>
+              </section>
             </div>
 
-            {/* COLUMN 2: SHIPMENT & BILLING */}
-            <div className="form-column">
-               {/* GOODS DETAIL CARD */}
-               <div className="content-card">
-                <div className="card-header">
-                   <div className="header-icon"><Package size={20}/></div>
-                   <h3>Shipment Content & Volumetric</h3>
+            {/* RIGHT COLUMN: Cargo & Billing */}
+            <div className="booking-col">
+              {/* Shipment Details */}
+              <section className="card">
+                <div className="card-top">
+                  <Box size={18} className="text-gray-600"/>
+                  <h3>Cargo & Dimension Details</h3>
                 </div>
-                <div className="card-body">
-                  <div className="input-wrap">
-                    <label>Nature of Goods (Material)</label>
-                    <input type="text" placeholder="e.g. TEXTILE, AUTO PARTS" onChange={e=>setOrderDetails({...orderDetails, material:e.target.value.toUpperCase()})} />
-                  </div>
-                  <div className="input-row">
-                    <div className="input-wrap">
-                      <label>Actual Weight (Kg) *</label>
-                      <input type="number" onChange={e=>setOrderDetails({...orderDetails, weight:e.target.value})} />
+                <div className="card-content">
+                  <div className="grid-3 mb-4">
+                    <div className="field">
+                      <label>Material Type</label>
+                      <select value={orderDetails.material} onChange={e => setOrderDetails({...orderDetails, material: e.target.value})}>
+                        <option>GENERAL MERCHANDISE</option>
+                        <option>CLOTHES</option>
+                        <option>ELECTRONICS</option>
+                        <option>SPARE PARTS</option>
+                        <option>FURNITURE</option>
+                      </select>
                     </div>
-                    <div className="input-wrap">
-                      <label>No. of Packages *</label>
-                      <input type="number" onChange={e=>{
-                        const n = parseInt(e.target.value)||0;
-                        setOrderDetails({...orderDetails, boxesCount:n});
-                        setBoxes(Array.from({length:n}, (_,i)=>({id:i+1, l:"", w:"", h:""})));
-                      }} />
+                    <div className="field">
+                      <label>Actual Wt (Kg)</label>
+                      <input type="number" value={orderDetails.weight} onChange={e => setOrderDetails({...orderDetails, weight: e.target.value})}/>
+                    </div>
+                    <div className="field">
+                      <label>No. of PKGS</label>
+                      <input type="number" onChange={e => addBoxRow(e.target.value)}/>
                     </div>
                   </div>
 
                   {boxes.length > 0 && (
-                    <div className="dimension-section">
-                       <div className="dim-head">
-                          <span>Box Dimensions (Inch)</span>
-                          <span className="vol-result">Vol: {volWeight} Kg</span>
-                       </div>
-                       <div className="dim-scroll-box">
-                         {boxes.map((box, i) => (
-                           <div key={i} className="dim-row">
-                             <span className="dim-index">#{i+1}</span>
-                             <input placeholder="L" type="number" onChange={e=>{let b=[...boxes]; b[i].l=e.target.value; setBoxes(b)}} />
-                             <input placeholder="W" type="number" onChange={e=>{let b=[...boxes]; b[i].w=e.target.value; setBoxes(b)}} />
-                             <input placeholder="H" type="number" onChange={e=>{let b=[...boxes]; b[i].h=e.target.value; setBoxes(b)}} />
-                           </div>
-                         ))}
-                       </div>
+                    <div className="volumetric-box">
+                      <div className="vol-header">
+                        <span>Box Dimensions (L x W x H) - CM</span>
+                        <span className="vol-result">Vol. Wt: {volWeight} Kg</span>
+                      </div>
+                      <div className="vol-scroll">
+                        {boxes.map((box, i) => (
+                          <div key={i} className="vol-row">
+                            <span className="box-idx">#{i+1}</span>
+                            <input placeholder="L" type="number" onChange={e => {let b=[...boxes]; b[i].l=e.target.value; setBoxes(b)}}/>
+                            <input placeholder="W" type="number" onChange={e => {let b=[...boxes]; b[i].w=e.target.value; setBoxes(b)}}/>
+                            <input placeholder="H" type="number" onChange={e => {let b=[...boxes]; b[i].h=e.target.value; setBoxes(b)}}/>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
-               </div>
+              </section>
 
-               {/* BILLING CARD */}
-               <div className="content-card">
-                 <div className="card-header justify-between">
-                    <div className="flex items-center gap-2">
-                       <div className="header-icon"><Calculator size={20}/></div>
-                       <h3>Billing & Invoices</h3>
+              {/* Billing & Invoices */}
+              <section className="card mt-6">
+                <div className="card-top justify-between">
+                  <div className="flex gap-2 items-center">
+                    <Calculator size={18} className="text-green-600"/>
+                    <h3>Invoicing & Billing</h3>
+                  </div>
+                  <button className="add-btn-small" onClick={() => setInvoices([...invoices, { id: Date.now(), no: "", value: "", file: null }])}>
+                    <Plus size={14}/> Add Invoice
+                  </button>
+                </div>
+                <div className="card-content">
+                  <div className="invoice-scroller">
+                    {invoices.map((inv) => (
+                      <div key={inv.id} className="inv-row-premium">
+                        <input placeholder="Inv No" className="inv-input" onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, no: e.target.value} : i))}/>
+                        <input placeholder="Value ₹" type="number" className="inv-input" onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, value: e.target.value} : i))}/>
+                        <label className="inv-upload">
+                          {inv.file ? <ClipboardCheck size={16} className="text-green-500"/> : <Upload size={16}/>}
+                          <input type="file" hidden onChange={e => handleInvoiceFile(inv.id, e.target.files[0])}/>
+                        </label>
+                        <button className="inv-del" onClick={() => setInvoices(invoices.filter(i => i.id !== inv.id))}><Trash2 size={14}/></button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {totalInvoiceVal >= 50000 && (
+                    <div className="eway-field animate-pulse">
+                      <AlertCircle size={16} className="text-red-500"/>
+                      <input placeholder="Enter Mandatory 12-Digit E-Way Bill Number" maxLength={12} value={ewayBill} onChange={e => setEwayBill(e.target.value)}/>
                     </div>
-                    <button className="add-inv-btn" onClick={() => setInvoices([...invoices, { id: Date.now(), no: "", value: "", file: null }])}><Plus size={14}/></button>
-                 </div>
-                 <div className="card-body">
-                   <div className="invoice-list">
-                     {invoices.map((inv) => (
-                       <div key={inv.id} className="inv-item">
-                         <input placeholder="Inv No" onChange={e=>setInvoices(invoices.map(i=>i.id===inv.id?{...i, no:e.target.value.toUpperCase()}:i))} />
-                         <input type="number" placeholder="Value ₹" onChange={e=>setInvoices(invoices.map(i=>i.id===inv.id?{...i, value:e.target.value}:i))} />
-                         <button className="del-btn" onClick={() => setInvoices(invoices.filter(i=>i.id!==inv.id))}><Trash2 size={14}/></button>
-                       </div>
-                     ))}
-                   </div>
+                  )}
 
-                   <div className="toggle-box">
-                      <span>Show Freight on Docket?</span>
-                      <button className={`switch ${showFreight ? 'on' : ''}`} onClick={() => setShowFreight(!showFreight)}>
-                        {showFreight ? "YES" : "NO"}
-                      </button>
-                   </div>
+                  <div className="billing-summary-premium">
+                    <div className="b-row"><span>Charged Weight:</span> <strong>{chargedWeight} Kg</strong></div>
+                    <div className="b-row"><span>Payment Mode:</span> 
+                      <select value={paymentMode} onChange={e => setPaymentMode(e.target.value)}>
+                        <option>CREDIT</option>
+                        <option>TO-PAY</option>
+                        <option>PAID</option>
+                      </select>
+                    </div>
+                    <div className="b-total">
+                      <div className="total-label">Grand Total (Incl. GST)</div>
+                      <div className="total-val">₹{billingSummary.total}</div>
+                    </div>
+                  </div>
+                </div>
+              </section>
 
-                   {needsEwayBill && (
-                     <div className="eway-alert">
-                       <div className="alert-top"><AlertCircle size={16}/> <span>E-WAY BILL REQUIRED</span></div>
-                       <input value={ewayBill} onChange={e=>setEwayBill(e.target.value.toUpperCase())} placeholder="12 DIGIT EWB NO." maxLength={12} />
-                     </div>
-                   )}
-
-                   <div className="billing-summary">
-                      <div className="summary-row"><span>Charged Weight:</span> <strong>{chargedWeight} Kg</strong></div>
-                      <div className="summary-row total"><span>Est. Total:</span> <strong>₹{billingSummary.total}</strong></div>
-                   </div>
-                 </div>
-               </div>
-
-               <button className={`submit-button ${loading ? 'spinning' : ''}`} onClick={handleCreateOrder} disabled={loading}>
-                 {loading ? <RefreshCw className="animate-spin" /> : "Generate Consignment Note (FCPL)"}
-               </button>
+              <button className={`final-submit-btn ${loading ? 'loading' : ''}`} onClick={submitOrder} disabled={loading}>
+                {loading ? <RefreshCw className="spin"/> : "GENERATE SHIPMENT DOCKET"}
+              </button>
             </div>
           </div>
         </div>
 
-        {/* POST-GENERATION MODAL */}
+        {/* 3. SUCCESS MODAL */}
         {showLR && (
-          <div className="modal-backdrop">
-            <div className="success-modal">
-              <div className="success-icon"><CheckCircle size={50} /></div>
-              <h2>DOCKET GENERATED SUCCESS</h2>
-              <p className="lr-display">{lrNumber}</p>
-              <div className="modal-btns">
-                <button className="btn-print" onClick={() => window.print()}><Printer size={18}/> PRINT COPIES</button>
-                <button className="btn-reset" onClick={resetForm}>NEW BOOKING</button>
+          <div className="overlay-backdrop">
+            <div className="modern-modal">
+              <div className="modal-icon"><CheckCircle size={50}/></div>
+              <h2>Shipment Registered!</h2>
+              <div className="lr-display">
+                <span>DOCKET NUMBER</span>
+                <h1>{lrNumber}</h1>
+              </div>
+              <p>The shipment has been successfully queued for the next manifest.</p>
+              <div className="modal-actions">
+                <button className="print-main-btn" onClick={() => window.print()}><Printer size={18}/> PRINT ALL DOCKETS</button>
+                <button className="reset-btn" onClick={() => window.location.reload()}>NEW BOOKING</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* HIDDEN PRINT ENGINE */}
-        <div className="print-area">
-          {["CONSIGNOR", "CONSIGNEE", "OFFICE"].map((copy) => (
-            <React.Fragment key={copy}>
+        {/* 4. PRINT AREA (HIDDEN IN UI) */}
+        <div className="print-only-area">
+          {["CONSIGNOR", "CONSIGNEE", "OFFICE"].map((type) => (
+            <React.Fragment key={type}>
               <ShipmentDocket 
-                copyType={copy}
-                showFreight={showFreight}
+                copyType={type}
+                data={{pickup, delivery, orderDetails, invoices, chargedWeight, paymentMode}}
+                lrNumber={lrNumber}
+                ewayBill={ewayBill}
                 billing={billingSummary}
-                data={{pickup, delivery, orderDetails, invoices, chargedWeight}} 
-                lrNumber={lrNumber} 
-                totalValue={totalInvoiceValue} 
-                ewayBill={ewayBill} 
+                showFreight={showFreight}
               />
               <div className="page-break"></div>
             </React.Fragment>
