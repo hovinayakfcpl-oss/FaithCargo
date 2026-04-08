@@ -1,19 +1,21 @@
 /* ==========================================================================
    FAITH CARGO - ENTERPRISE UI v3.0 (PREMIUM RED & BLACK)
    High-Precision Layout & Micro-Interactions
+   Version: 5.2.0 (Stable)
    ========================================================================== */
-
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 /* -----------------------------------------------------------------------
    1. ROOT VARIABLES (THEME ENGINE)
    ----------------------------------------------------------------------- */
 :root {
+    /* Brand Colors */
     --fc-red: #d32f2f;
     --fc-red-dark: #b71c1c;
     --fc-red-soft: #ffebed;
     --fc-black: #0f172a;
     --fc-black-light: #1e293b;
+    
+    /* Functional Colors */
     --fc-bg: #f8fafc;
     --fc-card-bg: #ffffff;
     --fc-text-main: #334155;
@@ -21,12 +23,15 @@
     --fc-border: #e2e8f0;
     --fc-success: #10b981;
     --fc-warning: #f59e0b;
+    --fc-info: #3b82f6;
+
+    /* Elevation & Geometry */
     --radius-xl: 30px;
     --radius-lg: 20px;
     --radius-md: 12px;
     --radius-sm: 8px;
     --shadow-premium: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-    --shadow-glow: 0 0 20px rgba(211, 47, 47, 0.15);
+    --shadow-float: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -38,23 +43,33 @@
     padding: 0;
     box-sizing: border-box;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
+
+html { scroll-behavior: smooth; }
 
 body {
     background-color: var(--fc-bg);
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     color: var(--fc-black);
     overflow-x: hidden;
+    line-height: 1.5;
 }
 
 .order-wrapper {
     display: flex;
     min-height: 100vh;
+    width: 100vw;
 }
 
-::-webkit-scrollbar { width: 6px; }
+/* Custom Scrollbar for Modern Browsers */
+::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: #f1f5f9; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+::-webkit-scrollbar-thumb { 
+    background: #cbd5e1; 
+    border-radius: 10px; 
+    border: 2px solid #f1f5f9;
+}
 ::-webkit-scrollbar-thumb:hover { background: var(--fc-red); }
 
 /* -----------------------------------------------------------------------
@@ -71,7 +86,7 @@ body {
     top: 0;
     height: 100vh;
     z-index: 100;
-    transition: var(--transition);
+    box-shadow: 10px 0 30px rgba(0,0,0,0.1);
 }
 
 .logo-brand {
@@ -79,86 +94,84 @@ body {
     align-items: center;
     gap: 15px;
     margin-bottom: 50px;
+    padding: 0 10px;
 }
 
 .logo-brand img {
-    height: 45px;
-    filter: brightness(1.2);
-    transition: transform 0.3s ease;
+    height: 48px;
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.2));
+    transition: var(--transition);
 }
 
-.logo-brand:hover img {
-    transform: rotate(-5deg) scale(1.1);
-}
+.logo-brand:hover img { transform: scale(1.05) rotate(-2deg); }
 
 .status-dot {
     width: 10px;
     height: 10px;
     background: var(--fc-success);
     border-radius: 50%;
-    box-shadow: 0 0 10px var(--fc-success);
+    box-shadow: 0 0 12px var(--fc-success);
+    animation: pulse 2s infinite;
 }
 
-.side-menu {
-    flex-grow: 1;
-}
+.side-menu { flex-grow: 1; }
 
 .menu-link {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 14px 18px;
+    gap: 14px;
+    padding: 15px 20px;
     border-radius: var(--radius-md);
     cursor: pointer;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     font-weight: 600;
     transition: var(--transition);
     color: #94a3b8;
-    border: none;
-    background: none;
-    width: 100%;
-    text-align: left;
+    border: 1px solid transparent;
 }
 
 .menu-link:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.08);
     color: white;
     transform: translateX(5px);
 }
 
 .menu-link.active {
-    background: var(--fc-red);
+    background: linear-gradient(135deg, var(--fc-red), var(--fc-red-dark));
     color: white;
-    box-shadow: 0 10px 15px -3px rgba(211, 47, 47, 0.3);
+    box-shadow: 0 10px 20px -5px rgba(211, 47, 47, 0.4);
+    border: 1px solid rgba(255,255,255,0.1);
 }
 
 .support-card {
-    background: rgba(255, 255, 255, 0.03);
-    padding: 20px;
-    border-radius: var(--radius-md);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+    padding: 24px;
+    border-radius: var(--radius-lg);
     text-align: center;
-    border: 1px solid rgba(255,255,255,0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.support-card p { font-size: 11px; color: #94a3b8; margin: 8px 0; text-transform: uppercase; letter-spacing: 1px; }
-.support-card span { font-weight: 700; color: white; display: block; margin-bottom: 10px;}
+.support-card p { font-size: 12px; color: #94a3b8; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+.support-card span { font-size: 16px; font-weight: 800; color: white; display: block; }
 
 /* -----------------------------------------------------------------------
-   4. MAIN CONTENT AREA
+   4. MAIN CONTENT AREA & HEADER
    ----------------------------------------------------------------------- */
 .main-content {
     flex-grow: 1;
     padding: 40px;
     max-width: 1400px;
     margin: 0 auto;
-    width: 100%;
+    transition: var(--transition);
 }
 
 .page-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 40px;
+    align-items: flex-end;
+    margin-bottom: 45px;
+    border-bottom: 1px solid var(--fc-border);
+    padding-bottom: 25px;
 }
 
 .header-text h1 {
@@ -166,27 +179,26 @@ body {
     font-weight: 900;
     color: var(--fc-black);
     letter-spacing: -1.5px;
+    margin-bottom: 5px;
 }
 
-.header-text p { color: var(--fc-text-light); font-size: 15px; }
-
-.realtime-stats {
-    display: flex;
-    gap: 15px;
-}
+.header-text p { color: var(--fc-text-light); font-size: 15px; font-weight: 500; }
 
 .stat-pill {
     background: white;
     padding: 12px 24px;
     border-radius: 50px;
     border: 1.5px solid var(--fc-border);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     box-shadow: var(--shadow-premium);
+    transition: var(--transition);
 }
+
+.stat-pill strong { font-size: 16px; color: var(--fc-black); }
 
 .stat-pill.red-pill {
     border-color: var(--fc-red);
@@ -194,88 +206,84 @@ body {
     background: var(--fc-red-soft);
 }
 
+.stat-pill.red-pill strong { color: var(--fc-red-dark); }
+
 /* -----------------------------------------------------------------------
-   5. FORM SYSTEM (ENHANCED GRID)
+   5. FORM SYSTEM (PREMIUM CARDS)
    ----------------------------------------------------------------------- */
 .form-layout {
     display: grid;
-    grid-template-columns: 1fr 420px;
-    gap: 30px;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 35px;
 }
 
 .premium-card {
-    background: white;
+    background: var(--fc-card-bg);
     border-radius: var(--radius-lg);
     border: 1px solid var(--fc-border);
-    overflow: hidden;
-    margin-bottom: 25px;
+    overflow: visible;
+    margin-bottom: 30px;
     box-shadow: var(--shadow-premium);
     transition: var(--transition);
 }
 
-.premium-card:hover {
-    box-shadow: 0 20px 30px -10px rgba(0,0,0,0.05);
-}
+.premium-card:hover { box-shadow: var(--shadow-float); }
 
 .card-top {
-    padding: 20px 25px;
-    background: #f8fafc;
+    padding: 22px 30px;
+    background: #fcfdfe;
     border-bottom: 1.5px solid var(--fc-border);
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 15px;
 }
 
 .card-top h3 {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    color: var(--fc-black);
+    color: var(--fc-black-light);
 }
 
-.card-top.red-accent { border-left: 6px solid var(--fc-red); }
-.card-top.dark-accent { border-left: 6px solid var(--fc-black); }
+.card-top.red-accent { border-left: 8px solid var(--fc-red); }
+.card-top.dark-accent { border-left: 8px solid var(--fc-black); }
 
 .card-body { padding: 30px; }
 
-.input-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-.input-group { display: flex; flex-direction: column; gap: 8px; }
-.input-group.full-width { margin-bottom: 20px; grid-column: span 2; }
+.input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px; }
 
 .input-group label {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 800;
-    color: var(--fc-text-light);
+    color: var(--fc-text-main);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
-input, textarea, select {
-    padding: 15px;
+input, textarea {
+    padding: 16px;
     border-radius: var(--radius-md);
     border: 2px solid #f1f5f9;
     background: #f8fafc;
     font-weight: 700;
-    font-size: 14px;
-    transition: var(--transition);
+    font-size: 15px;
     color: var(--fc-black);
-}
-
-input:focus, textarea:focus, select:focus {
-    outline: none;
-    border-color: var(--fc-red);
-    background: white;
-    box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.1);
+    transition: var(--transition);
+    width: 100%;
 }
 
 input::placeholder { color: #cbd5e1; font-weight: 500; }
+
+input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--fc-red);
+    background: white;
+    box-shadow: 0 0 0 5px rgba(211, 47, 47, 0.08);
+    transform: translateY(-2px);
+}
 
 .locked-input {
     background: #f1f5f9;
@@ -285,245 +293,246 @@ input::placeholder { color: #cbd5e1; font-weight: 500; }
 }
 
 /* -----------------------------------------------------------------------
-   6. DYNAMIC COMPONENTS
+   6. DYNAMIC LISTS & TOOLS
    ----------------------------------------------------------------------- */
 .dynamic-inv-row {
     display: grid;
-    grid-template-columns: 1fr 1fr 45px;
-    gap: 12px;
-    margin-bottom: 12px;
-    animation: slideIn 0.3s ease-out;
-}
-
-.row-del-btn {
-    background: #fee2e2;
-    color: #ef4444;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: 0.2s;
-}
-
-.row-del-btn:hover { background: #ef4444; color: white; transform: scale(1.05); }
-
-.eway-critical-box {
-    margin-top: 20px;
-    padding: 25px;
-    background: #fff1f2;
-    border: 2px dashed var(--fc-red);
+    grid-template-columns: 1.2fr 1fr 50px;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #fcfdfe;
     border-radius: var(--radius-md);
+    border: 1px solid var(--fc-border);
+    animation: slideUp 0.4s ease-out;
 }
 
-.eway-main-input {
-    background: white !important;
-    border: 2px solid var(--fc-red) !important;
-    color: var(--fc-red-dark);
-    font-size: 20px !important;
-    text-align: center;
-    letter-spacing: 4px;
-    font-family: monospace;
+.add-inv-btn {
+    width: 100%;
+    padding: 12px;
+    border: 2px dashed #cbd5e1;
+    background: transparent;
+    border-radius: var(--radius-md);
+    color: var(--fc-text-light);
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
 }
+
+.add-inv-btn:hover { border-color: var(--fc-red); color: var(--fc-red); background: var(--fc-red-soft); }
 
 .volumetric-calculator {
     margin-top: 25px;
     background: #f1f5f9;
     padding: 20px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--fc-border);
-}
-
-.vol-header {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    font-weight: 900;
-    margin-bottom: 15px;
-    color: var(--fc-text-main);
-}
-
-.vol-badge {
-    background: var(--fc-black);
-    color: white;
-    padding: 4px 12px;
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
+    border: 1px solid #e2e8f0;
 }
 
 .vol-grid-scroll {
     max-height: 250px;
     overflow-y: auto;
-    padding-right: 5px;
+    padding-right: 10px;
 }
 
 .vol-input-row {
     display: grid;
-    grid-template-columns: 35px 1fr 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 10px;
+    grid-template-columns: 40px 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
     align-items: center;
 }
 
-.vol-input-row input { padding: 10px; text-align: center; }
-.box-index { font-size: 10px; font-weight: 900; color: #94a3b8; text-align: center; }
-
-/* -----------------------------------------------------------------------
-   7. BILLING SUMMARY (SIDEBAR STYLE)
-   ----------------------------------------------------------------------- */
-.billing-card {
-    background: var(--fc-black);
-    color: white;
-    padding: 30px;
-    border-radius: var(--radius-lg);
-    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.3);
+.box-index { 
+    width: 28px; height: 28px; 
+    background: var(--fc-black); color: white;
+    border-radius: 50%; font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900;
 }
 
-.bill-item {
+/* -----------------------------------------------------------------------
+   7. THE DOCKET PRINT ENGINE (A4 MASTER)
+   ----------------------------------------------------------------------- */
+.print-only { display: none; }
+
+.docket-container {
+    width: 210mm;
+    min-height: 296mm;
+    background: white;
+    color: black;
+    padding: 20px;
+    border: 4px solid black;
+    position: relative;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.docket-watermark {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) rotate(-35deg);
+    font-size: 120px;
+    color: rgba(0,0,0,0.04);
+    font-weight: 900;
+    z-index: 0;
+    pointer-events: none;
+    letter-spacing: 10px;
+}
+
+.docket-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 15px;
-    font-size: 14px;
-    color: #94a3b8;
+    border-bottom: 4px solid black;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
 }
 
-.bill-item.total {
-    margin-top: 25px;
-    padding-top: 25px;
-    border-top: 1px solid rgba(255,255,255,0.1);
-    color: white;
-    font-size: 24px;
-    font-weight: 800;
+.docket-brand-name h2 { 
+    font-size: 32px; font-weight: 900; 
+    letter-spacing: -1px; margin: 0;
+}
+
+.docket-tagline {
+    display: inline-block;
+    background: black; color: white;
+    padding: 4px 10px; font-size: 10px;
+    font-weight: 900; text-transform: uppercase;
+    margin-top: 8px;
+}
+
+.lr-header-box {
+    border: 3px solid black;
+    padding: 8px 20px;
+    font-weight: 900;
+    font-size: 20px;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.lr-number-display { font-size: 36px; font-weight: 900; text-align: right; }
+
+.docket-address-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border: 3px solid black;
+    margin-bottom: 20px;
+}
+
+.address-box { padding: 15px; border-right: 3px solid black; }
+.address-box:last-child { border-right: none; }
+
+.address-content h3 { font-size: 18px; margin-bottom: 8px; font-weight: 900; border-bottom: 1px solid #ddd; }
+.addr-text { font-size: 13px; font-weight: 700; line-height: 1.5; min-height: 60px; }
+
+.docket-main-table {
+    width: 100%; border-collapse: collapse;
+    border: 3px solid black; margin-bottom: 20px;
+}
+
+.docket-main-table th { 
+    background: #f0f0f0; border: 2px solid black; 
+    padding: 12px; font-size: 12px; font-weight: 900;
+}
+
+.docket-main-table td { 
+    border: 2px solid black; padding: 15px; 
+    font-size: 15px; font-weight: 800; vertical-align: top;
+}
+
+.docket-footer-grid {
+    display: grid; grid-template-columns: 1.5fr 1fr;
+    gap: 40px; margin-top: 30px;
 }
 
 /* -----------------------------------------------------------------------
-   8. ACTION BUTTONS
+   8. MODALS, BUTTONS & ANIMATIONS
    ----------------------------------------------------------------------- */
 .final-submit-btn {
     width: 100%;
-    padding: 22px;
-    background: var(--fc-red);
+    padding: 24px;
+    background: linear-gradient(135deg, var(--fc-red), var(--fc-red-dark));
     color: white;
     border: none;
     border-radius: var(--radius-md);
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 900;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 15px;
-    box-shadow: 0 15px 30px rgba(211, 47, 47, 0.3);
+    box-shadow: 0 15px 35px rgba(211, 47, 47, 0.4);
     transition: var(--transition);
-    margin-top: 20px;
 }
 
-.final-submit-btn:hover:not(:disabled) {
-    background: var(--fc-red-dark);
-    transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(211, 47, 47, 0.4);
+.final-submit-btn:hover { 
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 20px 40px rgba(211, 47, 47, 0.5);
 }
 
-.final-submit-btn:disabled {
-    background: #94a3b8;
-    cursor: not-allowed;
-    box-shadow: none;
-}
-
-/* -----------------------------------------------------------------------
-   9. DOCKET PRINT ENGINE (CRITICAL)
-   ----------------------------------------------------------------------- */
-.print-area { display: none; }
-
-@media print {
-    .no-print { display: none !important; }
-    .print-area { display: block !important; }
-    body { background: white; }
-    @page { size: A4; margin: 0; }
-    .docket-container {
-        width: 210mm;
-        height: 297mm;
-        padding: 15mm;
-        background: white;
-        color: black;
-        border: 4px solid black;
-        page-break-after: always;
-        position: relative;
-    }
-}
-
-.docket-header {
-    display: flex;
-    justify-content: space-between;
-    border-bottom: 3px solid black;
-    padding-bottom: 15px;
-    margin-bottom: 20px;
-}
-
-.docket-brand h1 { font-size: 28px; font-weight: 900; text-transform: uppercase; }
-.docket-brand p { font-size: 10px; font-weight: 700; border: 1px solid black; display: inline-block; padding: 2px 5px; margin-top: 5px; }
-
-.docket-meta { text-align: right; }
-.lr-box { background: black; color: white; padding: 5px 15px; font-weight: 900; font-size: 20px; }
-
-.docket-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 20px 0;
-}
-
-.docket-table th, .docket-table td {
-    border: 2px solid black;
-    padding: 12px;
-    text-align: left;
-    font-size: 13px;
-    font-weight: 700;
-}
-
-/* -----------------------------------------------------------------------
-   10. MODALS & ANIMATIONS
-   ----------------------------------------------------------------------- */
 .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.95);
-    backdrop-filter: blur(10px);
-    z-index: 1000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 40px;
+    position: fixed; inset: 0;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 2000;
+    display: flex; justify-content: center; align-items: center;
 }
 
 .modal-content {
-    background: white;
-    width: 100%;
-    max-width: 600px;
-    border-radius: var(--radius-xl);
-    padding: 50px;
-    text-align: center;
-    position: relative;
-    animation: zoomIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    background: white; width: 95%; max-width: 850px;
+    border-radius: var(--radius-xl); padding: 50px;
+    text-align: center; border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: var(--shadow-float);
+    animation: zoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@keyframes slideIn {
+/* -----------------------------------------------------------------------
+   9. PRINT MEDIA (CRITICAL)
+   ----------------------------------------------------------------------- */
+@media print {
+    .no-print, .nav-sidebar, .page-header, .modal-overlay, .add-inv-btn { 
+        display: none !important; 
+    }
+    .print-only { display: block !important; }
+    body { background: white; }
+    @page { size: A4; margin: 5mm; }
+    .docket-container { page-break-after: always; border-width: 2px; }
+}
+
+/* -----------------------------------------------------------------------
+   10. KEYFRAME ANIMATIONS
+   ----------------------------------------------------------------------- */
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.4); opacity: 0.5; box-shadow: 0 0 20px var(--fc-success); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slideUp {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes zoomIn {
-    from { transform: scale(0.8); opacity: 0; }
+    from { transform: scale(0.9); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
 }
 
 /* -----------------------------------------------------------------------
-   11. UTILITIES
+   11. UTILITIES & HELPERS
    ----------------------------------------------------------------------- */
-.flex { display: flex; }
-.flex-col { display: flex; flex-direction: column; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.mt-4 { margin-top: 16px; }
-.w-full { width: 100%; }
-.spin { animation: spin 1s linear infinite; }
-@keyframes spin { 100% { transform: rotate(360deg); } }
+.mt-2 { margin-top: 10px; }
+.mb-4 { margin-bottom: 25px; }
+.text-red { color: var(--fc-red); }
+.font-black { font-weight: 900; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.spin { animation: rotate 1s linear infinite; }
+@keyframes rotate { from {transform: rotate(0deg);} to {transform: rotate(360deg);} }
+
+/* Final Touch: Responsive Adjustments */
+@media (max-width: 1100px) {
+    .form-layout { grid-template-columns: 1fr; }
+    .nav-sidebar { width: 80px; padding: 20px 10px; }
+    .logo-brand span, .menu-link span, .support-card { display: none; }
+}
