@@ -3,13 +3,13 @@ import JsBarcode from "jsbarcode";
 import { 
   Truck, MapPin, Package, FileText, Plus, Trash2,
   Calculator, CheckCircle, Printer, ChevronRight, AlertCircle, 
-  ShieldCheck, Box, Info, Navigation, CreditCard
+  ShieldCheck, Box, Info, Navigation, CreditCard, Upload, Eye
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import "./CreateOrder.css";
 
 // --- PROFESSIONAL DOCKET COMPONENT (FOR PRINT) ---
-const ShipmentDocket = ({ data, lrNumber, totalValue, ewayBill }) => {
+const ShipmentDocket = ({ data, lrNumber, totalValue, ewayBill, billing, showFreight, copyType }) => {
   const barcodeRef = useRef(null);
   
   useEffect(() => {
@@ -22,6 +22,7 @@ const ShipmentDocket = ({ data, lrNumber, totalValue, ewayBill }) => {
 
   return (
     <div className="docket-container">
+      <div className="copy-indicator">{copyType} COPY</div>
       <div className="docket-watermark">FAITH CARGO</div>
       
       <div className="docket-header">
@@ -85,14 +86,15 @@ const ShipmentDocket = ({ data, lrNumber, totalValue, ewayBill }) => {
             <td className="desc-cell">
               <span className="material-bold">{data.orderDetails.material || "GENERAL CARGO"}</span>
               <div className="dimension-summary">
-                 Method: Surface Logistics | Risk: Owner's Risk
+                  Method: Surface Logistics | Risk: Owner's Risk
               </div>
             </td>
             <td className="text-center">{data.orderDetails.weight} Kg</td>
             <td className="text-center font-bold">{data.chargedWeight} Kg</td>
             <td className="inv-cell">
-               <div>INV: {data.invoices[0]?.no || "N/A"}</div>
-               <div>VAL: ₹{totalValue}</div>
+               {data.invoices.map((inv, idx) => (
+                 <div key={idx}>INV: {inv.no || "N/A"} (₹{inv.value})</div>
+               ))}
                {ewayBill && <div className="eway-print-tag">EWB: {ewayBill}</div>}
             </td>
           </tr>
@@ -101,7 +103,10 @@ const ShipmentDocket = ({ data, lrNumber, totalValue, ewayBill }) => {
 
       <div className="docket-billing-details">
          <div className="billing-grid">
-            <div className="billing-item"><span>FREIGHT:</span> <strong>As Per Agreement</strong></div>
+            <div className="billing-item">
+              <span>FREIGHT CHARGE:</span> 
+              <strong>{showFreight ? `₹${billing.total}` : "TO-PAY / AS PER AGMT"}</strong>
+            </div>
             <div className="billing-item"><span>GST PAYABLE BY:</span> <strong>CONSIGNOR</strong></div>
             <div className="billing-item"><span>BOOKING BRANCH:</span> <strong>NEW DELHI (HQ)</strong></div>
             <div className="billing-item"><span>DELIVERY TYPE:</span> <strong>DOOR DELIVERY</strong></div>
@@ -127,17 +132,11 @@ const ShipmentDocket = ({ data, lrNumber, totalValue, ewayBill }) => {
           <div className="sig-box">
             <p className="stamp-title">For FAITH CARGO PVT LTD</p>
             <div className="stamp-placeholder">
-               <span>OFFICE STAMP</span>
+                <span>OFFICE STAMP</span>
             </div>
             <p className="auth-sign">Authorized Signatory</p>
           </div>
         </div>
-      </div>
-      
-      <div className="docket-copies-row">
-        <span className="copy-tag">ORIGINAL: CONSIGNOR</span>
-        <span className="copy-tag">DUPLICATE: CONSIGNEE</span>
-        <span className="copy-tag">TRIPLICATE: OFFICE COPY</span>
       </div>
     </div>
   );
@@ -150,27 +149,38 @@ export default function CreateOrder() {
   const [lrNumber, setLrNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [ewayBill, setEwayBill] = useState("");
+  const [showFreight, setShowFreight] = useState(true); // New Toggle
   
   // Form States
   const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "" });
   const [delivery, setDelivery] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "" });
   const [orderDetails, setOrderDetails] = useState({ material: "", weight: "", boxesCount: 0 });
-  const [invoices, setInvoices] = useState([{ id: Date.now(), no: "", value: "" }]);
+  const [invoices, setInvoices] = useState([{ id: Date.now(), no: "", value: "", file: null }]);
 
-  // Calculated Values
-  const totalInvoiceValue = useMemo(() => 
-    invoices.reduce((sum, inv) => sum + (parseFloat(inv.value) || 0), 0), 
-  [invoices]);
-
+  // 1. DIMENSION CALCULATION (DIVIDE BY 4000)
   const volWeight = useMemo(() => {
-    const totalCft = boxes.reduce((acc, b) => 
-      acc + (parseFloat(b.l||0) * parseFloat(b.w||0) * parseFloat(b.h||0)) / 1728, 0);
-    return (totalCft * 10).toFixed(2);
+    const totalVolume = boxes.reduce((acc, b) => 
+      acc + (parseFloat(b.l||0) * parseFloat(b.w||0) * parseFloat(b.h||0)), 0);
+    return (totalVolume / 4000).toFixed(2); // Requirement: Divide by 4000
   }, [boxes]);
 
   const chargedWeight = Math.max(parseFloat(orderDetails.weight || 0), parseFloat(volWeight));
 
-  // Mandatory E-way Bill Check
+  // 2. FREIGHT BILLING LOGIC
+  const billingSummary = useMemo(() => {
+    const base = chargedWeight * 15; // Assume 15 per kg
+    const gst = base * 0.18;
+    return {
+      base: base.toFixed(2),
+      gst: gst.toFixed(2),
+      total: (base + gst).toFixed(2)
+    };
+  }, [chargedWeight]);
+
+  const totalInvoiceValue = useMemo(() => 
+    invoices.reduce((sum, inv) => sum + (parseFloat(inv.value) || 0), 0), 
+  [invoices]);
+
   const needsEwayBill = totalInvoiceValue >= 50000;
 
   const fetchLocation = async (pin, type) => {
@@ -188,19 +198,21 @@ export default function CreateOrder() {
     }
   };
 
+  const handleFileUpload = (id, fileName) => {
+    setInvoices(invoices.map(inv => inv.id === id ? { ...inv, file: fileName } : inv));
+  };
+
   const handleCreateOrder = () => {
-    // Error Validation
     if (needsEwayBill && !ewayBill) {
-      alert("⚠️ CRITICAL ERROR: E-Way Bill Number is mandatory for Invoice Values above ₹50,000.");
+      alert("⚠️ E-Way Bill Number is mandatory for Invoice Values above ₹50,000.");
       return;
     }
     if (!pickup.name || !delivery.name || !orderDetails.weight) {
-      alert("Please fill all mandatory fields (Sender, Receiver, Weight).");
+      alert("Please fill all mandatory fields.");
       return;
     }
 
     setLoading(true);
-    // Simulation
     setTimeout(() => {
       setLrNumber("FC" + Math.floor(1000000 + Math.random() * 9000000));
       setShowLR(true);
@@ -210,7 +222,6 @@ export default function CreateOrder() {
 
   return (
     <div className="order-wrapper">
-      {/* LEFT SIDEBAR */}
       <aside className="nav-sidebar no-print">
          <div className="logo-brand">
             <img src={logo} alt="Faith Cargo" />
@@ -224,16 +235,16 @@ export default function CreateOrder() {
          </nav>
          <div className="support-card">
             <Info size={16} />
-            <p>Need help with booking?</p>
-            <span>Call: 9818641504</span>
+            <p>Freight Divisor: /4000</p>
+            <span>v5.0 Stable</span>
          </div>
       </aside>
 
       <main className="main-content">
         <header className="page-header no-print">
           <div className="header-text">
-            <h1>Shipment Manifest v3.0</h1>
-            <p>Enter consignment details for real-time LR generation</p>
+            <h1>Shipment Manifest v5.0</h1>
+            <p>Logistics Management System | Faith Cargo Pvt Ltd</p>
           </div>
           <div className="realtime-stats">
             <div className="stat-pill">
@@ -247,7 +258,7 @@ export default function CreateOrder() {
 
         <div className="form-layout no-print">
           <div className="form-column">
-            {/* SENDER BOX */}
+            {/* CONSIGNOR */}
             <section className="premium-card">
               <div className="card-top red-accent">
                 <MapPin size={18} /> <h3>Consignor (Sender)</h3>
@@ -280,7 +291,7 @@ export default function CreateOrder() {
               </div>
             </section>
 
-            {/* RECEIVER BOX */}
+            {/* CONSIGNEE */}
             <section className="premium-card">
               <div className="card-top dark-accent">
                 <Truck size={18} /> <h3>Consignee (Receiver)</h3>
@@ -315,20 +326,20 @@ export default function CreateOrder() {
           </div>
 
           <div className="form-column">
-            {/* ITEM INFO */}
+            {/* SHIPMENT & DIMENSIONS */}
             <section className="premium-card">
               <div className="card-top">
-                <Package size={18} /> <h3>Shipment Content</h3>
+                <Package size={18} /> <h3>Shipment & Volumetric (/4000)</h3>
               </div>
               <div className="card-body">
                 <div className="input-group full-width">
                   <label>Material Description</label>
-                  <input placeholder="e.g., Industrial Tools, Textile" onChange={e=>setOrderDetails({...orderDetails, material:e.target.value.toUpperCase()})} />
+                  <input placeholder="e.g., Industrial Tools" onChange={e=>setOrderDetails({...orderDetails, material:e.target.value.toUpperCase()})} />
                 </div>
                 <div className="input-row">
                   <div className="input-group">
                     <label>Weight (Kg) *</label>
-                    <input type="number" value={orderDetails.weight} onChange={e=>setOrderDetails({...orderDetails, weight:e.target.value})} placeholder="Actual Wt" />
+                    <input type="number" value={orderDetails.weight} onChange={e=>setOrderDetails({...orderDetails, weight:e.target.value})} />
                   </div>
                   <div className="input-group">
                     <label>No. of Boxes *</label>
@@ -336,15 +347,15 @@ export default function CreateOrder() {
                       const n = parseInt(e.target.value)||0;
                       setOrderDetails({...orderDetails, boxesCount:n});
                       setBoxes(Array.from({length:n}, (_,i)=>({id:i+1, l:"", w:"", h:""})));
-                    }} placeholder="Total Pkgs" />
+                    }} />
                   </div>
                 </div>
 
                 {boxes.length > 0 && (
                   <div className="volumetric-calculator">
                     <div className="vol-header">
-                       <span>Dimensional Calculator (Inch)</span>
-                       <span className="vol-badge">Vol Wt: {volWeight} Kg</span>
+                       <span>Dim. (Inch) | Divisor: 4000</span>
+                       <span className="vol-badge">{volWeight} Kg</span>
                     </div>
                     <div className="vol-grid-scroll">
                       {boxes.map((box, i) => (
@@ -361,63 +372,59 @@ export default function CreateOrder() {
               </div>
             </section>
 
-            {/* INVOICE & EWAY */}
+            {/* BILLING & UPLOAD */}
             <section className="premium-card">
               <div className="card-top justify-between">
-                <div className="flex-center gap-2"><FileText size={18} color="#d32f2f"/> <h3>Invoice / E-Way</h3></div>
-                <button className="mini-add-btn" onClick={() => setInvoices([...invoices, { id: Date.now(), no: "", value: "" }])}><Plus size={14}/></button>
+                <div className="flex-center gap-2"><FileText size={18} color="#d32f2f"/> <h3>Billing & Invoice</h3></div>
+                <button className="mini-add-btn" onClick={() => setInvoices([...invoices, { id: Date.now(), no: "", value: "", file: null }])}><Plus size={14}/></button>
               </div>
               <div className="card-body">
                 {invoices.map((inv) => (
                   <div key={inv.id} className="dynamic-inv-row">
-                    <input placeholder="Invoice No" value={inv.no} onChange={e=>{
-                      setInvoices(invoices.map(i=>i.id===inv.id ? {...i, no:e.target.value.toUpperCase()} : i))
-                    }} />
-                    <input type="number" placeholder="Value ₹" value={inv.value} onChange={e=>{
-                      setInvoices(invoices.map(i=>i.id===inv.id ? {...i, value:e.target.value} : i))
-                    }} />
+                    <input placeholder="Inv No" className="small-input" onChange={e=>setInvoices(invoices.map(i=>i.id===inv.id?{...i, no:e.target.value.toUpperCase()}:i))} />
+                    <input type="number" placeholder="Value ₹" className="small-input" onChange={e=>setInvoices(invoices.map(i=>i.id===inv.id?{...i, value:e.target.value}:i))} />
+                    
+                    {/* Invoice Upload Option */}
+                    <label className="upload-icon-btn">
+                      <Upload size={16} color={inv.file ? "#10b981" : "#666"} />
+                      <input type="file" hidden onChange={(e) => handleFileUpload(inv.id, e.target.files[0].name)} />
+                    </label>
+                    
                     <button className="row-del-btn" onClick={() => setInvoices(invoices.filter(i=>i.id!==inv.id))}><Trash2 size={14}/></button>
                   </div>
                 ))}
 
+                {/* Freight Toggle Button */}
+                <div className="freight-control-bar">
+                  <div className="toggle-label">
+                    <Calculator size={16} /> <span>Show Freight on LR?</span>
+                  </div>
+                  <button className={`toggle-switch ${showFreight ? 'active' : ''}`} onClick={() => setShowFreight(!showFreight)}>
+                    {showFreight ? "YES" : "NO"}
+                  </button>
+                </div>
+
                 {needsEwayBill && (
                   <div className="eway-critical-box">
-                    <div className="alert-header">
-                       <AlertCircle size={18} /> <span>E-WAY BILL MANDATORY</span>
-                    </div>
-                    <input 
-                      className="eway-main-input"
-                      value={ewayBill} 
-                      onChange={e=>setEwayBill(e.target.value.toUpperCase())} 
-                      placeholder="ENTER 12 DIGIT E-WAY BILL NO."
-                      maxLength={12}
-                    />
+                    <div className="alert-header"><AlertCircle size={18} /> <span>E-WAY BILL MANDATORY</span></div>
+                    <input className="eway-main-input" value={ewayBill} onChange={e=>setEwayBill(e.target.value.toUpperCase())} placeholder="ENTER 12 DIGIT EWB NO." maxLength={12} />
                   </div>
                 )}
               </div>
             </section>
 
-            {/* SUBMIT */}
             <button className={`final-submit-btn ${loading ? 'loading' : ''}`} onClick={handleCreateOrder} disabled={loading}>
                {loading ? "Generating LR..." : "Generate Consignment Note"} <ChevronRight size={20} />
             </button>
           </div>
         </div>
 
-        {/* SUCCESS MODAL */}
+        {/* PRINT ENGINE (3 COPIES) */}
         {showLR && (
           <div className="modal-overlay no-print">
             <div className="modal-content animate-zoom">
-              <div className="success-icon-wrapper">
-                 <CheckCircle size={60} color="#10b981" />
-              </div>
-              <h2>LR GENERATED SUCCESSFULLY</h2>
-              <div className="lr-id-display">{lrNumber}</div>
-              
-              <div className="mini-docket-preview">
-                 <ShipmentDocket data={{pickup, delivery, orderDetails, invoices, chargedWeight}} lrNumber={lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill} />
-              </div>
-
+              <CheckCircle size={60} color="#10b981" />
+              <h2>LR GENERATED: {lrNumber}</h2>
               <div className="modal-actions">
                 <button className="action-btn print" onClick={() => window.print()}><Printer size={18}/> PRINT DOCKET</button>
                 <button className="action-btn next" onClick={() => window.location.reload()}>NEW ENTRY</button>
@@ -426,9 +433,21 @@ export default function CreateOrder() {
           </div>
         )}
 
-        {/* PRINT ENGINE */}
         <div className="print-only">
-            <ShipmentDocket data={{pickup, delivery, orderDetails, invoices, chargedWeight}} lrNumber={lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill} />
+            {["CONSIGNOR", "CONSIGNEE", "OFFICE"].map((copy) => (
+              <React.Fragment key={copy}>
+                <ShipmentDocket 
+                  copyType={copy}
+                  showFreight={showFreight}
+                  billing={billingSummary}
+                  data={{pickup, delivery, orderDetails, invoices, chargedWeight}} 
+                  lrNumber={lrNumber} 
+                  totalValue={totalInvoiceValue} 
+                  ewayBill={ewayBill} 
+                />
+                <div className="page-break"></div>
+              </React.Fragment>
+            ))}
         </div>
       </main>
     </div>
