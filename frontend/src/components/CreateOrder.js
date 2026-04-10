@@ -6,7 +6,7 @@ import {
   ChevronRight, AlertCircle, ShieldCheck, Navigation, IndianRupee, Search, 
   X, Upload, Info, CreditCard, Box, Layout, Settings, LogOut, ArrowRight, 
   Activity, Clock, Layers, Filter, Download, ExternalLink, MousePointer2, 
-  Briefcase, Globe, RefreshCw, Smartphone, BarChart3, Scan
+  Briefcase, Globe, RefreshCw, Smartphone, BarChart3, Scan, Circle, Eye, User
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import "./CreateOrder.css";
@@ -15,7 +15,7 @@ import "./CreateOrder.css";
    CONFIG & API CONSTANTS
    ========================================================================== */
 const TRUXCARGO_API = "https://b2b.truxcargo.com/api/order/tracking";
-const API_KEY = "YOUR_KEY_HERE"; // Image se nikaali gayi key yahan daalein
+const API_KEY = "YOUR_KEY_HERE"; 
 
 /* ==========================================================================
    COMPONENT: PROFESSIONAL A4 DOCKET (PRINT PREVIEW)
@@ -131,8 +131,8 @@ export default function CreateOrder() {
   const chargedWeight = Math.max(parseFloat(orderDetails.weight || 0), parseFloat(volumetricWeight));
 
   /* -----------------------------------------------------------
-     LOGIC: PINCODE LOOKUP
-     ----------------------------------------------------------- */
+      LOGIC: PINCODE LOOKUP
+      ----------------------------------------------------------- */
   const handlePincode = async (pin, type) => {
     if (pin.length === 6) {
       try {
@@ -147,8 +147,8 @@ export default function CreateOrder() {
   };
 
   /* -----------------------------------------------------------
-     LOGIC: TRUXCARGO API TRACKING (Based on image_2828bb.png)
-     ----------------------------------------------------------- */
+      LOGIC: TRUXCARGO API TRACKING
+      ----------------------------------------------------------- */
   const trackLiveShipment = async (lr) => {
     setLoading(true);
     try {
@@ -165,8 +165,8 @@ export default function CreateOrder() {
   };
 
   /* -----------------------------------------------------------
-     LOGIC: GENERATE SHIPMENT & SAVE
-     ----------------------------------------------------------- */
+      LOGIC: GENERATE SHIPMENT & SAVE
+      ----------------------------------------------------------- */
   const generateConsignment = () => {
     if (!pickup.name || !delivery.name) return alert("Pehle basic details bharo!");
     
@@ -184,13 +184,12 @@ export default function CreateOrder() {
       
       setGeneratedLR(lr);
       setLoading(false);
-      setShowModal(true); // Isse preview modal open hoga
+      setShowModal(true); 
     }, 1500);
   };
 
   return (
     <div className="fc-enterprise-wrapper">
-      {/* SIDEBAR NAVIGATION - Matched with screenshot */}
       <aside className="enterprise-sidebar no-print">
         <div className="sidebar-brand">
           <img src={logo} alt="Faith Cargo" />
@@ -223,10 +222,7 @@ export default function CreateOrder() {
         </div>
       </aside>
 
-      {/* MAIN CONTENT CONSOLE */}
       <main className="enterprise-main">
-        
-        {/* VIEW 1: BOOKING ENGINE */}
         {activeTab === 'booking' && (
           <div className="booking-view animate-fade">
             <header className="main-header no-print">
@@ -239,7 +235,6 @@ export default function CreateOrder() {
 
             <div className="booking-grid no-print">
               <div className="grid-left">
-                {/* Consignor Card */}
                 <section className="booking-card">
                   <div className="card-header"><MapPin size={18}/> Origin Details</div>
                   <div className="card-body">
@@ -256,7 +251,6 @@ export default function CreateOrder() {
                   </div>
                 </section>
 
-                {/* Consignee Card */}
                 <section className="booking-card">
                   <div className="card-header"><Truck size={18}/> Destination Details</div>
                   <div className="card-body">
@@ -275,7 +269,6 @@ export default function CreateOrder() {
               </div>
 
               <div className="grid-right">
-                {/* Dimensional Audit */}
                 <section className="booking-card black-card">
                   <div className="card-header"><Box size={18}/> Volumetric Audit</div>
                   <div className="card-body">
@@ -312,48 +305,46 @@ export default function CreateOrder() {
           </div>
         )}
 
-        {/* VIEW 2: CLIENT LEDGER (Shipment History) */}
         {activeTab === 'ledger' && (
           <div className="ledger-view animate-fade">
-             <header className="main-header">
+              <header className="main-header">
                 <h1>Client Ledger <small>Consignment Archive</small></h1>
                 <button className="export-btn"><Download size={16}/> Export Excel</button>
-             </header>
-             <table className="enterprise-table">
-               <thead>
-                 <tr>
-                   <th>Date</th>
-                   <th>LR Number</th>
-                   <th>Receiver</th>
-                   <th>Status</th>
-                   <th>Action</th>
-                 </tr>
-               </thead>
-               <tbody>
-                 {shipments.map((s, idx) => (
-                   <tr key={idx}>
-                     <td>{new Date(s.date).toLocaleDateString()}</td>
-                     <td><b>{s.id}</b></td>
-                     <td>{s.delivery.name}</td>
-                     <td><span className="badge">Manifested</span></td>
-                     <td>
-                        <button className="icon-btn" onClick={() => {
-                          setGeneratedLR(s.id);
-                          setPickup(s.pickup);
-                          setDelivery(s.delivery);
-                          setOrderDetails(s.orderDetails);
-                          setInvoices(s.invoices);
-                          setShowModal(true);
-                        }}><Printer size={16}/></button>
-                     </td>
-                   </tr>
-                 ))}
-               </tbody>
-             </table>
+              </header>
+              <table className="enterprise-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>LR Number</th>
+                    <th>Receiver</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shipments.map((s, idx) => (
+                    <tr key={idx}>
+                      <td>{new Date(s.date).toLocaleDateString()}</td>
+                      <td><b>{s.id}</b></td>
+                      <td>{s.delivery.name}</td>
+                      <td><span className="badge">Manifested</span></td>
+                      <td>
+                         <button className="icon-btn" onClick={() => {
+                           setGeneratedLR(s.id);
+                           setPickup(s.pickup);
+                           setDelivery(s.delivery);
+                           setOrderDetails(s.orderDetails);
+                           setInvoices(s.invoices);
+                           setShowModal(true);
+                         }}><Printer size={16}/></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
           </div>
         )}
 
-        {/* VIEW 3: LIVE TRACKING (Truxcargo Integration) */}
         {activeTab === 'tracking' && (
           <div className="tracking-view animate-fade">
             <header className="main-header">
@@ -361,29 +352,28 @@ export default function CreateOrder() {
             </header>
             <div className="search-giant-box">
               <Search size={24}/>
-              <input placeholder="Enter Truxcargo LR Number (e.g. 202106043)" id="lrTrackInput" />
+              <input placeholder="Enter Truxcargo LR Number" id="lrTrackInput" />
               <button onClick={() => trackLiveShipment(document.getElementById('lrTrackInput').value)}>TRACE NOW</button>
             </div>
 
             {trackResult && (
               <div className="track-card animate-up">
-                 <div className="track-header">
+                  <div className="track-header">
                     <h3>Current Status: <span>{trackResult.status}</span></h3>
                     <p>Manifest Date: {trackResult.manifestDate}</p>
-                 </div>
-                 <div className="track-steps">
+                  </div>
+                  <div className="track-steps">
                     <div className="step done"><CheckCircle size={14}/> Booked</div>
                     <div className="step done"><CheckCircle size={14}/> Manifested</div>
                     <div className="step current"><Clock size={14}/> In Transit</div>
                     <div className="step"><Circle size={14}/> Delivered</div>
-                 </div>
+                  </div>
               </div>
             )}
           </div>
         )}
       </main>
 
-      {/* MODAL: PROFESSIONAL DOCKET PREVIEW & PRINT */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content animate-zoom">
