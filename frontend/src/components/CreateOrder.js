@@ -3,7 +3,7 @@ import JsBarcode from "jsbarcode";
 import { 
   Truck, MapPin, Package, FileText, Plus, Trash2,
   Calculator, CheckCircle, Printer, ChevronRight, AlertCircle, 
-  ShieldCheck, Box, Info, Navigation, CreditCard
+  ShieldCheck, Box, Info, Navigation, CreditCard, Upload, IndianRupee
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import "./CreateOrder.css";
@@ -85,7 +85,7 @@ const ShipmentDocket = ({ data, lrNumber, totalValue, ewayBill }) => {
             <td className="desc-cell">
               <span className="material-bold">{data.orderDetails.material || "GENERAL CARGO"}</span>
               <div className="dimension-summary">
-                 Method: Surface Logistics | Risk: Owner's Risk
+                  Method: Surface Logistics | Risk: Owner's Risk
               </div>
             </td>
             <td className="text-center">{data.orderDetails.weight} Kg</td>
@@ -150,6 +150,7 @@ export default function CreateOrder() {
   const [lrNumber, setLrNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [ewayBill, setEwayBill] = useState("");
+  const [invoiceFile, setInvoiceFile] = useState(null); // NEW: For Invoice File
   
   // Form States
   const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "" });
@@ -162,15 +163,26 @@ export default function CreateOrder() {
     invoices.reduce((sum, inv) => sum + (parseFloat(inv.value) || 0), 0), 
   [invoices]);
 
+  // UPDATED: CM calculation with 4000 divisor
   const volWeight = useMemo(() => {
-    const totalCft = boxes.reduce((acc, b) => 
-      acc + (parseFloat(b.l||0) * parseFloat(b.w||0) * parseFloat(b.h||0)) / 1728, 0);
-    return (totalCft * 10).toFixed(2);
+    const totalVol = boxes.reduce((acc, b) => 
+      acc + (parseFloat(b.l||0) * parseFloat(b.w||0) * parseFloat(b.h||0)) / 4000, 0);
+    return totalVol.toFixed(2);
   }, [boxes]);
 
   const chargedWeight = Math.max(parseFloat(orderDetails.weight || 0), parseFloat(volWeight));
 
-  // Mandatory E-way Bill Check
+  // NEW: Real-time Freight Calculation Logic
+  const estimatedFreight = useMemo(() => {
+    const basicFreight = chargedWeight * 12; // Base rate logic
+    const fuel = basicFreight * 0.10;
+    const docket = 100;
+    const fov = 75;
+    const gst = basicFreight * 0.18;
+    let total = basicFreight + fuel + docket + fov + gst;
+    return total < 650 ? 650 : total.toFixed(2);
+  }, [chargedWeight]);
+
   const needsEwayBill = totalInvoiceValue >= 50000;
 
   const fetchLocation = async (pin, type) => {
@@ -189,7 +201,6 @@ export default function CreateOrder() {
   };
 
   const handleCreateOrder = () => {
-    // Error Validation
     if (needsEwayBill && !ewayBill) {
       alert("⚠️ CRITICAL ERROR: E-Way Bill Number is mandatory for Invoice Values above ₹50,000.");
       return;
@@ -200,7 +211,6 @@ export default function CreateOrder() {
     }
 
     setLoading(true);
-    // Simulation
     setTimeout(() => {
       setLrNumber("FC" + Math.floor(1000000 + Math.random() * 9000000));
       setShowLR(true);
@@ -210,7 +220,6 @@ export default function CreateOrder() {
 
   return (
     <div className="order-wrapper">
-      {/* LEFT SIDEBAR */}
       <aside className="nav-sidebar no-print">
          <div className="logo-brand">
             <img src={logo} alt="Faith Cargo" />
@@ -242,12 +251,15 @@ export default function CreateOrder() {
             <div className="stat-pill red-pill">
               <ShieldCheck size={14}/> Value: <strong>₹{totalInvoiceValue}</strong>
             </div>
+            {/* NEW: Freight Show in Header */}
+            <div className="stat-pill freight-pill">
+              <IndianRupee size={14}/> Freight: <strong>₹{estimatedFreight}</strong>
+            </div>
           </div>
         </header>
 
         <div className="form-layout no-print">
           <div className="form-column">
-            {/* SENDER BOX */}
             <section className="premium-card">
               <div className="card-top red-accent">
                 <MapPin size={18} /> <h3>Consignor (Sender)</h3>
@@ -280,7 +292,6 @@ export default function CreateOrder() {
               </div>
             </section>
 
-            {/* RECEIVER BOX */}
             <section className="premium-card">
               <div className="card-top dark-accent">
                 <Truck size={18} /> <h3>Consignee (Receiver)</h3>
@@ -315,7 +326,6 @@ export default function CreateOrder() {
           </div>
 
           <div className="form-column">
-            {/* ITEM INFO */}
             <section className="premium-card">
               <div className="card-top">
                 <Package size={18} /> <h3>Shipment Content</h3>
@@ -343,7 +353,8 @@ export default function CreateOrder() {
                 {boxes.length > 0 && (
                   <div className="volumetric-calculator">
                     <div className="vol-header">
-                       <span>Dimensional Calculator (Inch)</span>
+                       {/* UPDATED: LABEL SHOWS CM */}
+                       <span>Dimensional Calculator (CM)</span>
                        <span className="vol-badge">Vol Wt: {volWeight} Kg</span>
                     </div>
                     <div className="vol-grid-scroll">
@@ -361,7 +372,6 @@ export default function CreateOrder() {
               </div>
             </section>
 
-            {/* INVOICE & EWAY */}
             <section className="premium-card">
               <div className="card-top justify-between">
                 <div className="flex-center gap-2"><FileText size={18} color="#d32f2f"/> <h3>Invoice / E-Way</h3></div>
@@ -380,6 +390,15 @@ export default function CreateOrder() {
                   </div>
                 ))}
 
+                {/* NEW: INVOICE UPLOAD SECTION */}
+                <div className="invoice-upload-box">
+                    <label className="upload-btn-label">
+                        <Upload size={16} /> 
+                        <span>{invoiceFile ? invoiceFile.name : "Upload Invoice Copy"}</span>
+                        <input type="file" hidden onChange={(e) => setInvoiceFile(e.target.files[0])} />
+                    </label>
+                </div>
+
                 {needsEwayBill && (
                   <div className="eway-critical-box">
                     <div className="alert-header">
@@ -397,7 +416,6 @@ export default function CreateOrder() {
               </div>
             </section>
 
-            {/* SUBMIT */}
             <button className={`final-submit-btn ${loading ? 'loading' : ''}`} onClick={handleCreateOrder} disabled={loading}>
                {loading ? "Generating LR..." : "Generate Consignment Note"} <ChevronRight size={20} />
             </button>
@@ -426,7 +444,6 @@ export default function CreateOrder() {
           </div>
         )}
 
-        {/* PRINT ENGINE */}
         <div className="print-only">
             <ShipmentDocket data={{pickup, delivery, orderDetails, invoices, chargedWeight}} lrNumber={lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill} />
         </div>
