@@ -8,7 +8,7 @@ import {
 import logo from "../assets/logo.png";
 import "./CreateOrder.css";
 
-// --- PROFESSIONAL DOCKET COMPONENT (FOR PRINT) ---
+// --- PROFESSIONAL DOCKET COMPONENT (FOR PRINT & MODAL PREVIEW ONLY) ---
 const ShipmentDocket = ({ data, lrNumber, totalValue, ewayBill }) => {
   const barcodeRef = useRef(null);
   
@@ -150,7 +150,7 @@ export default function CreateOrder() {
   const [lrNumber, setLrNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [ewayBill, setEwayBill] = useState("");
-  const [invoiceFile, setInvoiceFile] = useState(null); // NEW: For Invoice File
+  const [invoiceFile, setInvoiceFile] = useState(null);
   
   // Form States
   const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "" });
@@ -158,12 +158,10 @@ export default function CreateOrder() {
   const [orderDetails, setOrderDetails] = useState({ material: "", weight: "", boxesCount: 0 });
   const [invoices, setInvoices] = useState([{ id: Date.now(), no: "", value: "" }]);
 
-  // Calculated Values
   const totalInvoiceValue = useMemo(() => 
     invoices.reduce((sum, inv) => sum + (parseFloat(inv.value) || 0), 0), 
   [invoices]);
 
-  // UPDATED: CM calculation with 4000 divisor
   const volWeight = useMemo(() => {
     const totalVol = boxes.reduce((acc, b) => 
       acc + (parseFloat(b.l||0) * parseFloat(b.w||0) * parseFloat(b.h||0)) / 4000, 0);
@@ -172,9 +170,8 @@ export default function CreateOrder() {
 
   const chargedWeight = Math.max(parseFloat(orderDetails.weight || 0), parseFloat(volWeight));
 
-  // NEW: Real-time Freight Calculation Logic
   const estimatedFreight = useMemo(() => {
-    const basicFreight = chargedWeight * 12; // Base rate logic
+    const basicFreight = chargedWeight * 12;
     const fuel = basicFreight * 0.10;
     const docket = 100;
     const fov = 75;
@@ -251,178 +248,178 @@ export default function CreateOrder() {
             <div className="stat-pill red-pill">
               <ShieldCheck size={14}/> Value: <strong>₹{totalInvoiceValue}</strong>
             </div>
-            {/* NEW: Freight Show in Header */}
             <div className="stat-pill freight-pill">
               <IndianRupee size={14}/> Freight: <strong>₹{estimatedFreight}</strong>
             </div>
           </div>
         </header>
 
-        <div className="form-layout no-print">
-          <div className="form-column">
-            <section className="premium-card">
-              <div className="card-top red-accent">
-                <MapPin size={18} /> <h3>Consignor (Sender)</h3>
-              </div>
-              <div className="card-body">
-                <div className="input-row">
-                  <div className="input-group">
-                    <label>Company / Name *</label>
-                    <input value={pickup.name} onChange={e=>setPickup({...pickup, name:e.target.value.toUpperCase()})} placeholder="Sender Name" />
+        {/* FORM SECTION - ALWAYS VISIBLE UNTIL LR GENERATED */}
+        {!showLR && (
+          <div className="form-layout no-print">
+            <div className="form-column">
+              <section className="premium-card">
+                <div className="card-top red-accent">
+                  <MapPin size={18} /> <h3>Consignor (Sender)</h3>
+                </div>
+                <div className="card-body">
+                  <div className="input-row">
+                    <div className="input-group">
+                      <label>Company / Name *</label>
+                      <input value={pickup.name} onChange={e=>setPickup({...pickup, name:e.target.value.toUpperCase()})} placeholder="Sender Name" />
+                    </div>
+                    <div className="input-group">
+                      <label>Mobile Number *</label>
+                      <input type="tel" maxLength={10} value={pickup.contact} onChange={e=>setPickup({...pickup, contact:e.target.value})} placeholder="10 Digit Mobile" />
+                    </div>
                   </div>
-                  <div className="input-group">
-                    <label>Mobile Number *</label>
-                    <input type="tel" maxLength={10} value={pickup.contact} onChange={e=>setPickup({...pickup, contact:e.target.value})} placeholder="10 Digit Mobile" />
+                  <div className="input-group full-width">
+                    <label>Full Pickup Address *</label>
+                    <textarea rows="2" value={pickup.address} onChange={e=>setPickup({...pickup, address:e.target.value})} placeholder="House/Plot No, Area, Landmark..." />
+                  </div>
+                  <div className="input-row">
+                    <div className="input-group">
+                      <label>Pincode</label>
+                      <input maxLength={6} value={pickup.pincode} onChange={e=>{setPickup({...pickup, pincode:e.target.value}); fetchLocation(e.target.value, 'pickup')}} placeholder="6 Digit" />
+                    </div>
+                    <div className="input-group">
+                      <label>City & State</label>
+                      <input className="locked-input" value={pickup.city ? `${pickup.city}, ${pickup.state}` : ""} readOnly placeholder="Auto-Fill" />
+                    </div>
                   </div>
                 </div>
-                <div className="input-group full-width">
-                  <label>Full Pickup Address *</label>
-                  <textarea rows="2" value={pickup.address} onChange={e=>setPickup({...pickup, address:e.target.value})} placeholder="House/Plot No, Area, Landmark..." />
-                </div>
-                <div className="input-row">
-                  <div className="input-group">
-                    <label>Pincode</label>
-                    <input maxLength={6} value={pickup.pincode} onChange={e=>{setPickup({...pickup, pincode:e.target.value}); fetchLocation(e.target.value, 'pickup')}} placeholder="6 Digit" />
-                  </div>
-                  <div className="input-group">
-                    <label>City & State</label>
-                    <input className="locked-input" value={pickup.city ? `${pickup.city}, ${pickup.state}` : ""} readOnly placeholder="Auto-Fill" />
-                  </div>
-                </div>
-              </div>
-            </section>
+              </section>
 
-            <section className="premium-card">
-              <div className="card-top dark-accent">
-                <Truck size={18} /> <h3>Consignee (Receiver)</h3>
-              </div>
-              <div className="card-body">
-                <div className="input-row">
-                  <div className="input-group">
-                    <label>Receiver Name *</label>
-                    <input value={delivery.name} onChange={e=>setDelivery({...delivery, name:e.target.value.toUpperCase()})} placeholder="Recipient Name" />
+              <section className="premium-card">
+                <div className="card-top dark-accent">
+                  <Truck size={18} /> <h3>Consignee (Receiver)</h3>
+                </div>
+                <div className="card-body">
+                  <div className="input-row">
+                    <div className="input-group">
+                      <label>Receiver Name *</label>
+                      <input value={delivery.name} onChange={e=>setDelivery({...delivery, name:e.target.value.toUpperCase()})} placeholder="Recipient Name" />
+                    </div>
+                    <div className="input-group">
+                      <label>Receiver Contact *</label>
+                      <input type="tel" maxLength={10} value={delivery.contact} onChange={e=>setDelivery({...delivery, contact:e.target.value})} placeholder="Mobile Number" />
+                    </div>
                   </div>
-                  <div className="input-group">
-                    <label>Receiver Contact *</label>
-                    <input type="tel" maxLength={10} value={delivery.contact} onChange={e=>setDelivery({...delivery, contact:e.target.value})} placeholder="Mobile Number" />
+                  <div className="input-group full-width">
+                    <label>Full Delivery Address *</label>
+                    <textarea rows="2" value={delivery.address} onChange={e=>setDelivery({...delivery, address:e.target.value})} placeholder="Detailed Destination..." />
+                  </div>
+                  <div className="input-row">
+                    <div className="input-group">
+                      <label>Pincode</label>
+                      <input maxLength={6} value={delivery.pincode} onChange={e=>{setDelivery({...delivery, pincode:e.target.value}); fetchLocation(e.target.value, 'delivery')}} placeholder="6 Digit" />
+                    </div>
+                    <div className="input-group">
+                      <label>City & State</label>
+                      <input className="locked-input" value={delivery.city ? `${delivery.city}, ${delivery.state}` : ""} readOnly placeholder="Auto-Fill" />
+                    </div>
                   </div>
                 </div>
-                <div className="input-group full-width">
-                  <label>Full Delivery Address *</label>
-                  <textarea rows="2" value={delivery.address} onChange={e=>setDelivery({...delivery, address:e.target.value})} placeholder="Detailed Destination..." />
+              </section>
+            </div>
+
+            <div className="form-column">
+              <section className="premium-card">
+                <div className="card-top">
+                  <Package size={18} /> <h3>Shipment Content</h3>
                 </div>
-                <div className="input-row">
-                  <div className="input-group">
-                    <label>Pincode</label>
-                    <input maxLength={6} value={delivery.pincode} onChange={e=>{setDelivery({...delivery, pincode:e.target.value}); fetchLocation(e.target.value, 'delivery')}} placeholder="6 Digit" />
+                <div className="card-body">
+                  <div className="input-group full-width">
+                    <label>Material Description</label>
+                    <input placeholder="e.g., Industrial Tools, Textile" onChange={e=>setOrderDetails({...orderDetails, material:e.target.value.toUpperCase()})} />
                   </div>
-                  <div className="input-group">
-                    <label>City & State</label>
-                    <input className="locked-input" value={delivery.city ? `${delivery.city}, ${delivery.state}` : ""} readOnly placeholder="Auto-Fill" />
+                  <div className="input-row">
+                    <div className="input-group">
+                      <label>Weight (Kg) *</label>
+                      <input type="number" value={orderDetails.weight} onChange={e=>setOrderDetails({...orderDetails, weight:e.target.value})} placeholder="Actual Wt" />
+                    </div>
+                    <div className="input-group">
+                      <label>No. of Boxes *</label>
+                      <input type="number" value={orderDetails.boxesCount} onChange={e=>{
+                        const n = parseInt(e.target.value)||0;
+                        setOrderDetails({...orderDetails, boxesCount:n});
+                        setBoxes(Array.from({length:n}, (_,i)=>({id:i+1, l:"", w:"", h:""})));
+                      }} placeholder="Total Pkgs" />
+                    </div>
                   </div>
+
+                  {boxes.length > 0 && (
+                    <div className="volumetric-calculator">
+                      <div className="vol-header">
+                         <span>Dimensional Calculator (CM)</span>
+                         <span className="vol-badge">Vol Wt: {volWeight} Kg</span>
+                      </div>
+                      <div className="vol-grid-scroll">
+                        {boxes.map((box, i) => (
+                          <div key={i} className="vol-input-row">
+                            <span className="box-index">#{i+1}</span>
+                            <input placeholder="L" type="number" onChange={e=>{let b=[...boxes]; b[i].l=e.target.value; setBoxes(b)}} />
+                            <input placeholder="W" type="number" onChange={e=>{let b=[...boxes]; b[i].w=e.target.value; setBoxes(b)}} />
+                            <input placeholder="H" type="number" onChange={e=>{let b=[...boxes]; b[i].h=e.target.value; setBoxes(b)}} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </section>
+              </section>
+
+              <section className="premium-card">
+                <div className="card-top justify-between">
+                  <div className="flex-center gap-2"><FileText size={18} color="#d32f2f"/> <h3>Invoice / E-Way</h3></div>
+                  <button className="mini-add-btn" onClick={() => setInvoices([...invoices, { id: Date.now(), no: "", value: "" }])}><Plus size={14}/></button>
+                </div>
+                <div className="card-body">
+                  {invoices.map((inv) => (
+                    <div key={inv.id} className="dynamic-inv-row">
+                      <input placeholder="Invoice No" value={inv.no} onChange={e=>{
+                        setInvoices(invoices.map(i=>i.id===inv.id ? {...i, no:e.target.value.toUpperCase()} : i))
+                      }} />
+                      <input type="number" placeholder="Value ₹" value={inv.value} onChange={e=>{
+                        setInvoices(invoices.map(i=>i.id===inv.id ? {...i, value:e.target.value} : i))
+                      }} />
+                      <button className="row-del-btn" onClick={() => setInvoices(invoices.filter(i=>i.id!==inv.id))}><Trash2 size={14}/></button>
+                    </div>
+                  ))}
+
+                  <div className="invoice-upload-box">
+                      <label className="upload-btn-label">
+                          <Upload size={16} /> 
+                          <span>{invoiceFile ? invoiceFile.name : "Upload Invoice Copy"}</span>
+                          <input type="file" hidden onChange={(e) => setInvoiceFile(e.target.files[0])} />
+                      </label>
+                  </div>
+
+                  {needsEwayBill && (
+                    <div className="eway-critical-box">
+                      <div className="alert-header">
+                         <AlertCircle size={18} /> <span>E-WAY BILL MANDATORY</span>
+                      </div>
+                      <input 
+                        className="eway-main-input"
+                        value={ewayBill} 
+                        onChange={e=>setEwayBill(e.target.value.toUpperCase())} 
+                        placeholder="ENTER 12 DIGIT E-WAY BILL NO."
+                        maxLength={12}
+                      />
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <button className={`final-submit-btn ${loading ? 'loading' : ''}`} onClick={handleCreateOrder} disabled={loading}>
+                 {loading ? "Generating LR..." : "Generate Consignment Note"} <ChevronRight size={20} />
+              </button>
+            </div>
           </div>
+        )}
 
-          <div className="form-column">
-            <section className="premium-card">
-              <div className="card-top">
-                <Package size={18} /> <h3>Shipment Content</h3>
-              </div>
-              <div className="card-body">
-                <div className="input-group full-width">
-                  <label>Material Description</label>
-                  <input placeholder="e.g., Industrial Tools, Textile" onChange={e=>setOrderDetails({...orderDetails, material:e.target.value.toUpperCase()})} />
-                </div>
-                <div className="input-row">
-                  <div className="input-group">
-                    <label>Weight (Kg) *</label>
-                    <input type="number" value={orderDetails.weight} onChange={e=>setOrderDetails({...orderDetails, weight:e.target.value})} placeholder="Actual Wt" />
-                  </div>
-                  <div className="input-group">
-                    <label>No. of Boxes *</label>
-                    <input type="number" value={orderDetails.boxesCount} onChange={e=>{
-                      const n = parseInt(e.target.value)||0;
-                      setOrderDetails({...orderDetails, boxesCount:n});
-                      setBoxes(Array.from({length:n}, (_,i)=>({id:i+1, l:"", w:"", h:""})));
-                    }} placeholder="Total Pkgs" />
-                  </div>
-                </div>
-
-                {boxes.length > 0 && (
-                  <div className="volumetric-calculator">
-                    <div className="vol-header">
-                       {/* UPDATED: LABEL SHOWS CM */}
-                       <span>Dimensional Calculator (CM)</span>
-                       <span className="vol-badge">Vol Wt: {volWeight} Kg</span>
-                    </div>
-                    <div className="vol-grid-scroll">
-                      {boxes.map((box, i) => (
-                        <div key={i} className="vol-input-row">
-                          <span className="box-index">#{i+1}</span>
-                          <input placeholder="L" type="number" onChange={e=>{let b=[...boxes]; b[i].l=e.target.value; setBoxes(b)}} />
-                          <input placeholder="W" type="number" onChange={e=>{let b=[...boxes]; b[i].w=e.target.value; setBoxes(b)}} />
-                          <input placeholder="H" type="number" onChange={e=>{let b=[...boxes]; b[i].h=e.target.value; setBoxes(b)}} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </section>
-
-            <section className="premium-card">
-              <div className="card-top justify-between">
-                <div className="flex-center gap-2"><FileText size={18} color="#d32f2f"/> <h3>Invoice / E-Way</h3></div>
-                <button className="mini-add-btn" onClick={() => setInvoices([...invoices, { id: Date.now(), no: "", value: "" }])}><Plus size={14}/></button>
-              </div>
-              <div className="card-body">
-                {invoices.map((inv) => (
-                  <div key={inv.id} className="dynamic-inv-row">
-                    <input placeholder="Invoice No" value={inv.no} onChange={e=>{
-                      setInvoices(invoices.map(i=>i.id===inv.id ? {...i, no:e.target.value.toUpperCase()} : i))
-                    }} />
-                    <input type="number" placeholder="Value ₹" value={inv.value} onChange={e=>{
-                      setInvoices(invoices.map(i=>i.id===inv.id ? {...i, value:e.target.value} : i))
-                    }} />
-                    <button className="row-del-btn" onClick={() => setInvoices(invoices.filter(i=>i.id!==inv.id))}><Trash2 size={14}/></button>
-                  </div>
-                ))}
-
-                {/* NEW: INVOICE UPLOAD SECTION */}
-                <div className="invoice-upload-box">
-                    <label className="upload-btn-label">
-                        <Upload size={16} /> 
-                        <span>{invoiceFile ? invoiceFile.name : "Upload Invoice Copy"}</span>
-                        <input type="file" hidden onChange={(e) => setInvoiceFile(e.target.files[0])} />
-                    </label>
-                </div>
-
-                {needsEwayBill && (
-                  <div className="eway-critical-box">
-                    <div className="alert-header">
-                       <AlertCircle size={18} /> <span>E-WAY BILL MANDATORY</span>
-                    </div>
-                    <input 
-                      className="eway-main-input"
-                      value={ewayBill} 
-                      onChange={e=>setEwayBill(e.target.value.toUpperCase())} 
-                      placeholder="ENTER 12 DIGIT E-WAY BILL NO."
-                      maxLength={12}
-                    />
-                  </div>
-                )}
-              </div>
-            </section>
-
-            <button className={`final-submit-btn ${loading ? 'loading' : ''}`} onClick={handleCreateOrder} disabled={loading}>
-               {loading ? "Generating LR..." : "Generate Consignment Note"} <ChevronRight size={20} />
-            </button>
-          </div>
-        </div>
-
-        {/* SUCCESS MODAL */}
+        {/* SUCCESS MODAL - SHOWS DOCKET PREVIEW ONLY AFTER GENERATION */}
         {showLR && (
           <div className="modal-overlay no-print">
             <div className="modal-content animate-zoom">
@@ -444,6 +441,7 @@ export default function CreateOrder() {
           </div>
         )}
 
+        {/* HIDDEN IN UI - ONLY VISIBLE DURING PRINT */}
         <div className="print-only">
             <ShipmentDocket data={{pickup, delivery, orderDetails, invoices, chargedWeight}} lrNumber={lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill} />
         </div>
