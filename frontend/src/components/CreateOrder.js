@@ -7,17 +7,162 @@ import {
   Upload, File, Image, X, TrendingUp, Clock, Train, Plane,
   Save, Download, Eye, Award, Gem, Crown, Settings, 
   ToggleLeft, ToggleRight, Building, Hash, Tag, FileSpreadsheet,
-  Barcode, Layers, CheckSquare, Square, Printer as PrinterIcon
+  Barcode, Layers, CheckSquare, Square, Printer as PrinterIcon,
+  ArrowRight, Warehouse, Building2, Phone, Mail, Globe
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import "./CreateOrder.css";
 
 // ============================================
-// 🎨 LUXURY DOCKET COMPONENT (PROFESSIONAL)
+// 💰 WEIGHT BASED RATE CALCULATOR (BA & B2B)
 // ============================================
-const LuxuryDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, isManualLR, manualLRNumber }) => {
+const WeightBasedRateCalculator = ({ weight, origin, destination, bookingMode, onCalculate }) => {
+  const [rates, setRates] = useState({ 
+    baseRate: 0, 
+    slab: "", 
+    total: 0, 
+    gst: 0, 
+    grandTotal: 0,
+    breakups: []
+  });
+  const [loading, setLoading] = useState(false);
+
+  // Rate slabs based on weight (per kg)
+  const getRateSlab = (weight) => {
+    if (weight <= 50) return { name: "Small (0-50 kg)", multiplier: 1.0, rate: 18 };
+    if (weight <= 200) return { name: "Medium (51-200 kg)", multiplier: 0.9, rate: 16 };
+    if (weight <= 500) return { name: "Large (201-500 kg)", multiplier: 0.8, rate: 14 };
+    if (weight <= 1000) return { name: "Bulk (501-1000 kg)", multiplier: 0.7, rate: 12 };
+    return { name: "Industrial (1000+ kg)", multiplier: 0.6, rate: 10 };
+  };
+
+  // BA (Business Associate) vs B2B rates
+  const getRateType = (weight, isBA = false) => {
+    const base = isBA ? 0.85 : 1; // BA gets 15% discount
+    if (weight <= 50) return { type: "BA Rate", multiplier: 0.85 * base };
+    if (weight <= 200) return { type: "B2B Rate", multiplier: 0.9 * base };
+    if (weight <= 500) return { type: "Corporate Rate", multiplier: 0.85 * base };
+    return { type: "Enterprise Rate", multiplier: 0.8 * base };
+  };
+
+  useEffect(() => {
+    const calculateWeightBasedRate = async () => {
+      if (weight > 0 && origin && destination) {
+        setLoading(true);
+        try {
+          // Get base freight from API
+          const response = await fetch("https://faithcargo.onrender.com/api/shipments/calculate-freight/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ origin, destination, weight: parseFloat(weight) })
+          });
+          const data = await response.json();
+          
+          if (data.success) {
+            // Apply weight slab multiplier
+            const slab = getRateSlab(weight);
+            const baseFreight = data.freight_charge * slab.multiplier;
+            
+            // Calculate BA & B2B rates
+            const baRate = baseFreight * 0.85;
+            const b2bRate = baseFreight * 0.9;
+            const corporateRate = baseFreight * 0.85;
+            const enterpriseRate = baseFreight * 0.8;
+            
+            const gst = baseFreight * 0.18;
+            const total = baseFreight + gst + 50;
+            
+            const rateResult = {
+              baseRate: baseFreight,
+              slab: slab.name,
+              ratePerKg: slab.rate,
+              total: total,
+              gst: gst,
+              grandTotal: total,
+              breakups: [
+                { label: "Base Freight", amount: baseFreight },
+                { label: "GST (18%)", amount: gst },
+                { label: "Documentation", amount: 50 }
+              ],
+              baRate: baRate,
+              b2bRate: b2bRate,
+              corporateRate: corporateRate,
+              enterpriseRate: enterpriseRate
+            };
+            
+            setRates(rateResult);
+            if (onCalculate) onCalculate(rateResult);
+          }
+        } catch (error) {
+          console.error("Rate calculation error:", error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    
+    calculateWeightBasedRate();
+  }, [weight, origin, destination, bookingMode, onCalculate]);
+
+  if (weight === 0 || weight === undefined) return null;
+
+  return (
+    <div className="weight-based-rate-calculator">
+      <div className="rate-header">
+        <Calculator size={18} />
+        <span>Weight Based Rate Calculator</span>
+        {loading && <span className="loading-text">Calculating...</span>}
+      </div>
+      
+      <div className="rate-slab-info">
+        <span className="slab-badge">{rates.slab}</span>
+        <span className="rate-per-kg">₹{rates.ratePerKg}/kg</span>
+      </div>
+
+      <div className="rate-comparison">
+        <div className="rate-card ba">
+          <div className="rate-card-header">🏢 BA Rate</div>
+          <div className="rate-amount">₹{Math.round(rates.baRate || 0).toLocaleString()}</div>
+          <div className="rate-note">15% off on base</div>
+        </div>
+        <div className="rate-card b2b">
+          <div className="rate-card-header">🤝 B2B Rate</div>
+          <div className="rate-amount">₹{Math.round(rates.b2bRate || 0).toLocaleString()}</div>
+          <div className="rate-note">10% off on base</div>
+        </div>
+        <div className="rate-card corporate">
+          <div className="rate-card-header">🏛️ Corporate</div>
+          <div className="rate-amount">₹{Math.round(rates.corporateRate || 0).toLocaleString()}</div>
+          <div className="rate-note">15% off</div>
+        </div>
+        <div className="rate-card enterprise">
+          <div className="rate-card-header">⭐ Enterprise</div>
+          <div className="rate-amount">₹{Math.round(rates.enterpriseRate || 0).toLocaleString()}</div>
+          <div className="rate-note">20% off</div>
+        </div>
+      </div>
+
+      <div className="rate-breakdown">
+        {rates.breakups?.map((item, idx) => (
+          <div key={idx} className="breakdown-item">
+            <span>{item.label}</span>
+            <strong>₹{item.amount.toLocaleString()}</strong>
+          </div>
+        ))}
+        <div className="breakdown-item total">
+          <span>Grand Total</span>
+          <strong className="text-red">₹{Math.round(rates.grandTotal || 0).toLocaleString()}</strong>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// 🎨 LUXURY DOCKET COMPONENT (A4 OPTIMIZED)
+// ============================================
+const LuxuryDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, isManualLR, manualLRNumber, ratesData }) => {
   const barcodeRef = useRef(null);
-  const labelPrintRef = useRef(null);
   
   useEffect(() => {
     const barcodeNumber = isManualLR && manualLRNumber ? manualLRNumber : lrNumber;
@@ -25,8 +170,8 @@ const LuxuryDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, booking
       try {
         JsBarcode(barcodeRef.current, barcodeNumber, {
           format: "CODE128", 
-          width: 2, 
-          height: 50, 
+          width: 1.8, 
+          height: 40, 
           displayValue: false, 
           margin: 0,
           fontOptions: "bold"
@@ -39,245 +184,218 @@ const LuxuryDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, booking
 
   const getModeIcon = () => {
     switch(bookingMode) {
-      case 'air': return '✈️ AIR';
-      case 'rail': return '🚂 RAIL';
-      case 'express': return '⚡ EXPRESS';
-      default: return '🚛 SURFACE';
+      case 'air': return '✈️ AIR EXPRESS';
+      case 'rail': return '🚂 RAIL CARGO';
+      case 'express': return '⚡ SPEED POST';
+      default: return '🚛 SURFACE TRANSPORT';
     }
   };
 
   const displayLRNumber = isManualLR && manualLRNumber ? manualLRNumber : lrNumber;
 
-  // Safe data access with defaults
   const safeData = {
-    pickup: data?.pickup || { name: "", address: "", pincode: "", contact: "", gstin: "" },
-    delivery: data?.delivery || { name: "", address: "", pincode: "", contact: "", gstin: "" },
+    pickup: data?.pickup || { name: "", address: "", pincode: "", contact: "", city: "", state: "", gstin: "" },
+    delivery: data?.delivery || { name: "", address: "", pincode: "", contact: "", city: "", state: "", gstin: "" },
     orderDetails: data?.orderDetails || { material: "", weight: 0, boxesCount: 0, hsnCode: "" },
     invoices: data?.invoices || [],
     volWeight: data?.volWeight || 0,
-    chargedWeight: data?.chargedWeight || 0,
-    freightAmount: data?.freightAmount || 0,
-    gstAmount: data?.gstAmount || 0,
-    totalAmount: data?.totalAmount || 0
-  };
-
-  const printLabel = () => {
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Label Print - ${displayLRNumber}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-            .label { width: 4in; height: 2in; border: 2px solid #000; padding: 10px; page-break-after: avoid; }
-            .label-header { text-align: center; border-bottom: 1px solid #ccc; margin-bottom: 10px; padding-bottom: 5px; }
-            .label-header h2 { margin: 0; font-size: 14px; }
-            .label-header p { margin: 2px 0; font-size: 10px; }
-            .label-lr { font-size: 18px; font-weight: bold; text-align: center; margin: 10px 0; }
-            .label-address { font-size: 10px; margin: 5px 0; }
-            .label-barcode { text-align: center; margin: 10px 0; }
-            .label-footer { font-size: 8px; text-align: center; margin-top: 10px; }
-          </style>
-        </head>
-        <body>
-          <div class="label">
-            <div class="label-header">
-              <h2>FAITH CARGO PVT LTD</h2>
-              <p>4/15, Kirti Nagar Industrial Area, New Delhi - 110015</p>
-              <p>GST: 07AAFCF2947K1ZD</p>
-            </div>
-            <div class="label-lr">LR NO: ${displayLRNumber}</div>
-            <div class="label-address">
-              <strong>From:</strong> ${safeData.pickup.name} - ${safeData.pickup.pincole}<br/>
-              <strong>To:</strong> ${safeData.delivery.name} - ${safeData.delivery.pincode}
-            </div>
-            <div class="label-barcode">
-              <img src="https://barcode.tec-it.com/barcode.ashx?data=${displayLRNumber}&code=Code128&dpi=96" />
-            </div>
-            <div class="label-footer">Weight: ${safeData.chargedWeight} Kg | Mode: ${getModeIcon()}</div>
-          </div>
-        </body>
-      </html>
-    `);
-    printWindow.print();
-    printWindow.close();
+    chargedWeight: data?.chargedWeight || 0
   };
 
   return (
-    <>
-      <div className="luxury-docket">
-        <div className="docket-border-gold"></div>
-        <div className="docket-watermark-premium">FAITH CARGO PREMIUM</div>
-        
-        {/* Header with Full Company Details */}
-        <div className="docket-header-premium">
-          <div className="docket-brand-premium">
-            <img src={logo} alt="FCPL" className="docket-logo-premium" />
-            <div className="brand-text-premium">
-              <h1>FAITH CARGO PRIVATE LIMITED</h1>
-              <p>ISO 9001:2015 CERTIFIED | AN ISO 14001:2015</p>
-              <div className="company-details-header">
-                <span>🏢 4/15, Kirti Nagar Industrial Area, New Delhi - 110015</span>
-                <span>📞 +91 9818641504 | ✉️ care@faithcargo.com</span>
-                <span>🔷 GSTIN: 07AAFCF2947K1ZD | CIN: U60231DL2021PTC384521</span>
-              </div>
-              <div className="premium-badge">PREMIUM LOGISTICS PARTNER</div>
+    <div className="luxury-docket-a4">
+      <div className="docket-border-premium"></div>
+      
+      {/* Header Section */}
+      <div className="docket-header-a4">
+        <div className="company-info">
+          <img src={logo} alt="FCPL" className="company-logo" />
+          <div className="company-details">
+            <h1>FAITH CARGO PRIVATE LIMITED</h1>
+            <p>ISO 9001:2015 & ISO 14001:2015 CERTIFIED</p>
+            <div className="company-address">
+              <span>🏢 4/15, Kirti Nagar Industrial Area, New Delhi - 110015</span>
+              <span>📞 +91 9818641504 | ✉️ care@faithcargo.com</span>
+              <span>🔷 GST: 07AAFCF2947K1ZD | CIN: U60231DL2021PTC384521</span>
             </div>
           </div>
-          <div className="docket-meta-premium">
-            <div className="meta-box">
-              <span className="meta-label">CONSIGNMENT NOTE</span>
-              <canvas ref={barcodeRef} className="barcode-canvas"></canvas>
-              <div className="lr-premium">{displayLRNumber || "DRAFT"}</div>
-              <div className="awb-premium">AWB: {awbNumber || "N/A"}</div>
-              <div className="date-premium">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        </div>
+        <div className="docket-meta">
+          <div className="consignment-badge">CONSIGNMENT NOTE</div>
+          <canvas ref={barcodeRef} className="barcode"></canvas>
+          <div className="lr-number">{displayLRNumber || "DRAFT"}</div>
+          <div className="awb-number">AWB: {awbNumber || "N/A"}</div>
+          <div className="date">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        </div>
+      </div>
+
+      {/* Sender & Receiver Side by Side */}
+      <div className="parties-section">
+        <div className="party-card sender">
+          <div className="party-header">
+            <div className="party-icon">📤</div>
+            <div>
+              <h3>CONSIGNOR</h3>
+              <p>(Sender)</p>
+            </div>
+          </div>
+          <div className="party-body">
+            <h4>{safeData.pickup.name || "____________________"}</h4>
+            <p className="address">{safeData.pickup.address || "Address not provided"}</p>
+            <div className="party-details">
+              <span>📮 {safeData.pickup.pincode || "______"}</span>
+              <span>📍 {safeData.pickup.city || "_____"}, {safeData.pickup.state || "_____"}</span>
+              <span>📞 {safeData.pickup.contact || "_________"}</span>
+              {safeData.pickup.gstin && <span>🔷 GST: {safeData.pickup.gstin}</span>}
             </div>
           </div>
         </div>
 
-        {/* Address with GSTIN */}
-        <div className="docket-address-premium">
-          <div className="address-card sender">
-            <div className="address-header">
-              <div className="header-icon">📤</div>
-              <h3>CONSIGNOR (SENDER)</h3>
-            </div>
-            <div className="address-body">
-              <h4>{safeData.pickup.name || "____________________"}</h4>
-              <p>{safeData.pickup.address || "Address not provided"}</p>
-              <div className="address-details">
-                <span>📮 {safeData.pickup.pincode || "______"}</span>
-                <span>📞 +91 {safeData.pickup.contact || "_________"}</span>
-                {safeData.pickup.gstin && <span>🔷 GST: {safeData.pickup.gstin}</span>}
-              </div>
-            </div>
-          </div>
-          <div className="address-card receiver">
-            <div className="address-header">
-              <div className="header-icon">📥</div>
-              <h3>CONSIGNEE (RECEIVER)</h3>
-            </div>
-            <div className="address-body">
-              <h4>{safeData.delivery.name || "____________________"}</h4>
-              <p>{safeData.delivery.address || "Address not provided"}</p>
-              <div className="address-details">
-                <span>📮 {safeData.delivery.pincode || "______"}</span>
-                <span>📞 +91 {safeData.delivery.contact || "_________"}</span>
-                {safeData.delivery.gstin && <span>🔷 GST: {safeData.delivery.gstin}</span>}
-              </div>
-            </div>
-          </div>
+        <div className="party-arrow">
+          <ArrowRight size={32} />
         </div>
 
-        {/* Shipment Details with HSN */}
-        <div className="docket-shipment-details">
-          <table className="shipment-table-premium">
-            <thead>
-              <tr>
-                <th>PKGS</th>
-                <th>DESCRIPTION OF GOODS</th>
-                <th>HSN CODE</th>
-                <th>ACTUAL WT (KG)</th>
-                <th>VOL WT (KG)</th>
-                <th>CHARGED WT (KG)</th>
-                <th>MODE</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="text-center font-bold">{safeData.orderDetails.boxesCount || 0}</td>
-                <td>
-                  <strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong>
-                </td>
-                <td className="text-center">{safeData.orderDetails.hsnCode || "1234"}</td>
-                <td className="text-center">{safeData.orderDetails.weight || 0}</td>
-                <td className="text-center">{safeData.volWeight}</td>
-                <td className="text-center font-bold text-red">{safeData.chargedWeight}</td>
-                <td className="text-center">
-                  <div className={`mode-badge mode-${bookingMode || 'surface'}`}>
-                    {getModeIcon()}
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Invoice and Freight Section */}
-        <div className="docket-invoice-section">
-          <div className="invoice-grid">
-            <div className="invoice-box">
-              <div className="invoice-header">INVOICE DETAILS</div>
-              {safeData.invoices?.filter(inv => inv.no).map((inv, idx) => (
-                <div key={idx} className="invoice-row">
-                  <span>{inv.no}</span>
-                  <span>₹{parseFloat(inv.value).toLocaleString()}</span>
-                </div>
-              ))}
-              <div className="invoice-total">
-                <span>TOTAL VALUE:</span>
-                <strong>₹{totalValue?.toLocaleString() || 0}</strong>
-              </div>
-            </div>
-            {showFreight && (
-              <div className="freight-box">
-                <div className="freight-header">FREIGHT DETAILS</div>
-                <div className="freight-row">
-                  <span>Base Freight:</span>
-                  <strong>₹{safeData.freightAmount.toLocaleString()}</strong>
-                </div>
-                <div className="freight-row">
-                  <span>GST (18%):</span>
-                  <strong>₹{safeData.gstAmount.toLocaleString()}</strong>
-                </div>
-                <div className="freight-row total">
-                  <span>TOTAL:</span>
-                  <strong>₹{safeData.totalAmount.toLocaleString()}</strong>
-                </div>
-                {ewayBill && <div className="eway-bill">E-WAY: {ewayBill}</div>}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Terms Section */}
-        <div className="docket-terms-premium">
-          <div className="terms-content">
-            <h4>TERMS &amp; CONDITIONS</h4>
-            <ul>
-              <li>Goods carried at Owner's Risk. Insurance recommended.</li>
-              <li>Claim within 7 days of delivery. Jurisdiction: Delhi Only.</li>
-              <li>Transit liability as per Carriers Act, 1865.</li>
-              <li>E-Way Bill mandatory for invoice &gt; ₹50,000.</li>
-            </ul>
-          </div>
-          <div className="signature-area">
-            <div className="signature-line">
-              <div className="line"></div>
-              <p>Receiver's Signature</p>
-            </div>
-            <div className="signature-line">
-              <div className="stamp-box">FOR FAITH CARGO PVT LTD</div>
-              <p>Authorized Signatory</p>
+        <div className="party-card receiver">
+          <div className="party-header">
+            <div className="party-icon">📥</div>
+            <div>
+              <h3>CONSIGNEE</h3>
+              <p>(Receiver)</p>
             </div>
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="docket-footer-premium">
-          <div className="footer-copies">
-            <span>📄 ORIGINAL - CONSIGNOR</span>
-            <span>📄 DUPLICATE - CONSIGNEE</span>
-            <span>📄 TRIPLICATE - OFFICE</span>
-          </div>
-          <div className="footer-contact">
-            <span>🌐 www.faithcargo.com</span>
-            <span>📞 +91 9818641504</span>
-            <span>✉️ care@faithcargo.com</span>
+          <div className="party-body">
+            <h4>{safeData.delivery.name || "____________________"}</h4>
+            <p className="address">{safeData.delivery.address || "Address not provided"}</p>
+            <div className="party-details">
+              <span>📮 {safeData.delivery.pincode || "______"}</span>
+              <span>📍 {safeData.delivery.city || "_____"}, {safeData.delivery.state || "_____"}</span>
+              <span>📞 {safeData.delivery.contact || "_________"}</span>
+              {safeData.delivery.gstin && <span>🔷 GST: {safeData.delivery.gstin}</span>}
+            </div>
           </div>
         </div>
       </div>
-    </>
+
+      {/* Shipment Details Table */}
+      <div className="shipment-details-table">
+        <table>
+          <thead>
+            <tr>
+              <th width="8%">PKGS</th>
+              <th width="32%">DESCRIPTION</th>
+              <th width="10%">HSN</th>
+              <th width="12%">ACTUAL WT</th>
+              <th width="12%">VOL WT</th>
+              <th width="12%">CHARGED WT</th>
+              <th width="14%">MODE</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="main-row">
+              <td className="text-center">{safeData.orderDetails.boxesCount || 0}</td>
+              <td>
+                <strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong>
+                <div className="material-note">Said to contain</div>
+              </td>
+              <td className="text-center">{safeData.orderDetails.hsnCode || "1234"}</td>
+              <td className="text-center">{safeData.orderDetails.weight || 0} kg</td>
+              <td className="text-center">{safeData.volWeight} kg</td>
+              <td className="text-center"><strong>{safeData.chargedWeight} kg</strong></td>
+              <td className="text-center">
+                <div className={`mode-tag mode-${bookingMode || 'surface'}`}>
+                  {getModeIcon()}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Invoice & Freight Section */}
+      <div className="invoice-freight-section">
+        <div className="invoice-details">
+          <div className="section-title">📄 INVOICE DETAILS</div>
+          <div className="invoice-list">
+            {safeData.invoices?.filter(inv => inv.no).map((inv, idx) => (
+              <div key={idx} className="invoice-item">
+                <span>{inv.no}</span>
+                <span>₹{parseFloat(inv.value).toLocaleString()}</span>
+              </div>
+            ))}
+            <div className="invoice-total">
+              <span>TOTAL VALUE:</span>
+              <strong>₹{totalValue?.toLocaleString() || 0}</strong>
+            </div>
+            {ewayBill && <div className="eway-bill-info">E-WAY BILL: {ewayBill}</div>}
+          </div>
+        </div>
+
+        {showFreight && ratesData && (
+          <div className="freight-details">
+            <div className="section-title">💰 FREIGHT DETAILS</div>
+            <div className="freight-list">
+              <div className="freight-item">
+                <span>Base Freight:</span>
+                <strong>₹{Math.round(ratesData.baseRate || 0).toLocaleString()}</strong>
+              </div>
+              <div className="freight-item">
+                <span>GST (18%):</span>
+                <strong>₹{Math.round(ratesData.gst || 0).toLocaleString()}</strong>
+              </div>
+              <div className="freight-item">
+                <span>Documentation:</span>
+                <strong>₹50</strong>
+              </div>
+              <div className="freight-item total">
+                <span>TOTAL PAYABLE:</span>
+                <strong>₹{Math.round(ratesData.grandTotal || 0).toLocaleString()}</strong>
+              </div>
+            </div>
+            <div className="rate-slab-info-small">
+              Rate Slab: {ratesData.slab} @ ₹{ratesData.ratePerKg}/kg
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Terms & Signatures */}
+      <div className="terms-signatures">
+        <div className="terms">
+          <h4>TERMS & CONDITIONS</h4>
+          <ul>
+            <li>Goods carried at Owner's Risk. Insurance recommended.</li>
+            <li>Claim within 7 days of delivery. Jurisdiction: Delhi Only.</li>
+            <li>Transit liability as per Carriers Act, 1865.</li>
+            <li>E-Way Bill mandatory for invoice &gt; ₹50,000.</li>
+            <li>All disputes subject to Delhi jurisdiction.</li>
+          </ul>
+        </div>
+        <div className="signatures">
+          <div className="signature-box">
+            <div className="sign-line"></div>
+            <p>Receiver's Signature</p>
+          </div>
+          <div className="signature-box">
+            <div className="stamp">FOR FAITH CARGO PVT LTD</div>
+            <p>Authorized Signatory</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="docket-footer-a4">
+        <div className="footer-copies">
+          <span>📄 ORIGINAL - CONSIGNOR</span>
+          <span>📄 DUPLICATE - CONSIGNEE</span>
+          <span>📄 TRIPLICATE - OFFICE COPY</span>
+        </div>
+        <div className="footer-contact">
+          <span>🌐 www.faithcargo.com</span>
+          <span>📞 9818641504</span>
+          <span>✉️ care@faithcargo.com</span>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -348,69 +466,6 @@ const InvoiceUpload = ({ onUpload }) => {
 };
 
 // ============================================
-// 💰 FREIGHT CALCULATOR
-// ============================================
-const FreightCalculator = ({ weight, origin, destination, bookingMode, onCalculate }) => {
-  const [freight, setFreight] = useState({ base: 0, gst: 0, total: 0 });
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const calculateFreight = async () => {
-      if (weight > 0 && origin && destination) {
-        setLoading(true);
-        try {
-          const response = await fetch("https://faithcargo.onrender.com/api/shipments/calculate-freight/", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ origin, destination, weight: parseFloat(weight) })
-          });
-          const data = await response.json();
-          if (data.success) {
-            const multiplier = bookingMode === 'air' ? 1.5 : bookingMode === 'express' ? 1.3 : bookingMode === 'rail' ? 0.8 : 1;
-            const baseFreight = data.freight_charge * multiplier;
-            const gst = baseFreight * 0.18;
-            const total = baseFreight + gst + 50;
-            const freightResult = { base: baseFreight, gst, total };
-            setFreight(freightResult);
-            if (onCalculate) onCalculate(freightResult);
-          }
-        } catch (error) {
-          console.error("Freight calculation error:", error);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-    calculateFreight();
-  }, [weight, origin, destination, bookingMode, onCalculate]);
-
-  if (weight === 0 || weight === undefined) return null;
-
-  return (
-    <div className="freight-calculator-card">
-      <div className="freight-header">
-        <Calculator size={18} />
-        <span>Freight Calculation {loading && "(Calculating...)"}</span>
-      </div>
-      <div className="freight-details">
-        <div className="freight-item">
-          <span>Base Freight:</span>
-          <strong>₹{freight.base.toLocaleString()}</strong>
-        </div>
-        <div className="freight-item">
-          <span>GST (18%):</span>
-          <strong>₹{freight.gst.toLocaleString()}</strong>
-        </div>
-        <div className="freight-item total">
-          <span>Total Amount:</span>
-          <strong className="text-red">₹{freight.total.toLocaleString()}</strong>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ============================================
 // 🚀 MAIN COMPONENT
 // ============================================
 export default function CreateOrder() {
@@ -423,7 +478,7 @@ export default function CreateOrder() {
   const [apiError, setApiError] = useState("");
   const [bookingMode, setBookingMode] = useState("surface");
   const [uploadedInvoices, setUploadedInvoices] = useState([]);
-  const [freightData, setFreightData] = useState({ base: 0, gst: 0, total: 0 });
+  const [ratesData, setRatesData] = useState(null);
   
   // New States
   const [isManualLR, setIsManualLR] = useState(false);
@@ -441,7 +496,6 @@ export default function CreateOrder() {
     invoices.reduce((sum, inv) => sum + (parseFloat(inv.value) || 0), 0), 
   [invoices]);
 
-  // Volumetric Weight (CM based - divide by 4000)
   const volWeight = useMemo(() => {
     const totalVol = boxes.reduce((acc, b) => {
       const l = parseFloat(b.l) || 0;
@@ -493,8 +547,6 @@ export default function CreateOrder() {
     setLoading(true);
     setApiError("");
 
-    const finalLRNumber = isManualLR ? manualLRNumber : null;
-
     const orderData = {
       pickupName: pickup.name,
       pickupAddress: pickup.address,
@@ -515,11 +567,11 @@ export default function CreateOrder() {
       total_value: totalInvoiceValue,
       eway_bill: needsEwayBill ? ewayBill : "",
       booking_mode: bookingMode,
-      freight_base: freightData.base,
-      freight_gst: freightData.gst,
-      freight_total: freightData.total,
+      freight_base: ratesData?.baseRate || 0,
+      freight_gst: ratesData?.gst || 0,
+      freight_total: ratesData?.grandTotal || 0,
       is_manual_lr: isManualLR,
-      manual_lr_number: finalLRNumber,
+      manual_lr_number: isManualLR ? manualLRNumber : null,
       invoices: invoices.filter(inv => inv.no && inv.value).map(inv => ({
         invoice_no: inv.no,
         invoice_value: parseFloat(inv.value)
@@ -588,7 +640,7 @@ export default function CreateOrder() {
         <header className="page-header-premium no-print">
           <div className="header-text">
             <h1>Premium Shipment Booking</h1>
-            <p>Create professional consignment with luxury docket</p>
+            <p>Create professional consignment with weight-based rates</p>
           </div>
           <div className="realtime-stats-premium">
             <div className="stat-card-premium">
@@ -779,12 +831,12 @@ export default function CreateOrder() {
                   </div>
                 )}
 
-                <FreightCalculator 
+                <WeightBasedRateCalculator 
                   weight={chargedWeight}
                   origin={pickup.pincode}
                   destination={delivery.pincode}
                   bookingMode={bookingMode}
-                  onCalculate={setFreightData}
+                  onCalculate={setRatesData}
                 />
 
                 {/* LR Settings */}
@@ -837,7 +889,7 @@ export default function CreateOrder() {
               
               <div className="docket-preview">
                 <LuxuryDocket 
-                  data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight, freightAmount: freightData.base, gstAmount: freightData.gst, totalAmount: freightData.total}}
+                  data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight}}
                   lrNumber={lrNumber}
                   totalValue={totalInvoiceValue}
                   ewayBill={ewayBill}
@@ -846,6 +898,7 @@ export default function CreateOrder() {
                   showFreight={showFreightOnDocket}
                   isManualLR={isManualLR}
                   manualLRNumber={manualLRNumber}
+                  ratesData={ratesData}
                 />
               </div>
 
@@ -886,7 +939,7 @@ export default function CreateOrder() {
 
         <div className="print-only">
           <LuxuryDocket 
-            data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight, freightAmount: freightData.base, gstAmount: freightData.gst, totalAmount: freightData.total}}
+            data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight}}
             lrNumber={lrNumber}
             totalValue={totalInvoiceValue}
             ewayBill={ewayBill}
@@ -895,6 +948,7 @@ export default function CreateOrder() {
             showFreight={showFreightOnDocket}
             isManualLR={isManualLR}
             manualLRNumber={manualLRNumber}
+            ratesData={ratesData}
           />
         </div>
       </main>

@@ -1,6 +1,6 @@
 /* ==========================================================================
-   FAITH CARGO - PREMIUM CREATE ORDER v6.0
-   Luxury Booking Interface with Professional Docket
+   FAITH CARGO - PREMIUM CREATE ORDER v7.0
+   Luxury Booking Interface with A4 Optimized Docket
    ========================================================================== */
 
 /* -----------------------------------------------------------------------
@@ -399,7 +399,122 @@ input:focus, textarea:focus {
 }
 
 /* -----------------------------------------------------------------------
-   8. INVOICE UPLOAD COMPONENT
+   8. WEIGHT BASED RATE CALCULATOR (NEW)
+   ----------------------------------------------------------------------- */
+.weight-based-rate-calculator {
+    margin-top: 20px;
+    padding: 18px;
+    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+    border-radius: var(--radius-md);
+    border-left: 4px solid #0284c7;
+}
+
+.rate-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    margin-bottom: 15px;
+    color: #0369a1;
+}
+
+.rate-slab-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #bae6fd;
+}
+
+.slab-badge {
+    background: #0284c7;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.rate-per-kg {
+    font-size: 14px;
+    font-weight: 800;
+    color: #0369a1;
+}
+
+.rate-comparison {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.rate-card {
+    text-align: center;
+    padding: 10px;
+    border-radius: 10px;
+    background: white;
+    transition: var(--transition);
+}
+
+.rate-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-premium);
+}
+
+.rate-card.ba { border-top: 3px solid #8b5cf6; }
+.rate-card.b2b { border-top: 3px solid #3b82f6; }
+.rate-card.corporate { border-top: 3px solid #10b981; }
+.rate-card.enterprise { border-top: 3px solid #f59e0b; }
+
+.rate-card-header {
+    font-size: 10px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.rate-amount {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--fc-black);
+}
+
+.rate-note {
+    font-size: 8px;
+    color: var(--fc-text-light);
+    margin-top: 3px;
+}
+
+.rate-breakdown {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #bae6fd;
+}
+
+.breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    padding: 4px 0;
+}
+
+.breakdown-item.total {
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--fc-red);
+    border-top: 1px dashed #bae6fd;
+    margin-top: 5px;
+    padding-top: 8px;
+}
+
+.loading-text {
+    font-size: 11px;
+    color: #0369a1;
+    animation: pulse 1s infinite;
+}
+
+/* -----------------------------------------------------------------------
+   9. INVOICE UPLOAD COMPONENT
    ----------------------------------------------------------------------- */
 .invoice-upload-container { margin-top: 20px; }
 
@@ -459,45 +574,6 @@ input:focus, textarea:focus {
 }
 
 .file-item button:hover { transform: scale(1.1); }
-
-/* -----------------------------------------------------------------------
-   9. FREIGHT CALCULATOR
-   ----------------------------------------------------------------------- */
-.freight-calculator-card {
-    margin-top: 20px;
-    padding: 18px;
-    background: linear-gradient(135deg, #fef3c7, #fde68a);
-    border-radius: var(--radius-md);
-    border-left: 4px solid var(--fc-gold);
-}
-
-.freight-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 800;
-    margin-bottom: 12px;
-    color: #92400e;
-}
-
-.freight-details { display: flex; flex-direction: column; gap: 8px; }
-
-.freight-item {
-    display: flex;
-    justify-content: space-between;
-    font-size: 13px;
-    padding: 5px 0;
-}
-
-.freight-item.total {
-    font-size: 16px;
-    font-weight: 800;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 2px dashed #d97706;
-}
-
-.text-red { color: var(--fc-red); font-weight: 800; }
 
 /* -----------------------------------------------------------------------
    10. DYNAMIC INVOICE ROWS
@@ -585,7 +661,7 @@ input:focus, textarea:focus {
 }
 
 /* -----------------------------------------------------------------------
-   12. LR SETTINGS SECTION (NEW)
+   12. LR SETTINGS SECTION
    ----------------------------------------------------------------------- */
 .lr-settings-section {
     margin-top: 20px;
@@ -705,9 +781,9 @@ input:focus, textarea:focus {
 }
 
 /* -----------------------------------------------------------------------
-   14. LUXURY DOCKET STYLES (UPDATED)
+   14. A4 LUXURY DOCKET STYLES (COMPLETELY UPGRADED)
    ----------------------------------------------------------------------- */
-.luxury-docket {
+.luxury-docket-a4 {
     width: 210mm;
     min-height: 297mm;
     background: white;
@@ -715,294 +791,397 @@ input:focus, textarea:focus {
     font-family: 'Arial', sans-serif;
     box-shadow: var(--shadow-luxury);
     margin: 0 auto;
+    page-break-after: avoid;
+    break-inside: avoid;
 }
 
-.docket-border-gold {
+.docket-border-premium {
     position: absolute;
-    top: 5px;
-    left: 5px;
-    right: 5px;
-    bottom: 5px;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
     border: 2px solid var(--fc-red);
     pointer-events: none;
+    border-radius: 4px;
 }
 
-.docket-watermark-premium {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-45deg);
-    font-size: 60px;
-    color: rgba(211,47,47,0.03);
-    font-weight: 900;
-    white-space: nowrap;
-    pointer-events: none;
-}
-
-.docket-header-premium {
-    padding: 20px;
+/* Header Section */
+.docket-header-a4 {
+    padding: 20px 25px;
     display: flex;
     justify-content: space-between;
-    border-bottom: 3px solid var(--fc-red);
-}
-
-.docket-brand-premium {
-    display: flex;
-    gap: 20px;
     align-items: flex-start;
+    border-bottom: 3px solid var(--fc-red);
+    background: white;
 }
 
-.docket-logo-premium {
-    height: 70px;
+.company-info {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.company-logo {
+    height: 60px;
     object-fit: contain;
 }
 
-.brand-text-premium h1 {
-    font-size: 22px;
+.company-details h1 {
+    font-size: 18px;
     font-weight: 900;
     color: var(--fc-black);
     margin: 0;
 }
 
-.brand-text-premium p {
+.company-details p {
     font-size: 9px;
     color: var(--fc-text-light);
     margin: 2px 0;
 }
 
-/* Company Details Header - NEW */
-.company-details-header {
+.company-address {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    margin-top: 8px;
-    padding: 6px 10px;
-    background: #f8fafc;
-    border-radius: 6px;
+    margin-top: 6px;
     font-size: 8px;
     color: var(--fc-text-light);
-    border-left: 2px solid var(--fc-red);
 }
 
-.premium-badge {
-    background: linear-gradient(135deg, var(--fc-red), var(--fc-red-dark));
+.docket-meta {
+    text-align: right;
+}
+
+.consignment-badge {
+    background: var(--fc-black);
     color: white;
-    padding: 3px 12px;
-    border-radius: 20px;
-    font-size: 9px;
-    display: inline-block;
-    margin-top: 6px;
+    padding: 4px 12px;
+    font-size: 10px;
     font-weight: 800;
+    display: inline-block;
+    margin-bottom: 8px;
 }
 
-.docket-meta-premium .meta-box { text-align: right; }
+.barcode {
+    margin: 5px 0;
+}
 
-.lr-premium {
-    font-size: 24px;
+.lr-number {
+    font-size: 22px;
     font-weight: 900;
     color: var(--fc-red);
     font-family: monospace;
+    letter-spacing: 1px;
 }
 
-.awb-premium {
-    font-size: 12px;
+.awb-number {
+    font-size: 11px;
     color: var(--fc-text-light);
 }
 
-.docket-address-premium {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+.date {
+    font-size: 10px;
+    color: var(--fc-text-light);
+    margin-top: 3px;
+}
+
+/* Parties Section - Sender & Receiver Side by Side */
+.parties-section {
+    display: flex;
+    align-items: stretch;
     gap: 20px;
-    padding: 20px;
+    padding: 20px 25px;
+    background: #fafafa;
 }
 
-.address-card {
-    border: 2px solid var(--fc-border);
-    border-radius: var(--radius-md);
+.party-card {
+    flex: 1;
+    background: white;
+    border: 1px solid var(--fc-border);
+    border-radius: 12px;
     overflow: hidden;
+    transition: var(--transition);
 }
 
-.address-header {
-    background: #f8fafc;
-    padding: 12px;
+.party-card:hover {
+    box-shadow: var(--shadow-premium);
+}
+
+.party-header {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    padding: 12px 15px;
     display: flex;
     align-items: center;
     gap: 10px;
     border-bottom: 2px solid var(--fc-border);
 }
 
-.address-header h3 { font-size: 12px; font-weight: 800; margin: 0; }
-
-.address-body { padding: 15px; }
-.address-body h4 { font-size: 14px; margin-bottom: 8px; color: var(--fc-black); }
-.address-body p { font-size: 11px; color: var(--fc-text-light); margin-bottom: 10px; line-height: 1.4; }
-
-.address-details {
+.party-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--fc-red-soft);
+    border-radius: 50%;
     display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    font-size: 10px;
-    color: var(--fc-text-light);
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
 }
 
-.address-details span {
+.party-header h3 {
+    font-size: 12px;
+    font-weight: 800;
+    margin: 0;
+    color: var(--fc-black);
+}
+
+.party-header p {
+    font-size: 9px;
+    color: var(--fc-text-light);
+    margin: 0;
+}
+
+.party-body {
+    padding: 15px;
+}
+
+.party-body h4 {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--fc-black);
+    margin-bottom: 8px;
+}
+
+.party-body .address {
+    font-size: 10px;
+    color: var(--fc-text-light);
+    line-height: 1.4;
+    margin-bottom: 10px;
+}
+
+.party-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 9px;
+    color: var(--fc-text-light);
+    padding-top: 8px;
+    border-top: 1px dashed var(--fc-border);
+}
+
+.party-details span {
     display: inline-flex;
     align-items: center;
     gap: 4px;
 }
 
-.shipment-table-premium {
-    width: calc(100% - 40px);
-    margin: 0 20px;
+.party-arrow {
+    display: flex;
+    align-items: center;
+    color: var(--fc-red);
+}
+
+/* Shipment Details Table */
+.shipment-details-table {
+    padding: 0 25px;
+    margin-bottom: 20px;
+}
+
+.shipment-details-table table {
+    width: 100%;
     border-collapse: collapse;
 }
 
-.shipment-table-premium th {
+.shipment-details-table th {
     background: #f8fafc;
-    padding: 10px;
-    font-size: 10px;
-    font-weight: 800;
-    border: 1px solid var(--fc-border);
-    text-align: center;
-}
-
-.shipment-table-premium td {
-    padding: 10px;
-    border: 1px solid var(--fc-border);
-    font-size: 11px;
-    text-align: center;
-}
-
-.shipment-meta {
+    padding: 10px 8px;
     font-size: 9px;
+    font-weight: 800;
+    text-align: center;
+    border: 1px solid var(--fc-border);
     color: var(--fc-text-light);
-    margin-top: 4px;
+    text-transform: uppercase;
 }
 
-.mode-badge {
+.shipment-details-table td {
+    padding: 10px 8px;
+    font-size: 10px;
+    text-align: center;
+    border: 1px solid var(--fc-border);
+}
+
+.main-row td {
+    font-weight: 600;
+}
+
+.material-note {
+    font-size: 8px;
+    color: var(--fc-text-light);
+    margin-top: 3px;
+}
+
+.mode-tag {
     display: inline-block;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 9px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 8px;
     font-weight: 800;
 }
 
-.mode-badge.mode-surface { background: #dbeafe; color: #1e40af; }
-.mode-badge.mode-air { background: #fed7aa; color: #9a3412; }
-.mode-badge.mode-rail { background: #d1fae5; color: #065f46; }
-.mode-badge.mode-express { background: #fef3c7; color: #92400e; }
+.mode-tag.mode-surface { background: #dbeafe; color: #1e40af; }
+.mode-tag.mode-air { background: #fed7aa; color: #9a3412; }
+.mode-tag.mode-rail { background: #d1fae5; color: #065f46; }
+.mode-tag.mode-express { background: #fef3c7; color: #92400e; }
 
-.docket-invoice-section { padding: 20px; }
-
-.invoice-grid {
+/* Invoice & Freight Section */
+.invoice-freight-section {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
+    padding: 0 25px;
+    margin-bottom: 20px;
 }
 
-.invoice-box, .freight-box {
-    border: 2px solid var(--fc-border);
-    border-radius: var(--radius-md);
-    padding: 15px;
+.invoice-details, .freight-details {
+    border: 1px solid var(--fc-border);
+    border-radius: 10px;
+    overflow: hidden;
 }
 
-.invoice-header, .freight-header {
+.section-title {
+    background: #f8fafc;
+    padding: 10px 15px;
+    font-size: 10px;
     font-weight: 800;
-    font-size: 11px;
-    margin-bottom: 10px;
-    padding-bottom: 6px;
     border-bottom: 2px solid var(--fc-border);
 }
 
-.invoice-row {
+.invoice-list, .freight-list {
+    padding: 12px;
+}
+
+.invoice-item {
     display: flex;
     justify-content: space-between;
     font-size: 10px;
-    margin-bottom: 5px;
+    padding: 5px 0;
+    border-bottom: 1px dotted var(--fc-border);
 }
 
 .invoice-total {
-    margin-top: 8px;
-    padding-top: 6px;
-    border-top: 1px dashed var(--fc-border);
-    display: flex;
-    justify-content: space-between;
-    font-weight: 800;
-    font-size: 11px;
-}
-
-.freight-row {
     display: flex;
     justify-content: space-between;
     font-size: 11px;
-    margin-bottom: 6px;
-}
-
-.freight-row.total {
-    font-size: 13px;
     font-weight: 800;
-    color: var(--fc-red);
-    margin-top: 8px;
-    padding-top: 6px;
-    border-top: 2px solid var(--fc-red);
+    padding: 8px 0 0;
+    margin-top: 5px;
+    border-top: 2px solid var(--fc-border);
 }
 
-.eway-bill {
-    margin-top: 10px;
+.eway-bill-info {
+    margin-top: 8px;
     padding: 5px;
-    background: #f1f5f9;
+    background: #fef3c7;
     text-align: center;
     font-size: 9px;
     font-weight: 800;
     border-radius: 4px;
+    color: #92400e;
 }
 
-.docket-terms-premium {
+.freight-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    padding: 6px 0;
+}
+
+.freight-item.total {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--fc-red);
+    border-top: 2px solid var(--fc-red);
+    margin-top: 8px;
+    padding-top: 8px;
+}
+
+.rate-slab-info-small {
+    margin-top: 10px;
+    padding: 6px;
+    background: #e0f2fe;
+    text-align: center;
+    font-size: 8px;
+    font-weight: 600;
+    border-radius: 4px;
+    color: #0369a1;
+}
+
+/* Terms & Signatures */
+.terms-signatures {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1.5fr 1fr;
     gap: 20px;
-    padding: 20px;
-    background: #f8fafc;
-    margin: 0 20px 20px;
-    border-radius: var(--radius-md);
+    padding: 0 25px;
+    margin-bottom: 20px;
 }
 
-.terms-content h4 {
+.terms {
+    background: #f8fafc;
+    padding: 12px 15px;
+    border-radius: 10px;
+}
+
+.terms h4 {
     font-size: 10px;
     font-weight: 800;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     color: var(--fc-black);
 }
 
-.terms-content ul {
+.terms ul {
     padding-left: 18px;
     font-size: 8px;
     color: var(--fc-text-light);
 }
 
-.terms-content li { margin-bottom: 3px; }
-
-.signature-area { text-align: center; }
-
-.signature-line { margin-bottom: 15px; }
-
-.line {
-    border-top: 1px solid var(--fc-black);
-    width: 80%;
-    margin: 0 auto 5px;
+.terms li {
+    margin-bottom: 3px;
 }
 
-.stamp-box {
+.signatures {
+    display: flex;
+    gap: 20px;
+}
+
+.signature-box {
+    flex: 1;
+    text-align: center;
+}
+
+.sign-line {
+    border-top: 1px solid var(--fc-black);
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+.stamp {
     border: 2px dashed var(--fc-red);
-    padding: 10px;
-    font-size: 9px;
+    padding: 8px;
+    font-size: 8px;
     font-weight: 800;
     margin-bottom: 5px;
     color: var(--fc-red);
+    background: #fff1f2;
 }
 
-.docket-footer-premium {
-    padding: 12px 20px;
+.signature-box p {
+    font-size: 8px;
+    color: var(--fc-text-light);
+}
+
+/* Footer */
+.docket-footer-a4 {
+    padding: 12px 25px;
     background: linear-gradient(135deg, var(--fc-black), var(--fc-black-light));
     color: white;
     display: flex;
@@ -1121,7 +1300,6 @@ input:focus, textarea:focus {
     transform: translateY(-2px);
 }
 
-/* Label Print Button - NEW */
 .action-label {
     background: linear-gradient(135deg, #10b981, #059669);
     color: white;
@@ -1206,7 +1384,7 @@ input:focus, textarea:focus {
         size: A4;
         margin: 0;
     }
-    .luxury-docket {
+    .luxury-docket-a4 {
         box-shadow: none;
         margin: 0;
         padding: 0;
@@ -1249,19 +1427,32 @@ input:focus, textarea:focus {
         grid-template-columns: repeat(2, 1fr);
     }
     
-    .invoice-grid {
+    .rate-comparison {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .invoice-freight-section {
         grid-template-columns: 1fr;
     }
     
-    .docket-address-premium {
+    .parties-section {
+        flex-direction: column;
+    }
+    
+    .party-arrow {
+        transform: rotate(90deg);
+        justify-content: center;
+    }
+    
+    .terms-signatures {
         grid-template-columns: 1fr;
     }
     
-    .docket-terms-premium {
-        grid-template-columns: 1fr;
+    .signatures {
+        flex-direction: column;
     }
     
-    .docket-footer-premium {
+    .docket-footer-a4 {
         flex-direction: column;
         text-align: center;
     }
@@ -1286,6 +1477,16 @@ input:focus, textarea:focus {
     .modal-actions-premium button {
         width: 100%;
         justify-content: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .rate-comparison {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -1316,5 +1517,16 @@ input:focus, textarea:focus {
     to {
         opacity: 1;
         transform: translateX(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
