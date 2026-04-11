@@ -114,16 +114,15 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
 };
 
 // ============================================
-// 🎨 PROFESSIONAL DOCKET WITH OFFICIAL STAMP
+// 🎨 DOCKET COMPONENT (FOR PRINTING)
 // ============================================
-const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, isManualLR, manualLRNumber, freightData }) => {
+const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData }, ref) => {
   const barcodeRef = useRef(null);
   
   useEffect(() => {
-    const barcodeNumber = isManualLR && manualLRNumber ? manualLRNumber : lrNumber;
-    if (barcodeNumber && barcodeRef.current) {
+    if (lrNumber && barcodeRef.current) {
       try {
-        JsBarcode(barcodeRef.current, barcodeNumber, {
+        JsBarcode(barcodeRef.current, lrNumber, {
           format: "CODE128", 
           width: 1.8, 
           height: 40, 
@@ -132,7 +131,7 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
         });
       } catch (err) {}
     }
-  }, [lrNumber, isManualLR, manualLRNumber]);
+  }, [lrNumber]);
 
   const getModeText = () => {
     switch(bookingMode) {
@@ -143,7 +142,6 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
     }
   };
 
-  const displayLRNumber = isManualLR && manualLRNumber ? manualLRNumber : lrNumber;
   const safeData = {
     pickup: data?.pickup || { name: "", address: "", pincode: "", contact: "", city: "", state: "", gstin: "" },
     delivery: data?.delivery || { name: "", address: "", pincode: "", contact: "", city: "", state: "", gstin: "" },
@@ -154,7 +152,7 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
   };
 
   return (
-    <div className="professional-docket">
+    <div ref={ref} className="print-docket">
       <div className="docket-inner-border"></div>
       
       {/* Header */}
@@ -174,7 +172,7 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
         <div className="docket-number">
           <div className="lr-badge">CONSIGNMENT NOTE</div>
           <canvas ref={barcodeRef} className="barcode-canvas"></canvas>
-          <div className="lr-value">{displayLRNumber || "DRAFT"}</div>
+          <div className="lr-value">{lrNumber || "DRAFT"}</div>
           <div className="awb-value">AWB: {awbNumber || "N/A"}</div>
           <div className="date-value">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
         </div>
@@ -358,7 +356,7 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
       </div>
     </div>
   );
-};
+});
 
 // ============================================
 // 📎 INVOICE UPLOAD
@@ -432,6 +430,98 @@ export default function CreateOrder() {
   const [manualLRNumber, setManualLRNumber] = useState("");
   const [showFreightOnDocket, setShowFreightOnDocket] = useState(true);
   
+  const printDocketRef = useRef(null);
+
+  // Print Docket Function
+  const handlePrintDocket = () => {
+    const printContent = printDocketRef.current;
+    if (printContent) {
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Faith Cargo - Docket ${lrNumber}</title>
+            <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { font-family: Arial, sans-serif; background: white; }
+              .print-docket { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 10px; position: relative; }
+              .docket-inner-border { position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border: 2px solid #d32f2f; pointer-events: none; }
+              .docket-header { display: flex; justify-content: space-between; padding: 15px; border-bottom: 3px solid #d32f2f; }
+              .brand-section { display: flex; gap: 12px; }
+              .brand-logo { height: 55px; }
+              .brand-info h2 { font-size: 16px; }
+              .brand-info p { font-size: 8px; color: #666; }
+              .contact-line { font-size: 7px; color: #666; margin-top: 5px; display: flex; flex-direction: column; gap: 2px; }
+              .docket-number { text-align: right; }
+              .lr-badge { background: #0f172a; color: white; padding: 3px 10px; font-size: 9px; display: inline-block; }
+              .barcode-canvas { margin: 4px 0; }
+              .lr-value { font-size: 20px; font-weight: bold; color: #d32f2f; font-family: monospace; }
+              .awb-value, .date-value { font-size: 9px; color: #666; }
+              .parties-container { display: flex; gap: 15px; padding: 15px; background: #fafafa; }
+              .party { flex: 1; background: white; border: 1px solid #e2e8f0; border-radius: 8px; }
+              .party-title { background: #f8fafc; padding: 8px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #e2e8f0; }
+              .party-icon { width: 28px; height: 28px; background: #ffebed; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+              .party-title h3 { font-size: 11px; }
+              .party-title span { font-size: 8px; color: #666; }
+              .party-content { padding: 12px; }
+              .party-content h4 { font-size: 11px; margin-bottom: 6px; }
+              .address-text { font-size: 9px; color: #666; margin-bottom: 8px; }
+              .party-contact { display: flex; flex-wrap: wrap; gap: 8px; font-size: 8px; padding-top: 6px; border-top: 1px dashed #e2e8f0; }
+              .party-arrow-icon { display: flex; align-items: center; color: #d32f2f; }
+              .shipment-wrapper { padding: 0 15px; margin-bottom: 15px; }
+              .shipment-data-table { width: 100%; border-collapse: collapse; }
+              .shipment-data-table th { background: #f8fafc; padding: 6px; font-size: 8px; border: 1px solid #e2e8f0; }
+              .shipment-data-table td { padding: 6px; font-size: 9px; border: 1px solid #e2e8f0; text-align: center; }
+              .goods-note { font-size: 7px; color: #666; }
+              .mode-label { display: inline-block; padding: 2px 6px; border-radius: 8px; font-size: 7px; font-weight: bold; }
+              .mode-label.surface { background: #dbeafe; color: #1e40af; }
+              .billing-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 15px; margin-bottom: 15px; }
+              .invoice-section, .freight-section { border: 1px solid #e2e8f0; border-radius: 8px; }
+              .section-header { background: #f8fafc; padding: 6px 10px; font-size: 9px; font-weight: bold; border-bottom: 1px solid #e2e8f0; }
+              .invoice-items, .freight-items { padding: 8px; }
+              .invoice-row-line, .freight-row-line { display: flex; justify-content: space-between; font-size: 8px; padding: 3px 0; }
+              .invoice-total-line { display: flex; justify-content: space-between; font-size: 9px; font-weight: bold; padding-top: 5px; border-top: 1px solid #e2e8f0; margin-top: 5px; }
+              .eway-badge { margin-top: 5px; padding: 3px; background: #fef3c7; text-align: center; font-size: 7px; border-radius: 4px; }
+              .total-freight { font-weight: bold; color: #d32f2f; border-top: 1px solid #e2e8f0; margin-top: 5px; padding-top: 5px; }
+              .rate-note { margin-top: 6px; padding: 3px; background: #e0f2fe; text-align: center; font-size: 7px; border-radius: 4px; }
+              .stamp-signature-wrapper { display: flex; justify-content: space-between; align-items: center; padding: 0 15px; margin-bottom: 15px; }
+              .official-stamp { width: 100px; height: 100px; }
+              .stamp-circle { width: 100%; height: 100%; border-radius: 50%; background: rgba(211,47,47,0.05); display: flex; align-items: center; justify-content: center; }
+              .stamp-outer { width: 85px; height: 85px; border-radius: 50%; border: 2px solid #d32f2f; display: flex; align-items: center; justify-content: center; }
+              .stamp-inner { text-align: center; }
+              .stamp-title { font-size: 9px; font-weight: bold; color: #d32f2f; }
+              .stamp-sub { font-size: 7px; font-weight: bold; color: #d32f2f; }
+              .stamp-line { width: 25px; height: 1px; background: #d32f2f; margin: 3px auto; }
+              .stamp-auth { font-size: 6px; font-weight: bold; color: #d32f2f; }
+              .signature-area { display: flex; gap: 20px; }
+              .signature-line-item { text-align: center; }
+              .sign-line { width: 80px; border-top: 1px solid #0f172a; margin-bottom: 3px; }
+              .stamp-box { border: 1px dashed #d32f2f; padding: 5px; font-size: 7px; font-weight: bold; margin-bottom: 3px; color: #d32f2f; background: #fff1f2; }
+              .signature-line-item p { font-size: 7px; color: #666; }
+              .terms-wrapper { padding: 0 15px; margin-bottom: 15px; }
+              .terms-wrapper h4 { font-size: 9px; margin-bottom: 5px; }
+              .terms-wrapper ul { padding-left: 15px; font-size: 7px; color: #666; }
+              .docket-footer { padding: 8px 15px; background: #0f172a; color: white; display: flex; justify-content: space-between; font-size: 7px; }
+              .footer-copies, .footer-website { display: flex; gap: 15px; }
+              .text-center { text-align: center; }
+              @media print {
+                body { margin: 0; padding: 0; }
+                .print-docket { margin: 0; padding: 0; }
+              }
+            </style>
+          </head>
+          <body>
+            ${printContent.outerHTML}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }
+  };
+
   const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gstin: "" });
   const [delivery, setDelivery] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gstin: "" });
   const [orderDetails, setOrderDetails] = useState({ material: "", weight: "", boxesCount: 0, hsnCode: "1234" });
@@ -550,7 +640,7 @@ export default function CreateOrder() {
         {apiError && <div className="error-notice"><AlertCircle size={18} /> {apiError}</div>}
 
         <div className="two-column-form">
-          {/* Left Column */}
+          {/* Left Column - Sender & Receiver */}
           <div className="left-form-col">
             {/* Sender Card */}
             <div className="form-section">
@@ -623,7 +713,7 @@ export default function CreateOrder() {
             </div>
           </div>
 
-          {/* Right Column */}
+          {/* Right Column - Shipment Details & Invoice */}
           <div className="right-form-col">
             {/* Shipment Details Card */}
             <div className="form-section">
@@ -742,7 +832,7 @@ export default function CreateOrder() {
           </div>
         </div>
 
-        {/* Success Modal */}
+        {/* Success Modal with Print Button */}
         {showLR && (
           <div className="modal-overlay" onClick={() => setShowLR(false)}>
             <div className="modal-dialog" onClick={e => e.stopPropagation()}>
@@ -750,17 +840,24 @@ export default function CreateOrder() {
               <h2>Consignment Generated!</h2>
               <div className="modal-lr-number">{isManualLR ? manualLRNumber : lrNumber}</div>
               <div className="modal-awb-number">AWB: {awbNumber}</div>
-              <div className="modal-docket-view">
-                <ProfessionalDocket 
+              
+              {/* Hidden Docket for Printing */}
+              <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+                <PrintDocket
+                  ref={printDocketRef}
                   data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight}}
-                  lrNumber={lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill}
-                  awbNumber={awbNumber} bookingMode={bookingMode} showFreight={showFreightOnDocket}
-                  isManualLR={isManualLR} manualLRNumber={manualLRNumber}
+                  lrNumber={isManualLR ? manualLRNumber : lrNumber}
+                  totalValue={totalInvoiceValue}
+                  ewayBill={ewayBill}
+                  awbNumber={awbNumber}
+                  bookingMode={bookingMode}
+                  showFreight={showFreightOnDocket}
                   freightData={freightData}
                 />
               </div>
+
               <div className="modal-buttons">
-                <button className="modal-btn print-btn" onClick={() => window.print()}><Printer size={16} /> Print Docket</button>
+                <button className="modal-btn print-btn" onClick={handlePrintDocket}><Printer size={16} /> Print Docket</button>
                 <button className="modal-btn label-btn" onClick={() => {
                   const printWin = window.open('', '_blank');
                   printWin.document.write(`
@@ -793,6 +890,8 @@ export default function CreateOrder() {
                     </body>
                     </html>
                   `);
+                  printWin.document.close();
+                  printWin.focus();
                   printWin.print();
                   printWin.close();
                 }}><Barcode size={16} /> Print Label</button>
@@ -802,16 +901,6 @@ export default function CreateOrder() {
             </div>
           </div>
         )}
-
-        <div className="print-only">
-          <ProfessionalDocket 
-            data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight}}
-            lrNumber={lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill}
-            awbNumber={awbNumber} bookingMode={bookingMode} showFreight={showFreightOnDocket}
-            isManualLR={isManualLR} manualLRNumber={manualLRNumber}
-            freightData={freightData}
-          />
-        </div>
       </main>
     </div>
   );
