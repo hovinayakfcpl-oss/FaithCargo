@@ -9,13 +9,14 @@ import {
   ToggleLeft, ToggleRight, Building, Hash, Tag, FileSpreadsheet,
   Barcode, Layers, CheckSquare, Square, Printer as PrinterIcon,
   ArrowRight, Warehouse, Building2, Phone, Mail, Globe,
-  Percent, DollarSign, Scale, Weight, Ruler
+  Percent, DollarSign, Scale, Weight, Ruler, User, Users,
+  Stamp, Circle, Star, HelpCircle
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import "./CreateOrder.css";
 
 // ============================================
-// 💰 REAL FREIGHT CALCULATOR (Using Rate Matrix)
+// 💰 REAL FREIGHT CALCULATOR
 // ============================================
 const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, onCalculate }) => {
   const [freight, setFreight] = useState(null);
@@ -31,13 +32,8 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
           const response = await fetch("https://faithcargo.onrender.com/api/shipments/calculate-freight/", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-              origin: origin, 
-              destination: destination, 
-              weight: parseFloat(weight) 
-            })
+            body: JSON.stringify({ origin, destination, weight: parseFloat(weight) })
           });
-          
           const data = await response.json();
           
           if (data.success) {
@@ -47,76 +43,69 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
             const gst = baseFreight * 0.18;
             const docketCharge = 100;
             const fovCharge = 75;
-            
             let total = baseFreight + fuelSurcharge + gst + docketCharge + fovCharge;
-            
             if (total < 650) total = 650;
             
             const freightResult = {
-              baseFreight: baseFreight,
-              fuelSurcharge: fuelSurcharge,
-              gst: gst,
-              docketCharge: docketCharge,
-              fovCharge: fovCharge,
-              total: total,
+              baseFreight: Math.round(baseFreight),
+              fuelSurcharge: Math.round(fuelSurcharge),
+              gst: Math.round(gst),
+              docketCharge, fovCharge,
+              total: Math.round(total),
               ratePerKg: (baseFreight / weight).toFixed(2),
               fromZone: data.from_zone,
               toZone: data.to_zone
             };
-            
             setFreight(freightResult);
             if (onCalculate) onCalculate(freightResult);
           } else {
-            setError(data.error || "Rate not found for this route");
+            setError(data.error || "Rate not found");
           }
         } catch (err) {
-          console.error("Freight calculation error:", err);
-          setError("Network error. Please try again.");
+          setError("Network error");
         } finally {
           setLoading(false);
         }
       }
     };
-    
     calculateFreight();
-  }, [weight, origin, destination, bookingMode, onCalculate]);
+  }, [weight, origin, destination, bookingMode]);
 
   if (!origin || !destination || weight === 0) return null;
 
   return (
-    <div className="freight-calculator-card">
-      <div className="freight-header">
+    <div className="freight-card">
+      <div className="freight-card-header">
         <Calculator size={18} />
-        <span>Freight Calculation {loading && "(Calculating...)"}</span>
+        <span>Freight Calculator</span>
+        {loading && <span className="loading-badge">Calculating...</span>}
       </div>
-      
-      {error && (
-        <div className="freight-error" style={{color: '#dc2626', fontSize: '12px', padding: '8px', background: '#fee2e2', borderRadius: '8px', marginTop: '10px'}}>
-          <AlertCircle size={14} /> {error}
-        </div>
-      )}
-      
+      {error && <div className="freight-error-msg"><AlertCircle size={14} /> {error}</div>}
       {freight && !loading && (
-        <div className="freight-details" style={{marginTop: '12px'}}>
-          <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px dashed #e2e8f0'}}>
-            <span className="route-badge" style={{background: '#0284c7', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '10px'}}>{freight.fromZone} → {freight.toZone}</span>
-            <span style={{fontSize: '12px', fontWeight: 'bold'}}>₹{freight.ratePerKg}/kg</span>
+        <div className="freight-card-body">
+          <div className="route-info">
+            <span className="route-badge">{freight.fromZone} → {freight.toZone}</span>
+            <span className="rate-badge">₹{freight.ratePerKg}/kg</span>
           </div>
-          <div className="freight-item" style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0'}}>
-            <span>Base Freight:</span>
-            <strong>₹{Math.round(freight.baseFreight).toLocaleString()}</strong>
+          <div className="freight-row">
+            <span>Base Freight</span>
+            <span>₹{freight.baseFreight.toLocaleString()}</span>
           </div>
-          <div className="freight-item" style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0'}}>
-            <span>Fuel Surcharge (10%):</span>
-            <strong>₹{Math.round(freight.fuelSurcharge).toLocaleString()}</strong>
+          <div className="freight-row">
+            <span>Fuel Surcharge (10%)</span>
+            <span>₹{freight.fuelSurcharge.toLocaleString()}</span>
           </div>
-          <div className="freight-item" style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0'}}>
-            <span>GST (18%):</span>
-            <strong>₹{Math.round(freight.gst).toLocaleString()}</strong>
+          <div className="freight-row">
+            <span>GST (18%)</span>
+            <span>₹{freight.gst.toLocaleString()}</span>
           </div>
-          <div className="freight-item total" style={{display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', marginTop: '8px', paddingTop: '8px', borderTop: '2px solid #e2e8f0', color: '#d32f2f'}}>
-            <span>Total Freight:</span>
-            <strong>₹{Math.round(freight.total).toLocaleString()}</strong>
+          <div className="freight-row">
+            <span>Charges</span>
+            <span>₹{freight.docketCharge + freight.fovCharge}</span>
+          </div>
+          <div className="freight-row total-row">
+            <span>Total</span>
+            <span className="total-amount">₹{freight.total.toLocaleString()}</span>
           </div>
         </div>
       )}
@@ -125,7 +114,7 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
 };
 
 // ============================================
-// 🎨 PROFESSIONAL DOCKET (Sender Left | Receiver Right)
+// 🎨 PROFESSIONAL DOCKET WITH OFFICIAL STAMP
 // ============================================
 const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, isManualLR, manualLRNumber, freightData }) => {
   const barcodeRef = useRef(null);
@@ -141,9 +130,7 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
           displayValue: false, 
           margin: 0
         });
-      } catch (err) {
-        console.error("Barcode error:", err);
-      }
+      } catch (err) {}
     }
   }, [lrNumber, isManualLR, manualLRNumber]);
 
@@ -152,12 +139,11 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
       case 'air': return 'AIR EXPRESS';
       case 'rail': return 'RAIL CARGO';
       case 'express': return 'SPEED POST';
-      default: return 'SURFACE TRANSPORT';
+      default: return 'SURFACE';
     }
   };
 
   const displayLRNumber = isManualLR && manualLRNumber ? manualLRNumber : lrNumber;
-
   const safeData = {
     pickup: data?.pickup || { name: "", address: "", pincode: "", contact: "", city: "", state: "", gstin: "" },
     delivery: data?.delivery || { name: "", address: "", pincode: "", contact: "", city: "", state: "", gstin: "" },
@@ -168,46 +154,46 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
   };
 
   return (
-    <div className="luxury-docket-a4">
-      <div className="docket-border-premium"></div>
+    <div className="professional-docket">
+      <div className="docket-inner-border"></div>
       
       {/* Header */}
-      <div className="docket-header-a4">
-        <div className="company-info">
-          <img src={logo} alt="FCPL" className="company-logo" />
-          <div className="company-details">
-            <h1>FAITH CARGO PRIVATE LIMITED</h1>
+      <div className="docket-header">
+        <div className="brand-section">
+          <img src={logo} alt="FCPL" className="brand-logo" />
+          <div className="brand-info">
+            <h2>FAITH CARGO PRIVATE LIMITED</h2>
             <p>ISO 9001:2015 & ISO 14001:2015 CERTIFIED</p>
-            <div className="company-address">
+            <div className="contact-line">
               <span>🏢 4/15, Kirti Nagar Industrial Area, New Delhi - 110015</span>
               <span>📞 +91 9818641504 | ✉️ care@faithcargo.com</span>
               <span>🔷 GST: 07AAFCF2947K1ZD | CIN: U60231DL2021PTC384521</span>
             </div>
           </div>
         </div>
-        <div className="docket-meta">
-          <div className="consignment-badge">CONSIGNMENT NOTE</div>
-          <canvas ref={barcodeRef} className="barcode"></canvas>
-          <div className="lr-number">{displayLRNumber || "DRAFT"}</div>
-          <div className="awb-number">AWB: {awbNumber || "N/A"}</div>
-          <div className="date">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        <div className="docket-number">
+          <div className="lr-badge">CONSIGNMENT NOTE</div>
+          <canvas ref={barcodeRef} className="barcode-canvas"></canvas>
+          <div className="lr-value">{displayLRNumber || "DRAFT"}</div>
+          <div className="awb-value">AWB: {awbNumber || "N/A"}</div>
+          <div className="date-value">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
         </div>
       </div>
 
-      {/* Sender (Left) & Receiver (Right) Side by Side */}
-      <div className="parties-section">
-        <div className="party-card sender">
-          <div className="party-header">
+      {/* Sender & Receiver Side by Side */}
+      <div className="parties-container">
+        <div className="party sender">
+          <div className="party-title">
             <div className="party-icon">📤</div>
             <div>
               <h3>CONSIGNOR</h3>
-              <p>(Sender)</p>
+              <span>Sender</span>
             </div>
           </div>
-          <div className="party-body">
+          <div className="party-content">
             <h4>{safeData.pickup.name || "____________________"}</h4>
-            <p className="address">{safeData.pickup.address || "Address not provided"}</p>
-            <div className="party-details">
+            <p className="address-text">{safeData.pickup.address || "Address not provided"}</p>
+            <div className="party-contact">
               <span>📮 {safeData.pickup.pincode || "______"}</span>
               <span>📍 {safeData.pickup.city || "_____"}, {safeData.pickup.state || "_____"}</span>
               <span>📞 {safeData.pickup.contact || "_________"}</span>
@@ -216,22 +202,22 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
           </div>
         </div>
 
-        <div className="party-arrow">
-          <ArrowRight size={32} />
+        <div className="party-arrow-icon">
+          <ArrowRight size={28} />
         </div>
 
-        <div className="party-card receiver">
-          <div className="party-header">
+        <div className="party receiver">
+          <div className="party-title">
             <div className="party-icon">📥</div>
             <div>
               <h3>CONSIGNEE</h3>
-              <p>(Receiver)</p>
+              <span>Receiver</span>
             </div>
           </div>
-          <div className="party-body">
+          <div className="party-content">
             <h4>{safeData.delivery.name || "____________________"}</h4>
-            <p className="address">{safeData.delivery.address || "Address not provided"}</p>
-            <div className="party-details">
+            <p className="address-text">{safeData.delivery.address || "Address not provided"}</p>
+            <div className="party-contact">
               <span>📮 {safeData.delivery.pincode || "______"}</span>
               <span>📍 {safeData.delivery.city || "_____"}, {safeData.delivery.state || "_____"}</span>
               <span>📞 {safeData.delivery.contact || "_________"}</span>
@@ -241,33 +227,33 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
         </div>
       </div>
 
-      {/* Shipment Details Table */}
-      <div className="shipment-details-table">
-        <table className="shipment-table-premium">
+      {/* Shipment Table */}
+      <div className="shipment-wrapper">
+        <table className="shipment-data-table">
           <thead>
             <tr>
-              <th width="8%">PKGS</th>
-              <th width="32%">DESCRIPTION</th>
-              <th width="10%">HSN</th>
-              <th width="12%">ACTUAL WT</th>
-              <th width="12%">VOL WT</th>
-              <th width="12%">CHARGED WT</th>
-              <th width="14%">MODE</th>
+              <th>PKGS</th>
+              <th>DESCRIPTION</th>
+              <th>HSN</th>
+              <th>ACTUAL WT</th>
+              <th>VOL WT</th>
+              <th>CHARGED WT</th>
+              <th>MODE</th>
             </tr>
           </thead>
           <tbody>
-            <tr className="main-row">
+            <tr className="main-data-row">
               <td className="text-center">{safeData.orderDetails.boxesCount || 0}</td>
               <td>
                 <strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong>
-                <div className="material-note">Said to contain</div>
+                <div className="goods-note">Said to contain</div>
               </td>
               <td className="text-center">{safeData.orderDetails.hsnCode || "1234"}</td>
               <td className="text-center">{safeData.orderDetails.weight || 0} kg</td>
               <td className="text-center">{safeData.volWeight} kg</td>
               <td className="text-center"><strong>{safeData.chargedWeight} kg</strong></td>
               <td className="text-center">
-                <div className={`mode-tag mode-${bookingMode || 'surface'}`}>
+                <div className={`mode-label mode-${bookingMode || 'surface'}`}>
                   {getModeText()}
                 </div>
               </td>
@@ -276,95 +262,98 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
         </table>
       </div>
 
-      {/* Invoice & Freight Section */}
-      <div className="invoice-freight-section">
-        <div className="invoice-details">
-          <div className="section-title">📄 INVOICE DETAILS</div>
-          <div className="invoice-list">
+      {/* Invoice & Freight */}
+      <div className="billing-wrapper">
+        <div className="invoice-section">
+          <div className="section-header">INVOICE DETAILS</div>
+          <div className="invoice-items">
             {safeData.invoices?.filter(inv => inv.no).map((inv, idx) => (
-              <div key={idx} className="invoice-item">
+              <div key={idx} className="invoice-row-line">
                 <span>{inv.no}</span>
                 <span>₹{parseFloat(inv.value).toLocaleString()}</span>
               </div>
             ))}
-            <div className="invoice-total">
+            <div className="invoice-total-line">
               <span>TOTAL VALUE:</span>
               <strong>₹{totalValue?.toLocaleString() || 0}</strong>
             </div>
-            {ewayBill && <div className="eway-bill-info">E-WAY BILL: {ewayBill}</div>}
+            {ewayBill && <div className="eway-badge">E-WAY BILL: {ewayBill}</div>}
           </div>
         </div>
 
         {showFreight && freightData && (
-          <div className="freight-details">
-            <div className="section-title">💰 FREIGHT DETAILS</div>
-            <div className="freight-list">
-              <div className="freight-item">
+          <div className="freight-section">
+            <div className="section-header">FREIGHT BREAKDOWN</div>
+            <div className="freight-items">
+              <div className="freight-row-line">
                 <span>Base Freight:</span>
-                <strong>₹{Math.round(freightData.baseFreight || 0).toLocaleString()}</strong>
+                <span>₹{freightData.baseFreight?.toLocaleString()}</span>
               </div>
-              <div className="freight-item">
-                <span>Fuel Surcharge (10%):</span>
-                <strong>₹{Math.round(freightData.fuelSurcharge || 0).toLocaleString()}</strong>
+              <div className="freight-row-line">
+                <span>Fuel Surcharge:</span>
+                <span>₹{freightData.fuelSurcharge?.toLocaleString()}</span>
               </div>
-              <div className="freight-item">
+              <div className="freight-row-line">
                 <span>GST (18%):</span>
-                <strong>₹{Math.round(freightData.gst || 0).toLocaleString()}</strong>
+                <span>₹{freightData.gst?.toLocaleString()}</span>
               </div>
-              <div className="freight-item">
-                <span>Docket Charge:</span>
-                <strong>₹{freightData.docketCharge || 100}</strong>
+              <div className="freight-row-line total-freight">
+                <span>TOTAL:</span>
+                <span className="total-price">₹{freightData.total?.toLocaleString()}</span>
               </div>
-              <div className="freight-item">
-                <span>FOV Charge:</span>
-                <strong>₹{freightData.fovCharge || 75}</strong>
-              </div>
-              <div className="freight-item total">
-                <span>TOTAL PAYABLE:</span>
-                <strong className="text-red">₹{Math.round(freightData.total || 0).toLocaleString()}</strong>
-              </div>
-            </div>
-            <div className="rate-slab-info-small">
-              Rate: ₹{freightData.ratePerKg}/kg | Route: {freightData.fromZone} → {freightData.toZone}
+              <div className="rate-note">Rate: ₹{freightData.ratePerKg}/kg | {freightData.fromZone} → {freightData.toZone}</div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Terms & Signatures */}
-      <div className="terms-signatures">
-        <div className="terms">
-          <h4>TERMS &amp; CONDITIONS</h4>
-          <ul>
-            <li>Goods carried at Owner's Risk. Insurance recommended.</li>
-            <li>Claim within 7 days of delivery. Jurisdiction: Delhi Only.</li>
-            <li>Transit liability as per Carriers Act, 1865.</li>
-            <li>E-Way Bill mandatory for invoice &gt; ₹50,000.</li>
-          </ul>
+      {/* Official Stamp & Signatures */}
+      <div className="stamp-signature-wrapper">
+        <div className="official-stamp">
+          <div className="stamp-circle">
+            <div className="stamp-outer">
+              <div className="stamp-inner">
+                <span className="stamp-title">FAITH CARGO</span>
+                <span className="stamp-sub">PVT LTD</span>
+                <div className="stamp-line"></div>
+                <span className="stamp-auth">AUTHORIZED</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="signatures">
-          <div className="signature-box">
+        <div className="signature-area">
+          <div className="signature-line-item">
             <div className="sign-line"></div>
             <p>Receiver's Signature</p>
           </div>
-          <div className="signature-box">
-            <div className="stamp">FOR FAITH CARGO PVT LTD</div>
+          <div className="signature-line-item">
+            <div className="stamp-box">FOR FAITH CARGO PVT LTD</div>
             <p>Authorized Signatory</p>
           </div>
         </div>
       </div>
 
+      {/* Terms */}
+      <div className="terms-wrapper">
+        <h4>TERMS & CONDITIONS</h4>
+        <ul>
+          <li>Goods carried at Owner's Risk. Insurance recommended.</li>
+          <li>Claim within 7 days of delivery. Jurisdiction: Delhi Only.</li>
+          <li>Transit liability as per Carriers Act, 1865.</li>
+          <li>E-Way Bill mandatory for invoice &gt; ₹50,000.</li>
+        </ul>
+      </div>
+
       {/* Footer */}
-      <div className="docket-footer-a4">
+      <div className="docket-footer">
         <div className="footer-copies">
           <span>📄 ORIGINAL - CONSIGNOR</span>
           <span>📄 DUPLICATE - CONSIGNEE</span>
-          <span>📄 TRIPLICATE - OFFICE COPY</span>
+          <span>📄 TRIPLICATE - OFFICE</span>
         </div>
-        <div className="footer-contact">
+        <div className="footer-website">
           <span>🌐 www.faithcargo.com</span>
           <span>📞 9818641504</span>
-          <span>✉️ care@faithcargo.com</span>
         </div>
       </div>
     </div>
@@ -372,63 +361,52 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
 };
 
 // ============================================
-// 📎 INVOICE UPLOAD COMPONENT
+// 📎 INVOICE UPLOAD
 // ============================================
 const InvoiceUpload = ({ onUpload }) => {
-  const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [isDragging, setIsDragging] = useState(false);
+  const [files, setFiles] = useState([]);
+  const [dragging, setDragging] = useState(false);
 
-  const handleFileUpload = (files) => {
-    if (!files || files.length === 0) return;
-    const newFiles = Array.from(files).map(file => ({
+  const handleUpload = (fileList) => {
+    const newFiles = Array.from(fileList).map(f => ({
       id: Date.now() + Math.random(),
-      name: file.name,
-      size: (file.size / 1024).toFixed(2),
-      type: file.type,
-      file: file
+      name: f.name,
+      size: (f.size / 1024).toFixed(2),
+      file: f
     }));
-    const updated = [...uploadedFiles, ...newFiles];
-    setUploadedFiles(updated);
-    if (onUpload) onUpload(updated);
+    const updated = [...files, ...newFiles];
+    setFiles(updated);
+    onUpload && onUpload(updated);
   };
 
   const removeFile = (id) => {
-    const updated = uploadedFiles.filter(f => f.id !== id);
-    setUploadedFiles(updated);
-    if (onUpload) onUpload(updated);
+    const updated = files.filter(f => f.id !== id);
+    setFiles(updated);
+    onUpload && onUpload(updated);
   };
 
   return (
-    <div className="invoice-upload-container">
+    <div className="upload-container">
       <div 
-        className={`upload-area ${isDragging ? 'dragging' : ''}`}
-        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFileUpload(e.dataTransfer.files); }}
+        className={`upload-dropzone ${dragging ? 'dragging' : ''}`}
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setDragging(false); handleUpload(e.dataTransfer.files); }}
       >
-        <input
-          type="file"
-          id="invoice-upload"
-          multiple
-          accept=".pdf,.jpg,.jpeg,.png"
-          onChange={(e) => handleFileUpload(e.target.files)}
-          style={{ display: 'none' }}
-        />
-        <label htmlFor="invoice-upload" className="upload-label">
-          <Upload size={32} />
-          <span>Click or Drag & Drop Invoices</span>
-          <small>PDF, JPG, PNG (Max 5MB each)</small>
+        <input type="file" id="invoice-files" multiple accept=".pdf,.jpg,.png" onChange={(e) => handleUpload(e.target.files)} style={{ display: 'none' }} />
+        <label htmlFor="invoice-files" className="upload-label-btn">
+          <Upload size={28} />
+          <span>Click or Drag Invoices</span>
+          <small>PDF, JPG, PNG (Max 5MB)</small>
         </label>
       </div>
-      {uploadedFiles.length > 0 && (
-        <div className="uploaded-files">
-          <h4>Uploaded Invoices ({uploadedFiles.length})</h4>
-          {uploadedFiles.map(file => (
-            <div key={file.id} className="file-item">
-              {file.type && file.type.includes('image') ? <Image size={16} /> : <File size={16} />}
-              <span>{file.name}</span>
-              <small>{file.size} KB</small>
-              <button onClick={() => removeFile(file.id)}><X size={14} /></button>
+      {files.length > 0 && (
+        <div className="file-list-preview">
+          <h4>{files.length} Invoice(s)</h4>
+          {files.map(f => (
+            <div key={f.id} className="file-preview-item">
+              <File size={14} /> <span>{f.name}</span> <small>{f.size} KB</small>
+              <button onClick={() => removeFile(f.id)}><X size={14} /></button>
             </div>
           ))}
         </div>
@@ -449,9 +427,7 @@ export default function CreateOrder() {
   const [ewayBill, setEwayBill] = useState("");
   const [apiError, setApiError] = useState("");
   const [bookingMode, setBookingMode] = useState("surface");
-  const [uploadedInvoices, setUploadedInvoices] = useState([]);
   const [freightData, setFreightData] = useState(null);
-  
   const [isManualLR, setIsManualLR] = useState(false);
   const [manualLRNumber, setManualLRNumber] = useState("");
   const [showFreightOnDocket, setShowFreightOnDocket] = useState(true);
@@ -461,99 +437,56 @@ export default function CreateOrder() {
   const [orderDetails, setOrderDetails] = useState({ material: "", weight: "", boxesCount: 0, hsnCode: "1234" });
   const [invoices, setInvoices] = useState([{ id: Date.now(), no: "", value: "" }]);
 
-  const totalInvoiceValue = useMemo(() => 
-    invoices.reduce((sum, inv) => sum + (parseFloat(inv.value) || 0), 0), 
-  [invoices]);
-
+  const totalInvoiceValue = useMemo(() => invoices.reduce((s, inv) => s + (parseFloat(inv.value) || 0), 0), [invoices]);
   const volWeight = useMemo(() => {
-    const totalVol = boxes.reduce((acc, b) => {
-      const l = parseFloat(b.l) || 0;
-      const w = parseFloat(b.w) || 0;
-      const h = parseFloat(b.h) || 0;
-      return acc + (l * w * h) / 4000;
-    }, 0);
-    return totalVol.toFixed(2);
+    const total = boxes.reduce((acc, b) => acc + ((parseFloat(b.l)||0) * (parseFloat(b.w)||0) * (parseFloat(b.h)||0)) / 4000, 0);
+    return total.toFixed(2);
   }, [boxes]);
-
   const chargedWeight = Math.max(parseFloat(orderDetails.weight || 0), parseFloat(volWeight));
   const needsEwayBill = totalInvoiceValue >= 50000;
 
   const fetchLocation = async (pin, type) => {
-    if (pin && pin.length === 6) {
+    if (pin?.length === 6) {
       try {
         const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
         const data = await res.json();
-        if (data && data[0] && data[0].Status === "Success") {
+        if (data?.[0]?.Status === "Success") {
           const po = data[0].PostOffice[0];
           const loc = { state: po.State, city: po.District };
-          if (type === "pickup") setPickup(p => ({ ...p, ...loc }));
-          else setDelivery(d => ({ ...d, ...loc }));
+          type === "pickup" ? setPickup(p => ({ ...p, ...loc })) : setDelivery(d => ({ ...d, ...loc }));
         }
-      } catch (err) { 
-        console.error("Pincode API Error:", err); 
-      }
+      } catch (err) {}
     }
   };
 
   const handleCreateOrder = async () => {
-    if (needsEwayBill && !ewayBill) {
-      alert("⚠️ E-Way Bill Number mandatory for Invoice Value above ₹50,000");
-      return;
-    }
-    if (!pickup.name || !delivery.name || !orderDetails.weight) {
-      alert("Please fill all mandatory fields (Sender, Receiver, Weight)");
-      return;
-    }
-    if (!pickup.pincode || !delivery.pincode) {
-      alert("Please enter valid 6-digit pincodes");
-      return;
-    }
-    if (isManualLR && !manualLRNumber) {
-      alert("Please enter Manual LR Number");
-      return;
-    }
+    if (needsEwayBill && !ewayBill) return alert("E-Way Bill required for invoice > ₹50,000");
+    if (!pickup.name || !delivery.name || !orderDetails.weight) return alert("Fill all mandatory fields");
+    if (!pickup.pincode || !delivery.pincode) return alert("Enter valid 6-digit pincodes");
+    if (isManualLR && !manualLRNumber) return alert("Enter Manual LR Number");
 
     setLoading(true);
     setApiError("");
 
     const orderData = {
-      pickupName: pickup.name,
-      pickupAddress: pickup.address,
-      pickupPincode: pickup.pincode,
-      pickupContact: pickup.contact,
-      pickupGstin: pickup.gstin,
-      deliveryName: delivery.name,
-      deliveryAddress: delivery.address,
-      deliveryPincode: delivery.pincode,
-      deliveryContact: delivery.contact,
-      deliveryGstin: delivery.gstin,
-      material: orderDetails.material || "General Cargo",
-      hsn: orderDetails.hsnCode,
-      boxes: orderDetails.boxesCount,
-      weight: parseFloat(chargedWeight),
-      actual_weight: parseFloat(orderDetails.weight || 0),
-      volumetric_weight: parseFloat(volWeight),
-      total_value: totalInvoiceValue,
-      eway_bill: needsEwayBill ? ewayBill : "",
-      booking_mode: bookingMode,
-      freight_base: freightData?.baseFreight || 0,
-      freight_gst: freightData?.gst || 0,
-      freight_total: freightData?.total || 0,
-      is_manual_lr: isManualLR,
-      manual_lr_number: isManualLR ? manualLRNumber : null,
-      invoices: invoices.filter(inv => inv.no && inv.value).map(inv => ({
-        invoice_no: inv.no,
-        invoice_value: parseFloat(inv.value)
-      }))
+      pickupName: pickup.name, pickupAddress: pickup.address, pickupPincode: pickup.pincode,
+      pickupContact: pickup.contact, pickupGstin: pickup.gstin,
+      deliveryName: delivery.name, deliveryAddress: delivery.address, deliveryPincode: delivery.pincode,
+      deliveryContact: delivery.contact, deliveryGstin: delivery.gstin,
+      material: orderDetails.material || "General Cargo", hsn: orderDetails.hsnCode,
+      boxes: orderDetails.boxesCount, weight: parseFloat(chargedWeight),
+      actual_weight: parseFloat(orderDetails.weight || 0), volumetric_weight: parseFloat(volWeight),
+      total_value: totalInvoiceValue, eway_bill: needsEwayBill ? ewayBill : "",
+      booking_mode: bookingMode, freight_base: freightData?.baseFreight || 0,
+      freight_gst: freightData?.gst || 0, freight_total: freightData?.total || 0,
+      is_manual_lr: isManualLR, manual_lr_number: isManualLR ? manualLRNumber : null,
+      invoices: invoices.filter(inv => inv.no && inv.value).map(inv => ({ invoice_no: inv.no, invoice_value: parseFloat(inv.value) }))
     };
 
     try {
       const response = await fetch("https://faithcargo.onrender.com/api/shipments/create-order/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderData)
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(orderData)
       });
-
       const result = await response.json();
 
       if (result.success) {
@@ -561,358 +494,310 @@ export default function CreateOrder() {
         setAwbNumber(result.awb);
         setShowLR(true);
         
-        const recentOrders = JSON.parse(localStorage.getItem('recentOrders') || '[]');
-        recentOrders.unshift({
-          lr: isManualLR ? manualLRNumber : result.lr_number,
-          awb: result.awb,
-          date: new Date().toISOString(),
-          pickup: pickup.pincode,
-          delivery: delivery.pincode,
-          weight: chargedWeight,
-          mode: bookingMode
-        });
-        localStorage.setItem('recentOrders', JSON.stringify(recentOrders.slice(0, 10)));
-        
-        // Refresh shipment list in localStorage for ShipmentDetails page
         const allShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
         allShipments.unshift({
-          lr: isManualLR ? manualLRNumber : result.lr_number,
-          awb: result.awb,
-          route: `${pickup.pincode} → ${delivery.pincode}`,
-          value: totalInvoiceValue,
-          status: 'booked',
-          date: new Date().toISOString()
+          lr: isManualLR ? manualLRNumber : result.lr_number, awb: result.awb,
+          route: `${pickup.pincode} → ${delivery.pincode}`, value: totalInvoiceValue,
+          status: 'booked', date: new Date().toISOString()
         });
         localStorage.setItem('allShipments', JSON.stringify(allShipments.slice(0, 50)));
-        
       } else {
-        setApiError(result.error || "Failed to create order");
-        alert("Error: " + (result.error || "Could not create order"));
+        setApiError(result.error || "Failed");
+        alert("Error: " + result.error);
       }
     } catch (error) {
-      console.error("API Error:", error);
-      setApiError("Network error. Please check your connection.");
-      alert("Network error! Please try again.");
+      setApiError("Network error");
+      alert("Network error! Try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="order-wrapper-premium">
-      <aside className="nav-sidebar-premium no-print">
-        <div className="logo-brand-premium">
-          <img src={logo} alt="Faith Cargo" />
-          <div className="status-dot"></div>
+    <div className="create-order-page">
+      {/* Sidebar */}
+      <aside className="order-sidebar">
+        <div className="sidebar-logo">
+          <img src={logo} alt="FCPL" />
+          <div className="online-indicator"></div>
         </div>
-        <nav className="side-menu-premium">
-          <div className="menu-link active"><Plus size={18}/> Create Booking</div>
-          <div className="menu-link" onClick={() => window.location.href='/dashboard'}><Navigation size={18}/> Live Tracking</div>
-          <div className="menu-link" onClick={() => window.location.href='/shipments'}><FileText size={18}/> All Dockets</div>
-          <div className="menu-link"><CreditCard size={18}/> Payments</div>
+        <nav className="sidebar-navigation">
+          <div className="nav-link active"><Plus size={18} /> Create Booking</div>
+          <div className="nav-link" onClick={() => window.location.href='/dashboard'}><Navigation size={18} /> Live Tracking</div>
+          <div className="nav-link" onClick={() => window.location.href='/shipments'}><FileText size={18} /> All Dockets</div>
+          <div className="nav-link"><CreditCard size={18} /> Payments</div>
         </nav>
-        <div className="support-card-premium">
+        <div className="sidebar-help">
           <Award size={24} color="#d32f2f" />
-          <p>Premium Support 24/7</p>
-          <span>📞 +91 9818641504</span>
+          <p>Support 24/7</p>
+          <span>📞 9818641504</span>
         </div>
       </aside>
 
-      <main className="main-content-premium">
-        <header className="page-header-premium no-print">
-          <div className="header-text">
-            <h1>Premium Shipment Booking</h1>
-            <p>Create professional consignment with real-time freight calculation</p>
+      {/* Main Content */}
+      <main className="order-main-content">
+        <div className="page-title-section">
+          <div>
+            <h1>Create Shipment</h1>
+            <p>Enter consignment details for LR generation</p>
           </div>
-          <div className="realtime-stats-premium">
-            <div className="stat-card-premium">
-              <Gem size={16} />
-              <span>Charged: <strong>{chargedWeight} Kg</strong></span>
-            </div>
-            <div className="stat-card-premium red">
-              <ShieldCheck size={16} />
-              <span>Value: <strong>₹{totalInvoiceValue.toLocaleString()}</strong></span>
-            </div>
+          <div className="stats-badges">
+            <div className="badge">⚡ Charged: {chargedWeight} Kg</div>
+            <div className="badge red">💰 Value: ₹{totalInvoiceValue.toLocaleString()}</div>
           </div>
-        </header>
+        </div>
 
-        {apiError && <div className="error-banner-premium"><AlertCircle size={18} /> {apiError}</div>}
+        {apiError && <div className="error-notice"><AlertCircle size={18} /> {apiError}</div>}
 
-        <div className="form-layout-premium no-print">
-          <div className="form-column">
-            <section className="premium-card">
-              <div className="card-top">
-                <MapPin size={18} color="#d32f2f" /> 
-                <h3>Consignor (Sender) Details</h3>
-              </div>
-              <div className="card-body">
-                <div className="input-row">
-                  <div className="input-group">
+        <div className="two-column-form">
+          {/* Left Column */}
+          <div className="left-form-col">
+            {/* Sender Card */}
+            <div className="form-section">
+              <div className="section-heading"><MapPin size={18} color="#d32f2f" /> Consignor (Sender)</div>
+              <div className="section-body">
+                <div className="form-row">
+                  <div className="form-field">
                     <label>Company / Name *</label>
-                    <input value={pickup.name} onChange={e=>setPickup({...pickup, name:e.target.value.toUpperCase()})} placeholder="Enter sender name" />
+                    <input value={pickup.name} onChange={e => setPickup({...pickup, name: e.target.value.toUpperCase()})} placeholder="Enter sender name" />
                   </div>
-                  <div className="input-group">
+                  <div className="form-field">
                     <label>Mobile Number *</label>
-                    <input type="tel" maxLength={10} value={pickup.contact} onChange={e=>setPickup({...pickup, contact:e.target.value})} placeholder="10 digit mobile" />
+                    <input type="tel" maxLength={10} value={pickup.contact} onChange={e => setPickup({...pickup, contact: e.target.value})} placeholder="10 digit mobile" />
                   </div>
                 </div>
-                <div className="input-group full-width">
+                <div className="form-field full-width">
                   <label>Full Address *</label>
-                  <textarea rows="2" value={pickup.address} onChange={e=>setPickup({...pickup, address:e.target.value})} placeholder="House No, Street, Area, Landmark" />
+                  <textarea rows={2} value={pickup.address} onChange={e => setPickup({...pickup, address: e.target.value})} placeholder="House No, Street, Area" />
                 </div>
-                <div className="input-row">
-                  <div className="input-group">
+                <div className="form-row">
+                  <div className="form-field">
                     <label>Pincode *</label>
-                    <input maxLength={6} value={pickup.pincode} onChange={e=>{setPickup({...pickup, pincode:e.target.value}); fetchLocation(e.target.value, 'pickup')}} placeholder="6 digit pincode" />
+                    <input maxLength={6} value={pickup.pincode} onChange={e => { setPickup({...pickup, pincode: e.target.value}); fetchLocation(e.target.value, 'pickup'); }} placeholder="6 digit" />
                   </div>
-                  <div className="input-group">
+                  <div className="form-field">
                     <label>City & State</label>
-                    <input className="locked-input" value={pickup.city ? `${pickup.city}, ${pickup.state}` : ""} readOnly placeholder="Auto-filled" />
+                    <input className="readonly-field" value={pickup.city ? `${pickup.city}, ${pickup.state}` : ""} readOnly placeholder="Auto-filled" />
                   </div>
                 </div>
-                <div className="input-group">
+                <div className="form-field">
                   <label>GSTIN (Optional)</label>
-                  <input value={pickup.gstin} onChange={e=>setPickup({...pickup, gstin:e.target.value.toUpperCase()})} placeholder="15 digit GSTIN" maxLength={15} />
+                  <input value={pickup.gstin} onChange={e => setPickup({...pickup, gstin: e.target.value.toUpperCase()})} placeholder="15 digit GSTIN" maxLength={15} />
                 </div>
               </div>
-            </section>
+            </div>
+
+            {/* Receiver Card */}
+            <div className="form-section">
+              <div className="section-heading"><Truck size={18} color="#d32f2f" /> Consignee (Receiver)</div>
+              <div className="section-body">
+                <div className="form-row">
+                  <div className="form-field">
+                    <label>Receiver Name *</label>
+                    <input value={delivery.name} onChange={e => setDelivery({...delivery, name: e.target.value.toUpperCase()})} placeholder="Enter receiver name" />
+                  </div>
+                  <div className="form-field">
+                    <label>Mobile Number *</label>
+                    <input type="tel" maxLength={10} value={delivery.contact} onChange={e => setDelivery({...delivery, contact: e.target.value})} placeholder="10 digit mobile" />
+                  </div>
+                </div>
+                <div className="form-field full-width">
+                  <label>Full Address *</label>
+                  <textarea rows={2} value={delivery.address} onChange={e => setDelivery({...delivery, address: e.target.value})} placeholder="House No, Street, Area" />
+                </div>
+                <div className="form-row">
+                  <div className="form-field">
+                    <label>Pincode *</label>
+                    <input maxLength={6} value={delivery.pincode} onChange={e => { setDelivery({...delivery, pincode: e.target.value}); fetchLocation(e.target.value, 'delivery'); }} placeholder="6 digit" />
+                  </div>
+                  <div className="form-field">
+                    <label>City & State</label>
+                    <input className="readonly-field" value={delivery.city ? `${delivery.city}, ${delivery.state}` : ""} readOnly placeholder="Auto-filled" />
+                  </div>
+                </div>
+                <div className="form-field">
+                  <label>GSTIN (Optional)</label>
+                  <input value={delivery.gstin} onChange={e => setDelivery({...delivery, gstin: e.target.value.toUpperCase()})} placeholder="15 digit GSTIN" maxLength={15} />
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="form-column">
-            <section className="premium-card">
-              <div className="card-top">
-                <Truck size={18} color="#d32f2f" /> 
-                <h3>Consignee (Receiver) Details</h3>
-              </div>
-              <div className="card-body">
-                <div className="input-row">
-                  <div className="input-group">
-                    <label>Receiver Name *</label>
-                    <input value={delivery.name} onChange={e=>setDelivery({...delivery, name:e.target.value.toUpperCase()})} placeholder="Enter receiver name" />
-                  </div>
-                  <div className="input-group">
-                    <label>Mobile Number *</label>
-                    <input type="tel" maxLength={10} value={delivery.contact} onChange={e=>setDelivery({...delivery, contact:e.target.value})} placeholder="10 digit mobile" />
-                  </div>
-                </div>
-                <div className="input-group full-width">
-                  <label>Full Address *</label>
-                  <textarea rows="2" value={delivery.address} onChange={e=>setDelivery({...delivery, address:e.target.value})} placeholder="House No, Street, Area, Landmark" />
-                </div>
-                <div className="input-row">
-                  <div className="input-group">
-                    <label>Pincode *</label>
-                    <input maxLength={6} value={delivery.pincode} onChange={e=>{setDelivery({...delivery, pincode:e.target.value}); fetchLocation(e.target.value, 'delivery')}} placeholder="6 digit pincode" />
-                  </div>
-                  <div className="input-group">
-                    <label>City & State</label>
-                    <input className="locked-input" value={delivery.city ? `${delivery.city}, ${delivery.state}` : ""} readOnly placeholder="Auto-filled" />
-                  </div>
-                </div>
-                <div className="input-group">
-                  <label>GSTIN (Optional)</label>
-                  <input value={delivery.gstin} onChange={e=>setDelivery({...delivery, gstin:e.target.value.toUpperCase()})} placeholder="15 digit GSTIN" maxLength={15} />
-                </div>
-              </div>
-            </section>
-
-            <section className="premium-card">
-              <div className="card-top">
-                <Package size={18} color="#d32f2f" /> 
-                <h3>Shipment Details</h3>
-              </div>
-              <div className="card-body">
-                <div className="input-group full-width">
+          {/* Right Column */}
+          <div className="right-form-col">
+            {/* Shipment Details Card */}
+            <div className="form-section">
+              <div className="section-heading"><Package size={18} color="#d32f2f" /> Shipment Details</div>
+              <div className="section-body">
+                <div className="form-field full-width">
                   <label>Material Description</label>
-                  <input placeholder="e.g., Industrial Tools, Textile, Electronics" onChange={e=>setOrderDetails({...orderDetails, material:e.target.value.toUpperCase()})} />
+                  <input placeholder="e.g., Industrial Tools, Textile" onChange={e => setOrderDetails({...orderDetails, material: e.target.value.toUpperCase()})} />
                 </div>
-                
-                <div className="input-group full-width">
+                <div className="form-field full-width">
                   <label>HSN Code</label>
-                  <input placeholder="HSN Code (e.g., 1234, 8471)" value={orderDetails.hsnCode} onChange={e=>setOrderDetails({...orderDetails, hsnCode:e.target.value})} />
+                  <input value={orderDetails.hsnCode} onChange={e => setOrderDetails({...orderDetails, hsnCode: e.target.value})} placeholder="HSN Code" />
                 </div>
 
-                <div className="booking-mode-selector">
+                <div className="mode-selector">
                   <label>Booking Mode *</label>
-                  <div className="mode-buttons">
-                    <button type="button" className={`mode-btn ${bookingMode === 'surface' ? 'active' : ''}`} onClick={() => setBookingMode('surface')}>
-                      <Truck size={18} /> Surface
-                    </button>
-                    <button type="button" className={`mode-btn ${bookingMode === 'air' ? 'active' : ''}`} onClick={() => setBookingMode('air')}>
-                      <Plane size={18} /> Air
-                    </button>
-                    <button type="button" className={`mode-btn ${bookingMode === 'rail' ? 'active' : ''}`} onClick={() => setBookingMode('rail')}>
-                      <Train size={18} /> Rail
-                    </button>
-                    <button type="button" className={`mode-btn ${bookingMode === 'express' ? 'active' : ''}`} onClick={() => setBookingMode('express')}>
-                      <TrendingUp size={18} /> Express
-                    </button>
+                  <div className="mode-options">
+                    <button type="button" className={`mode-option ${bookingMode === 'surface' ? 'active' : ''}`} onClick={() => setBookingMode('surface')}><Truck size={16} /> Surface</button>
+                    <button type="button" className={`mode-option ${bookingMode === 'air' ? 'active' : ''}`} onClick={() => setBookingMode('air')}><Plane size={16} /> Air</button>
+                    <button type="button" className={`mode-option ${bookingMode === 'rail' ? 'active' : ''}`} onClick={() => setBookingMode('rail')}><Train size={16} /> Rail</button>
+                    <button type="button" className={`mode-option ${bookingMode === 'express' ? 'active' : ''}`} onClick={() => setBookingMode('express')}><TrendingUp size={16} /> Express</button>
                   </div>
                 </div>
 
-                <div className="input-row">
-                  <div className="input-group">
+                <div className="form-row">
+                  <div className="form-field">
                     <label>Actual Weight (Kg) *</label>
-                    <input type="number" step="0.1" value={orderDetails.weight} onChange={e=>setOrderDetails({...orderDetails, weight:e.target.value})} placeholder="Enter weight" />
+                    <input type="number" step="0.1" value={orderDetails.weight} onChange={e => setOrderDetails({...orderDetails, weight: e.target.value})} placeholder="Weight" />
                   </div>
-                  <div className="input-group">
+                  <div className="form-field">
                     <label>No. of Packages *</label>
-                    <input type="number" value={orderDetails.boxesCount} onChange={e=>{
+                    <input type="number" value={orderDetails.boxesCount} onChange={e => {
                       const n = parseInt(e.target.value) || 0;
-                      setOrderDetails({...orderDetails, boxesCount:n});
-                      setBoxes(Array.from({length:n}, (_,i)=>({id:i+1, l:"", w:"", h:""})));
-                    }} placeholder="Number of boxes" />
+                      setOrderDetails({...orderDetails, boxesCount: n});
+                      setBoxes(Array.from({length: n}, (_, i) => ({ id: i+1, l: "", w: "", h: "" })));
+                    }} placeholder="Boxes" />
                   </div>
                 </div>
 
                 {boxes.length > 0 && (
-                  <div className="dimension-calculator">
+                  <div className="dimension-panel">
                     <div className="dimension-header">
-                      <span>📦 Dimensions (CM) - Volumetric ÷ 4000</span>
-                      <span className="vol-badge">Vol Wt: {volWeight} Kg</span>
+                      <span>📦 Dimensions (CM) - ÷4000</span>
+                      <span className="vol-badge">Vol: {volWeight} Kg</span>
                     </div>
-                    <div className="dimension-grid">
-                      {boxes.map((box, i) => (
-                        <div key={i} className="dimension-row">
-                          <span className="box-num">#{i+1}</span>
-                          <input placeholder="Length (cm)" type="number" step="0.1" onChange={e=>{let b=[...boxes]; b[i].l=e.target.value; setBoxes(b)}} />
-                          <input placeholder="Width (cm)" type="number" step="0.1" onChange={e=>{let b=[...boxes]; b[i].w=e.target.value; setBoxes(b)}} />
-                          <input placeholder="Height (cm)" type="number" step="0.1" onChange={e=>{let b=[...boxes]; b[i].h=e.target.value; setBoxes(b)}} />
-                        </div>
-                      ))}
-                    </div>
+                    {boxes.map((box, i) => (
+                      <div key={i} className="dimension-input-row">
+                        <span className="box-count">#{i+1}</span>
+                        <input placeholder="L" type="number" step="0.1" onChange={e => { let b = [...boxes]; b[i].l = e.target.value; setBoxes(b); }} />
+                        <input placeholder="W" type="number" step="0.1" onChange={e => { let b = [...boxes]; b[i].w = e.target.value; setBoxes(b); }} />
+                        <input placeholder="H" type="number" step="0.1" onChange={e => { let b = [...boxes]; b[i].h = e.target.value; setBoxes(b); }} />
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
-            </section>
+            </div>
 
-            <section className="premium-card">
-              <div className="card-top justify-between">
-                <div className="flex-center"><FileText size={18} color="#d32f2f" /> <h3>Invoice & Documentation</h3></div>
-                <button className="mini-add-btn" onClick={() => setInvoices([...invoices, { id: Date.now(), no: "", value: "" }])}><Plus size={14}/></button>
+            {/* Invoice Card */}
+            <div className="form-section">
+              <div className="section-heading between">
+                <div><FileText size={18} color="#d32f2f" /> Invoice Details</div>
+                <button className="add-invoice-btn" onClick={() => setInvoices([...invoices, { id: Date.now(), no: "", value: "" }])}><Plus size={14} /> Add</button>
               </div>
-              <div className="card-body">
-                {invoices.map((inv) => (
-                  <div key={inv.id} className="dynamic-inv-row">
-                    <input placeholder="Invoice Number" value={inv.no} onChange={e=>{
-                      setInvoices(invoices.map(i=>i.id===inv.id ? {...i, no:e.target.value.toUpperCase()} : i))
-                    }} />
-                    <input type="number" placeholder="Value (₹)" value={inv.value} onChange={e=>{
-                      setInvoices(invoices.map(i=>i.id===inv.id ? {...i, value:e.target.value} : i))
-                    }} />
-                    <button className="row-del-btn" onClick={() => setInvoices(invoices.filter(i=>i.id!==inv.id))}><Trash2 size={14}/></button>
+              <div className="section-body">
+                {invoices.map(inv => (
+                  <div key={inv.id} className="invoice-input-row">
+                    <input placeholder="Invoice No" value={inv.no} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, no: e.target.value.toUpperCase()} : i))} />
+                    <input type="number" placeholder="Value ₹" value={inv.value} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, value: e.target.value} : i))} />
+                    <button className="remove-invoice-btn" onClick={() => setInvoices(invoices.filter(i => i.id !== inv.id))}><Trash2 size={14} /></button>
                   </div>
                 ))}
 
-                <InvoiceUpload onUpload={setUploadedInvoices} />
+                <InvoiceUpload onUpload={(files) => console.log("Uploaded:", files)} />
 
                 {needsEwayBill && (
-                  <div className="eway-critical-box">
-                    <div className="alert-header"><AlertCircle size={18} /> <span>E-WAY BILL MANDATORY</span></div>
-                    <input className="eway-main-input" value={ewayBill} onChange={e=>setEwayBill(e.target.value.toUpperCase())} placeholder="ENTER 12 DIGIT E-WAY BILL NO." maxLength={12} />
+                  <div className="eway-alert">
+                    <div className="eway-header"><AlertCircle size={16} /> E-WAY BILL REQUIRED</div>
+                    <input className="eway-input-field" value={ewayBill} onChange={e => setEwayBill(e.target.value.toUpperCase())} placeholder="12 DIGIT E-WAY BILL NO." maxLength={12} />
                   </div>
                 )}
 
                 <RealTimeFreightCalculator 
-                  weight={chargedWeight}
-                  origin={pickup.pincode}
-                  destination={delivery.pincode}
-                  bookingMode={bookingMode}
-                  onCalculate={setFreightData}
+                  weight={chargedWeight} origin={pickup.pincode} destination={delivery.pincode}
+                  bookingMode={bookingMode} onCalculate={setFreightData}
                 />
 
-                <div className="lr-settings-section">
-                  <div className="setting-toggle">
+                {/* Settings */}
+                <div className="settings-panel">
+                  <div className="setting-row">
                     <label>Manual LR Number</label>
-                    <button type="button" className={`toggle-btn ${isManualLR ? 'active' : ''}`} onClick={() => setIsManualLR(!isManualLR)}>
-                      {isManualLR ? <ToggleRight size={24} color="#d32f2f" /> : <ToggleLeft size={24} color="#64748b" />}
-                      {isManualLR ? 'Manual Mode ON' : 'Auto Mode'}
+                    <button className={`toggle-switch ${isManualLR ? 'on' : 'off'}`} onClick={() => setIsManualLR(!isManualLR)}>
+                      {isManualLR ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
+                      {isManualLR ? 'Manual ON' : 'Auto'}
                     </button>
                   </div>
-                  
                   {isManualLR && (
-                    <div className="manual-lr-input">
-                      <input 
-                        type="text" 
-                        placeholder="Enter Manual LR Number (e.g., FCPL9999)" 
-                        value={manualLRNumber}
-                        onChange={e => setManualLRNumber(e.target.value.toUpperCase())}
-                        className="manual-lr-field"
-                      />
-                    </div>
+                    <input className="manual-lr-input" placeholder="Enter LR Number" value={manualLRNumber} onChange={e => setManualLRNumber(e.target.value.toUpperCase())} />
                   )}
-
-                  <div className="setting-toggle">
+                  <div className="setting-row">
                     <label>Show Freight on Docket</label>
-                    <button type="button" className={`toggle-btn ${showFreightOnDocket ? 'active' : ''}`} onClick={() => setShowFreightOnDocket(!showFreightOnDocket)}>
-                      {showFreightOnDocket ? <ToggleRight size={24} color="#d32f2f" /> : <ToggleLeft size={24} color="#64748b" />}
-                      {showFreightOnDocket ? 'Show Freight' : 'Hide Freight'}
+                    <button className={`toggle-switch ${showFreightOnDocket ? 'on' : 'off'}`} onClick={() => setShowFreightOnDocket(!showFreightOnDocket)}>
+                      {showFreightOnDocket ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
+                      {showFreightOnDocket ? 'Show' : 'Hide'}
                     </button>
                   </div>
                 </div>
               </div>
-            </section>
+            </div>
 
-            <button className={`final-submit-btn-premium ${loading ? 'loading' : ''}`} onClick={handleCreateOrder} disabled={loading}>
-              {loading ? <><Clock size={20} /> Generating LR...</> : <><Crown size={20} /> Generate Premium Consignment Note</>}
-              <ChevronRight size={20} />
+            <button className={`generate-btn ${loading ? 'loading-state' : ''}`} onClick={handleCreateOrder} disabled={loading}>
+              {loading ? <Clock size={20} /> : <Crown size={20} />}
+              {loading ? "Generating LR..." : "Generate Consignment Note"}
+              <ChevronRight size={18} />
             </button>
           </div>
         </div>
 
+        {/* Success Modal */}
         {showLR && (
-          <div className="modal-overlay-premium no-print">
-            <div className="modal-content-premium">
-              <div className="success-icon"><CheckCircle size={60} color="#10b981" /></div>
-              <h2>Consignment Generated Successfully!</h2>
-              <div className="lr-premium-display">{isManualLR ? manualLRNumber : lrNumber}</div>
-              <div className="awb-premium-display">AWB: {awbNumber}</div>
-              
-              <div className="docket-preview">
+          <div className="modal-overlay" onClick={() => setShowLR(false)}>
+            <div className="modal-dialog" onClick={e => e.stopPropagation()}>
+              <div className="modal-icon"><CheckCircle size={60} color="#10b981" /></div>
+              <h2>Consignment Generated!</h2>
+              <div className="modal-lr-number">{isManualLR ? manualLRNumber : lrNumber}</div>
+              <div className="modal-awb-number">AWB: {awbNumber}</div>
+              <div className="modal-docket-view">
                 <ProfessionalDocket 
                   data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight}}
-                  lrNumber={lrNumber}
-                  totalValue={totalInvoiceValue}
-                  ewayBill={ewayBill}
-                  awbNumber={awbNumber}
-                  bookingMode={bookingMode}
-                  showFreight={showFreightOnDocket}
-                  isManualLR={isManualLR}
-                  manualLRNumber={manualLRNumber}
+                  lrNumber={lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill}
+                  awbNumber={awbNumber} bookingMode={bookingMode} showFreight={showFreightOnDocket}
+                  isManualLR={isManualLR} manualLRNumber={manualLRNumber}
                   freightData={freightData}
                 />
               </div>
-
-              <div className="modal-actions-premium">
-                <button className="action-print" onClick={() => window.print()}><Printer size={18}/> Print Docket</button>
-                <button className="action-label" onClick={() => {
-                  const printWindow = window.open('', '_blank');
-                  printWindow.document.write(`
+              <div className="modal-buttons">
+                <button className="modal-btn print-btn" onClick={() => window.print()}><Printer size={16} /> Print Docket</button>
+                <button className="modal-btn label-btn" onClick={() => {
+                  const printWin = window.open('', '_blank');
+                  printWin.document.write(`
                     <html><head><title>Label - ${isManualLR ? manualLRNumber : lrNumber}</title>
                     <style>
                       body { font-family: Arial; padding: 20px; }
-                      .label { width: 4in; border: 2px solid #000; padding: 10px; margin: 0 auto; }
-                      .label h2 { text-align: center; margin: 0 0 10px; }
-                      .lr { font-size: 24px; font-weight: bold; text-align: center; margin: 10px 0; }
-                      .address { font-size: 12px; margin: 5px 0; }
+                      .label-card { width: 4in; border: 2px solid #d32f2f; padding: 15px; margin: 0 auto; border-radius: 8px; }
+                      .label-header { text-align: center; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; margin-bottom: 10px; }
+                      .label-header h2 { margin: 0; color: #0f172a; }
+                      .label-header p { margin: 2px 0; color: #64748b; font-size: 10px; }
+                      .label-lr { font-size: 22px; font-weight: bold; text-align: center; margin: 15px 0; color: #d32f2f; }
+                      .label-address { font-size: 11px; margin: 8px 0; }
+                      .label-footer { font-size: 9px; text-align: center; margin-top: 12px; padding-top: 8px; border-top: 1px dashed #ccc; }
+                      .barcode-img { text-align: center; margin: 10px 0; }
                     </style>
                     </head>
                     <body>
-                      <div class="label">
-                        <h2>FAITH CARGO PVT LTD</h2>
-                        <div class="lr">LR: ${isManualLR ? manualLRNumber : lrNumber}</div>
-                        <div class="address">From: ${pickup.name} - ${pickup.pincode}</div>
-                        <div class="address">To: ${delivery.name} - ${delivery.pincode}</div>
-                        <div class="address">Weight: ${chargedWeight} Kg | Mode: ${bookingMode.toUpperCase()}</div>
+                      <div class="label-card">
+                        <div class="label-header">
+                          <h2>FAITH CARGO PVT LTD</h2>
+                          <p>4/15, Kirti Nagar Industrial Area, New Delhi - 110015</p>
+                          <p>GST: 07AAFCF2947K1ZD</p>
+                        </div>
+                        <div class="label-lr">LR: ${isManualLR ? manualLRNumber : lrNumber}</div>
+                        <div class="barcode-img"><img src="https://barcode.tec-it.com/barcode.ashx?data=${isManualLR ? manualLRNumber : lrNumber}&code=Code128&dpi=96" width="200" /></div>
+                        <div class="label-address"><strong>From:</strong> ${pickup.name} - ${pickup.pincode}</div>
+                        <div class="label-address"><strong>To:</strong> ${delivery.name} - ${delivery.pincode}</div>
+                        <div class="label-footer">Weight: ${chargedWeight} Kg | Mode: ${bookingMode.toUpperCase()} | AWB: ${awbNumber}</div>
                       </div>
                     </body>
                     </html>
                   `);
-                  printWindow.print();
-                  printWindow.close();
-                }}><Barcode size={18}/> Print Label</button>
-                <button className="action-view" onClick={() => window.location.href='/shipments'}><Eye size={18}/> View All Shipments</button>
-                <button className="action-new" onClick={() => window.location.reload()}><Plus size={18}/> New Booking</button>
+                  printWin.print();
+                  printWin.close();
+                }}><Barcode size={16} /> Print Label</button>
+                <button className="modal-btn view-btn" onClick={() => window.location.href='/shipments'}><Eye size={16} /> View All</button>
+                <button className="modal-btn new-btn" onClick={() => window.location.reload()}><Plus size={16} /> New</button>
               </div>
             </div>
           </div>
@@ -921,14 +806,9 @@ export default function CreateOrder() {
         <div className="print-only">
           <ProfessionalDocket 
             data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight}}
-            lrNumber={lrNumber}
-            totalValue={totalInvoiceValue}
-            ewayBill={ewayBill}
-            awbNumber={awbNumber}
-            bookingMode={bookingMode}
-            showFreight={showFreightOnDocket}
-            isManualLR={isManualLR}
-            manualLRNumber={manualLRNumber}
+            lrNumber={lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill}
+            awbNumber={awbNumber} bookingMode={bookingMode} showFreight={showFreightOnDocket}
+            isManualLR={isManualLR} manualLRNumber={manualLRNumber}
             freightData={freightData}
           />
         </div>
