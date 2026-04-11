@@ -1,5 +1,5 @@
 /* ==========================================================================
-   FAITH CARGO - PREMIUM CREATE ORDER v8.0
+   FAITH CARGO - PREMIUM CREATE ORDER v9.0
    Professional Booking Interface with Real-Time Freight & A4 Docket
    ========================================================================== */
 
@@ -399,73 +399,53 @@ input:focus, textarea:focus {
 }
 
 /* -----------------------------------------------------------------------
-   8. REAL TIME FREIGHT CALCULATOR (NEW - UPDATED)
+   8. FREIGHT CALCULATOR CARD (UPDATED)
    ----------------------------------------------------------------------- */
-.real-time-freight-calculator {
+.freight-calculator-card {
     margin-top: 20px;
     padding: 18px;
-    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
     border-radius: var(--radius-md);
-    border-left: 4px solid #0284c7;
+    border-left: 4px solid var(--fc-gold);
 }
 
 .freight-header {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     font-weight: 800;
-    margin-bottom: 15px;
-    color: #0369a1;
+    margin-bottom: 12px;
+    color: #92400e;
 }
 
-.freight-result {
+.freight-details {
     margin-top: 12px;
 }
 
-.freight-route {
+.freight-item {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding-bottom: 10px;
-    border-bottom: 1px dashed #bae6fd;
-    margin-bottom: 10px;
+    font-size: 13px;
+    padding: 5px 0;
 }
+
+.freight-item.total {
+    font-size: 16px;
+    font-weight: 800;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 2px dashed #d97706;
+}
+
+.text-red { color: var(--fc-red); font-weight: 800; }
 
 .route-badge {
     background: #0284c7;
     color: white;
-    padding: 4px 12px;
+    padding: 4px 8px;
     border-radius: 20px;
     font-size: 11px;
     font-weight: 700;
-}
-
-.rate-per-kg {
-    font-size: 13px;
-    font-weight: 800;
-    color: #0369a1;
-}
-
-.freight-breakdown {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.break-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    padding: 4px 0;
-}
-
-.break-row.total {
-    font-weight: 800;
-    font-size: 14px;
-    border-top: 2px solid #bae6fd;
-    margin-top: 5px;
-    padding-top: 8px;
-    color: var(--fc-red);
 }
 
 .freight-error {
@@ -477,12 +457,7 @@ input:focus, textarea:focus {
     border-radius: 8px;
     color: #dc2626;
     font-size: 12px;
-}
-
-.loading-text {
-    font-size: 11px;
-    color: #0369a1;
-    animation: pulse 1s infinite;
+    margin-top: 10px;
 }
 
 /* -----------------------------------------------------------------------
@@ -753,9 +728,9 @@ input:focus, textarea:focus {
 }
 
 /* -----------------------------------------------------------------------
-   14. PROFESSIONAL DOCKET (COMPLETELY UPGRADED - SENDER LEFT | RECEIVER RIGHT)
+   14. LUXURY DOCKET A4 (PROFESSIONAL - SENDER LEFT | RECEIVER RIGHT)
    ----------------------------------------------------------------------- */
-.professional-docket {
+.luxury-docket-a4 {
     width: 210mm;
     min-height: 297mm;
     background: white;
@@ -767,7 +742,7 @@ input:focus, textarea:focus {
     break-inside: avoid;
 }
 
-.docket-inner-border {
+.docket-border-premium {
     position: absolute;
     top: 8px;
     left: 8px;
@@ -779,7 +754,7 @@ input:focus, textarea:focus {
 }
 
 /* Header Section */
-.docket-header {
+.docket-header-a4 {
     padding: 20px 25px;
     display: flex;
     justify-content: space-between;
@@ -788,31 +763,31 @@ input:focus, textarea:focus {
     background: white;
 }
 
-.brand-section {
+.company-info {
     display: flex;
     gap: 15px;
     align-items: center;
 }
 
-.brand-logo {
+.company-logo {
     height: 60px;
     object-fit: contain;
 }
 
-.brand-info h2 {
+.company-details h1 {
     font-size: 18px;
     font-weight: 900;
     color: var(--fc-black);
     margin: 0;
 }
 
-.brand-info p {
+.company-details p {
     font-size: 9px;
     color: var(--fc-text-light);
     margin: 2px 0;
 }
 
-.contact-info {
+.company-address {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -821,11 +796,11 @@ input:focus, textarea:focus {
     color: var(--fc-text-light);
 }
 
-.docket-number {
+.docket-meta {
     text-align: right;
 }
 
-.lr-badge {
+.consignment-badge {
     background: var(--fc-black);
     color: white;
     padding: 4px 12px;
@@ -835,11 +810,11 @@ input:focus, textarea:focus {
     margin-bottom: 8px;
 }
 
-.barcode-canvas {
+.barcode {
     margin: 5px 0;
 }
 
-.lr-value {
+.lr-number {
     font-size: 22px;
     font-weight: 900;
     color: var(--fc-red);
@@ -847,19 +822,19 @@ input:focus, textarea:focus {
     letter-spacing: 1px;
 }
 
-.awb-value {
+.awb-number {
     font-size: 11px;
     color: var(--fc-text-light);
 }
 
-.date-value {
+.date {
     font-size: 10px;
     color: var(--fc-text-light);
     margin-top: 3px;
 }
 
-/* Parties Container - Sender Left, Receiver Right with Arrow */
-.parties-container {
+/* Parties Section - Sender Left, Receiver Right with Arrow */
+.parties-section {
     display: flex;
     align-items: stretch;
     gap: 20px;
@@ -867,7 +842,7 @@ input:focus, textarea:focus {
     background: #fafafa;
 }
 
-.party {
+.party-card {
     flex: 1;
     background: white;
     border: 1px solid var(--fc-border);
@@ -876,11 +851,11 @@ input:focus, textarea:focus {
     transition: var(--transition);
 }
 
-.party:hover {
+.party-card:hover {
     box-shadow: var(--shadow-premium);
 }
 
-.party-title {
+.party-header {
     background: linear-gradient(135deg, #f8fafc, #f1f5f9);
     padding: 12px 15px;
     display: flex;
@@ -900,38 +875,38 @@ input:focus, textarea:focus {
     font-size: 18px;
 }
 
-.party-title h3 {
+.party-header h3 {
     font-size: 12px;
     font-weight: 800;
     margin: 0;
     color: var(--fc-black);
 }
 
-.party-title p {
+.party-header p {
     font-size: 9px;
     color: var(--fc-text-light);
     margin: 0;
 }
 
-.party-content {
+.party-body {
     padding: 15px;
 }
 
-.party-content h4 {
+.party-body h4 {
     font-size: 13px;
     font-weight: 800;
     color: var(--fc-black);
     margin-bottom: 8px;
 }
 
-.address-text {
+.party-body .address {
     font-size: 10px;
     color: var(--fc-text-light);
     line-height: 1.4;
     margin-bottom: 10px;
 }
 
-.party-contact {
+.party-details {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
@@ -941,30 +916,30 @@ input:focus, textarea:focus {
     border-top: 1px dashed var(--fc-border);
 }
 
-.party-contact span {
+.party-details span {
     display: inline-flex;
     align-items: center;
     gap: 4px;
 }
 
-.party-arrow-icon {
+.party-arrow {
     display: flex;
     align-items: center;
     color: var(--fc-red);
 }
 
 /* Shipment Details Table */
-.shipment-table-wrapper {
+.shipment-details-table {
     padding: 0 25px;
     margin-bottom: 20px;
 }
 
-.shipment-data-table {
+.shipment-table-premium {
     width: 100%;
     border-collapse: collapse;
 }
 
-.shipment-data-table th {
+.shipment-table-premium th {
     background: #f8fafc;
     padding: 10px 8px;
     font-size: 9px;
@@ -975,20 +950,24 @@ input:focus, textarea:focus {
     text-transform: uppercase;
 }
 
-.shipment-data-table td {
+.shipment-table-premium td {
     padding: 10px 8px;
     font-size: 10px;
     text-align: center;
     border: 1px solid var(--fc-border);
 }
 
-.goods-note {
+.main-row td {
+    font-weight: 600;
+}
+
+.material-note {
     font-size: 8px;
     color: var(--fc-text-light);
     margin-top: 3px;
 }
 
-.mode-label {
+.mode-tag {
     display: inline-block;
     padding: 4px 8px;
     border-radius: 12px;
@@ -996,13 +975,13 @@ input:focus, textarea:focus {
     font-weight: 800;
 }
 
-.mode-label.mode-surface { background: #dbeafe; color: #1e40af; }
-.mode-label.mode-air { background: #fed7aa; color: #9a3412; }
-.mode-label.mode-rail { background: #d1fae5; color: #065f46; }
-.mode-label.mode-express { background: #fef3c7; color: #92400e; }
+.mode-tag.mode-surface { background: #dbeafe; color: #1e40af; }
+.mode-tag.mode-air { background: #fed7aa; color: #9a3412; }
+.mode-tag.mode-rail { background: #d1fae5; color: #065f46; }
+.mode-tag.mode-express { background: #fef3c7; color: #92400e; }
 
-/* Invoice & Freight Wrapper */
-.invoice-freight-wrapper {
+/* Invoice & Freight Section */
+.invoice-freight-section {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
@@ -1010,13 +989,13 @@ input:focus, textarea:focus {
     margin-bottom: 20px;
 }
 
-.invoice-box, .freight-box {
+.invoice-details, .freight-details {
     border: 1px solid var(--fc-border);
     border-radius: 10px;
     overflow: hidden;
 }
 
-.box-title {
+.section-title {
     background: #f8fafc;
     padding: 10px 15px;
     font-size: 10px;
@@ -1024,11 +1003,11 @@ input:focus, textarea:focus {
     border-bottom: 2px solid var(--fc-border);
 }
 
-.invoice-items, .freight-items {
+.invoice-list, .freight-list {
     padding: 12px;
 }
 
-.invoice-line {
+.invoice-item {
     display: flex;
     justify-content: space-between;
     font-size: 10px;
@@ -1036,7 +1015,7 @@ input:focus, textarea:focus {
     border-bottom: 1px dotted var(--fc-border);
 }
 
-.invoice-total-line {
+.invoice-total {
     display: flex;
     justify-content: space-between;
     font-size: 11px;
@@ -1046,7 +1025,7 @@ input:focus, textarea:focus {
     border-top: 2px solid var(--fc-border);
 }
 
-.eway-bill-tag {
+.eway-bill-info {
     margin-top: 8px;
     padding: 5px;
     background: #fef3c7;
@@ -1057,14 +1036,14 @@ input:focus, textarea:focus {
     color: #92400e;
 }
 
-.freight-line {
+.freight-item {
     display: flex;
     justify-content: space-between;
     font-size: 10px;
     padding: 6px 0;
 }
 
-.freight-line.total-line {
+.freight-item.total {
     font-size: 12px;
     font-weight: 800;
     color: var(--fc-red);
@@ -1073,7 +1052,7 @@ input:focus, textarea:focus {
     padding-top: 8px;
 }
 
-.rate-info-note {
+.rate-slab-info-small {
     margin-top: 10px;
     padding: 6px;
     background: #e0f2fe;
@@ -1085,7 +1064,7 @@ input:focus, textarea:focus {
 }
 
 /* Terms & Signatures */
-.terms-section {
+.terms-signatures {
     display: grid;
     grid-template-columns: 1.5fr 1fr;
     gap: 20px;
@@ -1093,46 +1072,46 @@ input:focus, textarea:focus {
     margin-bottom: 20px;
 }
 
-.terms-content {
+.terms {
     background: #f8fafc;
     padding: 12px 15px;
     border-radius: 10px;
 }
 
-.terms-content h4 {
+.terms h4 {
     font-size: 10px;
     font-weight: 800;
     margin-bottom: 8px;
     color: var(--fc-black);
 }
 
-.terms-content ul {
+.terms ul {
     padding-left: 18px;
     font-size: 8px;
     color: var(--fc-text-light);
 }
 
-.terms-content li {
+.terms li {
     margin-bottom: 3px;
 }
 
-.signature-section {
+.signatures {
     display: flex;
     gap: 20px;
 }
 
-.signature-line {
+.signature-box {
     flex: 1;
     text-align: center;
 }
 
-.line {
+.sign-line {
     border-top: 1px solid var(--fc-black);
     width: 100%;
     margin-bottom: 5px;
 }
 
-.stamp-area {
+.stamp {
     border: 2px dashed var(--fc-red);
     padding: 8px;
     font-size: 8px;
@@ -1142,13 +1121,13 @@ input:focus, textarea:focus {
     background: #fff1f2;
 }
 
-.signature-line p {
+.signature-box p {
     font-size: 8px;
     color: var(--fc-text-light);
 }
 
 /* Footer */
-.docket-footer {
+.docket-footer-a4 {
     padding: 12px 25px;
     background: linear-gradient(135deg, var(--fc-black), var(--fc-black-light));
     color: white;
@@ -1159,13 +1138,13 @@ input:focus, textarea:focus {
     gap: 10px;
 }
 
-.copy-labels, .footer-contacts {
+.footer-copies, .footer-contact {
     display: flex;
     gap: 15px;
 }
 
 /* -----------------------------------------------------------------------
-   15. MODAL & OVERLAY (UPDATED)
+   15. MODAL & OVERLAY
    ----------------------------------------------------------------------- */
 .modal-overlay-premium {
     position: fixed;
@@ -1352,7 +1331,7 @@ input:focus, textarea:focus {
         size: A4;
         margin: 0;
     }
-    .professional-docket {
+    .luxury-docket-a4 {
         box-shadow: none;
         margin: 0;
         padding: 0;
@@ -1395,33 +1374,33 @@ input:focus, textarea:focus {
         grid-template-columns: repeat(2, 1fr);
     }
     
-    .invoice-freight-wrapper {
+    .invoice-freight-section {
         grid-template-columns: 1fr;
     }
     
-    .parties-container {
+    .parties-section {
         flex-direction: column;
     }
     
-    .party-arrow-icon {
+    .party-arrow {
         transform: rotate(90deg);
         justify-content: center;
     }
     
-    .terms-section {
+    .terms-signatures {
         grid-template-columns: 1fr;
     }
     
-    .signature-section {
+    .signatures {
         flex-direction: column;
     }
     
-    .docket-footer {
+    .docket-footer-a4 {
         flex-direction: column;
         text-align: center;
     }
     
-    .copy-labels, .footer-contacts {
+    .footer-copies, .footer-contact {
         justify-content: center;
     }
     
@@ -1441,12 +1420,6 @@ input:focus, textarea:focus {
     .modal-actions-premium button {
         width: 100%;
         justify-content: center;
-    }
-}
-
-@media (max-width: 640px) {
-    .rate-comparison {
-        grid-template-columns: 1fr;
     }
 }
 

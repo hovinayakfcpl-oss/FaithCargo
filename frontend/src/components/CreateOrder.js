@@ -28,7 +28,6 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
         setLoading(true);
         setError(null);
         try {
-          // Call the same API that B2B calculator uses
           const response = await fetch("https://faithcargo.onrender.com/api/shipments/calculate-freight/", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -42,7 +41,6 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
           const data = await response.json();
           
           if (data.success) {
-            // Apply mode multiplier
             const multiplier = bookingMode === 'air' ? 1.5 : bookingMode === 'express' ? 1.3 : bookingMode === 'rail' ? 0.8 : 1;
             const baseFreight = data.freight_charge * multiplier;
             const fuelSurcharge = baseFreight * 0.10;
@@ -52,11 +50,6 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
             
             let total = baseFreight + fuelSurcharge + gst + docketCharge + fovCharge;
             
-            // Apply weight slab discount
-            if (weight > 500) total = total * 0.95;
-            if (weight > 1000) total = total * 0.90;
-            
-            // Minimum billing
             if (total < 650) total = 650;
             
             const freightResult = {
@@ -91,52 +84,39 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
   if (!origin || !destination || weight === 0) return null;
 
   return (
-    <div className="real-time-freight-calculator">
+    <div className="freight-calculator-card">
       <div className="freight-header">
         <Calculator size={18} />
-        <span>Real-Time Freight Calculator</span>
-        {loading && <span className="loading-text">Fetching rates...</span>}
+        <span>Freight Calculation {loading && "(Calculating...)"}</span>
       </div>
       
       {error && (
-        <div className="freight-error">
-          <AlertCircle size={14} />
-          <span>{error}</span>
+        <div className="freight-error" style={{color: '#dc2626', fontSize: '12px', padding: '8px', background: '#fee2e2', borderRadius: '8px', marginTop: '10px'}}>
+          <AlertCircle size={14} /> {error}
         </div>
       )}
       
       {freight && !loading && (
-        <div className="freight-result">
-          <div className="freight-route">
-            <span className="route-badge">{freight.fromZone} → {freight.toZone}</span>
-            <span className="rate-per-kg">₹{freight.ratePerKg}/kg</span>
+        <div className="freight-details" style={{marginTop: '12px'}}>
+          <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px dashed #e2e8f0'}}>
+            <span className="route-badge" style={{background: '#0284c7', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '10px'}}>{freight.fromZone} → {freight.toZone}</span>
+            <span style={{fontSize: '12px', fontWeight: 'bold'}}>₹{freight.ratePerKg}/kg</span>
           </div>
-          
-          <div className="freight-breakdown">
-            <div className="break-row">
-              <span>Base Freight:</span>
-              <strong>₹{Math.round(freight.baseFreight).toLocaleString()}</strong>
-            </div>
-            <div className="break-row">
-              <span>Fuel Surcharge (10%):</span>
-              <strong>₹{Math.round(freight.fuelSurcharge).toLocaleString()}</strong>
-            </div>
-            <div className="break-row">
-              <span>GST (18%):</span>
-              <strong>₹{Math.round(freight.gst).toLocaleString()}</strong>
-            </div>
-            <div className="break-row">
-              <span>Docket Charge:</span>
-              <strong>₹{freight.docketCharge}</strong>
-            </div>
-            <div className="break-row">
-              <span>FOV Charge:</span>
-              <strong>₹{freight.fovCharge}</strong>
-            </div>
-            <div className="break-row total">
-              <span>Total Freight:</span>
-              <strong className="text-red">₹{Math.round(freight.total).toLocaleString()}</strong>
-            </div>
+          <div className="freight-item" style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0'}}>
+            <span>Base Freight:</span>
+            <strong>₹{Math.round(freight.baseFreight).toLocaleString()}</strong>
+          </div>
+          <div className="freight-item" style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0'}}>
+            <span>Fuel Surcharge (10%):</span>
+            <strong>₹{Math.round(freight.fuelSurcharge).toLocaleString()}</strong>
+          </div>
+          <div className="freight-item" style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0'}}>
+            <span>GST (18%):</span>
+            <strong>₹{Math.round(freight.gst).toLocaleString()}</strong>
+          </div>
+          <div className="freight-item total" style={{display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', marginTop: '8px', paddingTop: '8px', borderTop: '2px solid #e2e8f0', color: '#d32f2f'}}>
+            <span>Total Freight:</span>
+            <strong>₹{Math.round(freight.total).toLocaleString()}</strong>
           </div>
         </div>
       )}
@@ -145,7 +125,7 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
 };
 
 // ============================================
-// 🎨 PROFESSIONAL DOCKET COMPONENT (Sender Left | Receiver Right)
+// 🎨 PROFESSIONAL DOCKET (Sender Left | Receiver Right)
 // ============================================
 const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, isManualLR, manualLRNumber, freightData }) => {
   const barcodeRef = useRef(null);
@@ -188,46 +168,46 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
   };
 
   return (
-    <div className="professional-docket">
-      <div className="docket-inner-border"></div>
+    <div className="luxury-docket-a4">
+      <div className="docket-border-premium"></div>
       
       {/* Header */}
-      <div className="docket-header">
-        <div className="brand-section">
-          <img src={logo} alt="FCPL" className="brand-logo" />
-          <div className="brand-info">
-            <h2>FAITH CARGO PRIVATE LIMITED</h2>
+      <div className="docket-header-a4">
+        <div className="company-info">
+          <img src={logo} alt="FCPL" className="company-logo" />
+          <div className="company-details">
+            <h1>FAITH CARGO PRIVATE LIMITED</h1>
             <p>ISO 9001:2015 & ISO 14001:2015 CERTIFIED</p>
-            <div className="contact-info">
+            <div className="company-address">
               <span>🏢 4/15, Kirti Nagar Industrial Area, New Delhi - 110015</span>
               <span>📞 +91 9818641504 | ✉️ care@faithcargo.com</span>
               <span>🔷 GST: 07AAFCF2947K1ZD | CIN: U60231DL2021PTC384521</span>
             </div>
           </div>
         </div>
-        <div className="docket-number">
-          <div className="lr-badge">CONSIGNMENT NOTE</div>
-          <canvas ref={barcodeRef} className="barcode-canvas"></canvas>
-          <div className="lr-value">{displayLRNumber || "DRAFT"}</div>
-          <div className="awb-value">AWB: {awbNumber || "N/A"}</div>
-          <div className="date-value">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        <div className="docket-meta">
+          <div className="consignment-badge">CONSIGNMENT NOTE</div>
+          <canvas ref={barcodeRef} className="barcode"></canvas>
+          <div className="lr-number">{displayLRNumber || "DRAFT"}</div>
+          <div className="awb-number">AWB: {awbNumber || "N/A"}</div>
+          <div className="date">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
         </div>
       </div>
 
       {/* Sender (Left) & Receiver (Right) Side by Side */}
-      <div className="parties-container">
-        <div className="party sender-party">
-          <div className="party-title">
-            <span className="party-icon">📤</span>
+      <div className="parties-section">
+        <div className="party-card sender">
+          <div className="party-header">
+            <div className="party-icon">📤</div>
             <div>
               <h3>CONSIGNOR</h3>
               <p>(Sender)</p>
             </div>
           </div>
-          <div className="party-content">
+          <div className="party-body">
             <h4>{safeData.pickup.name || "____________________"}</h4>
-            <p className="address-text">{safeData.pickup.address || "Address not provided"}</p>
-            <div className="party-contact">
+            <p className="address">{safeData.pickup.address || "Address not provided"}</p>
+            <div className="party-details">
               <span>📮 {safeData.pickup.pincode || "______"}</span>
               <span>📍 {safeData.pickup.city || "_____"}, {safeData.pickup.state || "_____"}</span>
               <span>📞 {safeData.pickup.contact || "_________"}</span>
@@ -236,22 +216,22 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
           </div>
         </div>
 
-        <div className="party-arrow-icon">
-          <ArrowRight size={36} />
+        <div className="party-arrow">
+          <ArrowRight size={32} />
         </div>
 
-        <div className="party receiver-party">
-          <div className="party-title">
-            <span className="party-icon">📥</span>
+        <div className="party-card receiver">
+          <div className="party-header">
+            <div className="party-icon">📥</div>
             <div>
               <h3>CONSIGNEE</h3>
               <p>(Receiver)</p>
             </div>
           </div>
-          <div className="party-content">
+          <div className="party-body">
             <h4>{safeData.delivery.name || "____________________"}</h4>
-            <p className="address-text">{safeData.delivery.address || "Address not provided"}</p>
-            <div className="party-contact">
+            <p className="address">{safeData.delivery.address || "Address not provided"}</p>
+            <div className="party-details">
               <span>📮 {safeData.delivery.pincode || "______"}</span>
               <span>📍 {safeData.delivery.city || "_____"}, {safeData.delivery.state || "_____"}</span>
               <span>📞 {safeData.delivery.contact || "_________"}</span>
@@ -262,32 +242,32 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
       </div>
 
       {/* Shipment Details Table */}
-      <div className="shipment-table-wrapper">
-        <table className="shipment-data-table">
+      <div className="shipment-details-table">
+        <table className="shipment-table-premium">
           <thead>
             <tr>
-              <th>PKGS</th>
-              <th>DESCRIPTION OF GOODS</th>
-              <th>HSN CODE</th>
-              <th>ACTUAL WT</th>
-              <th>VOL WT</th>
-              <th>CHARGED WT</th>
-              <th>MODE</th>
+              <th width="8%">PKGS</th>
+              <th width="32%">DESCRIPTION</th>
+              <th width="10%">HSN</th>
+              <th width="12%">ACTUAL WT</th>
+              <th width="12%">VOL WT</th>
+              <th width="12%">CHARGED WT</th>
+              <th width="14%">MODE</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
+            <tr className="main-row">
               <td className="text-center">{safeData.orderDetails.boxesCount || 0}</td>
               <td>
                 <strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong>
-                <div className="goods-note">Said to contain</div>
+                <div className="material-note">Said to contain</div>
               </td>
               <td className="text-center">{safeData.orderDetails.hsnCode || "1234"}</td>
               <td className="text-center">{safeData.orderDetails.weight || 0} kg</td>
               <td className="text-center">{safeData.volWeight} kg</td>
               <td className="text-center"><strong>{safeData.chargedWeight} kg</strong></td>
               <td className="text-center">
-                <div className={`mode-label mode-${bookingMode || 'surface'}`}>
+                <div className={`mode-tag mode-${bookingMode || 'surface'}`}>
                   {getModeText()}
                 </div>
               </td>
@@ -297,63 +277,63 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
       </div>
 
       {/* Invoice & Freight Section */}
-      <div className="invoice-freight-wrapper">
-        <div className="invoice-box">
-          <div className="box-title">📄 INVOICE DETAILS</div>
-          <div className="invoice-items">
+      <div className="invoice-freight-section">
+        <div className="invoice-details">
+          <div className="section-title">📄 INVOICE DETAILS</div>
+          <div className="invoice-list">
             {safeData.invoices?.filter(inv => inv.no).map((inv, idx) => (
-              <div key={idx} className="invoice-line">
+              <div key={idx} className="invoice-item">
                 <span>{inv.no}</span>
                 <span>₹{parseFloat(inv.value).toLocaleString()}</span>
               </div>
             ))}
-            <div className="invoice-total-line">
+            <div className="invoice-total">
               <span>TOTAL VALUE:</span>
               <strong>₹{totalValue?.toLocaleString() || 0}</strong>
             </div>
-            {ewayBill && <div className="eway-bill-tag">E-WAY BILL: {ewayBill}</div>}
+            {ewayBill && <div className="eway-bill-info">E-WAY BILL: {ewayBill}</div>}
           </div>
         </div>
 
         {showFreight && freightData && (
-          <div className="freight-box">
-            <div className="box-title">💰 FREIGHT BREAKDOWN</div>
-            <div className="freight-items">
-              <div className="freight-line">
+          <div className="freight-details">
+            <div className="section-title">💰 FREIGHT DETAILS</div>
+            <div className="freight-list">
+              <div className="freight-item">
                 <span>Base Freight:</span>
                 <strong>₹{Math.round(freightData.baseFreight || 0).toLocaleString()}</strong>
               </div>
-              <div className="freight-line">
+              <div className="freight-item">
                 <span>Fuel Surcharge (10%):</span>
                 <strong>₹{Math.round(freightData.fuelSurcharge || 0).toLocaleString()}</strong>
               </div>
-              <div className="freight-line">
+              <div className="freight-item">
                 <span>GST (18%):</span>
                 <strong>₹{Math.round(freightData.gst || 0).toLocaleString()}</strong>
               </div>
-              <div className="freight-line">
+              <div className="freight-item">
                 <span>Docket Charge:</span>
                 <strong>₹{freightData.docketCharge || 100}</strong>
               </div>
-              <div className="freight-line">
+              <div className="freight-item">
                 <span>FOV Charge:</span>
                 <strong>₹{freightData.fovCharge || 75}</strong>
               </div>
-              <div className="freight-line total-line">
+              <div className="freight-item total">
                 <span>TOTAL PAYABLE:</span>
                 <strong className="text-red">₹{Math.round(freightData.total || 0).toLocaleString()}</strong>
               </div>
             </div>
-            <div className="rate-info-note">
+            <div className="rate-slab-info-small">
               Rate: ₹{freightData.ratePerKg}/kg | Route: {freightData.fromZone} → {freightData.toZone}
             </div>
           </div>
         )}
       </div>
 
-      {/* Terms & Conditions */}
-      <div className="terms-section">
-        <div className="terms-content">
+      {/* Terms & Signatures */}
+      <div className="terms-signatures">
+        <div className="terms">
           <h4>TERMS &amp; CONDITIONS</h4>
           <ul>
             <li>Goods carried at Owner's Risk. Insurance recommended.</li>
@@ -362,26 +342,26 @@ const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, b
             <li>E-Way Bill mandatory for invoice &gt; ₹50,000.</li>
           </ul>
         </div>
-        <div className="signature-section">
-          <div className="signature-line">
-            <div className="line"></div>
+        <div className="signatures">
+          <div className="signature-box">
+            <div className="sign-line"></div>
             <p>Receiver's Signature</p>
           </div>
-          <div className="signature-line">
-            <div className="stamp-area">FOR FAITH CARGO PVT LTD</div>
+          <div className="signature-box">
+            <div className="stamp">FOR FAITH CARGO PVT LTD</div>
             <p>Authorized Signatory</p>
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="docket-footer">
-        <div className="copy-labels">
+      <div className="docket-footer-a4">
+        <div className="footer-copies">
           <span>📄 ORIGINAL - CONSIGNOR</span>
           <span>📄 DUPLICATE - CONSIGNEE</span>
           <span>📄 TRIPLICATE - OFFICE COPY</span>
         </div>
-        <div className="footer-contacts">
+        <div className="footer-contact">
           <span>🌐 www.faithcargo.com</span>
           <span>📞 9818641504</span>
           <span>✉️ care@faithcargo.com</span>
@@ -472,18 +452,15 @@ export default function CreateOrder() {
   const [uploadedInvoices, setUploadedInvoices] = useState([]);
   const [freightData, setFreightData] = useState(null);
   
-  // New States
   const [isManualLR, setIsManualLR] = useState(false);
   const [manualLRNumber, setManualLRNumber] = useState("");
   const [showFreightOnDocket, setShowFreightOnDocket] = useState(true);
   
-  // Form States
   const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gstin: "" });
   const [delivery, setDelivery] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gstin: "" });
   const [orderDetails, setOrderDetails] = useState({ material: "", weight: "", boxesCount: 0, hsnCode: "1234" });
   const [invoices, setInvoices] = useState([{ id: Date.now(), no: "", value: "" }]);
 
-  // Calculated Values
   const totalInvoiceValue = useMemo(() => 
     invoices.reduce((sum, inv) => sum + (parseFloat(inv.value) || 0), 0), 
   [invoices]);
@@ -595,6 +572,19 @@ export default function CreateOrder() {
           mode: bookingMode
         });
         localStorage.setItem('recentOrders', JSON.stringify(recentOrders.slice(0, 10)));
+        
+        // Refresh shipment list in localStorage for ShipmentDetails page
+        const allShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
+        allShipments.unshift({
+          lr: isManualLR ? manualLRNumber : result.lr_number,
+          awb: result.awb,
+          route: `${pickup.pincode} → ${delivery.pincode}`,
+          value: totalInvoiceValue,
+          status: 'booked',
+          date: new Date().toISOString()
+        });
+        localStorage.setItem('allShipments', JSON.stringify(allShipments.slice(0, 50)));
+        
       } else {
         setApiError(result.error || "Failed to create order");
         alert("Error: " + (result.error || "Could not create order"));
@@ -650,7 +640,6 @@ export default function CreateOrder() {
 
         <div className="form-layout-premium no-print">
           <div className="form-column">
-            {/* Sender Details - Left Side */}
             <section className="premium-card">
               <div className="card-top">
                 <MapPin size={18} color="#d32f2f" /> 
@@ -690,7 +679,6 @@ export default function CreateOrder() {
           </div>
 
           <div className="form-column">
-            {/* Receiver Details - Right Side */}
             <section className="premium-card">
               <div className="card-top">
                 <Truck size={18} color="#d32f2f" /> 
@@ -728,7 +716,6 @@ export default function CreateOrder() {
               </div>
             </section>
 
-            {/* Shipment Details */}
             <section className="premium-card">
               <div className="card-top">
                 <Package size={18} color="#d32f2f" /> 
@@ -799,7 +786,6 @@ export default function CreateOrder() {
               </div>
             </section>
 
-            {/* Invoice Section */}
             <section className="premium-card">
               <div className="card-top justify-between">
                 <div className="flex-center"><FileText size={18} color="#d32f2f" /> <h3>Invoice & Documentation</h3></div>
@@ -827,7 +813,6 @@ export default function CreateOrder() {
                   </div>
                 )}
 
-                {/* Real Time Freight Calculator */}
                 <RealTimeFreightCalculator 
                   weight={chargedWeight}
                   origin={pickup.pincode}
@@ -836,7 +821,6 @@ export default function CreateOrder() {
                   onCalculate={setFreightData}
                 />
 
-                {/* LR Settings */}
                 <div className="lr-settings-section">
                   <div className="setting-toggle">
                     <label>Manual LR Number</label>
