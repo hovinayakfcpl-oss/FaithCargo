@@ -10,7 +10,7 @@ import {
   Barcode, Layers, CheckSquare, Square, Printer as PrinterIcon,
   ArrowRight, Warehouse, Building2, Phone, Mail, Globe,
   Percent, DollarSign, Scale, Weight, Ruler, User, Users,
-  Stamp, Circle, Star, HelpCircle
+  Stamp, Circle, Star, HelpCircle, Search, Filter
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import "./CreateOrder.css";
@@ -114,7 +114,7 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
 };
 
 // ============================================
-// 🎨 DOCKET COMPONENT (FOR PRINTING)
+// 🎨 DOCKET COMPONENT (FOR PRINTING - WITH FIXED LOGO & BARCODE)
 // ============================================
 const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData }, ref) => {
   const barcodeRef = useRef(null);
@@ -124,12 +124,16 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
       try {
         JsBarcode(barcodeRef.current, lrNumber, {
           format: "CODE128", 
-          width: 1.8, 
-          height: 40, 
-          displayValue: false, 
-          margin: 0
+          width: 2, 
+          height: 45, 
+          displayValue: true,
+          fontSize: 12,
+          margin: 5,
+          textAlign: "center"
         });
-      } catch (err) {}
+      } catch (err) {
+        console.error("Barcode error:", err);
+      }
     }
   }, [lrNumber]);
 
@@ -138,7 +142,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
       case 'air': return 'AIR EXPRESS';
       case 'rail': return 'RAIL CARGO';
       case 'express': return 'SPEED POST';
-      default: return 'SURFACE';
+      default: return 'SURFACE TRANSPORT';
     }
   };
 
@@ -155,7 +159,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
     <div ref={ref} className="print-docket">
       <div className="docket-inner-border"></div>
       
-      {/* Header */}
+      {/* Header with Logo */}
       <div className="docket-header">
         <div className="brand-section">
           <img src={logo} alt="FCPL" className="brand-logo" />
@@ -305,7 +309,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         )}
       </div>
 
-      {/* Official Stamp & Signatures */}
+      {/* Official Red Stamp - Circular Shape */}
       <div className="stamp-signature-wrapper">
         <div className="official-stamp">
           <div className="stamp-circle">
@@ -430,6 +434,11 @@ export default function CreateOrder() {
   const [manualLRNumber, setManualLRNumber] = useState("");
   const [showFreightOnDocket, setShowFreightOnDocket] = useState(true);
   
+  // Live Tracking State
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [trackingResult, setTrackingResult] = useState(null);
+  const [showTracking, setShowTracking] = useState(false);
+  
   const printDocketRef = useRef(null);
 
   // Print Docket Function
@@ -443,25 +452,25 @@ export default function CreateOrder() {
             <title>Faith Cargo - Docket ${lrNumber}</title>
             <style>
               * { margin: 0; padding: 0; box-sizing: border-box; }
-              body { font-family: Arial, sans-serif; background: white; }
-              .print-docket { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 10px; position: relative; }
-              .docket-inner-border { position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border: 2px solid #d32f2f; pointer-events: none; }
+              body { font-family: Arial, sans-serif; background: white; padding: 20px; }
+              .print-docket { width: 210mm; min-height: 297mm; margin: 0 auto; position: relative; }
+              .docket-inner-border { position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border: 2px solid #d32f2f; pointer-events: none; border-radius: 4px; }
               .docket-header { display: flex; justify-content: space-between; padding: 15px; border-bottom: 3px solid #d32f2f; }
               .brand-section { display: flex; gap: 12px; }
               .brand-logo { height: 55px; }
-              .brand-info h2 { font-size: 16px; }
+              .brand-info h2 { font-size: 16px; font-weight: bold; margin: 0; }
               .brand-info p { font-size: 8px; color: #666; }
               .contact-line { font-size: 7px; color: #666; margin-top: 5px; display: flex; flex-direction: column; gap: 2px; }
               .docket-number { text-align: right; }
               .lr-badge { background: #0f172a; color: white; padding: 3px 10px; font-size: 9px; display: inline-block; }
-              .barcode-canvas { margin: 4px 0; }
+              .barcode-canvas { margin: 5px 0; }
               .lr-value { font-size: 20px; font-weight: bold; color: #d32f2f; font-family: monospace; }
               .awb-value, .date-value { font-size: 9px; color: #666; }
               .parties-container { display: flex; gap: 15px; padding: 15px; background: #fafafa; }
               .party { flex: 1; background: white; border: 1px solid #e2e8f0; border-radius: 8px; }
               .party-title { background: #f8fafc; padding: 8px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #e2e8f0; }
               .party-icon { width: 28px; height: 28px; background: #ffebed; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-              .party-title h3 { font-size: 11px; }
+              .party-title h3 { font-size: 11px; margin: 0; }
               .party-title span { font-size: 8px; color: #666; }
               .party-content { padding: 12px; }
               .party-content h4 { font-size: 11px; margin-bottom: 6px; }
@@ -480,7 +489,7 @@ export default function CreateOrder() {
               .section-header { background: #f8fafc; padding: 6px 10px; font-size: 9px; font-weight: bold; border-bottom: 1px solid #e2e8f0; }
               .invoice-items, .freight-items { padding: 8px; }
               .invoice-row-line, .freight-row-line { display: flex; justify-content: space-between; font-size: 8px; padding: 3px 0; }
-              .invoice-total-line { display: flex; justify-content: space-between; font-size: 9px; font-weight: bold; padding-top: 5px; border-top: 1px solid #e2e8f0; margin-top: 5px; }
+              .invoice-total-line { display: flex; justify-content: space-between; font-size: 9px; font-weight: bold; padding-top: 5px; border-top: 1px solid #e2e8f0; }
               .eway-badge { margin-top: 5px; padding: 3px; background: #fef3c7; text-align: center; font-size: 7px; border-radius: 4px; }
               .total-freight { font-weight: bold; color: #d32f2f; border-top: 1px solid #e2e8f0; margin-top: 5px; padding-top: 5px; }
               .rate-note { margin-top: 6px; padding: 3px; background: #e0f2fe; text-align: center; font-size: 7px; border-radius: 4px; }
@@ -489,15 +498,14 @@ export default function CreateOrder() {
               .stamp-circle { width: 100%; height: 100%; border-radius: 50%; background: rgba(211,47,47,0.05); display: flex; align-items: center; justify-content: center; }
               .stamp-outer { width: 85px; height: 85px; border-radius: 50%; border: 2px solid #d32f2f; display: flex; align-items: center; justify-content: center; }
               .stamp-inner { text-align: center; }
-              .stamp-title { font-size: 9px; font-weight: bold; color: #d32f2f; }
-              .stamp-sub { font-size: 7px; font-weight: bold; color: #d32f2f; }
+              .stamp-title { font-size: 9px; font-weight: bold; color: #d32f2f; display: block; }
+              .stamp-sub { font-size: 7px; font-weight: bold; color: #d32f2f; display: block; }
               .stamp-line { width: 25px; height: 1px; background: #d32f2f; margin: 3px auto; }
-              .stamp-auth { font-size: 6px; font-weight: bold; color: #d32f2f; }
+              .stamp-auth { font-size: 6px; font-weight: bold; color: #d32f2f; display: block; }
               .signature-area { display: flex; gap: 20px; }
               .signature-line-item { text-align: center; }
               .sign-line { width: 80px; border-top: 1px solid #0f172a; margin-bottom: 3px; }
               .stamp-box { border: 1px dashed #d32f2f; padding: 5px; font-size: 7px; font-weight: bold; margin-bottom: 3px; color: #d32f2f; background: #fff1f2; }
-              .signature-line-item p { font-size: 7px; color: #666; }
               .terms-wrapper { padding: 0 15px; margin-bottom: 15px; }
               .terms-wrapper h4 { font-size: 9px; margin-bottom: 5px; }
               .terms-wrapper ul { padding-left: 15px; font-size: 7px; color: #666; }
@@ -506,7 +514,7 @@ export default function CreateOrder() {
               .text-center { text-align: center; }
               @media print {
                 body { margin: 0; padding: 0; }
-                .print-docket { margin: 0; padding: 0; }
+                .print-docket { margin: 0; }
               }
             </style>
           </head>
@@ -519,6 +527,45 @@ export default function CreateOrder() {
       printWindow.focus();
       printWindow.print();
       printWindow.close();
+    }
+  };
+
+  // Track Shipment Function
+  const handleTrackShipment = async () => {
+    if (!trackingNumber) {
+      alert("Please enter LR Number to track");
+      return;
+    }
+    
+    setShowTracking(true);
+    setTrackingResult(null);
+    
+    try {
+      // First try to get from localStorage
+      const allShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
+      const found = allShipments.find(s => s.lr === trackingNumber.toUpperCase() || s.awb === trackingNumber);
+      
+      if (found) {
+        setTrackingResult(found);
+      } else {
+        // Try API
+        const response = await fetch(`https://faithcargo.onrender.com/api/shipments/shipment/${trackingNumber}`);
+        if (response.ok) {
+          const data = await response.json();
+          setTrackingResult({
+            lr: data.lr,
+            awb: data.awb,
+            route: `${data.pickupPincode} → ${data.deliveryPincode}`,
+            status: data.status || 'in_transit',
+            date: new Date().toISOString()
+          });
+        } else {
+          alert("Shipment not found!");
+        }
+      }
+    } catch (error) {
+      console.error("Tracking error:", error);
+      alert("Error tracking shipment");
     }
   };
 
@@ -603,6 +650,18 @@ export default function CreateOrder() {
     }
   };
 
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      'booked': { text: 'Booked', class: 'status-booked' },
+      'picked': { text: 'Picked Up', class: 'status-picked' },
+      'in_transit': { text: 'In Transit', class: 'status-transit' },
+      'out_for_delivery': { text: 'Out for Delivery', class: 'status-out' },
+      'delivered': { text: 'Delivered', class: 'status-delivered' }
+    };
+    const s = statusMap[status] || { text: status || 'Booked', class: 'status-booked' };
+    return <span className={`status-badge ${s.class}`}>{s.text}</span>;
+  };
+
   return (
     <div className="create-order-page">
       {/* Sidebar */}
@@ -613,7 +672,10 @@ export default function CreateOrder() {
         </div>
         <nav className="sidebar-navigation">
           <div className="nav-link active"><Plus size={18} /> Create Booking</div>
-          <div className="nav-link" onClick={() => window.location.href='/dashboard'}><Navigation size={18} /> Live Tracking</div>
+          <div className="nav-link" onClick={() => {
+            setShowTracking(!showTracking);
+            if (!showTracking) setTrackingResult(null);
+          }}><Search size={18} /> Live Tracking</div>
           <div className="nav-link" onClick={() => window.location.href='/shipments'}><FileText size={18} /> All Dockets</div>
           <div className="nav-link"><CreditCard size={18} /> Payments</div>
         </nav>
@@ -638,6 +700,44 @@ export default function CreateOrder() {
         </div>
 
         {apiError && <div className="error-notice"><AlertCircle size={18} /> {apiError}</div>}
+
+        {/* Live Tracking Section */}
+        {showTracking && (
+          <div className="tracking-section">
+            <div className="tracking-header">
+              <Search size={20} />
+              <h3>Track Your Shipment</h3>
+            </div>
+            <div className="tracking-input-group">
+              <input 
+                type="text" 
+                placeholder="Enter LR Number or AWB Number" 
+                value={trackingNumber}
+                onChange={(e) => setTrackingNumber(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleTrackShipment()}
+              />
+              <button onClick={handleTrackShipment}><Search size={18} /> Track</button>
+            </div>
+            
+            {trackingResult && (
+              <div className="tracking-result">
+                <div className="tracking-card">
+                  <div className="tracking-lr">{trackingResult.lr}</div>
+                  <div className="tracking-status">{getStatusBadge(trackingResult.status)}</div>
+                  <div className="tracking-route">
+                    <span>📦 {trackingResult.route}</span>
+                  </div>
+                  <div className="tracking-date">
+                    <Clock size={14} /> {new Date(trackingResult.date).toLocaleString()}
+                  </div>
+                  {trackingResult.awb && (
+                    <div className="tracking-awb">AWB: {trackingResult.awb}</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="two-column-form">
           {/* Left Column - Sender & Receiver */}
@@ -832,7 +932,7 @@ export default function CreateOrder() {
           </div>
         </div>
 
-        {/* Success Modal with Print Button */}
+        {/* Success Modal */}
         {showLR && (
           <div className="modal-overlay" onClick={() => setShowLR(false)}>
             <div className="modal-dialog" onClick={e => e.stopPropagation()}>

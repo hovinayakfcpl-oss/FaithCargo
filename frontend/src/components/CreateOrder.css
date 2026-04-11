@@ -1576,3 +1576,150 @@ body {
     margin: 0;
   }
 }
+/* --------------------------------------------
+   LIVE TRACKING SECTION STYLES
+   -------------------------------------------- */
+.tracking-section {
+  background: white;
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow-sm);
+  animation: fadeInUp 0.4s ease;
+}
+
+.tracking-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.tracking-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.tracking-input-group {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.tracking-input-group input {
+  flex: 1;
+  padding: 14px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  transition: var(--transition);
+}
+
+.tracking-input-group input:focus {
+  outline: none;
+  border-color: var(--primary-red);
+  box-shadow: 0 0 0 3px var(--primary-red-glow);
+}
+
+.tracking-input-group button {
+  padding: 14px 28px;
+  background: var(--primary-red);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: var(--transition);
+}
+
+.tracking-input-group button:hover {
+  background: var(--primary-red-dark);
+  transform: translateY(-2px);
+}
+
+.tracking-result {
+  margin-top: 20px;
+  animation: fadeInUp 0.3s ease;
+}
+
+.tracking-card {
+  background: linear-gradient(135deg, var(--bg-gray) 0%, white 100%);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.tracking-lr {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--primary-red);
+  font-family: monospace;
+  margin-bottom: 12px;
+}
+
+.tracking-status {
+  margin-bottom: 12px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-booked {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-picked {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.status-transit {
+  background: #e0e7ff;
+  color: #4f46e5;
+}
+
+.status-out {
+  background: #fed7aa;
+  color: #ea580c;
+}
+
+.status-delivered {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.tracking-route {
+  padding: 10px 0;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  margin: 10px 0;
+  font-size: 14px;
+  color: var(--text-gray);
+}
+
+.tracking-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-gray);
+  margin-top: 10px;
+}
+
+.tracking-awb {
+  font-size: 12px;
+  color: var(--text-gray);
+  margin-top: 6px;
+}
