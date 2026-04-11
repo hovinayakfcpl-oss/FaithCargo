@@ -1,54 +1,127 @@
-.main{
-background:#f4f6f9;
-min-height:100vh;
-display:flex;
-justify-content:center;
-align-items:flex-start;
-padding-top:30px;
+/* --- JERVICE UI STYLES --- */
+.jervice-launcher {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: #1a1a1a;
+  border: 2px solid #d32f2f;
+  padding: 12px 24px;
+  border-radius: 50px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 0 20px rgba(211, 47, 47, 0.4);
+  transition: 0.3s;
 }
 
-.card{
-background:#fff;
-width:900px;
-padding:20px;
-border-radius:12px;
-box-shadow:0 5px 20px rgba(0,0,0,0.1);
+.jervice-launcher span {
+  color: white;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 1px;
 }
 
-h2{
-text-align:center;
-margin-bottom:15px;
+.jervice-glow {
+  position: absolute;
+  width: 100%; height: 100%;
+  top: 0; left: 0;
+  border-radius: 50px;
+  box-shadow: 0 0 15px #d32f2f;
+  animation: jervice-pulse 2s infinite;
 }
 
-.search{
-width:100%;
-padding:10px;
-border:1px solid #ccc;
-border-radius:6px;
-margin-bottom:15px;
+@keyframes jervice-pulse {
+  0% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0.5; transform: scale(1); }
 }
 
-table{
-width:100%;
-border-collapse:collapse;
+.jervice-modal {
+  position: fixed;
+  bottom: 100px;
+  right: 30px;
+  width: 380px;
+  height: 500px;
+  background: rgba(15, 15, 15, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(211, 47, 47, 0.5);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 2000;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
 }
 
-th, td{
-padding:10px;
-border:1px solid #ddd;
-text-align:center;
+.jervice-header {
+  padding: 15px 20px;
+  background: #d32f2f;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-button{
-margin:3px;
-padding:6px 10px;
-border:none;
-border-radius:5px;
-cursor:pointer;
-background:#e63946;
-color:#fff;
+.status-indicator {
+  width: 10px; height: 10px;
+  background: #00ff00;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #00ff00;
 }
 
-button:hover{
-background:#c82333;
+.jervice-body {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.msg-bubble {
+  max-width: 85%;
+  padding: 12px 16px;
+  border-radius: 15px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.msg-bubble.assistant {
+  background: #252525;
+  color: #00d4ff;
+  align-self: flex-start;
+  border-left: 3px solid #00d4ff;
+}
+
+.msg-bubble.user {
+  background: #d32f2f;
+  color: white;
+  align-self: flex-end;
+}
+
+.jervice-footer {
+  padding: 15px;
+  border-top: 1px solid #333;
+  display: flex;
+  gap: 10px;
+}
+
+.jervice-footer input {
+  flex: 1;
+  background: #111;
+  border: 1px solid #444;
+  color: white;
+  padding: 10px 15px;
+  border-radius: 10px;
+}
+
+.jervice-footer button {
+  background: #d32f2f;
+  border: none;
+  color: white;
+  width: 40px;
+  border-radius: 10px;
+  cursor: pointer;
 }
