@@ -1,6 +1,7 @@
 Django>=4.2
 gunicorn
 whitenoise
+requests==2.31.0
 djangorestframework
 dj-database-url
 python-dotenv
