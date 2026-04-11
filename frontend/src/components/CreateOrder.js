@@ -8,160 +8,146 @@ import {
   Save, Download, Eye, Award, Gem, Crown, Settings, 
   ToggleLeft, ToggleRight, Building, Hash, Tag, FileSpreadsheet,
   Barcode, Layers, CheckSquare, Square, Printer as PrinterIcon,
-  ArrowRight, Warehouse, Building2, Phone, Mail, Globe
+  ArrowRight, Warehouse, Building2, Phone, Mail, Globe,
+  Percent, DollarSign, Scale, Weight, Ruler
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import "./CreateOrder.css";
 
 // ============================================
-// 💰 WEIGHT BASED RATE CALCULATOR (BA & B2B)
+// 💰 REAL FREIGHT CALCULATOR (Using Rate Matrix)
 // ============================================
-const WeightBasedRateCalculator = ({ weight, origin, destination, bookingMode, onCalculate }) => {
-  const [rates, setRates] = useState({ 
-    baseRate: 0, 
-    slab: "", 
-    total: 0, 
-    gst: 0, 
-    grandTotal: 0,
-    breakups: []
-  });
+const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, onCalculate }) => {
+  const [freight, setFreight] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  // Rate slabs based on weight (per kg)
-  const getRateSlab = (weight) => {
-    if (weight <= 50) return { name: "Small (0-50 kg)", multiplier: 1.0, rate: 18 };
-    if (weight <= 200) return { name: "Medium (51-200 kg)", multiplier: 0.9, rate: 16 };
-    if (weight <= 500) return { name: "Large (201-500 kg)", multiplier: 0.8, rate: 14 };
-    if (weight <= 1000) return { name: "Bulk (501-1000 kg)", multiplier: 0.7, rate: 12 };
-    return { name: "Industrial (1000+ kg)", multiplier: 0.6, rate: 10 };
-  };
-
-  // BA (Business Associate) vs B2B rates
-  const getRateType = (weight, isBA = false) => {
-    const base = isBA ? 0.85 : 1; // BA gets 15% discount
-    if (weight <= 50) return { type: "BA Rate", multiplier: 0.85 * base };
-    if (weight <= 200) return { type: "B2B Rate", multiplier: 0.9 * base };
-    if (weight <= 500) return { type: "Corporate Rate", multiplier: 0.85 * base };
-    return { type: "Enterprise Rate", multiplier: 0.8 * base };
-  };
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const calculateWeightBasedRate = async () => {
-      if (weight > 0 && origin && destination) {
+    const calculateFreight = async () => {
+      if (weight > 0 && origin && destination && origin.length === 6 && destination.length === 6) {
         setLoading(true);
+        setError(null);
         try {
-          // Get base freight from API
+          // Call the same API that B2B calculator uses
           const response = await fetch("https://faithcargo.onrender.com/api/shipments/calculate-freight/", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ origin, destination, weight: parseFloat(weight) })
+            body: JSON.stringify({ 
+              origin: origin, 
+              destination: destination, 
+              weight: parseFloat(weight) 
+            })
           });
+          
           const data = await response.json();
           
           if (data.success) {
-            // Apply weight slab multiplier
-            const slab = getRateSlab(weight);
-            const baseFreight = data.freight_charge * slab.multiplier;
-            
-            // Calculate BA & B2B rates
-            const baRate = baseFreight * 0.85;
-            const b2bRate = baseFreight * 0.9;
-            const corporateRate = baseFreight * 0.85;
-            const enterpriseRate = baseFreight * 0.8;
-            
+            // Apply mode multiplier
+            const multiplier = bookingMode === 'air' ? 1.5 : bookingMode === 'express' ? 1.3 : bookingMode === 'rail' ? 0.8 : 1;
+            const baseFreight = data.freight_charge * multiplier;
+            const fuelSurcharge = baseFreight * 0.10;
             const gst = baseFreight * 0.18;
-            const total = baseFreight + gst + 50;
+            const docketCharge = 100;
+            const fovCharge = 75;
             
-            const rateResult = {
-              baseRate: baseFreight,
-              slab: slab.name,
-              ratePerKg: slab.rate,
-              total: total,
+            let total = baseFreight + fuelSurcharge + gst + docketCharge + fovCharge;
+            
+            // Apply weight slab discount
+            if (weight > 500) total = total * 0.95;
+            if (weight > 1000) total = total * 0.90;
+            
+            // Minimum billing
+            if (total < 650) total = 650;
+            
+            const freightResult = {
+              baseFreight: baseFreight,
+              fuelSurcharge: fuelSurcharge,
               gst: gst,
-              grandTotal: total,
-              breakups: [
-                { label: "Base Freight", amount: baseFreight },
-                { label: "GST (18%)", amount: gst },
-                { label: "Documentation", amount: 50 }
-              ],
-              baRate: baRate,
-              b2bRate: b2bRate,
-              corporateRate: corporateRate,
-              enterpriseRate: enterpriseRate
+              docketCharge: docketCharge,
+              fovCharge: fovCharge,
+              total: total,
+              ratePerKg: (baseFreight / weight).toFixed(2),
+              fromZone: data.from_zone,
+              toZone: data.to_zone
             };
             
-            setRates(rateResult);
-            if (onCalculate) onCalculate(rateResult);
+            setFreight(freightResult);
+            if (onCalculate) onCalculate(freightResult);
+          } else {
+            setError(data.error || "Rate not found for this route");
           }
-        } catch (error) {
-          console.error("Rate calculation error:", error);
+        } catch (err) {
+          console.error("Freight calculation error:", err);
+          setError("Network error. Please try again.");
         } finally {
           setLoading(false);
         }
       }
     };
     
-    calculateWeightBasedRate();
+    calculateFreight();
   }, [weight, origin, destination, bookingMode, onCalculate]);
 
-  if (weight === 0 || weight === undefined) return null;
+  if (!origin || !destination || weight === 0) return null;
 
   return (
-    <div className="weight-based-rate-calculator">
-      <div className="rate-header">
+    <div className="real-time-freight-calculator">
+      <div className="freight-header">
         <Calculator size={18} />
-        <span>Weight Based Rate Calculator</span>
-        {loading && <span className="loading-text">Calculating...</span>}
+        <span>Real-Time Freight Calculator</span>
+        {loading && <span className="loading-text">Fetching rates...</span>}
       </div>
       
-      <div className="rate-slab-info">
-        <span className="slab-badge">{rates.slab}</span>
-        <span className="rate-per-kg">₹{rates.ratePerKg}/kg</span>
-      </div>
-
-      <div className="rate-comparison">
-        <div className="rate-card ba">
-          <div className="rate-card-header">🏢 BA Rate</div>
-          <div className="rate-amount">₹{Math.round(rates.baRate || 0).toLocaleString()}</div>
-          <div className="rate-note">15% off on base</div>
+      {error && (
+        <div className="freight-error">
+          <AlertCircle size={14} />
+          <span>{error}</span>
         </div>
-        <div className="rate-card b2b">
-          <div className="rate-card-header">🤝 B2B Rate</div>
-          <div className="rate-amount">₹{Math.round(rates.b2bRate || 0).toLocaleString()}</div>
-          <div className="rate-note">10% off on base</div>
-        </div>
-        <div className="rate-card corporate">
-          <div className="rate-card-header">🏛️ Corporate</div>
-          <div className="rate-amount">₹{Math.round(rates.corporateRate || 0).toLocaleString()}</div>
-          <div className="rate-note">15% off</div>
-        </div>
-        <div className="rate-card enterprise">
-          <div className="rate-card-header">⭐ Enterprise</div>
-          <div className="rate-amount">₹{Math.round(rates.enterpriseRate || 0).toLocaleString()}</div>
-          <div className="rate-note">20% off</div>
-        </div>
-      </div>
-
-      <div className="rate-breakdown">
-        {rates.breakups?.map((item, idx) => (
-          <div key={idx} className="breakdown-item">
-            <span>{item.label}</span>
-            <strong>₹{item.amount.toLocaleString()}</strong>
+      )}
+      
+      {freight && !loading && (
+        <div className="freight-result">
+          <div className="freight-route">
+            <span className="route-badge">{freight.fromZone} → {freight.toZone}</span>
+            <span className="rate-per-kg">₹{freight.ratePerKg}/kg</span>
           </div>
-        ))}
-        <div className="breakdown-item total">
-          <span>Grand Total</span>
-          <strong className="text-red">₹{Math.round(rates.grandTotal || 0).toLocaleString()}</strong>
+          
+          <div className="freight-breakdown">
+            <div className="break-row">
+              <span>Base Freight:</span>
+              <strong>₹{Math.round(freight.baseFreight).toLocaleString()}</strong>
+            </div>
+            <div className="break-row">
+              <span>Fuel Surcharge (10%):</span>
+              <strong>₹{Math.round(freight.fuelSurcharge).toLocaleString()}</strong>
+            </div>
+            <div className="break-row">
+              <span>GST (18%):</span>
+              <strong>₹{Math.round(freight.gst).toLocaleString()}</strong>
+            </div>
+            <div className="break-row">
+              <span>Docket Charge:</span>
+              <strong>₹{freight.docketCharge}</strong>
+            </div>
+            <div className="break-row">
+              <span>FOV Charge:</span>
+              <strong>₹{freight.fovCharge}</strong>
+            </div>
+            <div className="break-row total">
+              <span>Total Freight:</span>
+              <strong className="text-red">₹{Math.round(freight.total).toLocaleString()}</strong>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
 
 // ============================================
-// 🎨 LUXURY DOCKET COMPONENT (A4 OPTIMIZED)
+// 🎨 PROFESSIONAL DOCKET COMPONENT (Sender Left | Receiver Right)
 // ============================================
-const LuxuryDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, isManualLR, manualLRNumber, ratesData }) => {
+const ProfessionalDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, isManualLR, manualLRNumber, freightData }) => {
   const barcodeRef = useRef(null);
   
   useEffect(() => {
@@ -173,8 +159,7 @@ const LuxuryDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, booking
           width: 1.8, 
           height: 40, 
           displayValue: false, 
-          margin: 0,
-          fontOptions: "bold"
+          margin: 0
         });
       } catch (err) {
         console.error("Barcode error:", err);
@@ -182,12 +167,12 @@ const LuxuryDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, booking
     }
   }, [lrNumber, isManualLR, manualLRNumber]);
 
-  const getModeIcon = () => {
+  const getModeText = () => {
     switch(bookingMode) {
-      case 'air': return '✈️ AIR EXPRESS';
-      case 'rail': return '🚂 RAIL CARGO';
-      case 'express': return '⚡ SPEED POST';
-      default: return '🚛 SURFACE TRANSPORT';
+      case 'air': return 'AIR EXPRESS';
+      case 'rail': return 'RAIL CARGO';
+      case 'express': return 'SPEED POST';
+      default: return 'SURFACE TRANSPORT';
     }
   };
 
@@ -203,46 +188,46 @@ const LuxuryDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, booking
   };
 
   return (
-    <div className="luxury-docket-a4">
-      <div className="docket-border-premium"></div>
+    <div className="professional-docket">
+      <div className="docket-inner-border"></div>
       
-      {/* Header Section */}
-      <div className="docket-header-a4">
-        <div className="company-info">
-          <img src={logo} alt="FCPL" className="company-logo" />
-          <div className="company-details">
-            <h1>FAITH CARGO PRIVATE LIMITED</h1>
+      {/* Header */}
+      <div className="docket-header">
+        <div className="brand-section">
+          <img src={logo} alt="FCPL" className="brand-logo" />
+          <div className="brand-info">
+            <h2>FAITH CARGO PRIVATE LIMITED</h2>
             <p>ISO 9001:2015 & ISO 14001:2015 CERTIFIED</p>
-            <div className="company-address">
+            <div className="contact-info">
               <span>🏢 4/15, Kirti Nagar Industrial Area, New Delhi - 110015</span>
               <span>📞 +91 9818641504 | ✉️ care@faithcargo.com</span>
               <span>🔷 GST: 07AAFCF2947K1ZD | CIN: U60231DL2021PTC384521</span>
             </div>
           </div>
         </div>
-        <div className="docket-meta">
-          <div className="consignment-badge">CONSIGNMENT NOTE</div>
-          <canvas ref={barcodeRef} className="barcode"></canvas>
-          <div className="lr-number">{displayLRNumber || "DRAFT"}</div>
-          <div className="awb-number">AWB: {awbNumber || "N/A"}</div>
-          <div className="date">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        <div className="docket-number">
+          <div className="lr-badge">CONSIGNMENT NOTE</div>
+          <canvas ref={barcodeRef} className="barcode-canvas"></canvas>
+          <div className="lr-value">{displayLRNumber || "DRAFT"}</div>
+          <div className="awb-value">AWB: {awbNumber || "N/A"}</div>
+          <div className="date-value">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
         </div>
       </div>
 
-      {/* Sender & Receiver Side by Side */}
-      <div className="parties-section">
-        <div className="party-card sender">
-          <div className="party-header">
-            <div className="party-icon">📤</div>
+      {/* Sender (Left) & Receiver (Right) Side by Side */}
+      <div className="parties-container">
+        <div className="party sender-party">
+          <div className="party-title">
+            <span className="party-icon">📤</span>
             <div>
               <h3>CONSIGNOR</h3>
               <p>(Sender)</p>
             </div>
           </div>
-          <div className="party-body">
+          <div className="party-content">
             <h4>{safeData.pickup.name || "____________________"}</h4>
-            <p className="address">{safeData.pickup.address || "Address not provided"}</p>
-            <div className="party-details">
+            <p className="address-text">{safeData.pickup.address || "Address not provided"}</p>
+            <div className="party-contact">
               <span>📮 {safeData.pickup.pincode || "______"}</span>
               <span>📍 {safeData.pickup.city || "_____"}, {safeData.pickup.state || "_____"}</span>
               <span>📞 {safeData.pickup.contact || "_________"}</span>
@@ -251,22 +236,22 @@ const LuxuryDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, booking
           </div>
         </div>
 
-        <div className="party-arrow">
-          <ArrowRight size={32} />
+        <div className="party-arrow-icon">
+          <ArrowRight size={36} />
         </div>
 
-        <div className="party-card receiver">
-          <div className="party-header">
-            <div className="party-icon">📥</div>
+        <div className="party receiver-party">
+          <div className="party-title">
+            <span className="party-icon">📥</span>
             <div>
               <h3>CONSIGNEE</h3>
               <p>(Receiver)</p>
             </div>
           </div>
-          <div className="party-body">
+          <div className="party-content">
             <h4>{safeData.delivery.name || "____________________"}</h4>
-            <p className="address">{safeData.delivery.address || "Address not provided"}</p>
-            <div className="party-details">
+            <p className="address-text">{safeData.delivery.address || "Address not provided"}</p>
+            <div className="party-contact">
               <span>📮 {safeData.delivery.pincode || "______"}</span>
               <span>📍 {safeData.delivery.city || "_____"}, {safeData.delivery.state || "_____"}</span>
               <span>📞 {safeData.delivery.contact || "_________"}</span>
@@ -277,33 +262,33 @@ const LuxuryDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, booking
       </div>
 
       {/* Shipment Details Table */}
-      <div className="shipment-details-table">
-        <table>
+      <div className="shipment-table-wrapper">
+        <table className="shipment-data-table">
           <thead>
             <tr>
-              <th width="8%">PKGS</th>
-              <th width="32%">DESCRIPTION</th>
-              <th width="10%">HSN</th>
-              <th width="12%">ACTUAL WT</th>
-              <th width="12%">VOL WT</th>
-              <th width="12%">CHARGED WT</th>
-              <th width="14%">MODE</th>
+              <th>PKGS</th>
+              <th>DESCRIPTION OF GOODS</th>
+              <th>HSN CODE</th>
+              <th>ACTUAL WT</th>
+              <th>VOL WT</th>
+              <th>CHARGED WT</th>
+              <th>MODE</th>
             </tr>
           </thead>
           <tbody>
-            <tr className="main-row">
+            <tr>
               <td className="text-center">{safeData.orderDetails.boxesCount || 0}</td>
               <td>
                 <strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong>
-                <div className="material-note">Said to contain</div>
+                <div className="goods-note">Said to contain</div>
               </td>
               <td className="text-center">{safeData.orderDetails.hsnCode || "1234"}</td>
               <td className="text-center">{safeData.orderDetails.weight || 0} kg</td>
               <td className="text-center">{safeData.volWeight} kg</td>
               <td className="text-center"><strong>{safeData.chargedWeight} kg</strong></td>
               <td className="text-center">
-                <div className={`mode-tag mode-${bookingMode || 'surface'}`}>
-                  {getModeIcon()}
+                <div className={`mode-label mode-${bookingMode || 'surface'}`}>
+                  {getModeText()}
                 </div>
               </td>
             </tr>
@@ -312,84 +297,91 @@ const LuxuryDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, booking
       </div>
 
       {/* Invoice & Freight Section */}
-      <div className="invoice-freight-section">
-        <div className="invoice-details">
-          <div className="section-title">📄 INVOICE DETAILS</div>
-          <div className="invoice-list">
+      <div className="invoice-freight-wrapper">
+        <div className="invoice-box">
+          <div className="box-title">📄 INVOICE DETAILS</div>
+          <div className="invoice-items">
             {safeData.invoices?.filter(inv => inv.no).map((inv, idx) => (
-              <div key={idx} className="invoice-item">
+              <div key={idx} className="invoice-line">
                 <span>{inv.no}</span>
                 <span>₹{parseFloat(inv.value).toLocaleString()}</span>
               </div>
             ))}
-            <div className="invoice-total">
+            <div className="invoice-total-line">
               <span>TOTAL VALUE:</span>
               <strong>₹{totalValue?.toLocaleString() || 0}</strong>
             </div>
-            {ewayBill && <div className="eway-bill-info">E-WAY BILL: {ewayBill}</div>}
+            {ewayBill && <div className="eway-bill-tag">E-WAY BILL: {ewayBill}</div>}
           </div>
         </div>
 
-        {showFreight && ratesData && (
-          <div className="freight-details">
-            <div className="section-title">💰 FREIGHT DETAILS</div>
-            <div className="freight-list">
-              <div className="freight-item">
+        {showFreight && freightData && (
+          <div className="freight-box">
+            <div className="box-title">💰 FREIGHT BREAKDOWN</div>
+            <div className="freight-items">
+              <div className="freight-line">
                 <span>Base Freight:</span>
-                <strong>₹{Math.round(ratesData.baseRate || 0).toLocaleString()}</strong>
+                <strong>₹{Math.round(freightData.baseFreight || 0).toLocaleString()}</strong>
               </div>
-              <div className="freight-item">
+              <div className="freight-line">
+                <span>Fuel Surcharge (10%):</span>
+                <strong>₹{Math.round(freightData.fuelSurcharge || 0).toLocaleString()}</strong>
+              </div>
+              <div className="freight-line">
                 <span>GST (18%):</span>
-                <strong>₹{Math.round(ratesData.gst || 0).toLocaleString()}</strong>
+                <strong>₹{Math.round(freightData.gst || 0).toLocaleString()}</strong>
               </div>
-              <div className="freight-item">
-                <span>Documentation:</span>
-                <strong>₹50</strong>
+              <div className="freight-line">
+                <span>Docket Charge:</span>
+                <strong>₹{freightData.docketCharge || 100}</strong>
               </div>
-              <div className="freight-item total">
+              <div className="freight-line">
+                <span>FOV Charge:</span>
+                <strong>₹{freightData.fovCharge || 75}</strong>
+              </div>
+              <div className="freight-line total-line">
                 <span>TOTAL PAYABLE:</span>
-                <strong>₹{Math.round(ratesData.grandTotal || 0).toLocaleString()}</strong>
+                <strong className="text-red">₹{Math.round(freightData.total || 0).toLocaleString()}</strong>
               </div>
             </div>
-            <div className="rate-slab-info-small">
-              Rate Slab: {ratesData.slab} @ ₹{ratesData.ratePerKg}/kg
+            <div className="rate-info-note">
+              Rate: ₹{freightData.ratePerKg}/kg | Route: {freightData.fromZone} → {freightData.toZone}
             </div>
           </div>
         )}
       </div>
 
-      {/* Terms & Signatures */}
-      <div className="terms-signatures">
-        <div className="terms">
-          <h4>TERMS & CONDITIONS</h4>
+      {/* Terms & Conditions */}
+      <div className="terms-section">
+        <div className="terms-content">
+          <h4>TERMS &amp; CONDITIONS</h4>
           <ul>
             <li>Goods carried at Owner's Risk. Insurance recommended.</li>
             <li>Claim within 7 days of delivery. Jurisdiction: Delhi Only.</li>
             <li>Transit liability as per Carriers Act, 1865.</li>
             <li>E-Way Bill mandatory for invoice &gt; ₹50,000.</li>
-            <li>All disputes subject to Delhi jurisdiction.</li>
           </ul>
         </div>
-        <div className="signatures">
-          <div className="signature-box">
-            <div className="sign-line"></div>
+        <div className="signature-section">
+          <div className="signature-line">
+            <div className="line"></div>
             <p>Receiver's Signature</p>
           </div>
-          <div className="signature-box">
-            <div className="stamp">FOR FAITH CARGO PVT LTD</div>
+          <div className="signature-line">
+            <div className="stamp-area">FOR FAITH CARGO PVT LTD</div>
             <p>Authorized Signatory</p>
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="docket-footer-a4">
-        <div className="footer-copies">
+      <div className="docket-footer">
+        <div className="copy-labels">
           <span>📄 ORIGINAL - CONSIGNOR</span>
           <span>📄 DUPLICATE - CONSIGNEE</span>
           <span>📄 TRIPLICATE - OFFICE COPY</span>
         </div>
-        <div className="footer-contact">
+        <div className="footer-contacts">
           <span>🌐 www.faithcargo.com</span>
           <span>📞 9818641504</span>
           <span>✉️ care@faithcargo.com</span>
@@ -478,7 +470,7 @@ export default function CreateOrder() {
   const [apiError, setApiError] = useState("");
   const [bookingMode, setBookingMode] = useState("surface");
   const [uploadedInvoices, setUploadedInvoices] = useState([]);
-  const [ratesData, setRatesData] = useState(null);
+  const [freightData, setFreightData] = useState(null);
   
   // New States
   const [isManualLR, setIsManualLR] = useState(false);
@@ -567,9 +559,9 @@ export default function CreateOrder() {
       total_value: totalInvoiceValue,
       eway_bill: needsEwayBill ? ewayBill : "",
       booking_mode: bookingMode,
-      freight_base: ratesData?.baseRate || 0,
-      freight_gst: ratesData?.gst || 0,
-      freight_total: ratesData?.grandTotal || 0,
+      freight_base: freightData?.baseFreight || 0,
+      freight_gst: freightData?.gst || 0,
+      freight_total: freightData?.total || 0,
       is_manual_lr: isManualLR,
       manual_lr_number: isManualLR ? manualLRNumber : null,
       invoices: invoices.filter(inv => inv.no && inv.value).map(inv => ({
@@ -640,7 +632,7 @@ export default function CreateOrder() {
         <header className="page-header-premium no-print">
           <div className="header-text">
             <h1>Premium Shipment Booking</h1>
-            <p>Create professional consignment with weight-based rates</p>
+            <p>Create professional consignment with real-time freight calculation</p>
           </div>
           <div className="realtime-stats-premium">
             <div className="stat-card-premium">
@@ -658,6 +650,7 @@ export default function CreateOrder() {
 
         <div className="form-layout-premium no-print">
           <div className="form-column">
+            {/* Sender Details - Left Side */}
             <section className="premium-card">
               <div className="card-top">
                 <MapPin size={18} color="#d32f2f" /> 
@@ -694,7 +687,10 @@ export default function CreateOrder() {
                 </div>
               </div>
             </section>
+          </div>
 
+          <div className="form-column">
+            {/* Receiver Details - Right Side */}
             <section className="premium-card">
               <div className="card-top">
                 <Truck size={18} color="#d32f2f" /> 
@@ -731,9 +727,8 @@ export default function CreateOrder() {
                 </div>
               </div>
             </section>
-          </div>
 
-          <div className="form-column">
+            {/* Shipment Details */}
             <section className="premium-card">
               <div className="card-top">
                 <Package size={18} color="#d32f2f" /> 
@@ -804,6 +799,7 @@ export default function CreateOrder() {
               </div>
             </section>
 
+            {/* Invoice Section */}
             <section className="premium-card">
               <div className="card-top justify-between">
                 <div className="flex-center"><FileText size={18} color="#d32f2f" /> <h3>Invoice & Documentation</h3></div>
@@ -831,12 +827,13 @@ export default function CreateOrder() {
                   </div>
                 )}
 
-                <WeightBasedRateCalculator 
+                {/* Real Time Freight Calculator */}
+                <RealTimeFreightCalculator 
                   weight={chargedWeight}
                   origin={pickup.pincode}
                   destination={delivery.pincode}
                   bookingMode={bookingMode}
-                  onCalculate={setRatesData}
+                  onCalculate={setFreightData}
                 />
 
                 {/* LR Settings */}
@@ -888,7 +885,7 @@ export default function CreateOrder() {
               <div className="awb-premium-display">AWB: {awbNumber}</div>
               
               <div className="docket-preview">
-                <LuxuryDocket 
+                <ProfessionalDocket 
                   data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight}}
                   lrNumber={lrNumber}
                   totalValue={totalInvoiceValue}
@@ -898,7 +895,7 @@ export default function CreateOrder() {
                   showFreight={showFreightOnDocket}
                   isManualLR={isManualLR}
                   manualLRNumber={manualLRNumber}
-                  ratesData={ratesData}
+                  freightData={freightData}
                 />
               </div>
 
@@ -938,7 +935,7 @@ export default function CreateOrder() {
         )}
 
         <div className="print-only">
-          <LuxuryDocket 
+          <ProfessionalDocket 
             data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight}}
             lrNumber={lrNumber}
             totalValue={totalInvoiceValue}
@@ -948,7 +945,7 @@ export default function CreateOrder() {
             showFreight={showFreightOnDocket}
             isManualLR={isManualLR}
             manualLRNumber={manualLRNumber}
-            ratesData={ratesData}
+            freightData={freightData}
           />
         </div>
       </main>

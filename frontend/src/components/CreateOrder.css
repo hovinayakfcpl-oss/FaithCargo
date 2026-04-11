@@ -1,6 +1,6 @@
 /* ==========================================================================
-   FAITH CARGO - PREMIUM CREATE ORDER v7.0
-   Luxury Booking Interface with A4 Optimized Docket
+   FAITH CARGO - PREMIUM CREATE ORDER v8.0
+   Professional Booking Interface with Real-Time Freight & A4 Docket
    ========================================================================== */
 
 /* -----------------------------------------------------------------------
@@ -399,9 +399,9 @@ input:focus, textarea:focus {
 }
 
 /* -----------------------------------------------------------------------
-   8. WEIGHT BASED RATE CALCULATOR (NEW)
+   8. REAL TIME FREIGHT CALCULATOR (NEW - UPDATED)
    ----------------------------------------------------------------------- */
-.weight-based-rate-calculator {
+.real-time-freight-calculator {
     margin-top: 20px;
     padding: 18px;
     background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
@@ -409,7 +409,7 @@ input:focus, textarea:focus {
     border-left: 4px solid #0284c7;
 }
 
-.rate-header {
+.freight-header {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -418,16 +418,20 @@ input:focus, textarea:focus {
     color: #0369a1;
 }
 
-.rate-slab-info {
+.freight-result {
+    margin-top: 12px;
+}
+
+.freight-route {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
     padding-bottom: 10px;
     border-bottom: 1px dashed #bae6fd;
+    margin-bottom: 10px;
 }
 
-.slab-badge {
+.route-badge {
     background: #0284c7;
     color: white;
     padding: 4px 12px;
@@ -437,74 +441,42 @@ input:focus, textarea:focus {
 }
 
 .rate-per-kg {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 800;
     color: #0369a1;
 }
 
-.rate-comparison {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 15px;
+.freight-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
-.rate-card {
-    text-align: center;
-    padding: 10px;
-    border-radius: 10px;
-    background: white;
-    transition: var(--transition);
-}
-
-.rate-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-premium);
-}
-
-.rate-card.ba { border-top: 3px solid #8b5cf6; }
-.rate-card.b2b { border-top: 3px solid #3b82f6; }
-.rate-card.corporate { border-top: 3px solid #10b981; }
-.rate-card.enterprise { border-top: 3px solid #f59e0b; }
-
-.rate-card-header {
-    font-size: 10px;
-    font-weight: 700;
-    margin-bottom: 5px;
-}
-
-.rate-amount {
-    font-size: 16px;
-    font-weight: 800;
-    color: var(--fc-black);
-}
-
-.rate-note {
-    font-size: 8px;
-    color: var(--fc-text-light);
-    margin-top: 3px;
-}
-
-.rate-breakdown {
-    margin-top: 12px;
-    padding-top: 10px;
-    border-top: 1px solid #bae6fd;
-}
-
-.breakdown-item {
+.break-row {
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
+    font-size: 12px;
     padding: 4px 0;
 }
 
-.breakdown-item.total {
+.break-row.total {
     font-weight: 800;
-    font-size: 13px;
-    color: var(--fc-red);
-    border-top: 1px dashed #bae6fd;
+    font-size: 14px;
+    border-top: 2px solid #bae6fd;
     margin-top: 5px;
     padding-top: 8px;
+    color: var(--fc-red);
+}
+
+.freight-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    background: #fee2e2;
+    border-radius: 8px;
+    color: #dc2626;
+    font-size: 12px;
 }
 
 .loading-text {
@@ -781,9 +753,9 @@ input:focus, textarea:focus {
 }
 
 /* -----------------------------------------------------------------------
-   14. A4 LUXURY DOCKET STYLES (COMPLETELY UPGRADED)
+   14. PROFESSIONAL DOCKET (COMPLETELY UPGRADED - SENDER LEFT | RECEIVER RIGHT)
    ----------------------------------------------------------------------- */
-.luxury-docket-a4 {
+.professional-docket {
     width: 210mm;
     min-height: 297mm;
     background: white;
@@ -795,7 +767,7 @@ input:focus, textarea:focus {
     break-inside: avoid;
 }
 
-.docket-border-premium {
+.docket-inner-border {
     position: absolute;
     top: 8px;
     left: 8px;
@@ -807,7 +779,7 @@ input:focus, textarea:focus {
 }
 
 /* Header Section */
-.docket-header-a4 {
+.docket-header {
     padding: 20px 25px;
     display: flex;
     justify-content: space-between;
@@ -816,31 +788,31 @@ input:focus, textarea:focus {
     background: white;
 }
 
-.company-info {
+.brand-section {
     display: flex;
     gap: 15px;
     align-items: center;
 }
 
-.company-logo {
+.brand-logo {
     height: 60px;
     object-fit: contain;
 }
 
-.company-details h1 {
+.brand-info h2 {
     font-size: 18px;
     font-weight: 900;
     color: var(--fc-black);
     margin: 0;
 }
 
-.company-details p {
+.brand-info p {
     font-size: 9px;
     color: var(--fc-text-light);
     margin: 2px 0;
 }
 
-.company-address {
+.contact-info {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -849,11 +821,11 @@ input:focus, textarea:focus {
     color: var(--fc-text-light);
 }
 
-.docket-meta {
+.docket-number {
     text-align: right;
 }
 
-.consignment-badge {
+.lr-badge {
     background: var(--fc-black);
     color: white;
     padding: 4px 12px;
@@ -863,11 +835,11 @@ input:focus, textarea:focus {
     margin-bottom: 8px;
 }
 
-.barcode {
+.barcode-canvas {
     margin: 5px 0;
 }
 
-.lr-number {
+.lr-value {
     font-size: 22px;
     font-weight: 900;
     color: var(--fc-red);
@@ -875,19 +847,19 @@ input:focus, textarea:focus {
     letter-spacing: 1px;
 }
 
-.awb-number {
+.awb-value {
     font-size: 11px;
     color: var(--fc-text-light);
 }
 
-.date {
+.date-value {
     font-size: 10px;
     color: var(--fc-text-light);
     margin-top: 3px;
 }
 
-/* Parties Section - Sender & Receiver Side by Side */
-.parties-section {
+/* Parties Container - Sender Left, Receiver Right with Arrow */
+.parties-container {
     display: flex;
     align-items: stretch;
     gap: 20px;
@@ -895,7 +867,7 @@ input:focus, textarea:focus {
     background: #fafafa;
 }
 
-.party-card {
+.party {
     flex: 1;
     background: white;
     border: 1px solid var(--fc-border);
@@ -904,11 +876,11 @@ input:focus, textarea:focus {
     transition: var(--transition);
 }
 
-.party-card:hover {
+.party:hover {
     box-shadow: var(--shadow-premium);
 }
 
-.party-header {
+.party-title {
     background: linear-gradient(135deg, #f8fafc, #f1f5f9);
     padding: 12px 15px;
     display: flex;
@@ -928,38 +900,38 @@ input:focus, textarea:focus {
     font-size: 18px;
 }
 
-.party-header h3 {
+.party-title h3 {
     font-size: 12px;
     font-weight: 800;
     margin: 0;
     color: var(--fc-black);
 }
 
-.party-header p {
+.party-title p {
     font-size: 9px;
     color: var(--fc-text-light);
     margin: 0;
 }
 
-.party-body {
+.party-content {
     padding: 15px;
 }
 
-.party-body h4 {
+.party-content h4 {
     font-size: 13px;
     font-weight: 800;
     color: var(--fc-black);
     margin-bottom: 8px;
 }
 
-.party-body .address {
+.address-text {
     font-size: 10px;
     color: var(--fc-text-light);
     line-height: 1.4;
     margin-bottom: 10px;
 }
 
-.party-details {
+.party-contact {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
@@ -969,30 +941,30 @@ input:focus, textarea:focus {
     border-top: 1px dashed var(--fc-border);
 }
 
-.party-details span {
+.party-contact span {
     display: inline-flex;
     align-items: center;
     gap: 4px;
 }
 
-.party-arrow {
+.party-arrow-icon {
     display: flex;
     align-items: center;
     color: var(--fc-red);
 }
 
 /* Shipment Details Table */
-.shipment-details-table {
+.shipment-table-wrapper {
     padding: 0 25px;
     margin-bottom: 20px;
 }
 
-.shipment-details-table table {
+.shipment-data-table {
     width: 100%;
     border-collapse: collapse;
 }
 
-.shipment-details-table th {
+.shipment-data-table th {
     background: #f8fafc;
     padding: 10px 8px;
     font-size: 9px;
@@ -1003,24 +975,20 @@ input:focus, textarea:focus {
     text-transform: uppercase;
 }
 
-.shipment-details-table td {
+.shipment-data-table td {
     padding: 10px 8px;
     font-size: 10px;
     text-align: center;
     border: 1px solid var(--fc-border);
 }
 
-.main-row td {
-    font-weight: 600;
-}
-
-.material-note {
+.goods-note {
     font-size: 8px;
     color: var(--fc-text-light);
     margin-top: 3px;
 }
 
-.mode-tag {
+.mode-label {
     display: inline-block;
     padding: 4px 8px;
     border-radius: 12px;
@@ -1028,13 +996,13 @@ input:focus, textarea:focus {
     font-weight: 800;
 }
 
-.mode-tag.mode-surface { background: #dbeafe; color: #1e40af; }
-.mode-tag.mode-air { background: #fed7aa; color: #9a3412; }
-.mode-tag.mode-rail { background: #d1fae5; color: #065f46; }
-.mode-tag.mode-express { background: #fef3c7; color: #92400e; }
+.mode-label.mode-surface { background: #dbeafe; color: #1e40af; }
+.mode-label.mode-air { background: #fed7aa; color: #9a3412; }
+.mode-label.mode-rail { background: #d1fae5; color: #065f46; }
+.mode-label.mode-express { background: #fef3c7; color: #92400e; }
 
-/* Invoice & Freight Section */
-.invoice-freight-section {
+/* Invoice & Freight Wrapper */
+.invoice-freight-wrapper {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
@@ -1042,13 +1010,13 @@ input:focus, textarea:focus {
     margin-bottom: 20px;
 }
 
-.invoice-details, .freight-details {
+.invoice-box, .freight-box {
     border: 1px solid var(--fc-border);
     border-radius: 10px;
     overflow: hidden;
 }
 
-.section-title {
+.box-title {
     background: #f8fafc;
     padding: 10px 15px;
     font-size: 10px;
@@ -1056,11 +1024,11 @@ input:focus, textarea:focus {
     border-bottom: 2px solid var(--fc-border);
 }
 
-.invoice-list, .freight-list {
+.invoice-items, .freight-items {
     padding: 12px;
 }
 
-.invoice-item {
+.invoice-line {
     display: flex;
     justify-content: space-between;
     font-size: 10px;
@@ -1068,7 +1036,7 @@ input:focus, textarea:focus {
     border-bottom: 1px dotted var(--fc-border);
 }
 
-.invoice-total {
+.invoice-total-line {
     display: flex;
     justify-content: space-between;
     font-size: 11px;
@@ -1078,7 +1046,7 @@ input:focus, textarea:focus {
     border-top: 2px solid var(--fc-border);
 }
 
-.eway-bill-info {
+.eway-bill-tag {
     margin-top: 8px;
     padding: 5px;
     background: #fef3c7;
@@ -1089,14 +1057,14 @@ input:focus, textarea:focus {
     color: #92400e;
 }
 
-.freight-item {
+.freight-line {
     display: flex;
     justify-content: space-between;
     font-size: 10px;
     padding: 6px 0;
 }
 
-.freight-item.total {
+.freight-line.total-line {
     font-size: 12px;
     font-weight: 800;
     color: var(--fc-red);
@@ -1105,7 +1073,7 @@ input:focus, textarea:focus {
     padding-top: 8px;
 }
 
-.rate-slab-info-small {
+.rate-info-note {
     margin-top: 10px;
     padding: 6px;
     background: #e0f2fe;
@@ -1117,7 +1085,7 @@ input:focus, textarea:focus {
 }
 
 /* Terms & Signatures */
-.terms-signatures {
+.terms-section {
     display: grid;
     grid-template-columns: 1.5fr 1fr;
     gap: 20px;
@@ -1125,46 +1093,46 @@ input:focus, textarea:focus {
     margin-bottom: 20px;
 }
 
-.terms {
+.terms-content {
     background: #f8fafc;
     padding: 12px 15px;
     border-radius: 10px;
 }
 
-.terms h4 {
+.terms-content h4 {
     font-size: 10px;
     font-weight: 800;
     margin-bottom: 8px;
     color: var(--fc-black);
 }
 
-.terms ul {
+.terms-content ul {
     padding-left: 18px;
     font-size: 8px;
     color: var(--fc-text-light);
 }
 
-.terms li {
+.terms-content li {
     margin-bottom: 3px;
 }
 
-.signatures {
+.signature-section {
     display: flex;
     gap: 20px;
 }
 
-.signature-box {
+.signature-line {
     flex: 1;
     text-align: center;
 }
 
-.sign-line {
+.line {
     border-top: 1px solid var(--fc-black);
     width: 100%;
     margin-bottom: 5px;
 }
 
-.stamp {
+.stamp-area {
     border: 2px dashed var(--fc-red);
     padding: 8px;
     font-size: 8px;
@@ -1174,13 +1142,13 @@ input:focus, textarea:focus {
     background: #fff1f2;
 }
 
-.signature-box p {
+.signature-line p {
     font-size: 8px;
     color: var(--fc-text-light);
 }
 
 /* Footer */
-.docket-footer-a4 {
+.docket-footer {
     padding: 12px 25px;
     background: linear-gradient(135deg, var(--fc-black), var(--fc-black-light));
     color: white;
@@ -1191,7 +1159,7 @@ input:focus, textarea:focus {
     gap: 10px;
 }
 
-.footer-copies, .footer-contact {
+.copy-labels, .footer-contacts {
     display: flex;
     gap: 15px;
 }
@@ -1384,7 +1352,7 @@ input:focus, textarea:focus {
         size: A4;
         margin: 0;
     }
-    .luxury-docket-a4 {
+    .professional-docket {
         box-shadow: none;
         margin: 0;
         padding: 0;
@@ -1427,37 +1395,33 @@ input:focus, textarea:focus {
         grid-template-columns: repeat(2, 1fr);
     }
     
-    .rate-comparison {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .invoice-freight-section {
+    .invoice-freight-wrapper {
         grid-template-columns: 1fr;
     }
     
-    .parties-section {
+    .parties-container {
         flex-direction: column;
     }
     
-    .party-arrow {
+    .party-arrow-icon {
         transform: rotate(90deg);
         justify-content: center;
     }
     
-    .terms-signatures {
+    .terms-section {
         grid-template-columns: 1fr;
     }
     
-    .signatures {
+    .signature-section {
         flex-direction: column;
     }
     
-    .docket-footer-a4 {
+    .docket-footer {
         flex-direction: column;
         text-align: center;
     }
     
-    .footer-copies, .footer-contact {
+    .copy-labels, .footer-contacts {
         justify-content: center;
     }
     
@@ -1481,10 +1445,6 @@ input:focus, textarea:focus {
 }
 
 @media (max-width: 640px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-    
     .rate-comparison {
         grid-template-columns: 1fr;
     }
