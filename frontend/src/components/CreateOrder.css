@@ -1,5 +1,5 @@
 /* ==========================================================================
-   FAITH CARGO - PREMIUM CREATE ORDER v5.0
+   FAITH CARGO - PREMIUM CREATE ORDER v6.0
    Luxury Booking Interface with Professional Docket
    ========================================================================== */
 
@@ -585,7 +585,79 @@ input:focus, textarea:focus {
 }
 
 /* -----------------------------------------------------------------------
-   12. SUBMIT BUTTON
+   12. LR SETTINGS SECTION (NEW)
+   ----------------------------------------------------------------------- */
+.lr-settings-section {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 2px solid var(--fc-border);
+}
+
+.setting-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 12px 15px;
+    background: #f8fafc;
+    border-radius: var(--radius-md);
+    transition: var(--transition);
+}
+
+.setting-toggle:hover {
+    background: #f1f5f9;
+}
+
+.setting-toggle label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--fc-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 30px;
+    transition: var(--transition);
+}
+
+.toggle-btn.active {
+    color: var(--fc-red);
+}
+
+.manual-lr-input {
+    margin-bottom: 15px;
+    animation: slideIn 0.3s ease;
+}
+
+.manual-lr-field {
+    width: 100%;
+    padding: 14px;
+    border: 2px solid var(--fc-red);
+    border-radius: var(--radius-md);
+    font-family: monospace;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    background: white;
+}
+
+.manual-lr-field:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--fc-red-glow);
+}
+
+/* -----------------------------------------------------------------------
+   13. SUBMIT BUTTON
    ----------------------------------------------------------------------- */
 .final-submit-btn-premium {
     width: 100%;
@@ -633,7 +705,7 @@ input:focus, textarea:focus {
 }
 
 /* -----------------------------------------------------------------------
-   13. LUXURY DOCKET STYLES
+   14. LUXURY DOCKET STYLES (UPDATED)
    ----------------------------------------------------------------------- */
 .luxury-docket {
     width: 210mm;
@@ -677,7 +749,7 @@ input:focus, textarea:focus {
 .docket-brand-premium {
     display: flex;
     gap: 20px;
-    align-items: center;
+    align-items: flex-start;
 }
 
 .docket-logo-premium {
@@ -686,7 +758,7 @@ input:focus, textarea:focus {
 }
 
 .brand-text-premium h1 {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 900;
     color: var(--fc-black);
     margin: 0;
@@ -695,6 +767,21 @@ input:focus, textarea:focus {
 .brand-text-premium p {
     font-size: 9px;
     color: var(--fc-text-light);
+    margin: 2px 0;
+}
+
+/* Company Details Header - NEW */
+.company-details-header {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 8px;
+    padding: 6px 10px;
+    background: #f8fafc;
+    border-radius: 6px;
+    font-size: 8px;
+    color: var(--fc-text-light);
+    border-left: 2px solid var(--fc-red);
 }
 
 .premium-badge {
@@ -704,7 +791,7 @@ input:focus, textarea:focus {
     border-radius: 20px;
     font-size: 9px;
     display: inline-block;
-    margin-top: 5px;
+    margin-top: 6px;
     font-weight: 800;
 }
 
@@ -752,9 +839,16 @@ input:focus, textarea:focus {
 
 .address-details {
     display: flex;
-    gap: 15px;
-    font-size: 11px;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 10px;
     color: var(--fc-text-light);
+}
+
+.address-details span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .shipment-table-premium {
@@ -765,31 +859,31 @@ input:focus, textarea:focus {
 
 .shipment-table-premium th {
     background: #f8fafc;
-    padding: 12px;
-    font-size: 11px;
+    padding: 10px;
+    font-size: 10px;
     font-weight: 800;
     border: 1px solid var(--fc-border);
     text-align: center;
 }
 
 .shipment-table-premium td {
-    padding: 12px;
+    padding: 10px;
     border: 1px solid var(--fc-border);
-    font-size: 12px;
+    font-size: 11px;
     text-align: center;
 }
 
 .shipment-meta {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--fc-text-light);
     margin-top: 4px;
 }
 
 .mode-badge {
     display: inline-block;
-    padding: 4px 12px;
+    padding: 4px 10px;
     border-radius: 20px;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
 }
 
@@ -814,41 +908,42 @@ input:focus, textarea:focus {
 
 .invoice-header, .freight-header {
     font-weight: 800;
-    font-size: 12px;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
+    font-size: 11px;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
     border-bottom: 2px solid var(--fc-border);
 }
 
 .invoice-row {
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
-    margin-bottom: 6px;
+    font-size: 10px;
+    margin-bottom: 5px;
 }
 
 .invoice-total {
-    margin-top: 10px;
-    padding-top: 8px;
+    margin-top: 8px;
+    padding-top: 6px;
     border-top: 1px dashed var(--fc-border);
     display: flex;
     justify-content: space-between;
     font-weight: 800;
+    font-size: 11px;
 }
 
 .freight-row {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
-    margin-bottom: 8px;
+    font-size: 11px;
+    margin-bottom: 6px;
 }
 
 .freight-row.total {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 800;
     color: var(--fc-red);
     margin-top: 8px;
-    padding-top: 8px;
+    padding-top: 6px;
     border-top: 2px solid var(--fc-red);
 }
 
@@ -857,7 +952,7 @@ input:focus, textarea:focus {
     padding: 5px;
     background: #f1f5f9;
     text-align: center;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
     border-radius: 4px;
 }
@@ -873,23 +968,23 @@ input:focus, textarea:focus {
 }
 
 .terms-content h4 {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     color: var(--fc-black);
 }
 
 .terms-content ul {
-    padding-left: 20px;
-    font-size: 9px;
+    padding-left: 18px;
+    font-size: 8px;
     color: var(--fc-text-light);
 }
 
-.terms-content li { margin-bottom: 4px; }
+.terms-content li { margin-bottom: 3px; }
 
 .signature-area { text-align: center; }
 
-.signature-line { margin-bottom: 20px; }
+.signature-line { margin-bottom: 15px; }
 
 .line {
     border-top: 1px solid var(--fc-black);
@@ -899,31 +994,31 @@ input:focus, textarea:focus {
 
 .stamp-box {
     border: 2px dashed var(--fc-red);
-    padding: 12px;
-    font-size: 10px;
+    padding: 10px;
+    font-size: 9px;
     font-weight: 800;
     margin-bottom: 5px;
     color: var(--fc-red);
 }
 
 .docket-footer-premium {
-    padding: 15px 20px;
+    padding: 12px 20px;
     background: linear-gradient(135deg, var(--fc-black), var(--fc-black-light));
     color: white;
     display: flex;
     justify-content: space-between;
-    font-size: 9px;
+    font-size: 8px;
     flex-wrap: wrap;
     gap: 10px;
 }
 
 .footer-copies, .footer-contact {
     display: flex;
-    gap: 20px;
+    gap: 15px;
 }
 
 /* -----------------------------------------------------------------------
-   14. MODAL & OVERLAY
+   15. MODAL & OVERLAY (UPDATED)
    ----------------------------------------------------------------------- */
 .modal-overlay-premium {
     position: fixed;
@@ -997,14 +1092,14 @@ input:focus, textarea:focus {
 
 .modal-actions-premium {
     display: flex;
-    gap: 15px;
+    gap: 12px;
     justify-content: center;
     flex-wrap: wrap;
     margin-top: 20px;
 }
 
 .modal-actions-premium button {
-    padding: 12px 24px;
+    padding: 10px 20px;
     border-radius: var(--radius-md);
     font-weight: 700;
     cursor: pointer;
@@ -1012,7 +1107,7 @@ input:focus, textarea:focus {
     align-items: center;
     gap: 8px;
     transition: var(--transition);
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .action-print {
@@ -1024,6 +1119,18 @@ input:focus, textarea:focus {
 .action-print:hover {
     background: var(--fc-red);
     transform: translateY(-2px);
+}
+
+/* Label Print Button - NEW */
+.action-label {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+}
+
+.action-label:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
 }
 
 .action-view {
@@ -1050,7 +1157,7 @@ input:focus, textarea:focus {
 }
 
 /* -----------------------------------------------------------------------
-   15. ERROR BANNER
+   16. ERROR BANNER
    ----------------------------------------------------------------------- */
 .error-banner-premium {
     background: linear-gradient(135deg, #ff4757, #ff6b81);
@@ -1077,7 +1184,7 @@ input:focus, textarea:focus {
 }
 
 /* -----------------------------------------------------------------------
-   16. PRINT MEDIA QUERIES
+   17. PRINT MEDIA QUERIES
    ----------------------------------------------------------------------- */
 @media print {
     .no-print {
@@ -1111,7 +1218,7 @@ input:focus, textarea:focus {
 }
 
 /* -----------------------------------------------------------------------
-   17. RESPONSIVE DESIGN
+   18. RESPONSIVE DESIGN
    ----------------------------------------------------------------------- */
 @media (max-width: 768px) {
     .order-wrapper-premium {
@@ -1183,7 +1290,7 @@ input:focus, textarea:focus {
 }
 
 /* -----------------------------------------------------------------------
-   18. UTILITIES
+   19. UTILITIES
    ----------------------------------------------------------------------- */
 .text-center { text-align: center; }
 .font-bold { font-weight: 800; }

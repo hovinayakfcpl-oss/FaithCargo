@@ -5,7 +5,9 @@ import {
   Calculator, CheckCircle, Printer, ChevronRight, AlertCircle, 
   ShieldCheck, Box, Info, Navigation, CreditCard, 
   Upload, File, Image, X, TrendingUp, Clock, Train, Plane,
-  Save, Download, Eye, Award, Gem, Crown
+  Save, Download, Eye, Award, Gem, Crown, Settings, 
+  ToggleLeft, ToggleRight, Building, Hash, Tag, FileSpreadsheet,
+  Barcode, Layers, CheckSquare, Square, Printer as PrinterIcon
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import "./CreateOrder.css";
@@ -13,13 +15,15 @@ import "./CreateOrder.css";
 // ============================================
 // 🎨 LUXURY DOCKET COMPONENT (PROFESSIONAL)
 // ============================================
-const LuxuryDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode }) => {
+const LuxuryDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, isManualLR, manualLRNumber }) => {
   const barcodeRef = useRef(null);
+  const labelPrintRef = useRef(null);
   
   useEffect(() => {
-    if (lrNumber && barcodeRef.current) {
+    const barcodeNumber = isManualLR && manualLRNumber ? manualLRNumber : lrNumber;
+    if (barcodeNumber && barcodeRef.current) {
       try {
-        JsBarcode(barcodeRef.current, lrNumber, {
+        JsBarcode(barcodeRef.current, barcodeNumber, {
           format: "CODE128", 
           width: 2, 
           height: 50, 
@@ -31,7 +35,7 @@ const LuxuryDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, booking
         console.error("Barcode error:", err);
       }
     }
-  }, [lrNumber]);
+  }, [lrNumber, isManualLR, manualLRNumber]);
 
   const getModeIcon = () => {
     switch(bookingMode) {
@@ -42,10 +46,12 @@ const LuxuryDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, booking
     }
   };
 
+  const displayLRNumber = isManualLR && manualLRNumber ? manualLRNumber : lrNumber;
+
   // Safe data access with defaults
   const safeData = {
-    pickup: data?.pickup || { name: "", address: "", pincode: "", contact: "" },
-    delivery: data?.delivery || { name: "", address: "", pincode: "", contact: "" },
+    pickup: data?.pickup || { name: "", address: "", pincode: "", contact: "", gstin: "" },
+    delivery: data?.delivery || { name: "", address: "", pincode: "", contact: "", gstin: "" },
     orderDetails: data?.orderDetails || { material: "", weight: 0, boxesCount: 0, hsnCode: "" },
     invoices: data?.invoices || [],
     volWeight: data?.volWeight || 0,
@@ -55,163 +61,223 @@ const LuxuryDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber, booking
     totalAmount: data?.totalAmount || 0
   };
 
+  const printLabel = () => {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Label Print - ${displayLRNumber}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+            .label { width: 4in; height: 2in; border: 2px solid #000; padding: 10px; page-break-after: avoid; }
+            .label-header { text-align: center; border-bottom: 1px solid #ccc; margin-bottom: 10px; padding-bottom: 5px; }
+            .label-header h2 { margin: 0; font-size: 14px; }
+            .label-header p { margin: 2px 0; font-size: 10px; }
+            .label-lr { font-size: 18px; font-weight: bold; text-align: center; margin: 10px 0; }
+            .label-address { font-size: 10px; margin: 5px 0; }
+            .label-barcode { text-align: center; margin: 10px 0; }
+            .label-footer { font-size: 8px; text-align: center; margin-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="label">
+            <div class="label-header">
+              <h2>FAITH CARGO PVT LTD</h2>
+              <p>4/15, Kirti Nagar Industrial Area, New Delhi - 110015</p>
+              <p>GST: 07AAFCF2947K1ZD</p>
+            </div>
+            <div class="label-lr">LR NO: ${displayLRNumber}</div>
+            <div class="label-address">
+              <strong>From:</strong> ${safeData.pickup.name} - ${safeData.pickup.pincole}<br/>
+              <strong>To:</strong> ${safeData.delivery.name} - ${safeData.delivery.pincode}
+            </div>
+            <div class="label-barcode">
+              <img src="https://barcode.tec-it.com/barcode.ashx?data=${displayLRNumber}&code=Code128&dpi=96" />
+            </div>
+            <div class="label-footer">Weight: ${safeData.chargedWeight} Kg | Mode: ${getModeIcon()}</div>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.print();
+    printWindow.close();
+  };
+
   return (
-    <div className="luxury-docket">
-      <div className="docket-border-gold"></div>
-      <div className="docket-watermark-premium">FAITH CARGO PREMIUM</div>
-      
-      <div className="docket-header-premium">
-        <div className="docket-brand-premium">
-          <img src={logo} alt="FCPL" className="docket-logo-premium" />
-          <div className="brand-text-premium">
-            <h1>FAITH CARGO PVT LTD</h1>
-            <p>ISO 9001:2015 CERTIFIED | AN ISO 14001:2015</p>
-            <div className="premium-badge">PREMIUM LOGISTICS PARTNER</div>
-          </div>
-        </div>
-        <div className="docket-meta-premium">
-          <div className="meta-box">
-            <span className="meta-label">CONSIGNMENT NOTE</span>
-            <canvas ref={barcodeRef} className="barcode-canvas"></canvas>
-            <div className="lr-premium">{lrNumber || "DRAFT"}</div>
-            <div className="awb-premium">AWB: {awbNumber || "N/A"}</div>
-            <div className="date-premium">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="docket-address-premium">
-        <div className="address-card sender">
-          <div className="address-header">
-            <div className="header-icon">📤</div>
-            <h3>CONSIGNOR (SENDER)</h3>
-          </div>
-          <div className="address-body">
-            <h4>{safeData.pickup.name || "____________________"}</h4>
-            <p>{safeData.pickup.address || "Address not provided"}</p>
-            <div className="address-details">
-              <span>📮 {safeData.pickup.pincode || "______"}</span>
-              <span>📞 +91 {safeData.pickup.contact || "_________"}</span>
-            </div>
-          </div>
-        </div>
-        <div className="address-card receiver">
-          <div className="address-header">
-            <div className="header-icon">📥</div>
-            <h3>CONSIGNEE (RECEIVER)</h3>
-          </div>
-          <div className="address-body">
-            <h4>{safeData.delivery.name || "____________________"}</h4>
-            <p>{safeData.delivery.address || "Address not provided"}</p>
-            <div className="address-details">
-              <span>📮 {safeData.delivery.pincode || "______"}</span>
-              <span>📞 +91 {safeData.delivery.contact || "_________"}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="docket-shipment-details">
-        <table className="shipment-table-premium">
-          <thead>
-            <tr>
-              <th>PKGS</th>
-              <th>DESCRIPTION OF GOODS</th>
-              <th>ACTUAL WT (KG)</th>
-              <th>VOL WT (KG)</th>
-              <th>CHARGED WT (KG)</th>
-              <th>MODE</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="text-center font-bold">{safeData.orderDetails.boxesCount || 0}</td>
-              <td>
-                <strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong>
-                <div className="shipment-meta">{safeData.orderDetails.hsnCode && `HSN: ${safeData.orderDetails.hsnCode}`}</div>
-              </td>
-              <td className="text-center">{safeData.orderDetails.weight || 0}</td>
-              <td className="text-center">{safeData.volWeight}</td>
-              <td className="text-center font-bold text-red">{safeData.chargedWeight}</td>
-              <td className="text-center">
-                <div className={`mode-badge mode-${bookingMode || 'surface'}`}>
-                  {getModeIcon()}
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div className="docket-invoice-section">
-        <div className="invoice-grid">
-          <div className="invoice-box">
-            <div className="invoice-header">INVOICE DETAILS</div>
-            {safeData.invoices?.filter(inv => inv.no).map((inv, idx) => (
-              <div key={idx} className="invoice-row">
-                <span>{inv.no}</span>
-                <span>₹{parseFloat(inv.value).toLocaleString()}</span>
+    <>
+      <div className="luxury-docket">
+        <div className="docket-border-gold"></div>
+        <div className="docket-watermark-premium">FAITH CARGO PREMIUM</div>
+        
+        {/* Header with Full Company Details */}
+        <div className="docket-header-premium">
+          <div className="docket-brand-premium">
+            <img src={logo} alt="FCPL" className="docket-logo-premium" />
+            <div className="brand-text-premium">
+              <h1>FAITH CARGO PRIVATE LIMITED</h1>
+              <p>ISO 9001:2015 CERTIFIED | AN ISO 14001:2015</p>
+              <div className="company-details-header">
+                <span>🏢 4/15, Kirti Nagar Industrial Area, New Delhi - 110015</span>
+                <span>📞 +91 9818641504 | ✉️ care@faithcargo.com</span>
+                <span>🔷 GSTIN: 07AAFCF2947K1ZD | CIN: U60231DL2021PTC384521</span>
               </div>
-            ))}
-            <div className="invoice-total">
-              <span>TOTAL VALUE:</span>
-              <strong>₹{totalValue?.toLocaleString() || 0}</strong>
+              <div className="premium-badge">PREMIUM LOGISTICS PARTNER</div>
             </div>
           </div>
-          <div className="freight-box">
-            <div className="freight-header">FREIGHT DETAILS</div>
-            <div className="freight-row">
-              <span>Base Freight:</span>
-              <strong>₹{safeData.freightAmount.toLocaleString()}</strong>
+          <div className="docket-meta-premium">
+            <div className="meta-box">
+              <span className="meta-label">CONSIGNMENT NOTE</span>
+              <canvas ref={barcodeRef} className="barcode-canvas"></canvas>
+              <div className="lr-premium">{displayLRNumber || "DRAFT"}</div>
+              <div className="awb-premium">AWB: {awbNumber || "N/A"}</div>
+              <div className="date-premium">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
             </div>
-            <div className="freight-row">
-              <span>GST (18%):</span>
-              <strong>₹{safeData.gstAmount.toLocaleString()}</strong>
-            </div>
-            <div className="freight-row total">
-              <span>TOTAL:</span>
-              <strong>₹{safeData.totalAmount.toLocaleString()}</strong>
-            </div>
-            {ewayBill && <div className="eway-bill">E-WAY: {ewayBill}</div>}
           </div>
         </div>
-      </div>
 
-      <div className="docket-terms-premium">
-        <div className="terms-content">
-          <h4>TERMS &amp; CONDITIONS</h4>
-          <ul>
-            <li>Goods carried at Owner's Risk. Insurance recommended.</li>
-            <li>Claim within 7 days of delivery. Jurisdiction: Delhi Only.</li>
-            <li>Transit liability as per Carriers Act, 1865.</li>
-            <li>E-Way Bill mandatory for invoice &gt; ₹50,000.</li>
-          </ul>
-        </div>
-        <div className="signature-area">
-          <div className="signature-line">
-            <div className="line"></div>
-            <p>Receiver's Signature</p>
+        {/* Address with GSTIN */}
+        <div className="docket-address-premium">
+          <div className="address-card sender">
+            <div className="address-header">
+              <div className="header-icon">📤</div>
+              <h3>CONSIGNOR (SENDER)</h3>
+            </div>
+            <div className="address-body">
+              <h4>{safeData.pickup.name || "____________________"}</h4>
+              <p>{safeData.pickup.address || "Address not provided"}</p>
+              <div className="address-details">
+                <span>📮 {safeData.pickup.pincode || "______"}</span>
+                <span>📞 +91 {safeData.pickup.contact || "_________"}</span>
+                {safeData.pickup.gstin && <span>🔷 GST: {safeData.pickup.gstin}</span>}
+              </div>
+            </div>
           </div>
-          <div className="signature-line">
-            <div className="stamp-box">FOR FAITH CARGO PVT LTD</div>
-            <p>Authorized Signatory</p>
+          <div className="address-card receiver">
+            <div className="address-header">
+              <div className="header-icon">📥</div>
+              <h3>CONSIGNEE (RECEIVER)</h3>
+            </div>
+            <div className="address-body">
+              <h4>{safeData.delivery.name || "____________________"}</h4>
+              <p>{safeData.delivery.address || "Address not provided"}</p>
+              <div className="address-details">
+                <span>📮 {safeData.delivery.pincode || "______"}</span>
+                <span>📞 +91 {safeData.delivery.contact || "_________"}</span>
+                {safeData.delivery.gstin && <span>🔷 GST: {safeData.delivery.gstin}</span>}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="docket-footer-premium">
-        <div className="footer-copies">
-          <span>📄 ORIGINAL - CONSIGNOR</span>
-          <span>📄 DUPLICATE - CONSIGNEE</span>
-          <span>📄 TRIPLICATE - OFFICE</span>
+        {/* Shipment Details with HSN */}
+        <div className="docket-shipment-details">
+          <table className="shipment-table-premium">
+            <thead>
+              <tr>
+                <th>PKGS</th>
+                <th>DESCRIPTION OF GOODS</th>
+                <th>HSN CODE</th>
+                <th>ACTUAL WT (KG)</th>
+                <th>VOL WT (KG)</th>
+                <th>CHARGED WT (KG)</th>
+                <th>MODE</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="text-center font-bold">{safeData.orderDetails.boxesCount || 0}</td>
+                <td>
+                  <strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong>
+                </td>
+                <td className="text-center">{safeData.orderDetails.hsnCode || "1234"}</td>
+                <td className="text-center">{safeData.orderDetails.weight || 0}</td>
+                <td className="text-center">{safeData.volWeight}</td>
+                <td className="text-center font-bold text-red">{safeData.chargedWeight}</td>
+                <td className="text-center">
+                  <div className={`mode-badge mode-${bookingMode || 'surface'}`}>
+                    {getModeIcon()}
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div className="footer-contact">
-          <span>🌐 www.faithcargo.com</span>
-          <span>📞 +91 9818641504</span>
-          <span>✉️ care@faithcargo.com</span>
+
+        {/* Invoice and Freight Section */}
+        <div className="docket-invoice-section">
+          <div className="invoice-grid">
+            <div className="invoice-box">
+              <div className="invoice-header">INVOICE DETAILS</div>
+              {safeData.invoices?.filter(inv => inv.no).map((inv, idx) => (
+                <div key={idx} className="invoice-row">
+                  <span>{inv.no}</span>
+                  <span>₹{parseFloat(inv.value).toLocaleString()}</span>
+                </div>
+              ))}
+              <div className="invoice-total">
+                <span>TOTAL VALUE:</span>
+                <strong>₹{totalValue?.toLocaleString() || 0}</strong>
+              </div>
+            </div>
+            {showFreight && (
+              <div className="freight-box">
+                <div className="freight-header">FREIGHT DETAILS</div>
+                <div className="freight-row">
+                  <span>Base Freight:</span>
+                  <strong>₹{safeData.freightAmount.toLocaleString()}</strong>
+                </div>
+                <div className="freight-row">
+                  <span>GST (18%):</span>
+                  <strong>₹{safeData.gstAmount.toLocaleString()}</strong>
+                </div>
+                <div className="freight-row total">
+                  <span>TOTAL:</span>
+                  <strong>₹{safeData.totalAmount.toLocaleString()}</strong>
+                </div>
+                {ewayBill && <div className="eway-bill">E-WAY: {ewayBill}</div>}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Terms Section */}
+        <div className="docket-terms-premium">
+          <div className="terms-content">
+            <h4>TERMS &amp; CONDITIONS</h4>
+            <ul>
+              <li>Goods carried at Owner's Risk. Insurance recommended.</li>
+              <li>Claim within 7 days of delivery. Jurisdiction: Delhi Only.</li>
+              <li>Transit liability as per Carriers Act, 1865.</li>
+              <li>E-Way Bill mandatory for invoice &gt; ₹50,000.</li>
+            </ul>
+          </div>
+          <div className="signature-area">
+            <div className="signature-line">
+              <div className="line"></div>
+              <p>Receiver's Signature</p>
+            </div>
+            <div className="signature-line">
+              <div className="stamp-box">FOR FAITH CARGO PVT LTD</div>
+              <p>Authorized Signatory</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="docket-footer-premium">
+          <div className="footer-copies">
+            <span>📄 ORIGINAL - CONSIGNOR</span>
+            <span>📄 DUPLICATE - CONSIGNEE</span>
+            <span>📄 TRIPLICATE - OFFICE</span>
+          </div>
+          <div className="footer-contact">
+            <span>🌐 www.faithcargo.com</span>
+            <span>📞 +91 9818641504</span>
+            <span>✉️ care@faithcargo.com</span>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -359,9 +425,14 @@ export default function CreateOrder() {
   const [uploadedInvoices, setUploadedInvoices] = useState([]);
   const [freightData, setFreightData] = useState({ base: 0, gst: 0, total: 0 });
   
+  // New States
+  const [isManualLR, setIsManualLR] = useState(false);
+  const [manualLRNumber, setManualLRNumber] = useState("");
+  const [showFreightOnDocket, setShowFreightOnDocket] = useState(true);
+  
   // Form States
-  const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "" });
-  const [delivery, setDelivery] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "" });
+  const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gstin: "" });
+  const [delivery, setDelivery] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gstin: "" });
   const [orderDetails, setOrderDetails] = useState({ material: "", weight: "", boxesCount: 0, hsnCode: "1234" });
   const [invoices, setInvoices] = useState([{ id: Date.now(), no: "", value: "" }]);
 
@@ -414,19 +485,27 @@ export default function CreateOrder() {
       alert("Please enter valid 6-digit pincodes");
       return;
     }
+    if (isManualLR && !manualLRNumber) {
+      alert("Please enter Manual LR Number");
+      return;
+    }
 
     setLoading(true);
     setApiError("");
+
+    const finalLRNumber = isManualLR ? manualLRNumber : null;
 
     const orderData = {
       pickupName: pickup.name,
       pickupAddress: pickup.address,
       pickupPincode: pickup.pincode,
       pickupContact: pickup.contact,
+      pickupGstin: pickup.gstin,
       deliveryName: delivery.name,
       deliveryAddress: delivery.address,
       deliveryPincode: delivery.pincode,
       deliveryContact: delivery.contact,
+      deliveryGstin: delivery.gstin,
       material: orderDetails.material || "General Cargo",
       hsn: orderDetails.hsnCode,
       boxes: orderDetails.boxesCount,
@@ -439,6 +518,8 @@ export default function CreateOrder() {
       freight_base: freightData.base,
       freight_gst: freightData.gst,
       freight_total: freightData.total,
+      is_manual_lr: isManualLR,
+      manual_lr_number: finalLRNumber,
       invoices: invoices.filter(inv => inv.no && inv.value).map(inv => ({
         invoice_no: inv.no,
         invoice_value: parseFloat(inv.value)
@@ -461,7 +542,7 @@ export default function CreateOrder() {
         
         const recentOrders = JSON.parse(localStorage.getItem('recentOrders') || '[]');
         recentOrders.unshift({
-          lr: result.lr_number,
+          lr: isManualLR ? manualLRNumber : result.lr_number,
           awb: result.awb,
           date: new Date().toISOString(),
           pickup: pickup.pincode,
@@ -555,6 +636,10 @@ export default function CreateOrder() {
                     <input className="locked-input" value={pickup.city ? `${pickup.city}, ${pickup.state}` : ""} readOnly placeholder="Auto-filled" />
                   </div>
                 </div>
+                <div className="input-group">
+                  <label>GSTIN (Optional)</label>
+                  <input value={pickup.gstin} onChange={e=>setPickup({...pickup, gstin:e.target.value.toUpperCase()})} placeholder="15 digit GSTIN" maxLength={15} />
+                </div>
               </div>
             </section>
 
@@ -588,6 +673,10 @@ export default function CreateOrder() {
                     <input className="locked-input" value={delivery.city ? `${delivery.city}, ${delivery.state}` : ""} readOnly placeholder="Auto-filled" />
                   </div>
                 </div>
+                <div className="input-group">
+                  <label>GSTIN (Optional)</label>
+                  <input value={delivery.gstin} onChange={e=>setDelivery({...delivery, gstin:e.target.value.toUpperCase()})} placeholder="15 digit GSTIN" maxLength={15} />
+                </div>
               </div>
             </section>
           </div>
@@ -604,6 +693,11 @@ export default function CreateOrder() {
                   <input placeholder="e.g., Industrial Tools, Textile, Electronics" onChange={e=>setOrderDetails({...orderDetails, material:e.target.value.toUpperCase()})} />
                 </div>
                 
+                <div className="input-group full-width">
+                  <label>HSN Code</label>
+                  <input placeholder="HSN Code (e.g., 1234, 8471)" value={orderDetails.hsnCode} onChange={e=>setOrderDetails({...orderDetails, hsnCode:e.target.value})} />
+                </div>
+
                 <div className="booking-mode-selector">
                   <label>Booking Mode *</label>
                   <div className="mode-buttons">
@@ -692,6 +786,37 @@ export default function CreateOrder() {
                   bookingMode={bookingMode}
                   onCalculate={setFreightData}
                 />
+
+                {/* LR Settings */}
+                <div className="lr-settings-section">
+                  <div className="setting-toggle">
+                    <label>Manual LR Number</label>
+                    <button type="button" className={`toggle-btn ${isManualLR ? 'active' : ''}`} onClick={() => setIsManualLR(!isManualLR)}>
+                      {isManualLR ? <ToggleRight size={24} color="#d32f2f" /> : <ToggleLeft size={24} color="#64748b" />}
+                      {isManualLR ? 'Manual Mode ON' : 'Auto Mode'}
+                    </button>
+                  </div>
+                  
+                  {isManualLR && (
+                    <div className="manual-lr-input">
+                      <input 
+                        type="text" 
+                        placeholder="Enter Manual LR Number (e.g., FCPL9999)" 
+                        value={manualLRNumber}
+                        onChange={e => setManualLRNumber(e.target.value.toUpperCase())}
+                        className="manual-lr-field"
+                      />
+                    </div>
+                  )}
+
+                  <div className="setting-toggle">
+                    <label>Show Freight on Docket</label>
+                    <button type="button" className={`toggle-btn ${showFreightOnDocket ? 'active' : ''}`} onClick={() => setShowFreightOnDocket(!showFreightOnDocket)}>
+                      {showFreightOnDocket ? <ToggleRight size={24} color="#d32f2f" /> : <ToggleLeft size={24} color="#64748b" />}
+                      {showFreightOnDocket ? 'Show Freight' : 'Hide Freight'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -707,7 +832,7 @@ export default function CreateOrder() {
             <div className="modal-content-premium">
               <div className="success-icon"><CheckCircle size={60} color="#10b981" /></div>
               <h2>Consignment Generated Successfully!</h2>
-              <div className="lr-premium-display">{lrNumber}</div>
+              <div className="lr-premium-display">{isManualLR ? manualLRNumber : lrNumber}</div>
               <div className="awb-premium-display">AWB: {awbNumber}</div>
               
               <div className="docket-preview">
@@ -718,11 +843,40 @@ export default function CreateOrder() {
                   ewayBill={ewayBill}
                   awbNumber={awbNumber}
                   bookingMode={bookingMode}
+                  showFreight={showFreightOnDocket}
+                  isManualLR={isManualLR}
+                  manualLRNumber={manualLRNumber}
                 />
               </div>
 
               <div className="modal-actions-premium">
                 <button className="action-print" onClick={() => window.print()}><Printer size={18}/> Print Docket</button>
+                <button className="action-label" onClick={() => {
+                  const printWindow = window.open('', '_blank');
+                  printWindow.document.write(`
+                    <html><head><title>Label - ${isManualLR ? manualLRNumber : lrNumber}</title>
+                    <style>
+                      body { font-family: Arial; padding: 20px; }
+                      .label { width: 4in; border: 2px solid #000; padding: 10px; margin: 0 auto; }
+                      .label h2 { text-align: center; margin: 0 0 10px; }
+                      .lr { font-size: 24px; font-weight: bold; text-align: center; margin: 10px 0; }
+                      .address { font-size: 12px; margin: 5px 0; }
+                    </style>
+                    </head>
+                    <body>
+                      <div class="label">
+                        <h2>FAITH CARGO PVT LTD</h2>
+                        <div class="lr">LR: ${isManualLR ? manualLRNumber : lrNumber}</div>
+                        <div class="address">From: ${pickup.name} - ${pickup.pincode}</div>
+                        <div class="address">To: ${delivery.name} - ${delivery.pincode}</div>
+                        <div class="address">Weight: ${chargedWeight} Kg | Mode: ${bookingMode.toUpperCase()}</div>
+                      </div>
+                    </body>
+                    </html>
+                  `);
+                  printWindow.print();
+                  printWindow.close();
+                }}><Barcode size={18}/> Print Label</button>
                 <button className="action-view" onClick={() => window.location.href='/shipments'}><Eye size={18}/> View All Shipments</button>
                 <button className="action-new" onClick={() => window.location.reload()}><Plus size={18}/> New Booking</button>
               </div>
@@ -738,6 +892,9 @@ export default function CreateOrder() {
             ewayBill={ewayBill}
             awbNumber={awbNumber}
             bookingMode={bookingMode}
+            showFreight={showFreightOnDocket}
+            isManualLR={isManualLR}
+            manualLRNumber={manualLRNumber}
           />
         </div>
       </main>
