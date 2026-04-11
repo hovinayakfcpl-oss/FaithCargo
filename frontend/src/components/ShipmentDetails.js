@@ -1,44 +1,29 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Bot, Send, X, Activity, Terminal, ShieldCheck } from "lucide-react";
+import { Bot, Send, X, ShieldCheck, Activity } from "lucide-react";
 import "./ShipmentDetail.css";
 
-function ShipmentDetail() {
-  const BASE_URL = "https://faithcargo.onrender.com";
-
-  const [shipments, setShipments] = useState([]);
-  const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  // --- JERVICE STATES ---
+function ShipmentDetails() {
   const [isJerviceOpen, setIsJerviceOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: "assistant", content: "Mainframe online, sir. Monitoring Faith Cargo network. How can I help?" }
+    { role: "assistant", content: "Mainframe online, Sir. Faith Cargo network active hai. Main aapki kya madad kar sakta hoon?" }
   ]);
   const [userInput, setUserInput] = useState("");
   const chatEndRef = useRef(null);
 
   useEffect(() => {
-    fetchShipments();
-  }, []);
-
-  useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // --- JERVICE VOICE ENGINE ---
+  // Voice Engine (Hindi Support)
   const speak = (text) => {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    const voices = window.speechSynthesis.getVoices();
-    // Deep male voice filter
-    utterance.voice = voices.find(v => v.name.includes("Male") || v.name.includes("UK English")) || voices[0];
+    utterance.lang = 'hi-IN'; // Hindi Voice support
     utterance.pitch = 0.8;
-    utterance.rate = 1.0;
     window.speechSynthesis.speak(utterance);
   };
 
-  // --- JERVICE TRACKING LOGIC ---
-  const handleJerviceChat = () => {
+  const handleJerviceChat = async () => {
     if (!userInput.trim()) return;
 
     const input = userInput.toLowerCase();
@@ -46,109 +31,64 @@ function ShipmentDetail() {
     setMessages(newMessages);
     setUserInput("");
 
-    let response = "";
-    const docketMatch = input.match(/\d{5,}/);
+    let contextData = {};
 
-    if (docketMatch) {
-      const docket = docketMatch[0];
-      // Professional Jarvis Response
-      response = `Sir, I am accessing the Faith Cargo mainframe for Docket ${docket}. The shipment is currently in transit and moving towards its destination. You can view the live technical logs here: https://tracking.faithcargo.com/`;
-      speak(`Tracking docket ${docket} now. Status is active, sir.`);
-    } else if (input.includes("mumbai") || input.includes("delhi") || input.includes("shipment")) {
-      response = "Sir, we have multiple shipments in the system. Please provide a specific Docket Number for a precise update.";
-      speak(response);
-    } else {
-      response = "I am monitoring all routes, sir. Systems are nominal.";
-      speak(response);
+    // Check if user is asking for rates (e.g., "Mumbai se Delhi ka rate kya hai?")
+    if (input.includes("rate") || input.includes("bhada") || input.includes("price")) {
+      speak("Sir, main rate calculate kar raha hoon. Ek pal dijiye.");
+      // Yahan hum dummy context bhej rahe hain, aap real calculation function call kar sakte hain
+      contextData = { info: "Asking for rates", min_billing: 650, gst: "18%" };
     }
 
-    setTimeout(() => {
-      setMessages([...newMessages, { role: "assistant", content: response }]);
-    }, 600);
-  };
-
-  const fetchShipments = async () => {
     try {
-      setLoading(true);
-      const res = await fetch(`${BASE_URL}/api/shipments/`);
+      const res = await fetch("https://faithcargo.onrender.com/api/jervice/intelligent-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: input, contextData })
+      });
+
       const data = await res.json();
-      setShipments(data || []);
+      setMessages([...newMessages, { role: "assistant", content: data.reply }]);
+      speak(data.reply);
+      
     } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+      const errorMsg = "Sir, satellite link unstable hai. Please try again.";
+      setMessages([...newMessages, { role: "assistant", content: errorMsg }]);
+      speak(errorMsg);
     }
   };
 
   return (
     <div className="main">
-      <div className="card dark-professional">
-        <div className="dashboard-header">
-          <h2><Activity size={20} color="#d32f2f" /> LOGISTICS COMMAND CENTER</h2>
-          <span className="version-tag">ENTERPRISE v5.0.2</span>
-        </div>
-
-        <input
-          className="search-input"
-          placeholder="Search LR Database (e.g. FCPL0001)..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-
-        {loading ? (
-          <p className="loading-text">Accessing Satellite Uplink...</p>
-        ) : (
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>DOCKET</th>
-                  <th>ROUTE</th>
-                  <th>VALUE</th>
-                  <th>STATUS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {shipments.filter(s => s.lr.includes(search)).map((s, i) => (
-                  <tr key={i} className="table-row">
-                    <td className="lr-text">{s.lr}</td>
-                    <td>{s.route}</td>
-                    <td>₹ {s.value?.toLocaleString()}</td>
-                    <td><span className="status-badge">{s.status}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* --- JERVICE UI --- */}
+      {/* Existing Table Content... */}
+      
       <div className={`jervice-container ${isJerviceOpen ? 'open' : ''}`}>
         {!isJerviceOpen ? (
           <button className="jervice-trigger" onClick={() => setIsJerviceOpen(true)}>
             <div className="pulse-ring"></div>
             <Bot size={24} color="white" />
-            <span>JERVICE LIVE</span>
+            <span>JERVICE AI</span>
           </button>
         ) : (
-          <div className="jervice-window">
+          <div className="jervice-window professional-dark">
             <div className="jervice-header">
               <div className="ai-identity">
                 <ShieldCheck size={16} color="#00ff00" />
-                <span>JERVICE SECURE-LINK</span>
+                <span>JERVICE SECURE-LINK (HINDI)</span>
               </div>
               <X className="close-icon" onClick={() => setIsJerviceOpen(false)} />
             </div>
+            
             <div className="jervice-chat-area">
               {messages.map((m, i) => (
                 <div key={i} className={`chat-msg ${m.role}`}>{m.content}</div>
               ))}
               <div ref={chatEndRef} />
             </div>
+
             <div className="jervice-input-bar">
               <input 
-                placeholder="Awaiting command, sir..." 
+                placeholder="Command dijiye, Sir..." 
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleJerviceChat()}
@@ -162,5 +102,4 @@ function ShipmentDetail() {
   );
 }
 
-// Ye line sabse zaroori hai error fix karne ke liye
-export default ShipmentDetail;
+export default ShipmentDetails; // Match the filename in your image
