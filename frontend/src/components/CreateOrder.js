@@ -3,13 +3,13 @@ import JsBarcode from "jsbarcode";
 import { 
   Truck, MapPin, Package, FileText, Plus, Trash2,
   Calculator, CheckCircle, Printer, ChevronRight, AlertCircle, 
-  ShieldCheck, Box, Info, Navigation, CreditCard
+  ShieldCheck, Box, Info, Navigation, CreditCard, Bot, Send, X
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import "./CreateOrder.css";
 
 // --- PROFESSIONAL DOCKET COMPONENT (FOR PRINT) ---
-const ShipmentDocket = ({ data, lrNumber, totalValue, ewayBill }) => {
+const ShipmentDocket = ({ data, lrNumber, totalValue, ewayBill, awbNumber }) => {
   const barcodeRef = useRef(null);
   
   useEffect(() => {
@@ -45,6 +45,7 @@ const ShipmentDocket = ({ data, lrNumber, totalValue, ewayBill }) => {
           <div className="barcode-area"><canvas ref={barcodeRef}></canvas></div>
           <div className="lr-number-display">{lrNumber || "DRAFT COPY"}</div>
           <div className="lr-date-row">DATE: <strong>{new Date().toLocaleDateString('en-IN')}</strong></div>
+          {awbNumber && <div className="awb-number">AWB: {awbNumber}</div>}
         </div>
       </div>
 
@@ -143,18 +144,103 @@ const ShipmentDocket = ({ data, lrNumber, totalValue, ewayBill }) => {
   );
 };
 
+// --- JERVICE AI COMPONENT (BIGG BOSS VOICE) ---
+const JerviceAI = ({ onDocketDetected }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { role: "assistant", content: "🎤 Bigg Boss Voice Mode ON! Main hoon Jervice AI. Naya order create karne mein madad chahiye?" }
+  ]);
+  const [userInput, setUserInput] = useState("");
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const speak = (text) => {
+    if (!isVoiceEnabled) return;
+    window.speechSynthesis.cancel();
+    const cleanText = text.replace(/[🎤💰📦✅⚠️🔍]/g, '');
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'hi-IN';
+    utterance.rate = 0.95;
+    utterance.pitch = 0.85;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handleChat = async () => {
+    if (!userInput.trim()) return;
+    
+    const newMessages = [...messages, { role: "user", content: userInput }];
+    setMessages(newMessages);
+    setUserInput("");
+
+    try {
+      const response = await fetch("https://faithcargo.onrender.com/api/shipments/jervice-chat/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: userInput, contextData: { page: "create_order" } })
+      });
+      const data = await response.json();
+      setMessages([...newMessages, { role: "assistant", content: data.reply }]);
+      speak(data.reply);
+    } catch (error) {
+      const errorMsg = "⚠️ Network issue! Dobara try karein.";
+      setMessages([...newMessages, { role: "assistant", content: errorMsg }]);
+      speak(errorMsg);
+    }
+  };
+
+  return (
+    <div className="jervice-fab">
+      {!isOpen ? (
+        <button className="jervice-trigger-btn" onClick={() => setIsOpen(true)}>
+          <Bot size={24} />
+          <span>Jervice AI</span>
+        </button>
+      ) : (
+        <div className="jervice-chat-window">
+          <div className="jervice-header">
+            <div className="ai-title">🎤 Jervice AI - Bigg Boss Mode</div>
+            <button className="close-btn" onClick={() => setIsOpen(false)}><X size={18} /></button>
+          </div>
+          <div className="jervice-messages">
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`msg ${msg.role}`}>{msg.content}</div>
+            ))}
+            <div ref={chatEndRef} />
+          </div>
+          <div className="jervice-input">
+            <input 
+              type="text" 
+              placeholder="Hindi mein bolein..." 
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleChat()}
+            />
+            <button onClick={handleChat}><Send size={18} /></button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // --- MAIN PAGE COMPONENT ---
 export default function CreateOrder() {
   const [boxes, setBoxes] = useState([]);
   const [showLR, setShowLR] = useState(false);
   const [lrNumber, setLrNumber] = useState("");
+  const [awbNumber, setAwbNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [ewayBill, setEwayBill] = useState("");
+  const [apiError, setApiError] = useState("");
   
   // Form States
   const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "" });
   const [delivery, setDelivery] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "" });
-  const [orderDetails, setOrderDetails] = useState({ material: "", weight: "", boxesCount: 0 });
+  const [orderDetails, setOrderDetails] = useState({ material: "", weight: "", boxesCount: 0, hsnCode: "1234", totalValue: 0 });
   const [invoices, setInvoices] = useState([{ id: Date.now(), no: "", value: "" }]);
 
   // Calculated Values
@@ -169,8 +255,6 @@ export default function CreateOrder() {
   }, [boxes]);
 
   const chargedWeight = Math.max(parseFloat(orderDetails.weight || 0), parseFloat(volWeight));
-
-  // Mandatory E-way Bill Check
   const needsEwayBill = totalInvoiceValue >= 50000;
 
   const fetchLocation = async (pin, type) => {
@@ -188,24 +272,85 @@ export default function CreateOrder() {
     }
   };
 
-  const handleCreateOrder = () => {
-    // Error Validation
+  // REAL API CALL TO BACKEND
+  const handleCreateOrder = async () => {
+    // Validation
     if (needsEwayBill && !ewayBill) {
-      alert("⚠️ CRITICAL ERROR: E-Way Bill Number is mandatory for Invoice Values above ₹50,000.");
+      alert("⚠️ E-Way Bill Number mandatory for Invoice Value above ₹50,000");
       return;
     }
     if (!pickup.name || !delivery.name || !orderDetails.weight) {
-      alert("Please fill all mandatory fields (Sender, Receiver, Weight).");
+      alert("Please fill all mandatory fields (Sender, Receiver, Weight)");
+      return;
+    }
+    if (!pickup.pincode || !delivery.pincode) {
+      alert("Please enter valid 6-digit pincodes");
       return;
     }
 
     setLoading(true);
-    // Simulation
-    setTimeout(() => {
-      setLrNumber("FC" + Math.floor(1000000 + Math.random() * 9000000));
-      setShowLR(true);
+    setApiError("");
+
+    // Prepare data for backend
+    const orderData = {
+      pickupName: pickup.name,
+      pickupAddress: pickup.address,
+      pickupPincode: pickup.pincode,
+      pickupContact: pickup.contact,
+      deliveryName: delivery.name,
+      deliveryAddress: delivery.address,
+      deliveryPincode: delivery.pincode,
+      deliveryContact: delivery.contact,
+      material: orderDetails.material || "General Cargo",
+      hsn: orderDetails.hsnCode,
+      boxes: orderDetails.boxesCount,
+      weight: parseFloat(orderDetails.weight),
+      total_value: totalInvoiceValue,
+      eway_bill: needsEwayBill ? ewayBill : "",
+      invoices: invoices.filter(inv => inv.no && inv.value).map(inv => ({
+        invoice_no: inv.no,
+        invoice_value: parseFloat(inv.value)
+      }))
+    };
+
+    try {
+      const response = await fetch("https://faithcargo.onrender.com/api/shipments/create-order/", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setLrNumber(result.lr_number);
+        setAwbNumber(result.awb);
+        setShowLR(true);
+        
+        // Optional: Store in localStorage for dashboard sync
+        const recentOrders = JSON.parse(localStorage.getItem('recentOrders') || '[]');
+        recentOrders.unshift({
+          lr: result.lr_number,
+          awb: result.awb,
+          date: new Date().toISOString(),
+          pickup: pickup.pincode,
+          delivery: delivery.pincode,
+          weight: orderDetails.weight
+        });
+        localStorage.setItem('recentOrders', JSON.stringify(recentOrders.slice(0, 10)));
+      } else {
+        setApiError(result.error || "Failed to create order");
+        alert("Error: " + (result.error || "Could not create order"));
+      }
+    } catch (error) {
+      console.error("API Error:", error);
+      setApiError("Network error. Please check your connection.");
+      alert("Network error! Please try again.");
+    } finally {
       setLoading(false);
-    }, 1200);
+    }
   };
 
   return (
@@ -218,8 +363,8 @@ export default function CreateOrder() {
          </div>
          <nav className="side-menu">
             <div className="menu-link active"><Plus size={18}/> Create Booking</div>
-            <div className="menu-link"><Navigation size={18}/> Live Tracking</div>
-            <div className="menu-link"><FileText size={18}/> All Dockets</div>
+            <div className="menu-link" onClick={() => window.location.href='/dashboard'}><Navigation size={18}/> Live Tracking</div>
+            <div className="menu-link" onClick={() => window.location.href='/shipments'}><FileText size={18}/> All Dockets</div>
             <div className="menu-link"><CreditCard size={18}/> Payments</div>
          </nav>
          <div className="support-card">
@@ -245,6 +390,12 @@ export default function CreateOrder() {
           </div>
         </header>
 
+        {apiError && (
+          <div className="error-banner no-print">
+            <AlertCircle size={18} /> {apiError}
+          </div>
+        )}
+
         <div className="form-layout no-print">
           <div className="form-column">
             {/* SENDER BOX */}
@@ -269,7 +420,7 @@ export default function CreateOrder() {
                 </div>
                 <div className="input-row">
                   <div className="input-group">
-                    <label>Pincode</label>
+                    <label>Pincode *</label>
                     <input maxLength={6} value={pickup.pincode} onChange={e=>{setPickup({...pickup, pincode:e.target.value}); fetchLocation(e.target.value, 'pickup')}} placeholder="6 Digit" />
                   </div>
                   <div className="input-group">
@@ -302,7 +453,7 @@ export default function CreateOrder() {
                 </div>
                 <div className="input-row">
                   <div className="input-group">
-                    <label>Pincode</label>
+                    <label>Pincode *</label>
                     <input maxLength={6} value={delivery.pincode} onChange={e=>{setDelivery({...delivery, pincode:e.target.value}); fetchLocation(e.target.value, 'delivery')}} placeholder="6 Digit" />
                   </div>
                   <div className="input-group">
@@ -413,14 +564,22 @@ export default function CreateOrder() {
               </div>
               <h2>LR GENERATED SUCCESSFULLY</h2>
               <div className="lr-id-display">{lrNumber}</div>
+              <div className="awb-display">AWB: {awbNumber}</div>
               
               <div className="mini-docket-preview">
-                 <ShipmentDocket data={{pickup, delivery, orderDetails, invoices, chargedWeight}} lrNumber={lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill} />
+                 <ShipmentDocket 
+                   data={{pickup, delivery, orderDetails, invoices, chargedWeight}} 
+                   lrNumber={lrNumber} 
+                   totalValue={totalInvoiceValue} 
+                   ewayBill={ewayBill}
+                   awbNumber={awbNumber}
+                 />
               </div>
 
               <div className="modal-actions">
                 <button className="action-btn print" onClick={() => window.print()}><Printer size={18}/> PRINT DOCKET</button>
-                <button className="action-btn next" onClick={() => window.location.reload()}>NEW ENTRY</button>
+                <button className="action-btn next" onClick={() => window.location.href='/shipments'}>VIEW ALL SHIPMENTS</button>
+                <button className="action-btn new" onClick={() => window.location.reload()}>NEW ENTRY</button>
               </div>
             </div>
           </div>
@@ -428,9 +587,18 @@ export default function CreateOrder() {
 
         {/* PRINT ENGINE */}
         <div className="print-only">
-            <ShipmentDocket data={{pickup, delivery, orderDetails, invoices, chargedWeight}} lrNumber={lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill} />
+            <ShipmentDocket 
+              data={{pickup, delivery, orderDetails, invoices, chargedWeight}} 
+              lrNumber={lrNumber} 
+              totalValue={totalInvoiceValue} 
+              ewayBill={ewayBill}
+              awbNumber={awbNumber}
+            />
         </div>
       </main>
+
+      {/* JERVICE AI ASSISTANT */}
+      <JerviceAI />
     </div>
   );
 }

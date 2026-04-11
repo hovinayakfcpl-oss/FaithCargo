@@ -23,4 +23,9 @@ urlpatterns = [
     
     # 🗑️ Delete
     path("delete/<str:lr>/", views.delete_shipment, name="delete_shipment"),
+    
+    # 🤖 JERVICE AI - Intelligent Assistant (Hindi + Bigg Boss Voice)
+    # Address: /api/shipments/jervice-chat/
+    # Frontend call: POST https://faithcargo.onrender.com/api/shipments/jervice-chat/
+    path("jervice-chat/", views.jervice_intelligent_chat, name="jervice_chat"),
 ]
