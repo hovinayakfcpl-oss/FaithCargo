@@ -11,12 +11,12 @@ import {
 import logo from "../assets/logo.png";
 import "./CreateOrder.css";
 
-// --- SYSTEM ARCHITECTURE CONSTANTS ---
-const CONFIG = {
-  VERSION: "5.0.1-LIGHT-PRO",
-  TAX_RATE: 0.18,
-  INSURANCE_RATE: 0.002,
-  BRANCHES: ["NEW DELHI (HQ)", "MUMBAI", "BANGALORE", "KOLKATA", "CHENNAI", "AHMEDABAD"],
+// --- SYSTEM CONFIGURATION ---
+const SYSTEM_CONFIG = {
+  VERSION: "5.0.2-ENTERPRISE-LIGHT",
+  BRANCH: "NEW DELHI (HQ)",
+  GST_RATE: 0.18,
+  FOV_RATE: 0.002, 
   MODES: {
     SURFACE: { name: "Surface Express", min: 450, perKg: 10, docket: 150 },
     AIR: { name: "Air Premium", min: 1100, perKg: 42, docket: 250 },
@@ -24,7 +24,7 @@ const CONFIG = {
   }
 };
 
-// --- DOCKET COMPONENT (MULTI-COPY PRINTING) ---
+// --- SUB-COMPONENT: DOCKET (MULTI-COPY PRINTING) ---
 const ShipmentDocket = ({ data, lrNumber, totals, mode, copyType }) => {
   const barcodeRef = useRef(null);
   useEffect(() => {
@@ -90,7 +90,7 @@ const ShipmentDocket = ({ data, lrNumber, totals, mode, copyType }) => {
             <td className="center-text">{data.cargo.pkgs}</td>
             <td className="desc-td">
               <strong>{data.cargo.material || "GENERAL CARGO"}</strong>
-              <div className="sub-info">Mode: {mode} | Booking: {CONFIG.BRANCHES[0]}</div>
+              <div className="sub-info">Mode: {mode} | Booking: {SYSTEM_CONFIG.BRANCH}</div>
             </td>
             <td className="center-text">{data.cargo.weight} KG</td>
             <td className="center-text font-bold">{totals.chargedWeight} KG</td>
@@ -127,7 +127,7 @@ const ShipmentDocket = ({ data, lrNumber, totals, mode, copyType }) => {
 
 // --- MAIN APPLICATION ENGINE ---
 export default function CreateOrder() {
-  const [view, setView] = useState("booking"); 
+  const [view, setView] = useState("booking"); // Tabs
   const [isProcessing, setIsProcessing] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [generatedLR, setGeneratedLR] = useState("");
@@ -140,20 +140,24 @@ export default function CreateOrder() {
   const [dims, setDims] = useState([]);
   const [invoices, setInvoices] = useState([{ id: Date.now(), no: "", value: "" }]);
   const [ewayBill, setEwayBill] = useState("");
+  
+  // TRACKING ENGINE STATE
+  const [trackId, setTrackId] = useState("");
+  const [trackResult, setTrackResult] = useState(null);
 
-  // --- CALCULATION LOGIC ---
+  // --- BUSINESS LOGIC: CALCULATIONS ---
   const calculation = useMemo(() => {
     const totalInvoiceVal = invoices.reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
     const volWeight = dims.reduce((acc, d) => 
       acc + (parseFloat(d.l || 0) * parseFloat(d.w || 0) * parseFloat(d.h || 0)) / 1728, 0) * 10;
     
     const chargedWeight = Math.max(parseFloat(cargo.weight || 0), volWeight).toFixed(2);
-    const currentMode = CONFIG.MODES[shipMode];
+    const currentMode = SYSTEM_CONFIG.MODES[shipMode];
     
     const baseFreight = Math.max(chargedWeight * currentMode.perKg, currentMode.min);
-    const fov = totalInvoiceVal * CONFIG.INSURANCE_RATE;
+    const fov = totalInvoiceVal * SYSTEM_CONFIG.FOV_RATE;
     const subTotal = baseFreight + currentMode.docket + fov;
-    const gst = subTotal * CONFIG.TAX_RATE;
+    const gst = subTotal * SYSTEM_CONFIG.GST_RATE;
     
     return {
       totalInvoiceVal, volWeight: volWeight.toFixed(2), chargedWeight,
@@ -162,7 +166,7 @@ export default function CreateOrder() {
     };
   }, [invoices, dims, cargo.weight, shipMode]);
 
-  // --- API SIMULATIONS ---
+  // --- API SIMULATIONS (PINCODE & BOOKING) ---
   const handlePincodeSearch = async (pin, side) => {
     if (pin.length === 6) {
       try {
@@ -172,11 +176,11 @@ export default function CreateOrder() {
           const res = { city: d[0].PostOffice[0].District, state: d[0].PostOffice[0].State };
           side === "sender" ? setConsignor(p => ({...p, ...res})) : setConsignee(p => ({...p, ...res}));
         }
-      } catch (e) { console.error("API Error"); }
+      } catch (e) { console.error("Pincode API Error"); }
     }
   };
 
-  const handleBooking = () => {
+  const generateBooking = () => {
     if (calculation.needsEway && !ewayBill) {
       alert("⚠️ E-WAY BILL REQUIRED: Consignment value exceeds ₹50,000.");
       return;
@@ -187,131 +191,147 @@ export default function CreateOrder() {
     }
     setIsProcessing(true);
     setTimeout(() => {
-      setGeneratedLR("FC" + Math.floor(1000000 + Math.random() * 9000000));
+      setGeneratedLR("FC" + Math.floor(1000000 + Math.random() * 8999999));
       setBookingConfirmed(true);
       setIsProcessing(false);
-    }, 2000);
+    }, 1800);
   };
 
-  // --- INTERFACE ---
+  const handleTrack = () => {
+    if (!trackId) return;
+    setIsProcessing(true);
+    setTimeout(() => {
+      setTrackResult({
+        id: trackId,
+        status: "IN TRANSIT",
+        currentLocation: "JAIPUR LOGISTICS HUB",
+        milestones: [
+          { date: "10 Apr 2026", time: "10:30 AM", msg: "Booking created at Delhi HQ" },
+          { date: "11 Apr 2026", time: "05:00 AM", msg: "Arrived at Jaipur Hub" }
+        ]
+      });
+      setIsProcessing(false);
+    }, 900);
+  };
+
+  // --- PAGE RESTRENGTHENING: PROFESSONAL LAYOUT ---
   return (
-    <div className="faith-app-root light-theme">
-      {/* SIDEBAR NAVIGATION */}
+    <div className="faith-app-root light-enterprise-theme">
+      {/* PROFESSIONAL SIDEBAR (White with Red Accent) */}
       <aside className="app-sidebar no-print">
         <div className="sidebar-brand">
           <img src={logo} alt="Faith Cargo" />
-          <div className="version-pill">v{CONFIG.VERSION}</div>
+          <div className="version-tag">v{SYSTEM_CONFIG.VERSION}</div>
         </div>
         <nav className="sidebar-nav">
-          <button className={view === 'booking' ? 'active' : ''} onClick={() => setView('booking')}><Plus size={20}/> New Booking</button>
-          <button className={view === 'tracking' ? 'active' : ''} onClick={() => setView('tracking')}><Navigation size={20}/> Live Tracking</button>
-          <button className={view === 'manifest' ? 'active' : ''} onClick={() => setView('manifest')}><FileText size={20}/> E-Manifest</button>
-          <button onClick={() => setView('analytics')}><BarChart3 size={20}/> Dashboard</button>
-          <button onClick={() => setView('settings')}><Settings size={20}/> Admin Panel</button>
+          <button className={view === 'booking' ? 'active' : ''} onClick={() => setView('booking')}><Plus size={18}/> New Booking</button>
+          <button className={view === 'tracking' ? 'active' : ''} onClick={() => setView('tracking')}><Navigation size={18}/> Live Tracking</button>
+          <button className={view === 'manifest' ? 'active' : ''} onClick={() => setView('manifest')}><FileText size={18}/> E-Manifest Ledger</button>
+          <button><Layers size={18}/> Client Ledger</button>
+          <button><HardDrive size={18}/> Database</button>
+          <button><Settings size={18}/> Configuration</button>
         </nav>
-        <div className="sidebar-user">
-          <div className="user-icon"><User size={18}/></div>
-          <div className="user-info">
-            <span className="name">Admin_01</span>
-            <span className="role">Centralized Control</span>
-          </div>
+        <div className="sidebar-footer">
+           <div className="user-profile"><User size={16}/> Admin_ Delhi_HQ</div>
         </div>
       </aside>
 
+      {/* MAIN CONTENT AREA */}
       <main className="app-main">
-        {/* HEADER */}
+        {/* ENTERPRISE HEADER (White Card with Stats) */}
         <header className="app-header no-print">
-          <div className="header-left">
-            <h1>Logistics Command Center</h1>
-            <p>Managing Branch: <strong>{CONFIG.BRANCHES[0]}</strong> | {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+          <div className="header-info">
+            <h1>Shipment Console</h1>
+            <p>Branch: <strong>{SYSTEM_CONFIG.BRANCH}</strong> | Date: {new Date().toLocaleDateString('en-IN')}</p>
           </div>
-          <div className="header-right">
-            <div className="header-stat">
-              <Activity size={18} color="#d32f2f" />
-              <div><span>Status</span><strong>Active</strong></div>
+          <div className="header-quick-stats">
+            <div className="stat-pill">
+              <ClipboardCheck size={16} color="#d32f2f" />
+              <span>Charged Weight: <strong>{calculation.chargedWeight} kg</strong></span>
             </div>
-            <div className="header-stat">
-              <PhoneCall size={18} color="#d32f2f" />
-              <div><span>Help</span><strong>9818641504</strong></div>
+            <div className="stat-pill red-stat">
+              <Calculator size={16} color="#d32f2f" />
+              <span>Invoice Value: <strong>₹{totals.invTotal}</strong></span>
             </div>
           </div>
         </header>
 
-        {/* BOOKING INTERFACE */}
+        {/* TAB CONTENT: BOOKING (Professionally Restructured) */}
         {view === 'booking' && (
           <div className="booking-layout animate-fade">
-            <div className="booking-columns">
-              <div className="column-left">
-                <div className="grid-2-cols">
-                  <section className="ui-card red-top">
-                    <div className="card-header"><MapPin size={18}/> <h3>Consignor (Sender)</h3></div>
+            <div className="layout-columns">
+              {/* LEFT COLUMN: Data Entry */}
+              <div className="entry-column">
+                <div className="addr-grid-2">
+                  {/* SENDER BOX */}
+                  <section className="entry-card red-top">
+                    <div className="card-header"><MapPin size={18}/> <h3>Origin Details (Consignor)</h3></div>
                     <div className="card-body">
-                      <input className="input-field primary" placeholder="Full Company Name" onChange={e => setConsignor({...consignor, name: e.target.value.toUpperCase()})} />
-                      <div className="flex-row">
-                        <input className="input-field" placeholder="GSTIN" onChange={e => setConsignor({...consignor, gst: e.target.value.toUpperCase()})} />
-                        <input className="input-field" placeholder="Contact No" maxLength={10} onChange={e => setConsignor({...consignor, contact: e.target.value})} />
+                      <input className="entry-input p-input" placeholder="Consignor Name / Company Name" onChange={e => setConsignor({...consignor, name: e.target.value.toUpperCase()})} />
+                      <div className="input-flex">
+                        <input className="entry-input" placeholder="GSTIN" onChange={e => setConsignor({...consignor, gst: e.target.value.toUpperCase()})} />
+                        <input className="entry-input" placeholder="Contact Phone" maxLength={10} onChange={e => setConsignor({...consignor, contact: e.target.value})} />
                       </div>
-                      <textarea className="input-field" placeholder="Full Pickup Address" rows={2} onChange={e => setConsignor({...consignor, address: e.target.value})} />
-                      <div className="flex-row">
-                        <input className="input-field" placeholder="Pincode" maxLength={6} onChange={e => {setConsignor({...consignor, pincode: e.target.value}); handlePincodeSearch(e.target.value, 'sender')}} />
-                        <input className="input-field locked" readOnly value={consignor.city} placeholder="City (Auto)" />
+                      <textarea className="entry-input" placeholder="Full Pickup Address" rows={2} onChange={e => setConsignor({...consignor, address: e.target.value})} />
+                      <div className="input-flex">
+                        <input className="entry-input" placeholder="Pincode" maxLength={6} onChange={e => {setConsignor({...consignor, pincode: e.target.value}); handlePincodeSearch(e.target.value, 'sender')}} />
+                        <input className="entry-input locked" readOnly value={consignor.city} placeholder="Auto-City" />
                       </div>
                     </div>
                   </section>
 
-                  <section className="ui-card dark-top">
-                    <div className="card-header"><Truck size={18}/> <h3>Consignee (Receiver)</h3></div>
+                  {/* RECEIVER BOX */}
+                  <section className="entry-card dark-top">
+                    <div className="card-header"><Truck size={18}/> <h3>Destination Details (Consignee)</h3></div>
                     <div className="card-body">
-                      <input className="input-field primary" placeholder="Recipient / Company Name" onChange={e => setConsignee({...consignee, name: e.target.value.toUpperCase()})} />
-                      <div className="flex-row">
-                        <input className="input-field" placeholder="GST (Optional)" onChange={e => setConsignee({...consignee, gst: e.target.value.toUpperCase()})} />
-                        <input className="input-field" placeholder="Mobile" maxLength={10} onChange={e => setConsignee({...consignee, contact: e.target.value})} />
+                      <input className="entry-input p-input" placeholder="Consignee Name" onChange={e => setConsignee({...consignee, name: e.target.value.toUpperCase()})} />
+                      <div className="input-flex">
+                        <input className="entry-input" placeholder="Contact Person (Opt)" />
+                        <input className="entry-input" placeholder="Mobile" maxLength={10} onChange={e => setConsignee({...consignee, contact: e.target.value})} />
                       </div>
-                      <textarea className="input-field" placeholder="Full Delivery Address" rows={2} onChange={e => setConsignee({...consignee, address: e.target.value})} />
-                      <div className="flex-row">
-                        <input className="input-field" placeholder="Pincode" maxLength={6} onChange={e => {setConsignee({...consignee, pincode: e.target.value}); handlePincodeSearch(e.target.value, 'receiver')}} />
-                        <input className="input-field locked" readOnly value={consignee.city} placeholder="City (Auto)" />
+                      <textarea className="entry-input" placeholder="Detailed Delivery Address" rows={2} onChange={e => setConsignee({...consignee, address: e.target.value})} />
+                      <div className="input-flex">
+                        <input className="entry-input" placeholder="Pincode" maxLength={6} onChange={e => {setConsignee({...consignee, pincode: e.target.value}); handlePincodeSearch(e.target.value, 'receiver')}} />
+                        <input className="entry-input locked" readOnly value={consignee.city} placeholder="Auto-City" />
                       </div>
                     </div>
                   </section>
                 </div>
 
-                <section className="ui-card">
-                  <div className="card-header"><Package size={18}/> <h3>Cargo Details & Volumetric Calculator</h3></div>
-                  <div className="card-body">
-                    <div className="flex-row">
-                      <input className="input-field flex-2" placeholder="Material Type (e.g. Spare Parts, Textile)" onChange={e => setCargo({...cargo, material: e.target.value.toUpperCase()})} />
-                      <select className="input-field" onChange={e => setShipMode(e.target.value)}>
+                {/* ITEM & VOLUMETRIC AUDIT */}
+                <section className="entry-card Audit-card">
+                  <div className="card-header"><Package size={18}/> <h3>Shipment Content & Volumetric Audit</h3></div>
+                  <div className="card-body Audit-body">
+                    <div className="input-flex">
+                      <input className="entry-input f-3" placeholder="Material Description (e.g. Textiles, Auto Parts)" onChange={e => setCargo({...cargo, material: e.target.value.toUpperCase()})} />
+                      <select className="entry-input f-1" onChange={e => setMode(e.target.value)}>
                         <option value="SURFACE">Surface Logistics</option>
                         <option value="AIR">Air Cargo</option>
                         <option value="EXPRESS">Express Door</option>
                       </select>
                     </div>
-                    <div className="flex-row">
-                      <div className="field-group">
-                        <label>Actual Weight (KG)</label>
-                        <input type="number" className="input-field" onChange={e => setCargo({...cargo, weight: e.target.value})} />
+                    <div className="input-flex">
+                      <div className="field-block">
+                        <label>ACTUAL WEIGHT (KG)</label>
+                        <input type="number" className="entry-input" onChange={e => setCargo({...cargo, weight: e.target.value})} />
                       </div>
-                      <div className="field-group">
-                        <label>No. of Packages</label>
-                        <input type="number" className="input-field" onChange={e => {
-                          const val = parseInt(e.target.value) || 0;
-                          setCargo({...cargo, pkgs: val});
-                          setDims(Array.from({length: val}, (_, i) => ({id: i, l:0, w:0, h:0})));
+                      <div className="field-block">
+                        <label>TOTAL PACKAGES (PKGS)</label>
+                        <input type="number" className="entry-input" onChange={e => {
+                          const n = parseInt(e.target.value) || 0;
+                          setCargo({...cargo, pkgs: n});
+                          setDims(Array.from({length: n}, (_, i) => ({id: i, l:0, w:0, h:0})));
                         }} />
                       </div>
                     </div>
                     
                     {dims.length > 0 && (
-                      <div className="vol-panel">
-                        <div className="vol-header">
-                          <span>Volumetric Calculation (Inch)</span>
-                          <span className="badge">Total Vol: {calculation.volWeight} KG</span>
-                        </div>
-                        <div className="vol-grid">
+                      <div className="vol-audit-panel">
+                        <div className="panel-header">Dimensional Calculator (Inch) <span>Vol Wt: {totals.volWeight} kg</span></div>
+                        <div className="vol-grid-scroll">
                           {dims.map((dim, idx) => (
-                            <div key={idx} className="vol-row">
-                              <span className="idx">#{idx+1}</span>
+                            <div key={idx} className="dim-row">
+                              <span className="dim-idx">P{idx+1}</span>
                               <input placeholder="L" type="number" onChange={e => {let d=[...dims]; d[idx].l=e.target.value; setDims(d)}} />
                               <input placeholder="W" type="number" onChange={e => {let d=[...dims]; d[idx].w=e.target.value; setDims(d)}} />
                               <input placeholder="H" type="number" onChange={e => {let d=[...dims]; d[idx].h=e.target.value; setDims(d)}} />
@@ -324,44 +344,46 @@ export default function CreateOrder() {
                 </section>
               </div>
 
-              <div className="column-right">
-                <section className="ui-card">
-                  <div className="card-header between">
+              {/* RIGHT COLUMN: Billing & Invoices */}
+              <div className="summary-column">
+                {/* INVOICE LEDGER */}
+                <section className="entry-card invoice-audit-card">
+                  <div className="card-header f-between">
                     <div className="flex-center gap-2"><ClipboardCheck size={18}/> <h3>Invoice Ledger</h3></div>
                     <button className="add-row-btn" onClick={() => setInvoices([...invoices, {id: Date.now(), no: "", value: ""}])}><Plus size={14}/></button>
                   </div>
                   <div className="card-body">
-                    {invoices.map((inv) => (
-                      <div key={inv.id} className="inv-flex-row">
-                        <input placeholder="Invoice No" className="input-field" onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, no: e.target.value.toUpperCase()} : i))} />
-                        <input placeholder="Value ₹" type="number" className="input-field" onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, value: e.target.value} : i))} />
-                        <button className="row-del" onClick={() => setInvoices(invoices.filter(i => i.id !== inv.id))}><Trash2 size={14}/></button>
+                    {invoices.map(inv => (
+                      <div key={inv.id} className="invoice-lineanimate-in">
+                        <input placeholder="Invoice No" className="entry-input" onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, no: e.target.value.toUpperCase()} : i))} />
+                        <input placeholder="Value ₹" type="number" className="entry-input" onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, value: e.target.value} : i))} />
+                        <button className="row-del-btn" onClick={() => setInvoices(invoices.filter(i => i.id !== inv.id))}><Trash2 size={14}/></button>
                       </div>
                     ))}
-                    
+
                     {calculation.needsEway && (
-                      <div className="eway-box pulse-red">
+                      <div className="eway-bill-alert animate-pulse-red">
                         <ShieldAlert size={18} />
-                        <input placeholder="ENTER 12-DIGIT E-WAY BILL" maxLength={12} onChange={e => setEwayBill(e.target.value)} />
+                        <input placeholder="E-WAY BILL NUMBER REQUIRED" maxLength={12} onChange={e => setEwayBill(e.target.value)} />
                       </div>
                     )}
                   </div>
                 </section>
 
-                <section className="billing-summary-card">
-                  <div className="bill-title">Shipment Summary</div>
-                  <div className="bill-items">
-                    <div className="b-row"><span>Charged Weight:</span> <strong>{calculation.chargedWeight} KG</strong></div>
-                    <div className="b-row"><span>Base Freight:</span> <span>₹{calculation.baseFreight.toFixed(2)}</span></div>
-                    <div className="b-row"><span>Risk Surcharge:</span> <span>₹{calculation.fov.toFixed(2)}</span></div>
-                    <div className="b-row"><span>GST (18%):</span> <span>₹{calculation.gst.toFixed(2)}</span></div>
-                  </div>
-                  <div className="b-total">
-                    <span>Grand Total:</span>
+                {/* BILLING FINAL SUMMARY */}
+                <section className="billing-final-card">
+                  <h3>Freight & Charges Summary</h3>
+                  <div className="bill-item-row"><span>Charged Weight:</span> <strong>{calculation.chargedWeight} kg</strong></div>
+                  <div className="bill-item-row"><span>Base Freight:</span> <span>₹{calculation.baseFreight.toFixed(2)}</span></div>
+                  <div className="bill-item-row"><span>Docket Charges:</span> <span>₹{SYSTEM_CONFIG.MODES[mode].docket}</span></div>
+                  <div className="bill-item-row"><span>Insurance (FOV):</span> <span>₹{totals.fov.toFixed(2)}</span></div>
+                  <div className="bill-item-row"><span>GST (18%):</span> <span>₹{totals.gst.toFixed(2)}</span></div>
+                  <div className="bill-total-row">
+                    <span>GRAND TOTAL:</span>
                     <span>₹{calculation.total.toFixed(2)}</span>
                   </div>
-                  <button className={`booking-btn ${isProcessing ? 'loading' : ''}`} onClick={handleBooking} disabled={isProcessing}>
-                    {isProcessing ? "TRANSMITTING..." : "GENERATE CONSIGNMENT NOTE"}
+                  <button className={`final-booking-btn ${isProcessing ? 'loading' : ''}`} onClick={generateBooking}>
+                    {isProcessing ? "PROCESSINGSHIPMENT..." : "GENERATE CONSIGNMENT NOTE (LR)"}
                   </button>
                 </section>
               </div>
@@ -369,42 +391,70 @@ export default function CreateOrder() {
           </div>
         )}
 
-        {/* --- LIVE DIRECT TRACKING INTERFACE --- */}
+        {/* TAB CONTENT: TRACKING ENGINE */}
         {view === 'tracking' && (
-          <div className="tracking-layout animate-fade">
-             <div className="tracking-frame-wrapper">
-                <div className="frame-header no-print">
-                  <div className="dots"><span></span><span></span><span></span></div>
-                  <div className="url-bar"><Globe size={12}/> https://tracking.faithcargo.com/</div>
-                  <div className="live-status"><div className="pulse-dot"></div> Connected</div>
+          <div className="tracking-viz-layout animate-fade">
+            <div className="track-hero-search">
+              <div className="search-bar-pro">
+                <Search size={22} color="#aaa" />
+                <input 
+                  placeholder="Enter Booking ID / Airwaybill No. (e.g. FC8827361)" 
+                  value={trackId} 
+                  onChange={e => setTrackId(e.target.value.toUpperCase())}
+                />
+                <button onClick={handleTrack}>TRACK</button>
+              </div>
+            </div>
+
+            {trackResult && (
+              <div className="tracking-results-pro animate-fade">
+                <div className="res-header">
+                  <div className="res-id"><h2>{trackResult.id}</h2></div>
+                  <div className="res-status"><div className="status-badge">{trackResult.status}</div></div>
                 </div>
-                <iframe 
-                  src="https://tracking.faithcargo.com/" 
-                  title="Faith Cargo Live Tracking"
-                  className="external-tracking-iframe"
-                  frameBorder="0"
-                ></iframe>
-             </div>
+
+                <div className="tracking-path-viz">
+                  <div className="path-line"></div>
+                  {['Booked', 'Dispatched', 'Transit', 'Delivered'].map((step, idx) => (
+                    <div key={idx} className={`path-stop ${idx < 2 ? 'done' : idx === 2 ? 'active' : ''}`}>
+                      <div className="path-dot"></div>
+                      <span className="step-name">{step}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="milestone-history">
+                  <h3>Lifecycle Milestones</h3>
+                  {trackResult.milestones.map((m, i) => (
+                    <div key={i} className="milestone-block">
+                       <div className="m-time"><strong>{m.date}</strong><br/>{m.time}</div>
+                       <div className="m-text">{m.msg}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* MODALS & PRINT ENGINE */}
+        {/* PRINT MODAL (Professional Zoom Animation) */}
         {bookingConfirmed && (
-          <div className="modal-overlay no-print">
-            <div className="confirmation-modal animate-zoom">
-              <CheckCircle size={60} color="#10b981" />
-              <h2>LR GENERATED SUCCESSFULLY</h2>
-              <div className="lr-display">{generatedLR}</div>
-              <p>Consignment Note is ready for printing. Please select action:</p>
+          <div className="overlay no-print">
+            <div className="booking-modal animate-zoom">
+              <CheckCircle size={50} color="#10b981" />
+              <h2>LR SUCCESSFULLY GENERATED</h2>
+              <div className="lr-pill">{lrNumber}</div>
+              <p>Shipment manifests and consignment notes (X3 copies) are ready. Please select action:</p>
               <div className="modal-actions">
-                <button className="btn-print" onClick={() => window.print()}><Printer size={18}/> PRINT ALL COPIES</button>
-                <button className="btn-close" onClick={() => window.location.reload()}>NEW BOOKING</button>
+                <button className="modal-print-btn" onClick={() => window.print()}><Printer size={18}/> PRINT ALL COPIES</button>
+                <button className="modal-close-btn" onClick={() => window.location.reload()}>DONE & NEW ENTRY</button>
               </div>
             </div>
           </div>
         )}
 
-        <div className="print-area">
+        {/* PRINT ENGINE (Hidden from UI, renders 3 A4 half copies) */}
+        <div className="print-engine">
           <ShipmentDocket data={{consignor, consignee, cargo, invoices, ewayBill}} lrNumber={generatedLR} totals={calculation} mode={shipMode} copyType="CONSIGNOR" />
           <ShipmentDocket data={{consignor, consignee, cargo, invoices, ewayBill}} lrNumber={generatedLR} totals={calculation} mode={shipMode} copyType="CONSIGNEE" />
           <ShipmentDocket data={{consignor, consignee, cargo, invoices, ewayBill}} lrNumber={generatedLR} totals={calculation} mode={shipMode} copyType="OFFICE" />

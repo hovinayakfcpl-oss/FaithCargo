@@ -1,582 +1,319 @@
-/* ==========================================================================
-   1. CORE VARIABLES & RESET
-   ========================================================================== */
+/* --- FAITH CARGO ENTERPRISE LIGHT THEME --- */
 :root {
   --primary-red: #d32f2f;
   --dark-red: #b71c1c;
-  --bg-dark: #0f172a;
-  --sidebar-bg: #020617;
-  --card-bg: #ffffff;
-  --text-main: #1e293b;
-  --text-muted: #64748b;
-  --border-color: #e2e8f0;
-  --accent-glow: rgba(211, 47, 47, 0.15);
-  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Inter', -apple-system, sans-serif;
+  --bg-light: #f4f7f9;
+  --sidebar-width: 260px;
+  --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  --border-color: #e0e6ed;
+  --text-main: #2c3e50;
+  --text-muted: #7f8c8d;
 }
 
 body {
-  background-color: #f8fafc;
-  overflow-x: hidden;
+  margin: 0;
+  font-family: 'Inter', -apple-system, sans-serif;
+  background-color: var(--bg-light);
+  color: var(--text-main);
 }
 
-/* ==========================================================================
-   2. LAYOUT STRUCTURE
-   ========================================================================== */
-.fc-enterprise-wrapper {
+.faith-app-root {
   display: flex;
   min-height: 100vh;
 }
 
-/* SIDEBAR STYLES */
-.enterprise-sidebar {
-  width: 280px;
-  background: var(--sidebar-bg);
-  color: white;
+/* --- SIDEBAR DESIGN --- */
+.app-sidebar {
+  width: var(--sidebar-width);
+  background: #ffffff;
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   position: fixed;
   height: 100vh;
   z-index: 100;
-  border-right: 1px solid rgba(255,255,255,0.05);
 }
 
 .sidebar-brand {
-  padding: 30px 20px;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding: 25px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .sidebar-brand img {
-  width: 45px;
-  height: 45px;
-  filter: drop-shadow(0 0 10px var(--primary-red));
+  height: 50px;
+  margin-bottom: 10px;
 }
 
-.brand-meta h2 {
-  font-size: 1.1rem;
-  letter-spacing: 1px;
+.version-tag {
+  font-size: 10px;
   font-weight: 800;
-  color: #fff;
+  color: var(--primary-red);
+  letter-spacing: 1px;
 }
 
-.live-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.7rem;
-  color: #10b981;
-  text-transform: uppercase;
-  margin-top: 4px;
-}
-
-.pulse {
-  width: 8px;
-  height: 8px;
-  background: #10b981;
-  border-radius: 50%;
-  animation: shadow-pulse 2s infinite;
-}
-
-@keyframes shadow-pulse {
-  0% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0.4); }
-  100% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-}
-
-/* NAVIGATION MENU */
 .sidebar-nav {
-  padding: 25px 15px;
-  flex-grow: 1;
+  padding: 20px 15px;
+  flex: 1;
 }
 
-.nav-item {
+.sidebar-nav button {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 18px;
+  padding: 12px 15px;
   margin-bottom: 8px;
-  border-radius: 12px;
-  cursor: pointer;
-  color: #94a3b8;
-  transition: var(--transition);
-}
-
-.nav-item:hover {
-  background: rgba(255,255,255,0.05);
-  color: #fff;
-}
-
-.nav-item.active {
-  background: var(--primary-red);
-  color: #fff;
-  box-shadow: 0 10px 20px -5px rgba(211, 47, 47, 0.4);
-}
-
-.sidebar-footer {
-  padding: 20px;
-  border-top: 1px solid rgba(255,255,255,0.05);
-}
-
-.admin-pill {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: rgba(255,255,255,0.03);
-  padding: 12px;
-  border-radius: 12px;
-}
-
-.pill-avatar {
-  width: 35px;
-  height: 35px;
-  background: linear-gradient(135deg, var(--primary-red), var(--dark-red));
+  border: none;
+  background: transparent;
+  color: var(--text-main);
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 0.8rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;
 }
 
-/* ==========================================================================
-   3. MAIN CONTENT AREA
-   ========================================================================== */
-.enterprise-main {
-  margin-left: 280px;
-  flex-grow: 1;
-  padding: 40px;
+.sidebar-nav button:hover {
+  background: #fff5f5;
+  color: var(--primary-red);
 }
 
-.main-header {
+.sidebar-nav button.active {
+  background: var(--primary-red);
+  color: white;
+  box-shadow: 0 4px 10px rgba(211, 47, 47, 0.3);
+}
+
+/* --- MAIN CONTENT & HEADER --- */
+.app-main {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  padding: 30px;
+}
+
+.app-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 40px;
+  margin-bottom: 30px;
 }
 
-.main-header h1 {
-  font-size: 1.8rem;
-  font-weight: 900;
-  color: #0f172a;
+.header-info h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
 }
 
-.main-header h1 small {
-  display: block;
-  font-size: 0.9rem;
+.header-info p {
   color: var(--text-muted);
-  font-weight: 400;
-  margin-top: 4px;
+  margin: 5px 0 0;
 }
 
-.header-stats {
+.header-quick-stats {
   display: flex;
   gap: 15px;
 }
 
-.stat {
+.stat-pill {
   background: white;
-  padding: 12px 20px;
-  border-radius: 12px;
+  padding: 8px 18px;
+  border-radius: 50px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: var(--card-shadow);
   border: 1px solid var(--border-color);
-  font-size: 0.9rem;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
 }
 
-.stat.red {
-  border-left: 4px solid var(--primary-red);
-}
-
-/* ==========================================================================
-   4. BOOKING GRID & CARDS
-   ========================================================================== */
-.booking-grid {
+/* --- ENTRY CARDS & FORMS --- */
+.layout-columns {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 30px;
+  grid-template-columns: 1fr 380px;
+  gap: 25px;
 }
 
-.booking-card {
+.entry-card {
   background: white;
-  border-radius: 20px;
-  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  margin-bottom: 25px;
   overflow: hidden;
-  margin-bottom: 30px;
-  transition: var(--transition);
-}
-
-.booking-card:hover {
-  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05);
 }
 
 .card-header {
-  padding: 20px 25px;
-  background: #fcfcfc;
-  border-bottom: 1px solid var(--border-color);
-  font-weight: 700;
+  padding: 15px 20px;
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #334155;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.card-body {
-  padding: 25px;
+.card-header h3 {
+  margin: 0;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.booking-card.black-card {
-  background: #1e293b;
-  color: #fff;
-  border: none;
-}
+.red-top { border-top: 4px solid var(--primary-red); }
+.dark-top { border-top: 4px solid #34495e; }
 
-.booking-card.black-card .card-header {
-  background: rgba(0,0,0,0.2);
-  color: #fff;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-}
+.card-body { padding: 20px; }
 
-/* FORM INPUTS */
-input, textarea {
+.entry-input {
   width: 100%;
-  padding: 14px 16px;
-  border-radius: 10px;
-  border: 1.5px solid #e2e8f0;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
   margin-bottom: 15px;
-  font-size: 0.95rem;
-  transition: var(--transition);
-  background: #fff;
+  box-sizing: border-box;
+  font-size: 14px;
+  transition: border 0.3s;
 }
 
-input:focus, textarea:focus {
+.entry-input:focus {
   outline: none;
   border-color: var(--primary-red);
-  box-shadow: 0 0 0 4px var(--accent-glow);
 }
 
-.row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.input-flex {
+  display: flex;
   gap: 15px;
 }
 
-.read-only {
-  background: #f1f5f9;
-  cursor: not-allowed;
-  color: #64748b;
-  font-weight: 500;
+.input-flex .entry-input { flex: 1; }
+
+.locked { background: #f8f9fa; cursor: not-allowed; }
+
+/* --- BILLING SUMMARY CARD --- */
+.billing-final-card {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  position: sticky;
+  top: 30px;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+  border-top: 5px solid var(--primary-red);
 }
 
-/* BOX SCROLLER */
-.boxes-scroller {
-  max-height: 250px;
-  overflow-y: auto;
-  padding-right: 10px;
-  margin-top: 15px;
+.bill-item-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--border-color);
 }
 
-.boxes-scroller::-webkit-scrollbar {
-  width: 5px;
+.bill-total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--primary-red);
 }
 
-.boxes-scroller::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.1);
-  border-radius: 10px;
-}
-
-.box-row {
-  display: grid;
-  grid-template-columns: 80px 1fr 1fr 1fr;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 8px;
-  background: rgba(255,255,255,0.05);
-  padding: 8px;
+.final-booking-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--primary-red);
+  color: white;
+  border: none;
   border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(211, 47, 47, 0.4);
 }
 
-.box-row span { font-size: 0.8rem; color: #94a3b8; }
+/* --- TRACKING VISUALS --- */
+.tracking-results-pro {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  box-shadow: var(--card-shadow);
+}
 
-.box-row input {
-  margin-bottom: 0;
-  padding: 8px;
-  background: rgba(0,0,0,0.2);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: #fff;
+.tracking-path-viz {
+  display: flex;
+  justify-content: space-between;
+  margin: 50px 0;
+  position: relative;
+}
+
+.path-line {
+  position: absolute;
+  top: 7px;
+  left: 5%;
+  width: 90%;
+  height: 2px;
+  background: #eee;
+  z-index: 1;
+}
+
+.path-stop {
+  position: relative;
+  z-index: 2;
   text-align: center;
 }
 
-/* ==========================================================================
-   5. DOCKET SYSTEM (A4 PRECISION)
-   ========================================================================== */
-.docket-container {
-  width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
+.path-dot {
+  width: 16px;
+  height: 16px;
   background: white;
-  border: 1px solid #000;
-  padding: 40px;
-  color: #000;
-  position: relative;
+  border: 3px solid #ddd;
+  border-radius: 50%;
+  margin: 0 auto 10px;
+}
+
+.path-stop.done .path-dot { background: #4caf50; border-color: #4caf50; }
+.path-stop.active .path-dot { background: var(--primary-red); border-color: var(--primary-red); box-shadow: 0 0 10px rgba(211, 47, 47, 0.5); }
+
+/* --- PRINTING SYSTEM (A4 Half Setup) --- */
+@media print {
+  .no-print { display: none !important; }
+  .app-main { margin: 0 !important; padding: 0 !important; }
+  .faith-app-root { display: block !important; }
+  
+  .docket-container {
+    width: 210mm;
+    height: 148mm; /* A5 Landscape */
+    padding: 10mm;
+    border: 1px solid #000;
+    margin-bottom: 5mm;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .docket-watermark {
+    position: absolute;
+    font-size: 80px;
+    opacity: 0.05;
+    transform: rotate(-30deg);
+    top: 30%;
+    left: 10%;
+    pointer-events: none;
+  }
 }
 
 .docket-header {
   display: flex;
   justify-content: space-between;
   border-bottom: 2px solid #000;
-  padding-bottom: 20px;
+  padding-bottom: 10px;
 }
 
-.brand-info h2 { font-size: 1.5rem; font-weight: 900; }
-.brand-info p { font-size: 0.8rem; color: #333; }
-
-.docket-logo { width: 60px; height: 60px; object-fit: contain; }
-
-.docket-lr-meta { text-align: right; }
-.lr-text { font-size: 1.2rem; font-weight: 900; margin-top: 10px; }
-
-.address-section {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border-bottom: 1px solid #000;
-}
-
-.addr-box {
-  padding: 20px;
-  border-right: 1px solid #000;
-}
-
-.addr-box:last-child { border-right: none; }
-
-.addr-label {
-  font-size: 0.7rem;
-  font-weight: 900;
-  background: #000;
-  color: #fff;
-  display: inline-block;
-  padding: 2px 8px;
-  margin-bottom: 10px;
-}
-
-.addr-box h3 { font-size: 1rem; margin-bottom: 5px; }
-.addr-box p { font-size: 0.85rem; line-height: 1.4; }
-
-.docket-table {
+.docket-main-table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 10px;
 }
 
-.docket-table th, .docket-table td {
+.docket-main-table th, .docket-main-table td {
   border: 1px solid #000;
-  padding: 12px;
-  text-align: left;
-  font-size: 0.9rem;
+  padding: 8px;
+  font-size: 12px;
 }
 
-.docket-table th { background: #f0f0f0; }
-
-.docket-footer {
-  margin-top: 30px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-}
-
-.disclaimer { font-size: 0.7rem; width: 60%; }
-
-.sig-area {
-  text-align: center;
-  width: 200px;
-}
-
-.sig-line {
-  border-top: 1px solid #000;
-  padding-top: 5px;
-  font-weight: bold;
-  font-size: 0.8rem;
-}
-
-/* ==========================================================================
-   6. MODAL & TRACKING UI
-   ========================================================================== */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(2, 6, 23, 0.9);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  padding: 20px;
-}
-
-.modal-content {
-  background: white;
-  width: 100%;
-  max-width: 900px;
-  border-radius: 24px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-}
-
-.modal-header {
-  padding: 20px 30px;
-  display: flex;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.preview-container {
-  padding: 40px;
-  background: #f1f5f9;
-}
-
-.modal-actions {
-  padding: 20px;
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-  background: #fff;
-}
-
-/* BUTTONS */
-.final-btn, .print-btn {
-  background: linear-gradient(to right, var(--primary-red), var(--dark-red));
-  color: white;
-  padding: 18px 30px;
-  border: none;
-  border-radius: 14px;
-  font-weight: 800;
-  cursor: pointer;
-  width: 100%;
-  transition: var(--transition);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  font-size: 1rem;
-}
-
-.final-btn:hover, .print-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 15px 30px -5px rgba(211, 47, 47, 0.4);
-}
-
-.search-giant-box {
-  background: white;
-  padding: 15px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-  max-width: 700px;
-  margin: 0 auto 50px;
-}
-
-.search-giant-box input {
-  margin-bottom: 0;
-  border: none;
-  font-size: 1.2rem;
-}
-
-.search-giant-box button {
-  background: var(--primary-red);
-  color: #fff;
-  border: none;
-  padding: 12px 25px;
-  border-radius: 12px;
-  font-weight: bold;
-}
-
-/* ==========================================================================
-   7. ANIMATIONS & PRINT
-   ========================================================================== */
-.animate-fade { animation: fadeIn 0.5s ease-out; }
-.animate-up { animation: slideUp 0.5s ease-out; }
-.animate-zoom { animation: zoomIn 0.3s ease-out; }
-
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-@keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-@media print {
-  .no-print, .enterprise-sidebar, .main-header, .booking-grid, .modal-actions, .modal-header {
-    display: none !important;
-  }
-
-  body { background: white; }
-  .enterprise-main { margin-left: 0; padding: 0; }
-  .modal-overlay { position: static; background: none; padding: 0; }
-  .modal-content { box-shadow: none; max-height: none; overflow: visible; width: 100%; }
-  
-  .docket-container {
-    border: none;
-    width: 100%;
-    max-width: none;
-    padding: 0;
-  }
-
-  .preview-container { background: white; padding: 0; }
-}
-
-/* TABLE STYLES FOR LEDGER */
-.enterprise-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 10px;
-}
-
-.enterprise-table th {
-  text-align: left;
-  padding: 15px 25px;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  text-transform: uppercase;
-}
-
-.enterprise-table tr td {
-  background: white;
-  padding: 20px 25px;
-  border-top: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.enterprise-table tr td:first-child { border-left: 1px solid var(--border-color); border-radius: 15px 0 0 15px; }
-.enterprise-table tr td:last-child { border-right: 1px solid var(--border-color); border-radius: 0 15px 15px 0; }
-
-.badge {
-  background: #ecfdf5;
-  color: #10b981;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.icon-btn {
-  background: #f1f5f9;
-  border: none;
-  width: 35px;
-  height: 35px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.icon-btn:hover { background: var(--primary-red); color: white; }
+/* Animations */
+.animate-fade { animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
