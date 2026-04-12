@@ -118,8 +118,8 @@ def extract_docket_number(text):
     clean_text = text.replace('FCPL', '').upper()
     
     patterns = [
-        r'\b\d{8,15}\b',  # 8-15 digits
-        r'\b\d{4,8}\b',   # 4-8 digits (for FCPL numbers)
+        r'\b\d{8,15}\b',
+        r'\b\d{4,8}\b',
         r'LR[:\s]*(\d+)',
         r'DOCKET[:\s]*(\d+)',
         r'AWB[:\s]*(\d+)',
@@ -147,7 +147,7 @@ def get_shipment_by_lr(lr_number):
             SELECT id, lr_number, awb_number, pickup_pincode, delivery_pincode, 
                    pickup_name, delivery_name, weight, status, 
                    pickup_address, delivery_address, material, total_value,
-                   created_at
+                   created_at, booking_mode, pickup_gstin, delivery_gstin
             FROM orders 
             WHERE lr_number = %s OR awb_number = %s
         """, [clean_lr, clean_lr])
@@ -182,14 +182,14 @@ def update_shipment_status(lr_number, new_status):
 def get_shipment_status_text(status):
     """Convert status to Hindi with Bigg Boss style"""
     status_map = {
-        'booked': '📦 **BOOKED!** Order register ho gaya hai. Abhi pickup pending hai. Driver ko assign kiya jayega.',
-        'picked': '🚚 **PICKED UP!** Driver ne pickup kar liya. Warehouse mein process hoga. Tracking update aata rahega.',
-        'in_transit': '🔄 **IN TRANSIT!** Shipment road par hai. Agle hub mein pahunch raha hai. Estimated delivery soon.',
-        'out_for_delivery': '🎯 **OUT FOR DELIVERY!** Aaj hi deliver hoga. Customer ko ready rehna chahiye! Call aa sakta hai.',
-        'delivered': '✅ **DELIVERED!** Shipment deliver ho chuka hai. SHAABASH! Customer se signature le liya gaya.',
-        'cancelled': '❌ **CANCELLED!** Order cancel ho gaya. Koi issue ho toh customer care se contact karein.',
-        'hold': '⏸️ **ON HOLD!** Kuch verification pending hai. Jald hi update aayega.',
-        'dispatched': '✈️ **DISPATCHED!** Shipment dispatch ho chuka hai. Next update aane wala hai.'
+        'booked': '📦 **BOOKED!** Order register ho gaya hai. Abhi pickup pending hai.',
+        'picked': '🚚 **PICKED UP!** Driver ne pickup kar liya. Warehouse mein process hoga.',
+        'in_transit': '🔄 **IN TRANSIT!** Shipment road par hai. Agle hub mein pahunch raha hai.',
+        'out_for_delivery': '🎯 **OUT FOR DELIVERY!** Aaj hi deliver hoga.',
+        'delivered': '✅ **DELIVERED!** Shipment deliver ho chuka hai. SHAABASH!',
+        'cancelled': '❌ **CANCELLED!** Order cancel ho gaya.',
+        'hold': '⏸️ **ON HOLD!** Kuch verification pending hai.',
+        'dispatched': '✈️ **DISPATCHED!** Shipment dispatch ho chuka hai.'
     }
     return status_map.get(status.lower(), f'ℹ️ Current status: {status}')
 
@@ -198,11 +198,9 @@ def calculate_rate_hindi(origin, destination, weight=10):
     try:
         from rates.models import RateMatrix
         
-        # Try to find by pincode first
         origin_pin = None
         dest_pin = None
         
-        # Check if input is pincode
         if origin.isdigit() and len(origin) == 6:
             origin_pin = Pincode.objects.filter(pincode=origin).first()
         else:
@@ -214,7 +212,7 @@ def calculate_rate_hindi(origin, destination, weight=10):
             dest_pin = Pincode.objects.filter(city__icontains=destination).first()
         
         if not origin_pin or not dest_pin:
-            return f"⚠️ Sir, {origin} se {destination} ka rate nikalne ke liye sahi pincode chahiye. Example: 'Mumbai 400001 se Delhi 110001'"
+            return f"⚠️ Sir, {origin} se {destination} ka rate nikalne ke liye sahi pincode chahiye."
         
         matrix = RateMatrix.objects.filter(
             from_zone=origin_pin.zone, 
@@ -249,7 +247,7 @@ def calculate_rate_hindi(origin, destination, weight=10):
 
 Kya main booking process start kar doon, Sir?"""
         else:
-            return f"⚠️ Sir, {origin_pin.zone} se {dest_pin.zone} ka rate database mein nahi hai. Customer care se contact karein: 9818641504"
+            return f"⚠️ Sir, {origin_pin.zone} se {dest_pin.zone} ka rate database mein nahi hai."
     except Exception as e:
         return f"Technical issue: {str(e)}"
 
@@ -276,24 +274,17 @@ def get_all_shipments_summary():
 
 @csrf_exempt
 def jervice_intelligent_chat(request):
-    """
-    Jervice AI - Bigg Boss Style Hindi Assistant
-    Auto-detects docket numbers and provides tracking + status update
-    """
+    """Jervice AI - Bigg Boss Style Hindi Assistant"""
     if request.method != "POST":
         return JsonResponse({"reply": "Sir, POST method use karein."}, status=405)
     
     try:
         data = json.loads(request.body)
         user_query = data.get('prompt', '').lower()
-        context_data = data.get('contextData', {})
         
-        # Auto-detect docket number from query
         docket_number = extract_docket_number(user_query)
         
-        # Check for status update command
         if docket_number and any(word in user_query for word in ['update status', 'status update', 'change status', 'set status', 'dispatch', 'deliver']):
-            # Find new status
             new_status = None
             status_keywords = {
                 'booked': ['book', 'confirm'],
@@ -317,25 +308,20 @@ def jervice_intelligent_chat(request):
 
 Sir, docket FCPL{docket_number} ka status **{new_status.upper()}** kar diya gaya.
 
-{get_shipment_status_text(new_status)}
-
-Kya aapko aur koi help chahiye, Sir?"""
+{get_shipment_status_text(new_status)}"""
                 else:
-                    reply = f"❌ Sir, docket {docket_number} ka status update nahi ho paya. Kripya check karein ki docket number sahi hai ya nahi."
+                    reply = f"❌ Sir, docket {docket_number} ka status update nahi ho paya."
             else:
                 reply = f"""📝 **STATUS UPDATE HELP!**
 
-Sir, docket {docket_number} ka status update karne ke liye batao kis status mein karna hai:
+Sir, docket {docket_number} ka status update karne ke liye batao:
 
-• **picked** - Pickup ho gaya
-• **in_transit** - Transit mein bhejna hai
-• **out_for_delivery** - Delivery ke liye bhejna hai
-• **delivered** - Deliver ho gaya
-• **cancelled** - Cancel karna hai
-
-Example: "Docket {docket_number} status update karo delivered"""
+• picked - Pickup ho gaya
+• in_transit - Transit mein bhejna hai
+• out_for_delivery - Delivery ke liye bhejna hai
+• delivered - Deliver ho gaya
+• cancelled - Cancel karna hai"""
         
-        # Priority 2: Tracking request
         elif docket_number:
             shipment = get_shipment_by_lr(docket_number)
             
@@ -347,31 +333,24 @@ Example: "Docket {docket_number} status update karo delivered"""
 🔢 **AWB:** {shipment.get('awb_number', 'N/A')}
 📊 **Status:** {status_text}
 
-📍 **Route Details:**
-• From: {shipment['pickup_pincode']}
-  👤 {shipment.get('pickup_name', 'N/A')}
-• To: {shipment['delivery_pincode']}
-  👤 {shipment.get('delivery_name', 'N/A')}
+📍 **Route:**
+• From: {shipment['pickup_pincode']} - {shipment.get('pickup_name', 'N/A')}
+• To: {shipment['delivery_pincode']} - {shipment.get('delivery_name', 'N/A')}
 
-📦 **Shipment Details:**
+📦 **Details:**
 • Weight: {shipment['weight']} kg
 • Material: {shipment.get('material', 'General Cargo')}
-• Value: ₹{shipment.get('total_value', 0):,.2f}
-
-⏰ **Created:** {shipment.get('created_at', 'N/A')}
-
-Kya aapko status update karna hai, Sir?"""
+• Value: ₹{shipment.get('total_value', 0):,.2f}"""
             else:
-                reply = f"⚠️ **SORRY SIR!** Docket {docket_number} humare system mein nahi mila. Kya aapne sahi number daala? Customer care: 9818641504"
+                reply = f"⚠️ **SORRY SIR!** Docket {docket_number} humare system mein nahi mila."
         
-        # Priority 3: Pincode ODA Check
         elif 'pincode' in user_query or 'pin code' in user_query:
             pincode = extract_pincode(user_query)
             if pincode:
                 try:
                     pin_obj = Pincode.objects.filter(pincode=pincode).first()
                     if pin_obj:
-                        oda_status = "✅ Regular Area (No extra charges)" if not pin_obj.is_oda else "⚠️ ODA Area (Extra charges apply)"
+                        oda_status = "✅ Regular Area" if not pin_obj.is_oda else "⚠️ ODA Area (Extra charges apply)"
                         reply = f"""📍 **PINCODE STATUS - {pincode}**
 
 📌 **Zone:** {pin_obj.zone}
@@ -379,83 +358,48 @@ Kya aapko status update karna hai, Sir?"""
 🗺️ **State:** {pin_obj.state}
 📊 **ODA Status:** {oda_status}
 
-💰 **ODA Charges:** {"₹650 or ₹3/kg (whichever higher)" if pin_obj.is_oda else "No ODA charges"}
-
-Service available hai. Kya aap rate check karvana chahenge?"""
+💰 **ODA Charges:** {"₹650 or ₹3/kg" if pin_obj.is_oda else "No ODA charges"}"""
                     else:
-                        reply = f"❌ Sir, pincode {pincode} database mein nahi hai. Pincode Management page par add karein."
+                        reply = f"❌ Sir, pincode {pincode} database mein nahi hai."
                 except Exception as e:
                     reply = f"Technical error: {str(e)}"
             else:
-                reply = "Sir, 6-digit pincode batao jaise '110001' ya 'Check pincode 400001'"
+                reply = "Sir, 6-digit pincode batao jaise '110001'"
         
-        # Priority 4: Rate inquiry
-        elif any(word in user_query for word in ['rate', 'bhada', 'price', 'kitna', 'charges', 'rate kya hai']):
+        elif any(word in user_query for word in ['rate', 'bhada', 'price', 'kitna', 'charges']):
             city_pattern = r'([\w\s]+?)\s+se\s+([\w\s]+?)(?:\s+ka|\s+ke|\s+ki|\s+for|\s+to|$)'
             cities = re.search(city_pattern, user_query)
             
             if cities:
                 origin = cities.group(1).strip()
                 destination = cities.group(2).strip()
-                
                 weight_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:kg|kilo|किलो)', user_query)
                 weight = float(weight_match.group(1)) if weight_match else 10
-                
                 reply = calculate_rate_hindi(origin, destination, weight)
             else:
-                reply = "Sir, location batao jaise 'Mumbai se Delhi ka rate' ya 'Delhi se Bangalore 50kg'. Main turant bata dunga!"
+                reply = "Sir, location batao jaise 'Mumbai se Delhi ka rate'"
         
-        # Priority 5: Summary/Stats
-        elif any(word in user_query for word in ['summary', 'stats', 'total', 'kitne order', 'dashboard']):
+        elif any(word in user_query for word in ['summary', 'stats', 'total', 'kitne order']):
             stats = get_all_shipments_summary()
             reply = f"""📊 **SHIPMENT SUMMARY!**
 
-Sir, system mein total {stats['total']} orders hain:
+Sir, total {stats['total']} orders hain:
 
-✅ **Delivered:** {stats['delivered']}
-🚚 **In Transit:** {stats['in_transit']}
-📝 **Booked:** {stats['booked']}
-
-Kya aap kisi specific order ki details dekhna chahenge?"""
+✅ Delivered: {stats['delivered']}
+🚚 In Transit: {stats['in_transit']}
+📝 Booked: {stats['booked']}"""
         
-        # Priority 6: Booking help
-        elif any(word in user_query for word in ['book', 'booking', 'order', 'create order', 'new shipment']):
-            reply = """📝 **BOOKING GUIDE!**
-
-Sir, naya order create karne ke liye:
-
-**Option 1:** Create Order page par jao aur form fill karo
-
-**Option 2:** Mujhe ye details do:
-• Pickup pincode
-• Delivery pincode  
-• Weight in kg
-• Material type
-• Invoice value
-
-Main order create kar dunga! Kya details doon, Sir?"""
-        
-        # Priority 7: Help menu
-        elif any(word in user_query for word in ['help', 'madad', 'sahayata', 'kya kar sakte ho', 'features']):
+        elif any(word in user_query for word in ['help', 'madad', 'sahayata', 'kya kar sakte ho']):
             reply = """🎤 **JERVICE AI - COMPLETE FEATURES!**
 
-Sir, main ye sab kar sakta hoon:
-
-✅ **Track Shipment** - "Docket FCPL0001 track karo"
-✅ **Update Status** - "Docket FCPL0001 status update karo delivered"
-✅ **Rate Check** - "Mumbai se Delhi ka rate 50kg"
-✅ **Pincode Check** - "Check pincode 110001"
-✅ **Order Summary** - "Kitne order hain"
-✅ **Create Order** - "Naya order banana hai"
-
-**Voice Commands Example:**
-• "FCPL0001 kahan hai"
-• "Mera order track karo"
-• "Status update karo delivered"
+✅ Track Shipment - "Docket FCPL0001 track karo"
+✅ Update Status - "Docket FCPL0001 status update karo delivered"
+✅ Rate Check - "Mumbai se Delhi ka rate 50kg"
+✅ Pincode Check - "Check pincode 110001"
+✅ Order Summary - "Kitne order hain"
 
 Kya aapko kisi cheez mein madad chahiye, Sir?"""
         
-        # Default response
         else:
             reply = """🎤 **SUNIYE!** Main aapka logistics assistant hoon.
 
@@ -464,9 +408,7 @@ Mujhse puchiye:
 • "Mumbai se Delhi ka rate"
 • "Check pincode 110001"
 • "Kitne order hain"
-• "Help" - Poori commands ke liye
-
-Main taiyaar hoon, Sir! Kya aapko kisi shipment ki tracking chahiye?"""
+• "Help" - Poori commands ke liye"""
 
         return JsonResponse({
             "reply": reply,
@@ -476,12 +418,12 @@ Main taiyaar hoon, Sir! Kya aapko kisi shipment ki tracking chahiye?"""
         })
         
     except json.JSONDecodeError:
-        return JsonResponse({"reply": "Sir, sahi format mein bhejiye. JSON chahiye.", "success": False}, status=400)
+        return JsonResponse({"reply": "Sir, sahi format mein bhejiye.", "success": False}, status=400)
     except Exception as e:
         return JsonResponse({"reply": f"⚠️ Technical glitch, Sir. Error: {str(e)}", "success": False}, status=500)
 
 # =====================================================
-# 📦 CREATE ORDER (With Status & FCPL Formatting)
+# 📦 CREATE ORDER (With All Columns)
 # =====================================================
 @csrf_exempt
 def create_order(request):
@@ -494,9 +436,14 @@ def create_order(request):
                 formatted_lr = format_lr(lr_raw)
                 formatted_awb = format_awb(awb_raw)
 
+                # Get GSTIN values (with None default if not provided)
+                pickup_gstin = data.get("pickupGstin")
+                delivery_gstin = data.get("deliveryGstin")
+                
                 cursor.execute("""
                     INSERT INTO orders (
-                        lr_number, awb_number, pickup_name, pickup_address, pickup_pincode, pickup_contact, pickup_gstin,
+                        lr_number, awb_number, 
+                        pickup_name, pickup_address, pickup_pincode, pickup_contact, pickup_gstin,
                         delivery_name, delivery_address, delivery_pincode, delivery_contact, delivery_gstin,
                         material, hsn_code, boxes, weight, actual_weight, volumetric_weight, 
                         total_value, eway_bill, status, booking_mode, created_at, updated_at
@@ -504,9 +451,9 @@ def create_order(request):
                 """, [
                     lr_raw, formatted_awb,
                     data.get("pickupName"), data.get("pickupAddress"), data.get("pickupPincode"), 
-                    data.get("pickupContact"), data.get("pickupGstin"),
+                    data.get("pickupContact"), pickup_gstin,
                     data.get("deliveryName"), data.get("deliveryAddress"), data.get("deliveryPincode"), 
-                    data.get("deliveryContact"), data.get("deliveryGstin"),
+                    data.get("deliveryContact"), delivery_gstin,
                     data.get("material", "General Cargo"), data.get("hsn", "1234"), data.get("boxes", 0),
                     data.get("weight", 0), data.get("actual_weight", 0), data.get("volumetric_weight", 0),
                     data.get("total_value", 0), data.get("eway_bill"), "booked",
@@ -576,7 +523,7 @@ def shipment_detail(request, lr):
     return JsonResponse({
         "success": True,
         "lr": format_lr(order_data['lr_number']),
-        "awb": order_data['awb_number'],
+        "awb": order_data.get('awb_number'),
         "pickupName": order_data.get('pickup_name'),
         "pickupAddress": order_data.get('pickup_address'),
         "pickupPincode": order_data.get('pickup_pincode'),
