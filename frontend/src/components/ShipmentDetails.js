@@ -32,16 +32,16 @@ function ShipmentDetails() {
   const recognitionRef = useRef(null);
   const printRef = useRef(null);
 
-  // Available statuses for manual update
+  // Available statuses for manual update - with black text by default
   const statusOptions = [
-    { value: "booked", label: "📝 Booked", color: "#f59e0b", icon: "📝" },
-    { value: "picked", label: "🚚 Picked Up", color: "#3b82f6", icon: "🚚" },
-    { value: "in_transit", label: "🚛 In Transit", color: "#8b5cf6", icon: "🚛" },
-    { value: "out_for_delivery", label: "📦 Out for Delivery", color: "#ec4898", icon: "📦" },
-    { value: "delivered", label: "✅ Delivered", color: "#10b981", icon: "✅" },
-    { value: "cancelled", label: "❌ Cancelled", color: "#ef4444", icon: "❌" },
-    { value: "dispatched", label: "✈️ Dispatched", color: "#06b6d4", icon: "✈️" },
-    { value: "hold", label: "⏸️ On Hold", color: "#6b7280", icon: "⏸️" }
+    { value: "booked", label: "📝 Booked", color: "#f59e0b", bgColor: "#fef3c7", icon: "📝" },
+    { value: "picked", label: "🚚 Picked Up", color: "#3b82f6", bgColor: "#dbeafe", icon: "🚚" },
+    { value: "in_transit", label: "🚛 In Transit", color: "#8b5cf6", bgColor: "#e0e7ff", icon: "🚛" },
+    { value: "out_for_delivery", label: "📦 Out for Delivery", color: "#ec4898", bgColor: "#fce7f3", icon: "📦" },
+    { value: "delivered", label: "✅ Delivered", color: "#10b981", bgColor: "#d1fae5", icon: "✅" },
+    { value: "cancelled", label: "❌ Cancelled", color: "#ef4444", bgColor: "#fee2e2", icon: "❌" },
+    { value: "dispatched", label: "✈️ Dispatched", color: "#06b6d4", bgColor: "#cffafe", icon: "✈️" },
+    { value: "hold", label: "⏸️ On Hold", color: "#6b7280", bgColor: "#f1f5f9", icon: "⏸️" }
   ];
 
   // Load shipments on mount
@@ -61,9 +61,10 @@ function ShipmentDetails() {
       const response = await fetch("https://faithcargo.onrender.com/api/shipments/");
       const data = await response.json();
       setShipments(data);
+      // Update localStorage to sync with Create Order page
+      localStorage.setItem('allShipments', JSON.stringify(data));
     } catch (error) {
       console.error("Error fetching shipments:", error);
-      // Fallback to localStorage
       const localShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
       setShipments(localShipments);
     }
@@ -81,7 +82,6 @@ function ShipmentDetails() {
         setTrackingResult(data);
         return data;
       }
-      // Check local storage
       const localShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
       const found = localShipments.find(s => s.lr === docketNumber || s.awb === docketNumber);
       if (found) {
@@ -130,7 +130,6 @@ function ShipmentDetails() {
         setSelectedShipment(null);
         speak(`Sir, shipment ${editFormData.lr} successfully update ho gaya.`);
       } else {
-        // Update localStorage
         const localShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
         const index = localShipments.findIndex(s => s.lr === editFormData.lr);
         if (index !== -1) {
@@ -184,7 +183,6 @@ function ShipmentDetails() {
           fetchShipments();
           speak(`${lrNumber} delete ho gaya, Sir.`);
         } else {
-          // Delete from localStorage
           const localShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
           const filtered = localShipments.filter(s => s.lr !== lrNumber);
           localStorage.setItem('allShipments', JSON.stringify(filtered));
@@ -210,30 +208,33 @@ function ShipmentDetails() {
             <title>Faith Cargo - Docket ${shipment.lr}</title>
             <style>
               * { margin: 0; padding: 0; box-sizing: border-box; }
-              body { font-family: Arial, sans-serif; padding: 20px; }
-              .docket { width: 210mm; min-height: 297mm; margin: 0 auto; border: 2px solid #d32f2f; padding: 20px; position: relative; }
-              .header { text-align: center; border-bottom: 2px solid #d32f2f; padding-bottom: 15px; margin-bottom: 20px; }
-              .header h1 { color: #d32f2f; margin-bottom: 5px; }
-              .lr-number { font-size: 24px; font-weight: bold; text-align: center; margin: 15px 0; color: #d32f2f; }
-              .parties { display: flex; gap: 20px; margin-bottom: 20px; }
-              .party { flex: 1; border: 1px solid #ddd; padding: 15px; border-radius: 8px; }
-              .party h3 { background: #f5f5f5; margin: -15px -15px 15px -15px; padding: 10px; border-radius: 8px 8px 0 0; }
-              .details-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-              .details-table th, .details-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+              body { font-family: Arial, sans-serif; padding: 20px; background: white; }
+              .docket { width: 190mm; min-height: 270mm; margin: 0 auto; border: 2px solid #d32f2f; padding: 15px; position: relative; }
+              .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 60px; font-weight: bold; color: rgba(0,0,0,0.03); white-space: nowrap; pointer-events: none; }
+              .header { text-align: center; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; margin-bottom: 15px; }
+              .header h1 { color: #d32f2f; margin-bottom: 5px; font-size: 18px; }
+              .lr-number { font-size: 20px; font-weight: bold; text-align: center; margin: 10px 0; color: #d32f2f; }
+              .barcode { text-align: center; margin: 10px 0; }
+              .parties { display: flex; gap: 15px; margin-bottom: 15px; }
+              .party { flex: 1; border: 1px solid #ddd; padding: 10px; border-radius: 6px; }
+              .party h3 { background: #f5f5f5; margin: -10px -10px 10px -10px; padding: 8px; border-radius: 6px 6px 0 0; font-size: 12px; }
+              .details-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px; }
+              .details-table th, .details-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
               .details-table th { background: #f5f5f5; }
-              .status { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
-              .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; text-align: center; font-size: 12px; }
-              @media print { body { margin: 0; padding: 0; } }
+              .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd; text-align: center; font-size: 10px; }
+              @media print { body { margin: 0; padding: 0; } .watermark { print-color-adjust: exact; } }
             </style>
           </head>
           <body>
             <div class="docket">
+              <div class="watermark">FCPL</div>
               <div class="header">
                 <h1>FAITH CARGO PRIVATE LIMITED</h1>
                 <p>4/15, Kirti Nagar Industrial Area, New Delhi - 110015</p>
                 <p>GST: 07AAFCF2947K1ZD | Tel: 9818641504</p>
               </div>
               <div class="lr-number">CONSIGNMENT NOTE: ${shipment.lr}</div>
+              <div class="barcode"><img src="https://barcode.tec-it.com/barcode.ashx?data=${shipment.lr}&code=Code128&dpi=96" width="250" /></div>
               <div class="parties">
                 <div class="party">
                   <h3>📤 CONSIGNOR (Sender)</h3>
@@ -250,7 +251,7 @@ function ShipmentDetails() {
                 <tr><th>Description</th><td>${shipment.material || 'General Cargo'}</td></tr>
                 <tr><th>Weight</th><td>${shipment.weight || 0} kg</td></tr>
                 <tr><th>Total Value</th><td>₹${(shipment.total_value || shipment.value || 0).toLocaleString()}</td></tr>
-                <tr><th>Status</th><td><span class="status">${shipment.status || 'Booked'}</span></td></tr>
+                <tr><th>Status</th><td><span style="background:${statusOptions.find(s=>s.value===shipment.status)?.bgColor || '#fef3c7'}; color:${statusOptions.find(s=>s.value===shipment.status)?.color || '#f59e0b'}; padding:3px 10px; border-radius:15px;">${statusOptions.find(s=>s.value===shipment.status)?.label || 'Booked'}</span></td></tr>
                 <tr><th>AWB Number</th><td>${shipment.awb || 'N/A'}</td></tr>
               </table>
               <div class="footer">
@@ -279,14 +280,14 @@ function ShipmentDetails() {
         <head>
           <title>Label - ${shipment.lr}</title>
           <style>
-            body { font-family: Arial; padding: 20px; }
-            .label { width: 4in; border: 2px solid #d32f2f; padding: 15px; margin: 0 auto; border-radius: 8px; }
-            .header { text-align: center; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; margin-bottom: 10px; }
+            body { font-family: Arial; padding: 20px; background: white; }
+            .label { width: 4in; border: 2px solid #2563eb; padding: 15px; margin: 0 auto; border-radius: 10px; }
+            .header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 10px; }
             .header h2 { margin: 0; color: #0f172a; font-size: 16px; }
-            .lr { font-size: 22px; font-weight: bold; text-align: center; margin: 15px 0; color: #d32f2f; }
+            .lr { font-size: 20px; font-weight: bold; text-align: center; margin: 12px 0; color: #d32f2f; }
             .barcode { text-align: center; margin: 10px 0; }
-            .address { font-size: 11px; margin: 8px 0; }
-            .footer { font-size: 9px; text-align: center; margin-top: 12px; padding-top: 8px; border-top: 1px dashed #ccc; }
+            .address { font-size: 10px; margin: 6px 0; }
+            .footer { font-size: 8px; text-align: center; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #ccc; }
           </style>
         </head>
         <body>
@@ -299,7 +300,7 @@ function ShipmentDetails() {
             <div class="barcode"><img src="https://barcode.tec-it.com/barcode.ashx?data=${shipment.lr}&code=Code128&dpi=96" width="200" /></div>
             <div class="address"><strong>From:</strong> ${shipment.pickupName || 'N/A'} - ${shipment.pickupPincode || 'N/A'}</div>
             <div class="address"><strong>To:</strong> ${shipment.deliveryName || 'N/A'} - ${shipment.deliveryPincode || 'N/A'}</div>
-            <div class="footer">Weight: ${shipment.weight || 0} Kg | Status: ${shipment.status || 'Booked'}</div>
+            <div class="footer">Weight: ${shipment.weight || 0} Kg | Status: ${statusOptions.find(s=>s.value===shipment.status)?.label || 'Booked'}</div>
           </div>
         </body>
       </html>
@@ -385,17 +386,14 @@ function ShipmentDetails() {
 
     const lowerInput = input.toLowerCase();
     
-    // Extract docket number
     const docketMatch = input.match(/\b(FCPL|FCL|LR)?\s*(\d{4,12})\b/i);
     const docketNumber = docketMatch ? docketMatch[2] : null;
     
     let reply = "";
     
-    // CASE 1: UPDATE STATUS via Voice
     if ((lowerInput.includes("update status") || lowerInput.includes("status update") || 
          lowerInput.includes("change status") || lowerInput.includes("dispatch")) && docketNumber) {
       
-      // Find status keyword
       let newStatus = null;
       for (let status of statusOptions) {
         if (lowerInput.includes(status.value.replace('_', ' ')) || 
@@ -410,7 +408,7 @@ function ShipmentDetails() {
         if (success) {
           reply = `✅ **STATUS UPDATED!** Sir, docket ${docketNumber} ka status "${statusOptions.find(s => s.value === newStatus)?.label}" kar diya gaya.\n\nKya aapko aur koi help chahiye?`;
         } else {
-          reply = `❌ **UPDATE FAILED!** Sir, docket ${docketNumber} ka status update nahi ho paya. Please check internet connection.`;
+          reply = `❌ **UPDATE FAILED!** Sir, docket ${docketNumber} ka status update nahi ho paya.`;
         }
       } else {
         reply = `📝 **STATUS UPDATE HELP!** Sir, batao kis status mein change karna hai:\n\n` +
@@ -419,7 +417,6 @@ function ShipmentDetails() {
       }
     }
     
-    // CASE 2: TRACKING REQUEST
     else if (docketNumber || lowerInput.includes("track") || lowerInput.includes("kahan") || lowerInput.includes("status check")) {
       const searchDocket = docketNumber || input.match(/\d+/)?.[0];
       
@@ -439,40 +436,36 @@ function ShipmentDetails() {
           reply = `⚠️ **NOT FOUND!** Sir, docket ${searchDocket} system mein nahi mila. Customer care: 9818641504`;
         }
       } else {
-        reply = "Sir, docket number batao jaise 'FCPL0001 track karo'. Main turant bata dunga!";
+        reply = "Sir, docket number batao jaise 'FCPL0001 track karo'.";
       }
     }
     
-    // CASE 3: LIST ALL SHIPMENTS
     else if (lowerInput.includes("all shipments") || lowerInput.includes("saare order") || 
              lowerInput.includes("sab dikhao") || lowerInput.includes("list")) {
       if (shipments.length > 0) {
         reply = `📋 **ALL SHIPMENTS!** Sir, total ${shipments.length} orders:\n\n` +
                 shipments.slice(0, 5).map(s => `• ${s.lr} - ${s.route || s.pickupPincode + '→' + s.deliveryPincode} - ${statusOptions.find(opt => opt.value === s.status)?.label || s.status}`).join('\n') +
-                `\n\nPoori list neeche table mein hai. Kisi specific ka status update karna ho toh batao!`;
+                `\n\nPoori list neeche table mein hai.`;
       } else {
-        reply = "Sir, abhi koi shipment nahi hai. Naya order create karein!";
+        reply = "Sir, abhi koi shipment nahi hai.";
       }
     }
     
-    // CASE 4: DELETE SHIPMENT
     else if ((lowerInput.includes("delete") || lowerInput.includes("remove")) && docketNumber) {
       await deleteShipment(docketNumber);
       reply = `🗑️ **DELETED!** Sir, docket ${docketNumber} delete kar diya gaya.`;
     }
     
-    // CASE 5: PRINT DOCKET
     else if ((lowerInput.includes("print") || lowerInput.includes("docket print")) && docketNumber) {
       const shipment = shipments.find(s => s.lr === docketNumber || s.awb === docketNumber);
       if (shipment) {
         printDocket(shipment);
-        reply = `🖨️ **PRINTING!** Sir, docket ${docketNumber} print kar raha hoon. Naya window khulega.`;
+        reply = `🖨️ **PRINTING!** Sir, docket ${docketNumber} print kar raha hoon.`;
       } else {
         reply = `❌ Sir, docket ${docketNumber} nahi mila.`;
       }
     }
     
-    // CASE 6: HELP
     else if (lowerInput.includes("help") || lowerInput.includes("madad") || 
              lowerInput.includes("kya kar sakte ho") || lowerInput.includes("features")) {
       reply = `🎤 **JERVICE AI - COMPLETE FEATURES!** Sir, main ye sab kar sakta hoon:\n\n` +
@@ -486,7 +479,6 @@ function ShipmentDetails() {
               `Aaj kya service chahiye, Sir? 🙏`;
     }
     
-    // DEFAULT
     else {
       reply = `🎤 **SUNIYE!** Main aapka logistics assistant hoon. Mujhse puchiye:\n\n` +
               `• "Track FCPL0001" - Status check\n` +
@@ -508,6 +500,11 @@ function ShipmentDetails() {
     return s.status === statusFilter;
   }).filter(s => !searchDocket || s.lr?.toUpperCase().includes(searchDocket.toUpperCase()) || s.awb?.toUpperCase().includes(searchDocket.toUpperCase()));
 
+  // Get status count
+  const getStatusCount = (statusValue) => {
+    return shipments.filter(s => s.status === statusValue).length;
+  };
+
   // ============================================
   // 📊 RENDER SHIPMENT TABLE
   // ============================================
@@ -527,10 +524,13 @@ function ShipmentDetails() {
               <button
                 key={opt.value}
                 className={`filter-btn ${statusFilter === opt.value ? 'active' : ''}`}
-                style={{ '--status-color': opt.color }}
+                style={{ 
+                  '--status-color': opt.color,
+                  '--status-bg': opt.bgColor
+                }}
                 onClick={() => setStatusFilter(opt.value)}
               >
-                {opt.icon} {opt.label.split(' ')[1]} ({shipments.filter(s => s.status === opt.value).length})
+                {opt.icon} {opt.label} ({getStatusCount(opt.value)})
               </button>
             ))}
           </div>
@@ -563,43 +563,54 @@ function ShipmentDetails() {
             </tr>
           </thead>
           <tbody>
-            {filteredShipments.map((shipment, idx) => (
-              <tr key={idx} className="shipment-row">
-                <td className="lr-cell"><strong>{shipment.lr}</strong></td>
-                <td>{shipment.awb || '—'}</td>
-                <td><MapPin size={14} /> {shipment.route || `${shipment.pickupPincode}→${shipment.deliveryPincode}`}</td>
-                <td>{shipment.weight || 0} kg</td>
-                <td>₹{(shipment.total_value || shipment.value || 0).toLocaleString()}</td>
-                <td>
-                  <select 
-                    className={`status-select status-${shipment.status?.toLowerCase() || 'booked'}`}
-                    value={shipment.status || 'booked'}
-                    onChange={(e) => updateShipmentStatus(shipment.lr, e.target.value)}
-                  >
-                    {statusOptions.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </td>
-                <td className="action-buttons">
-                  <button onClick={() => trackShipment(shipment.lr)} className="action-icon view" title="Track">
-                    <Eye size={16} />
-                  </button>
-                  <button onClick={() => handleEditShipment(shipment)} className="action-icon edit" title="Edit">
-                    <Edit3 size={16} />
-                  </button>
-                  <button onClick={() => printDocket(shipment)} className="action-icon print" title="Print Docket">
-                    <Printer size={16} />
-                  </button>
-                  <button onClick={() => printLabel(shipment)} className="action-icon label" title="Print Label">
-                    <Barcode size={16} />
-                  </button>
-                  <button onClick={() => deleteShipment(shipment.lr)} className="action-icon delete" title="Delete">
-                    <Trash2 size={16} />
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {filteredShipments.map((shipment, idx) => {
+              const statusOpt = statusOptions.find(opt => opt.value === shipment.status) || statusOptions[0];
+              return (
+                <tr key={idx} className="shipment-row">
+                  <td className="lr-cell"><strong>{shipment.lr}</strong></td>
+                  <td>{shipment.awb || '—'}</td>
+                  <td><MapPin size={14} /> {shipment.route || `${shipment.pickupPincode}→${shipment.deliveryPincode}`}</td>
+                  <td>{shipment.weight || 0} kg</td>
+                  <td>₹{(shipment.total_value || shipment.value || 0).toLocaleString()}</td>
+                  <td>
+                    <select 
+                      className={`status-select`}
+                      value={shipment.status || 'booked'}
+                      onChange={(e) => updateShipmentStatus(shipment.lr, e.target.value)}
+                      style={{
+                        backgroundColor: statusOpt.bgColor,
+                        color: statusOpt.color,
+                        border: `1px solid ${statusOpt.color}40`,
+                        fontWeight: '600'
+                      }}
+                    >
+                      {statusOptions.map(opt => (
+                        <option key={opt.value} value={opt.value} style={{ backgroundColor: opt.bgColor, color: opt.color }}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="action-buttons">
+                    <button onClick={() => trackShipment(shipment.lr)} className="action-icon view" title="Track">
+                      <Eye size={16} />
+                    </button>
+                    <button onClick={() => handleEditShipment(shipment)} className="action-icon edit" title="Edit">
+                      <Edit3 size={16} />
+                    </button>
+                    <button onClick={() => printDocket(shipment)} className="action-icon print" title="Print Docket">
+                      <Printer size={16} />
+                    </button>
+                    <button onClick={() => printLabel(shipment)} className="action-icon label" title="Print Label">
+                      <Barcode size={16} />
+                    </button>
+                    <button onClick={() => deleteShipment(shipment.lr)} className="action-icon delete" title="Delete">
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -658,7 +669,9 @@ function ShipmentDetails() {
               <label>Status</label>
               <select value={editFormData.status} onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}>
                 {statusOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value} style={{ backgroundColor: opt.bgColor, color: opt.color }}>
+                    {opt.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -677,6 +690,7 @@ function ShipmentDetails() {
   // ============================================
   const renderTrackingModal = () => {
     if (!trackingResult) return null;
+    const statusOpt = statusOptions.find(opt => opt.value === trackingResult.status) || statusOptions[0];
     
     return (
       <div className="modal-overlay" onClick={() => setTrackingResult(null)}>
@@ -688,10 +702,10 @@ function ShipmentDetails() {
           <div className="modal-body">
             <div className="tracking-lr">{trackingResult.lr}</div>
             <div className="tracking-status-large">
-              <div className={`status-icon status-${trackingResult.status?.toLowerCase() || 'in_transit'}`}>
+              <div className={`status-icon`} style={{ backgroundColor: `${statusOpt.color}15`, color: statusOpt.color }}>
                 {trackingResult.status === 'delivered' ? <CheckCircle size={40} /> : <Activity size={40} />}
               </div>
-              <div className="status-text">{statusOptions.find(s => s.value === trackingResult.status)?.label || trackingResult.status || 'In Transit'}</div>
+              <div className="status-text" style={{ color: statusOpt.color }}>{statusOpt.label}</div>
             </div>
             <div className="tracking-details-grid">
               <div className="detail-item">
@@ -756,14 +770,14 @@ function ShipmentDetails() {
             <CheckCircle size={20} color="#10b981" />
             <div>
               <span>Delivered</span>
-              <strong>{shipments.filter(s => s.status === 'delivered').length}</strong>
+              <strong>{getStatusCount('delivered')}</strong>
             </div>
           </div>
           <div className="stat-card">
             <Activity size={20} color="#f59e0b" />
             <div>
               <span>In Transit</span>
-              <strong>{shipments.filter(s => s.status === 'in_transit' || s.status === 'dispatched').length}</strong>
+              <strong>{getStatusCount('in_transit') + getStatusCount('dispatched')}</strong>
             </div>
           </div>
         </div>

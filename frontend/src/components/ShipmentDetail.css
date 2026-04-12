@@ -1,6 +1,7 @@
 /* ============================================
-   SHIPMENT DETAILS PAGE - ADVANCED v3.0
+   SHIPMENT DETAILS PAGE - ADVANCED v4.0
    With Status Update, Edit, Print, Label Features
+   Fixed Status Text Colors
    ============================================ */
 
 /* --------------------------------------------
@@ -33,6 +34,24 @@
   --radius-lg: 16px;
   --radius-xl: 20px;
   --transition: all 0.3s ease;
+  
+  /* Status Colors */
+  --status-booked: #d97706;
+  --status-booked-bg: #fef3c7;
+  --status-picked: #2563eb;
+  --status-picked-bg: #dbeafe;
+  --status-in_transit: #4f46e5;
+  --status-in_transit-bg: #e0e7ff;
+  --status-out_for_delivery: #ea580c;
+  --status-out_for_delivery-bg: #fed7aa;
+  --status-delivered: #059669;
+  --status-delivered-bg: #d1fae5;
+  --status-cancelled: #dc2626;
+  --status-cancelled-bg: #fee2e2;
+  --status-dispatched: #0891b2;
+  --status-dispatched-bg: #cffafe;
+  --status-hold: #475569;
+  --status-hold-bg: #f1f5f9;
 }
 
 /* --------------------------------------------
@@ -148,7 +167,7 @@
   margin-bottom: 12px;
 }
 
-/* Filter Buttons */
+/* Filter Buttons - Fixed Black Text */
 .filter-buttons {
   display: flex;
   gap: 8px;
@@ -164,11 +183,13 @@
   background: white;
   cursor: pointer;
   transition: var(--transition);
+  color: var(--text-dark);
 }
 
 .filter-btn:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-sm);
+  background: var(--bg-light);
 }
 
 .filter-btn.active {
@@ -201,6 +222,7 @@
   width: 250px;
   font-size: 13px;
   outline: none;
+  color: var(--text-dark);
 }
 
 .search-box input::placeholder {
@@ -267,48 +289,78 @@
   font-size: 14px;
 }
 
-/* Status Badge */
-.status-badge {
-  display: inline-block;
-  padding: 5px 12px;
-  border-radius: 30px;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.status-booked { background: #fef3c7; color: #d97706; }
-.status-picked { background: #dbeafe; color: #2563eb; }
-.status-in_transit { background: #e0e7ff; color: #4f46e5; }
-.status-out_for_delivery { background: #fed7aa; color: #ea580c; }
-.status-delivered { background: #d1fae5; color: #059669; }
-.status-cancelled { background: #fee2e2; color: #dc2626; }
-.status-dispatched { background: #cffafe; color: #0891b2; }
-.status-hold { background: #f1f5f9; color: #475569; }
-
-/* Status Select Dropdown */
+/* Status Select Dropdown - Fixed Colors */
 .status-select {
   padding: 6px 12px;
   border-radius: 30px;
   font-size: 11px;
   font-weight: 600;
-  border: none;
+  border: 1px solid;
   cursor: pointer;
-  background: transparent;
   transition: var(--transition);
+  background: white;
 }
 
 .status-select:hover {
   transform: scale(1.02);
 }
 
-.status-select.status-booked { background: #fef3c7; color: #d97706; }
-.status-select.status-picked { background: #dbeafe; color: #2563eb; }
-.status-select.status-in_transit { background: #e0e7ff; color: #4f46e5; }
-.status-select.status-out_for_delivery { background: #fed7aa; color: #ea580c; }
-.status-select.status-delivered { background: #d1fae5; color: #059669; }
-.status-select.status-cancelled { background: #fee2e2; color: #dc2626; }
-.status-select.status-dispatched { background: #cffafe; color: #0891b2; }
-.status-select.status-hold { background: #f1f5f9; color: #475569; }
+/* Status specific styles */
+.status-select[value="booked"],
+.status-select option[value="booked"] {
+  background-color: var(--status-booked-bg);
+  color: var(--status-booked);
+  border-color: var(--status-booked);
+}
+
+.status-select[value="picked"],
+.status-select option[value="picked"] {
+  background-color: var(--status-picked-bg);
+  color: var(--status-picked);
+  border-color: var(--status-picked);
+}
+
+.status-select[value="in_transit"],
+.status-select option[value="in_transit"] {
+  background-color: var(--status-in_transit-bg);
+  color: var(--status-in_transit);
+  border-color: var(--status-in_transit);
+}
+
+.status-select[value="out_for_delivery"],
+.status-select option[value="out_for_delivery"] {
+  background-color: var(--status-out_for_delivery-bg);
+  color: var(--status-out_for_delivery);
+  border-color: var(--status-out_for_delivery);
+}
+
+.status-select[value="delivered"],
+.status-select option[value="delivered"] {
+  background-color: var(--status-delivered-bg);
+  color: var(--status-delivered);
+  border-color: var(--status-delivered);
+}
+
+.status-select[value="cancelled"],
+.status-select option[value="cancelled"] {
+  background-color: var(--status-cancelled-bg);
+  color: var(--status-cancelled);
+  border-color: var(--status-cancelled);
+}
+
+.status-select[value="dispatched"],
+.status-select option[value="dispatched"] {
+  background-color: var(--status-dispatched-bg);
+  color: var(--status-dispatched);
+  border-color: var(--status-dispatched);
+}
+
+.status-select[value="hold"],
+.status-select option[value="hold"] {
+  background-color: var(--status-hold-bg);
+  color: var(--status-hold);
+  border-color: var(--status-hold);
+}
 
 /* Action Buttons */
 .action-buttons {
@@ -465,6 +517,7 @@
   font-size: 14px;
   transition: var(--transition);
   background: var(--bg-gray);
+  color: var(--text-dark);
 }
 
 .form-group input:focus,
@@ -505,6 +558,7 @@
   cursor: pointer;
   font-weight: 600;
   transition: var(--transition);
+  color: var(--text-dark);
 }
 
 .cancel-btn:hover {
@@ -558,9 +612,20 @@
   justify-content: center;
 }
 
-.status-icon.status-delivered { background: #d1fae5; color: #059669; }
-.status-icon.status-in_transit { background: #e0e7ff; color: #4f46e5; }
-.status-icon.status-booked { background: #fef3c7; color: #d97706; }
+.status-icon.status-delivered { 
+  background: var(--status-delivered-bg); 
+  color: var(--status-delivered); 
+}
+
+.status-icon.status-in_transit { 
+  background: var(--status-in_transit-bg); 
+  color: var(--status-in_transit); 
+}
+
+.status-icon.status-booked { 
+  background: var(--status-booked-bg); 
+  color: var(--status-booked); 
+}
 
 .status-text {
   font-size: 18px;
@@ -656,6 +721,7 @@
 .close-btn {
   background: var(--bg-light);
   border: none;
+  color: var(--text-dark);
 }
 
 .close-btn:hover {
@@ -1106,6 +1172,10 @@
     flex-wrap: nowrap;
   }
   
+  .filter-btn {
+    white-space: nowrap;
+  }
+  
   .search-box {
     width: 100%;
   }
@@ -1192,6 +1262,11 @@
     padding: 4px 10px;
     font-size: 9px;
   }
+  
+  .status-select {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
 }
 
 /* --------------------------------------------
@@ -1203,7 +1278,8 @@
   .filter-buttons,
   .action-buttons,
   .jervice-container,
-  .modal-overlay {
+  .modal-overlay,
+  .header-stats {
     display: none !important;
   }
   
@@ -1221,5 +1297,11 @@
     appearance: none;
     background: transparent;
     border: none;
+    color: black;
+  }
+  
+  .shipment-row:hover {
+    transform: none;
+    background: transparent;
   }
 }
