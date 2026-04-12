@@ -1,6 +1,6 @@
 /* ============================================
-   FAITH CARGO - CREATE ORDER PAGE v2.0
-   Professional Design with Premium Look
+   FAITH CARGO - CREATE ORDER PAGE v3.0
+   PROFESSIONAL PREMIUM DESIGN
    ============================================ */
 
 /* --------------------------------------------
@@ -11,6 +11,10 @@
   --primary-red-dark: #b71c1c;
   --primary-red-light: #ffebed;
   --primary-red-glow: rgba(211, 47, 47, 0.1);
+  --primary-blue: #2563eb;
+  --primary-blue-dark: #1d4ed8;
+  --primary-blue-light: #dbeafe;
+  --primary-blue-glow: rgba(37, 99, 235, 0.1);
   --dark-bg: #0f172a;
   --dark-bg-light: #1e293b;
   --text-dark: #0f172a;
@@ -26,6 +30,7 @@
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+  --shadow-blue: 0 10px 25px -5px rgba(37, 99, 235, 0.2);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -1098,6 +1103,8 @@ body {
 
 .barcode-canvas {
   margin: 4px 0;
+  background: white;
+  padding: 2px;
 }
 
 .lr-value {
@@ -1308,7 +1315,9 @@ body {
   border-radius: 4px;
 }
 
-/* Official Stamp */
+/* ============================================
+   PROFESSIONAL ROUND STAMP - BLUE COLOR
+   ============================================ */
 .stamp-signature-wrapper {
   display: flex;
   justify-content: space-between;
@@ -1318,8 +1327,8 @@ body {
 }
 
 .official-stamp {
-  width: 100px;
-  height: 100px;
+  width: 110px;
+  height: 110px;
   position: relative;
 }
 
@@ -1327,57 +1336,76 @@ body {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: rgba(211, 47, 47, 0.05);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.stamp-outer {
-  width: 85px;
-  height: 85px;
+.stamp-outer-ring {
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
-  border: 2px solid var(--primary-red);
+  border: 2.5px solid var(--primary-blue);
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(37, 99, 235, 0.02);
+  position: relative;
 }
 
-.stamp-inner {
+/* Inner decorative ring */
+.stamp-outer-ring::before {
+  content: '';
+  position: absolute;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 1px dashed var(--primary-blue);
+  opacity: 0.6;
+}
+
+.stamp-inner-content {
   text-align: center;
+  z-index: 2;
 }
 
 .stamp-title {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
-  color: var(--primary-red);
+  color: var(--primary-blue);
   display: block;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .stamp-sub {
-  font-size: 7px;
-  font-weight: 700;
-  color: var(--primary-red);
+  font-size: 8px;
+  font-weight: 800;
+  color: var(--primary-blue);
   display: block;
+  margin-top: 2px;
 }
 
 .stamp-line {
-  width: 25px;
-  height: 1px;
-  background: var(--primary-red);
-  margin: 3px auto;
+  width: 28px;
+  height: 1.5px;
+  background: var(--primary-blue);
+  margin: 5px auto;
 }
 
 .stamp-auth {
-  font-size: 6px;
+  font-size: 7px;
   font-weight: 700;
-  color: var(--primary-red);
+  color: var(--primary-blue);
   display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
+/* Signature Area */
 .signature-area {
   display: flex;
-  gap: 20px;
+  gap: 30px;
 }
 
 .signature-line-item {
@@ -1385,19 +1413,20 @@ body {
 }
 
 .sign-line {
-  width: 80px;
+  width: 100px;
   border-top: 1px solid var(--text-dark);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .stamp-box {
   border: 1px dashed var(--primary-red);
-  padding: 6px;
-  font-size: 7px;
+  padding: 6px 12px;
+  font-size: 8px;
   font-weight: 800;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
   color: var(--primary-red);
   background: var(--primary-red-light);
+  border-radius: 4px;
 }
 
 .signature-line-item p {
@@ -1443,141 +1472,7 @@ body {
 }
 
 /* --------------------------------------------
-   18. RESPONSIVE DESIGN
-   -------------------------------------------- */
-@media (max-width: 768px) {
-  .create-order-page {
-    flex-direction: column;
-  }
-  
-  .order-sidebar {
-    width: 100%;
-    height: auto;
-    position: relative;
-    padding: 20px;
-  }
-  
-  .order-main-content {
-    padding: 20px;
-  }
-  
-  .page-title-section {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-  
-  .mode-options {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .billing-wrapper {
-    grid-template-columns: 1fr;
-  }
-  
-  .parties-container {
-    flex-direction: column;
-  }
-  
-  .party-arrow-icon {
-    transform: rotate(90deg);
-    justify-content: center;
-  }
-  
-  .stamp-signature-wrapper {
-    flex-direction: column;
-    gap: 20px;
-  }
-  
-  .modal-dialog {
-    padding: 20px;
-  }
-  
-  .modal-lr-number {
-    font-size: 24px;
-  }
-  
-  .modal-buttons {
-    flex-direction: column;
-  }
-  
-  .modal-btn {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-/* --------------------------------------------
-   19. UTILITIES
-   -------------------------------------------- */
-.text-center {
-  text-align: center;
-}
-
-.text-red {
-  color: var(--primary-red);
-}
-
-/* Animations */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Print Styles */
-@media print {
-  .no-print,
-  .order-sidebar,
-  .page-title-section,
-  .two-column-form,
-  .modal-overlay,
-  .generate-btn,
-  .error-notice,
-  .sidebar-navigation,
-  .sidebar-help {
-    display: none !important;
-  }
-  
-  .print-docket {
-    display: block !important;
-    margin: 0;
-    padding: 0;
-    box-shadow: none;
-  }
-  
-  body {
-    background: white;
-    margin: 0;
-    padding: 0;
-  }
-  
-  @page {
-    size: A4;
-    margin: 0;
-  }
-}
-/* --------------------------------------------
-   LIVE TRACKING SECTION STYLES
+   18. LIVE TRACKING SECTION STYLES
    -------------------------------------------- */
 .tracking-section {
   background: white;
@@ -1722,4 +1617,158 @@ body {
   font-size: 12px;
   color: var(--text-gray);
   margin-top: 6px;
+}
+
+/* --------------------------------------------
+   19. RESPONSIVE DESIGN
+   -------------------------------------------- */
+@media (max-width: 768px) {
+  .create-order-page {
+    flex-direction: column;
+  }
+  
+  .order-sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    padding: 20px;
+  }
+  
+  .order-main-content {
+    padding: 20px;
+  }
+  
+  .page-title-section {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .mode-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .billing-wrapper {
+    grid-template-columns: 1fr;
+  }
+  
+  .parties-container {
+    flex-direction: column;
+  }
+  
+  .party-arrow-icon {
+    transform: rotate(90deg);
+    justify-content: center;
+  }
+  
+  .stamp-signature-wrapper {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .modal-dialog {
+    padding: 20px;
+  }
+  
+  .modal-lr-number {
+    font-size: 24px;
+  }
+  
+  .modal-buttons {
+    flex-direction: column;
+  }
+  
+  .modal-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .tracking-input-group {
+    flex-direction: column;
+  }
+  
+  .tracking-input-group button {
+    justify-content: center;
+  }
+}
+
+/* --------------------------------------------
+   20. UTILITIES & ANIMATIONS
+   -------------------------------------------- */
+.text-center {
+  text-align: center;
+}
+
+.text-red {
+  color: var(--primary-red);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Print Styles */
+@media print {
+  .no-print,
+  .order-sidebar,
+  .page-title-section,
+  .two-column-form,
+  .modal-overlay,
+  .generate-btn,
+  .error-notice,
+  .sidebar-navigation,
+  .sidebar-help,
+  .tracking-section {
+    display: none !important;
+  }
+  
+  .print-docket {
+    display: block !important;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  
+  body {
+    background: white;
+    margin: 0;
+    padding: 0;
+  }
+  
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  
+  /* Ensure stamp prints correctly */
+  .stamp-outer-ring {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  
+  .stamp-title, .stamp-sub, .stamp-auth {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 }

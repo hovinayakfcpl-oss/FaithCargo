@@ -3,7 +3,9 @@ import {
   Bot, Send, X, ShieldCheck, Activity, Truck, MapPin, 
   Package, Calendar, Clock, AlertCircle, CheckCircle, 
   Volume2, VolumeX, Mic, RefreshCw, FileText, Eye, Trash2,
-  Download, Printer, Search, Navigation
+  Download, Printer, Search, Navigation, Edit3, Save, 
+  PlusCircle, Filter, TrendingUp, Award, Crown, Settings,
+  CheckSquare, Square, Printer as PrinterIcon, Barcode
 } from "lucide-react";
 import "./ShipmentDetail.css";
 
@@ -11,7 +13,7 @@ function ShipmentDetails() {
   // State Management
   const [isJerviceOpen, setIsJerviceOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: "assistant", content: "🎤 **BIGG BOSS MODE ACTIVE!** Main hoon Jervice AI. Docket number batao, main tracking status bata dunga. Ya rate, booking ke liye pucho!" }
+    { role: "assistant", content: "🎤 **BIGG BOSS MODE ACTIVE!** Main hoon Jervice AI. Docket number batao, main tracking status bata dunga. Ya rate, booking ke liye pucho!\n\n**NEW FEATURES:**\n✅ Manual Status Update\n✅ Edit Shipment\n✅ Delete Shipment\n✅ Print Docket\n✅ Print Label\n✅ Voice Commands" }
   ]);
   const [userInput, setUserInput] = useState("");
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
@@ -21,8 +23,26 @@ function ShipmentDetails() {
   const [selectedShipment, setSelectedShipment] = useState(null);
   const [searchDocket, setSearchDocket] = useState("");
   const [trackingResult, setTrackingResult] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState({});
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printDocketData, setPrintDocketData] = useState(null);
   const chatEndRef = useRef(null);
   const recognitionRef = useRef(null);
+  const printRef = useRef(null);
+
+  // Available statuses for manual update
+  const statusOptions = [
+    { value: "booked", label: "📝 Booked", color: "#f59e0b", icon: "📝" },
+    { value: "picked", label: "🚚 Picked Up", color: "#3b82f6", icon: "🚚" },
+    { value: "in_transit", label: "🚛 In Transit", color: "#8b5cf6", icon: "🚛" },
+    { value: "out_for_delivery", label: "📦 Out for Delivery", color: "#ec4898", icon: "📦" },
+    { value: "delivered", label: "✅ Delivered", color: "#10b981", icon: "✅" },
+    { value: "cancelled", label: "❌ Cancelled", color: "#ef4444", icon: "❌" },
+    { value: "dispatched", label: "✈️ Dispatched", color: "#06b6d4", icon: "✈️" },
+    { value: "hold", label: "⏸️ On Hold", color: "#6b7280", icon: "⏸️" }
+  ];
 
   // Load shipments on mount
   useEffect(() => {
@@ -43,35 +63,31 @@ function ShipmentDetails() {
       setShipments(data);
     } catch (error) {
       console.error("Error fetching shipments:", error);
+      // Fallback to localStorage
+      const localShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
+      setShipments(localShipments);
     }
   };
 
   // ============================================
-  // 🔍 TRACK SHIPMENT FROM TRACKING PAGE
+  // 🔍 TRACK SHIPMENT
   // ============================================
   const trackShipment = async (docketNumber) => {
     setIsLoading(true);
     try {
-      // Try to fetch from tracking API
-      const trackingResponse = await fetch(`https://tracking.faithcargo.com/api/track/${docketNumber}`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" }
-      }).catch(() => null);
-
-      if (trackingResponse && trackingResponse.ok) {
-        const trackingData = await trackingResponse.json();
-        setTrackingResult(trackingData);
-        return trackingData;
+      const response = await fetch(`https://faithcargo.onrender.com/api/shipments/shipment/${docketNumber}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTrackingResult(data);
+        return data;
       }
-
-      // Fallback to local database
-      const dbResponse = await fetch(`https://faithcargo.onrender.com/api/shipments/shipment/${docketNumber}`);
-      if (dbResponse.ok) {
-        const dbData = await dbResponse.json();
-        setTrackingResult(dbData);
-        return dbData;
+      // Check local storage
+      const localShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
+      const found = localShipments.find(s => s.lr === docketNumber || s.awb === docketNumber);
+      if (found) {
+        setTrackingResult(found);
+        return found;
       }
-
       return null;
     } catch (error) {
       console.error("Tracking error:", error);
@@ -82,7 +98,220 @@ function ShipmentDetails() {
   };
 
   // ============================================
-  // 🎤 BIGG BOSS STYLE VOICE ENGINE
+  // ✏️ EDIT SHIPMENT
+  // ============================================
+  const handleEditShipment = (shipment) => {
+    setSelectedShipment(shipment);
+    setEditFormData({
+      lr: shipment.lr,
+      awb: shipment.awb || "",
+      pickupName: shipment.pickupName || "",
+      pickupPincode: shipment.pickupPincode || "",
+      deliveryName: shipment.deliveryName || "",
+      deliveryPincode: shipment.deliveryPincode || "",
+      weight: shipment.weight || 0,
+      status: shipment.status || "booked",
+      total_value: shipment.total_value || shipment.value || 0
+    });
+    setIsEditing(true);
+  };
+
+  const saveEditShipment = async () => {
+    try {
+      const response = await fetch(`https://faithcargo.onrender.com/api/shipments/update/${editFormData.lr}/`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editFormData)
+      });
+      
+      if (response.ok) {
+        await fetchShipments();
+        setIsEditing(false);
+        setSelectedShipment(null);
+        speak(`Sir, shipment ${editFormData.lr} successfully update ho gaya.`);
+      } else {
+        // Update localStorage
+        const localShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
+        const index = localShipments.findIndex(s => s.lr === editFormData.lr);
+        if (index !== -1) {
+          localShipments[index] = { ...localShipments[index], ...editFormData };
+          localStorage.setItem('allShipments', JSON.stringify(localShipments));
+          fetchShipments();
+          setIsEditing(false);
+          speak(`Sir, shipment ${editFormData.lr} update ho gaya.`);
+        }
+      }
+    } catch (error) {
+      console.error("Edit error:", error);
+    }
+  };
+
+  // ============================================
+  // 🎯 UPDATE STATUS MANUALLY
+  // ============================================
+  const updateShipmentStatus = async (lrNumber, newStatus) => {
+    try {
+      const response = await fetch(`https://faithcargo.onrender.com/api/shipments/update-status/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lr: lrNumber, status: newStatus })
+      });
+      
+      if (response.ok) {
+        await fetchShipments();
+        const statusLabel = statusOptions.find(s => s.value === newStatus)?.label || newStatus;
+        speak(`Sir, docket ${lrNumber} ka status ${statusLabel} update kar diya gaya.`);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Status update error:", error);
+      return false;
+    }
+  };
+
+  // ============================================
+  // 🗑️ DELETE SHIPMENT
+  // ============================================
+  const deleteShipment = async (lrNumber) => {
+    if (window.confirm(`⚠️ Sir, kya aap sach mein ${lrNumber} permanently delete karna chahte hain?`)) {
+      try {
+        const response = await fetch(`https://faithcargo.onrender.com/api/shipments/delete/${lrNumber}/`, {
+          method: "DELETE"
+        });
+        
+        if (response.ok) {
+          fetchShipments();
+          speak(`${lrNumber} delete ho gaya, Sir.`);
+        } else {
+          // Delete from localStorage
+          const localShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
+          const filtered = localShipments.filter(s => s.lr !== lrNumber);
+          localStorage.setItem('allShipments', JSON.stringify(filtered));
+          fetchShipments();
+          speak(`${lrNumber} delete ho gaya, Sir.`);
+        }
+      } catch (error) {
+        console.error("Delete error:", error);
+      }
+    }
+  };
+
+  // ============================================
+  // 🖨️ PRINT DOCKET
+  // ============================================
+  const printDocket = (shipment) => {
+    setPrintDocketData(shipment);
+    setTimeout(() => {
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Faith Cargo - Docket ${shipment.lr}</title>
+            <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { font-family: Arial, sans-serif; padding: 20px; }
+              .docket { width: 210mm; min-height: 297mm; margin: 0 auto; border: 2px solid #d32f2f; padding: 20px; position: relative; }
+              .header { text-align: center; border-bottom: 2px solid #d32f2f; padding-bottom: 15px; margin-bottom: 20px; }
+              .header h1 { color: #d32f2f; margin-bottom: 5px; }
+              .lr-number { font-size: 24px; font-weight: bold; text-align: center; margin: 15px 0; color: #d32f2f; }
+              .parties { display: flex; gap: 20px; margin-bottom: 20px; }
+              .party { flex: 1; border: 1px solid #ddd; padding: 15px; border-radius: 8px; }
+              .party h3 { background: #f5f5f5; margin: -15px -15px 15px -15px; padding: 10px; border-radius: 8px 8px 0 0; }
+              .details-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+              .details-table th, .details-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+              .details-table th { background: #f5f5f5; }
+              .status { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
+              .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; text-align: center; font-size: 12px; }
+              @media print { body { margin: 0; padding: 0; } }
+            </style>
+          </head>
+          <body>
+            <div class="docket">
+              <div class="header">
+                <h1>FAITH CARGO PRIVATE LIMITED</h1>
+                <p>4/15, Kirti Nagar Industrial Area, New Delhi - 110015</p>
+                <p>GST: 07AAFCF2947K1ZD | Tel: 9818641504</p>
+              </div>
+              <div class="lr-number">CONSIGNMENT NOTE: ${shipment.lr}</div>
+              <div class="parties">
+                <div class="party">
+                  <h3>📤 CONSIGNOR (Sender)</h3>
+                  <p><strong>${shipment.pickupName || 'N/A'}</strong></p>
+                  <p>Pincode: ${shipment.pickupPincode || 'N/A'}</p>
+                </div>
+                <div class="party">
+                  <h3>📥 CONSIGNEE (Receiver)</h3>
+                  <p><strong>${shipment.deliveryName || 'N/A'}</strong></p>
+                  <p>Pincode: ${shipment.deliveryPincode || 'N/A'}</p>
+                </div>
+              </div>
+              <table class="details-table">
+                <tr><th>Description</th><td>${shipment.material || 'General Cargo'}</td></tr>
+                <tr><th>Weight</th><td>${shipment.weight || 0} kg</td></tr>
+                <tr><th>Total Value</th><td>₹${(shipment.total_value || shipment.value || 0).toLocaleString()}</td></tr>
+                <tr><th>Status</th><td><span class="status">${shipment.status || 'Booked'}</span></td></tr>
+                <tr><th>AWB Number</th><td>${shipment.awb || 'N/A'}</td></tr>
+              </table>
+              <div class="footer">
+                <p>Terms: Goods carried at Owner's Risk | Subject to Delhi Jurisdiction</p>
+                <p>For Support: 9818641504 | care@faithcargo.com</p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+      setPrintDocketData(null);
+    }, 100);
+  };
+
+  // ============================================
+  // 🏷️ PRINT LABEL
+  // ============================================
+  const printLabel = (shipment) => {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Label - ${shipment.lr}</title>
+          <style>
+            body { font-family: Arial; padding: 20px; }
+            .label { width: 4in; border: 2px solid #d32f2f; padding: 15px; margin: 0 auto; border-radius: 8px; }
+            .header { text-align: center; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; margin-bottom: 10px; }
+            .header h2 { margin: 0; color: #0f172a; font-size: 16px; }
+            .lr { font-size: 22px; font-weight: bold; text-align: center; margin: 15px 0; color: #d32f2f; }
+            .barcode { text-align: center; margin: 10px 0; }
+            .address { font-size: 11px; margin: 8px 0; }
+            .footer { font-size: 9px; text-align: center; margin-top: 12px; padding-top: 8px; border-top: 1px dashed #ccc; }
+          </style>
+        </head>
+        <body>
+          <div class="label">
+            <div class="header">
+              <h2>FAITH CARGO PVT LTD</h2>
+              <p>4/15, Kirti Nagar, Delhi - 110015</p>
+            </div>
+            <div class="lr">LR: ${shipment.lr}</div>
+            <div class="barcode"><img src="https://barcode.tec-it.com/barcode.ashx?data=${shipment.lr}&code=Code128&dpi=96" width="200" /></div>
+            <div class="address"><strong>From:</strong> ${shipment.pickupName || 'N/A'} - ${shipment.pickupPincode || 'N/A'}</div>
+            <div class="address"><strong>To:</strong> ${shipment.deliveryName || 'N/A'} - ${shipment.deliveryPincode || 'N/A'}</div>
+            <div class="footer">Weight: ${shipment.weight || 0} Kg | Status: ${shipment.status || 'Booked'}</div>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
+
+  // ============================================
+  // 🎤 VOICE ENGINE
   // ============================================
   const speak = (text) => {
     if (!isVoiceEnabled) return;
@@ -96,7 +325,6 @@ function ShipmentDetails() {
     utterance.pitch = 0.88;
     utterance.volume = 1;
     
-    // Try to get Indian female voice
     const voices = window.speechSynthesis.getVoices();
     const indianVoice = voices.find(voice => 
       voice.lang === 'hi-IN' && (voice.name.includes('Female') || voice.name.includes('Google'))
@@ -111,7 +339,7 @@ function ShipmentDetails() {
   // ============================================
   const initVoiceRecognition = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      speak("Sir, aapka browser voice command support nahi karta. Chrome use karein.");
+      speak("Sir, aapka browser voice command support nahi karta.");
       return false;
     }
     
@@ -130,7 +358,7 @@ function ShipmentDetails() {
     
     recognitionRef.current.onerror = () => {
       setIsListening(false);
-      speak("Sir, awaaz nahi sunai di. Dobara bolein.");
+      speak("Sir, awaaz nahi sunai di.");
     };
     
     return true;
@@ -144,42 +372,7 @@ function ShipmentDetails() {
   };
 
   // ============================================
-  // 🤖 EXTRACT DOCKET NUMBER
-  // ============================================
-  const extractDocketNumber = (text) => {
-    const patterns = [
-      /\bFCPL\d{4,8}\b/gi,
-      /\b\d{8,15}\b/g,
-      /\b[F][A]\d{8,12}\b/gi,
-      /\b[D][L]\d{8,12}\b/gi
-    ];
-    
-    for (let pattern of patterns) {
-      const match = text.match(pattern);
-      if (match) return match[0].toUpperCase();
-    }
-    return null;
-  };
-
-  // ============================================
-  // 💰 CALCULATE RATE (HINDI)
-  // ============================================
-  const calculateRate = (origin, destination, weight = 10) => {
-    const rates = {
-      'mumbai-delhi': 18,
-      'delhi-mumbai': 18,
-      'mumbai-bangalore': 22,
-      'delhi-kolkata': 25,
-      'ahmedabad-mumbai': 12
-    };
-    const key = `${origin.toLowerCase()}-${destination.toLowerCase()}`;
-    const rate = rates[key] || 25;
-    const freight = rate * weight;
-    return `💰 **RATE CALCULATION!** ${origin} se ${destination} tak ${weight} kg ka freight ₹${freight} hoga. Rate ₹${rate}/kg hai. GST 18% extra. Kya book karoon?`;
-  };
-
-  // ============================================
-  // 🧠 JERVICE AI INTELLIGENT RESPONSE
+  // 🤖 JERVICE AI - ADVANCED RESPONSE
   // ============================================
   const handleJerviceChat = async (inputOverride = null) => {
     const input = (inputOverride || userInput).trim();
@@ -190,74 +383,118 @@ function ShipmentDetails() {
     setUserInput("");
     setIsLoading(true);
 
+    const lowerInput = input.toLowerCase();
+    
     // Extract docket number
-    const docketNumber = extractDocketNumber(input);
+    const docketMatch = input.match(/\b(FCPL|FCL|LR)?\s*(\d{4,12})\b/i);
+    const docketNumber = docketMatch ? docketMatch[2] : null;
     
     let reply = "";
     
-    // CASE 1: TRACKING REQUEST
-    if (docketNumber || input.includes("track") || input.includes("kahan") || input.includes("status")) {
+    // CASE 1: UPDATE STATUS via Voice
+    if ((lowerInput.includes("update status") || lowerInput.includes("status update") || 
+         lowerInput.includes("change status") || lowerInput.includes("dispatch")) && docketNumber) {
+      
+      // Find status keyword
+      let newStatus = null;
+      for (let status of statusOptions) {
+        if (lowerInput.includes(status.value.replace('_', ' ')) || 
+            lowerInput.includes(status.label.toLowerCase())) {
+          newStatus = status.value;
+          break;
+        }
+      }
+      
+      if (newStatus) {
+        const success = await updateShipmentStatus(docketNumber, newStatus);
+        if (success) {
+          reply = `✅ **STATUS UPDATED!** Sir, docket ${docketNumber} ka status "${statusOptions.find(s => s.value === newStatus)?.label}" kar diya gaya.\n\nKya aapko aur koi help chahiye?`;
+        } else {
+          reply = `❌ **UPDATE FAILED!** Sir, docket ${docketNumber} ka status update nahi ho paya. Please check internet connection.`;
+        }
+      } else {
+        reply = `📝 **STATUS UPDATE HELP!** Sir, batao kis status mein change karna hai:\n\n` +
+                statusOptions.map(s => `• ${s.label}`).join('\n') +
+                `\n\nExample: "Docket ${docketNumber} status update karo delivered"`;
+      }
+    }
+    
+    // CASE 2: TRACKING REQUEST
+    else if (docketNumber || lowerInput.includes("track") || lowerInput.includes("kahan") || lowerInput.includes("status check")) {
       const searchDocket = docketNumber || input.match(/\d+/)?.[0];
       
       if (searchDocket) {
-        speak(`Sir, ${searchDocket} track kar raha hoon. Ek second...`);
+        speak(`Sir, ${searchDocket} track kar raha hoon...`);
         const trackingData = await trackShipment(searchDocket);
         
         if (trackingData) {
           reply = `🎤 **TRACKING UPDATE!** Docket ${searchDocket.toUpperCase()}\n\n` +
-                  `📍 **Current Status:** ${trackingData.status || 'In Transit'}\n` +
-                  `🚚 **Location:** ${trackingData.pickupPincode || 'N/A'} → ${trackingData.deliveryPincode || 'N/A'}\n` +
-                  `📦 **Weight:** ${trackingData.weight || 'N/A'} kg\n` +
+                  `📍 **Current Status:** ${statusOptions.find(s => s.value === trackingData.status)?.label || trackingData.status || 'In Transit'}\n` +
+                  `🚚 **Route:** ${trackingData.pickupPincode || 'N/A'} → ${trackingData.deliveryPincode || 'N/A'}\n` +
+                  `📦 **Weight:** ${trackingData.weight || 0} kg\n` +
                   `👤 **Receiver:** ${trackingData.deliveryName || 'N/A'}\n` +
                   `⏰ **Last Update:** ${new Date().toLocaleString()}\n\n` +
-                  `Kya aapko aur koi information chahiye, Sir?`;
+                  `Kya aapko status update karna hai?`;
         } else {
-          reply = `⚠️ **SORRY SIR!** Docket ${searchDocket} humare system mein nahi mila. Kya aapne sahi number daala? Customer care se contact karein: 9818641504`;
+          reply = `⚠️ **NOT FOUND!** Sir, docket ${searchDocket} system mein nahi mila. Customer care: 9818641504`;
         }
       } else {
-        reply = "Sir, docket number batao jaise 'FCPL0001 track karo' ya 'Mera order kahan hai'. Main turant bata dunga!";
+        reply = "Sir, docket number batao jaise 'FCPL0001 track karo'. Main turant bata dunga!";
       }
     }
     
-    // CASE 2: RATE CALCULATION
-    else if (input.includes("rate") || input.includes("bhada") || input.includes("price") || input.includes("kitna")) {
-      const cities = input.match(/([A-Za-z\u0900-\u097F]+)\s+se\s+([A-Za-z\u0900-\u097F]+)/i);
-      if (cities) {
-        const origin = cities[1];
-        const destination = cities[2];
-        const weightMatch = input.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilo|किलो)/i);
-        const weight = weightMatch ? parseFloat(weightMatch[1]) : 10;
-        reply = calculateRate(origin, destination, weight);
-      } else {
-        reply = "Sir, location batao jaise 'Mumbai se Delhi ka rate' ya 'Delhi se Bangalore 50kg'. Main turant calculate kar dunga!";
-      }
-    }
-    
-    // CASE 3: HELP / GENERAL
-    else if (input.includes("help") || input.includes("madad") || input.includes("kya kar sakte ho")) {
-      reply = `🎤 **JERVICE AI CAPABILITIES!** Sir, main ye sab kar sakta hoon:\n\n` +
-              `✅ **Track Shipment** - Docket number batao\n` +
-              `✅ **Rate Calculator** - "Mumbai se Delhi ka rate"\n` +
-              `✅ **All Shipments** - Saare orders dikhao\n` +
-              `✅ **Order Status** - Kahan hai mera order\n` +
-              `✅ **Voice Commands** - Hindi mein bolo\n\n` +
-              `Aaj kya service chahiye, Sir?`;
-    }
-    
-    // CASE 4: LIST ALL SHIPMENTS
-    else if (input.includes("all shipments") || input.includes("saare order") || input.includes("sab dikhao")) {
+    // CASE 3: LIST ALL SHIPMENTS
+    else if (lowerInput.includes("all shipments") || lowerInput.includes("saare order") || 
+             lowerInput.includes("sab dikhao") || lowerInput.includes("list")) {
       if (shipments.length > 0) {
-        reply = `📋 **ALL SHIPMENTS!** Sir, total ${shipments.length} orders hai system mein:\n\n` +
-                shipments.slice(0, 5).map(s => `• ${s.lr} - ${s.route} - ${s.status}`).join('\n') +
-                `\n\nPoori list neeche table mein hai. Kisi specific ka track karna ho toh docket number batao!`;
+        reply = `📋 **ALL SHIPMENTS!** Sir, total ${shipments.length} orders:\n\n` +
+                shipments.slice(0, 5).map(s => `• ${s.lr} - ${s.route || s.pickupPincode + '→' + s.deliveryPincode} - ${statusOptions.find(opt => opt.value === s.status)?.label || s.status}`).join('\n') +
+                `\n\nPoori list neeche table mein hai. Kisi specific ka status update karna ho toh batao!`;
       } else {
-        reply = "Sir, abhi koi shipment nahi hai system mein. Naya order create karein!";
+        reply = "Sir, abhi koi shipment nahi hai. Naya order create karein!";
       }
+    }
+    
+    // CASE 4: DELETE SHIPMENT
+    else if ((lowerInput.includes("delete") || lowerInput.includes("remove")) && docketNumber) {
+      await deleteShipment(docketNumber);
+      reply = `🗑️ **DELETED!** Sir, docket ${docketNumber} delete kar diya gaya.`;
+    }
+    
+    // CASE 5: PRINT DOCKET
+    else if ((lowerInput.includes("print") || lowerInput.includes("docket print")) && docketNumber) {
+      const shipment = shipments.find(s => s.lr === docketNumber || s.awb === docketNumber);
+      if (shipment) {
+        printDocket(shipment);
+        reply = `🖨️ **PRINTING!** Sir, docket ${docketNumber} print kar raha hoon. Naya window khulega.`;
+      } else {
+        reply = `❌ Sir, docket ${docketNumber} nahi mila.`;
+      }
+    }
+    
+    // CASE 6: HELP
+    else if (lowerInput.includes("help") || lowerInput.includes("madad") || 
+             lowerInput.includes("kya kar sakte ho") || lowerInput.includes("features")) {
+      reply = `🎤 **JERVICE AI - COMPLETE FEATURES!** Sir, main ye sab kar sakta hoon:\n\n` +
+              `✅ **Track Shipment** - "Track FCPL0001"\n` +
+              `✅ **Update Status** - "Docket FCPL0001 status update karo delivered"\n` +
+              `✅ **Delete Shipment** - "Delete FCPL0001"\n` +
+              `✅ **Print Docket** - "Print docket FCPL0001"\n` +
+              `✅ **Print Label** - "Print label FCPL0001"\n` +
+              `✅ **All Shipments** - "Saare order dikhao"\n` +
+              `✅ **Edit Shipment** - Table mein edit button use karein\n\n` +
+              `Aaj kya service chahiye, Sir? 🙏`;
     }
     
     // DEFAULT
     else {
-      reply = "🎤 **SUNIYE!** Main aapka logistics assistant hoon. Mujhse puchiye:\n• Docket track karna hai?\n• Rate nikalna hai?\n• Saare orders dekhne hain?\n\nMain taiyaar hoon, Sir!";
+      reply = `🎤 **SUNIYE!** Main aapka logistics assistant hoon. Mujhse puchiye:\n\n` +
+              `• "Track FCPL0001" - Status check\n` +
+              `• "Docket FCPL0001 status update karo delivered" - Status change\n` +
+              `• "Saare order dikhao" - All shipments\n` +
+              `• "Print docket FCPL0001" - Print docket\n` +
+              `• "Help" - All features\n\n` +
+              `Main taiyaar hoon, Sir!`;
     }
     
     setMessages([...newMessages, { role: "assistant", content: reply }]);
@@ -265,24 +502,11 @@ function ShipmentDetails() {
     setIsLoading(false);
   };
 
-  // ============================================
-  // 🗑️ DELETE SHIPMENT
-  // ============================================
-  const deleteShipment = async (lrNumber) => {
-    if (window.confirm(`Sir, kya aap sach mein ${lrNumber} delete karna chahte hain?`)) {
-      try {
-        const response = await fetch(`https://faithcargo.onrender.com/api/shipments/delete/${lrNumber}/`, {
-          method: "DELETE"
-        });
-        if (response.ok) {
-          fetchShipments();
-          speak(`${lrNumber} delete ho gaya, Sir.`);
-        }
-      } catch (error) {
-        console.error("Delete error:", error);
-      }
-    }
-  };
+  // Filter shipments by status
+  const filteredShipments = shipments.filter(s => {
+    if (statusFilter === "all") return true;
+    return s.status === statusFilter;
+  }).filter(s => !searchDocket || s.lr?.toUpperCase().includes(searchDocket.toUpperCase()) || s.awb?.toUpperCase().includes(searchDocket.toUpperCase()));
 
   // ============================================
   // 📊 RENDER SHIPMENT TABLE
@@ -290,12 +514,32 @@ function ShipmentDetails() {
   const renderShipmentTable = () => (
     <div className="shipment-table-container">
       <div className="table-header">
-        <h3><Package size={20} /> All Shipments</h3>
+        <div className="header-left">
+          <h3><Package size={20} /> All Shipments</h3>
+          <div className="filter-buttons">
+            <button 
+              className={`filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setStatusFilter('all')}
+            >
+              All ({shipments.length})
+            </button>
+            {statusOptions.map(opt => (
+              <button
+                key={opt.value}
+                className={`filter-btn ${statusFilter === opt.value ? 'active' : ''}`}
+                style={{ '--status-color': opt.color }}
+                onClick={() => setStatusFilter(opt.value)}
+              >
+                {opt.icon} {opt.label.split(' ')[1]} ({shipments.filter(s => s.status === opt.value).length})
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="search-box">
           <Search size={18} />
           <input 
             type="text" 
-            placeholder="Search by LR Number..." 
+            placeholder="Search by LR / AWB..." 
             value={searchDocket}
             onChange={(e) => setSearchDocket(e.target.value)}
           />
@@ -310,26 +554,45 @@ function ShipmentDetails() {
           <thead>
             <tr>
               <th>LR Number</th>
+              <th>AWB</th>
               <th>Route</th>
+              <th>Weight</th>
               <th>Value (₹)</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {shipments.filter(s => !searchDocket || s.lr.includes(searchDocket.toUpperCase())).map((shipment, idx) => (
+            {filteredShipments.map((shipment, idx) => (
               <tr key={idx} className="shipment-row">
-                <td className="lr-cell">{shipment.lr}</td>
-                <td><MapPin size={14} /> {shipment.route}</td>
-                <td>₹{shipment.value?.toLocaleString()}</td>
+                <td className="lr-cell"><strong>{shipment.lr}</strong></td>
+                <td>{shipment.awb || '—'}</td>
+                <td><MapPin size={14} /> {shipment.route || `${shipment.pickupPincode}→${shipment.deliveryPincode}`}</td>
+                <td>{shipment.weight || 0} kg</td>
+                <td>₹{(shipment.total_value || shipment.value || 0).toLocaleString()}</td>
                 <td>
-                  <span className={`status-badge status-${shipment.status?.toLowerCase() || 'booked'}`}>
-                    {shipment.status || 'Booked'}
-                  </span>
+                  <select 
+                    className={`status-select status-${shipment.status?.toLowerCase() || 'booked'}`}
+                    value={shipment.status || 'booked'}
+                    onChange={(e) => updateShipmentStatus(shipment.lr, e.target.value)}
+                  >
+                    {statusOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
                 </td>
                 <td className="action-buttons">
                   <button onClick={() => trackShipment(shipment.lr)} className="action-icon view" title="Track">
                     <Eye size={16} />
+                  </button>
+                  <button onClick={() => handleEditShipment(shipment)} className="action-icon edit" title="Edit">
+                    <Edit3 size={16} />
+                  </button>
+                  <button onClick={() => printDocket(shipment)} className="action-icon print" title="Print Docket">
+                    <Printer size={16} />
+                  </button>
+                  <button onClick={() => printLabel(shipment)} className="action-icon label" title="Print Label">
+                    <Barcode size={16} />
                   </button>
                   <button onClick={() => deleteShipment(shipment.lr)} className="action-icon delete" title="Delete">
                     <Trash2 size={16} />
@@ -344,25 +607,91 @@ function ShipmentDetails() {
   );
 
   // ============================================
+  // ✏️ EDIT MODAL
+  // ============================================
+  const renderEditModal = () => {
+    if (!isEditing) return null;
+    
+    return (
+      <div className="modal-overlay" onClick={() => setIsEditing(false)}>
+        <div className="edit-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h3><Edit3 size={20} /> Edit Shipment</h3>
+            <button className="close-modal" onClick={() => setIsEditing(false)}>✕</button>
+          </div>
+          <div className="modal-body">
+            <div className="form-group">
+              <label>LR Number</label>
+              <input type="text" value={editFormData.lr} disabled />
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Sender Name</label>
+                <input type="text" value={editFormData.pickupName} onChange={(e) => setEditFormData({...editFormData, pickupName: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Sender Pincode</label>
+                <input type="text" value={editFormData.pickupPincode} onChange={(e) => setEditFormData({...editFormData, pickupPincode: e.target.value})} />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Receiver Name</label>
+                <input type="text" value={editFormData.deliveryName} onChange={(e) => setEditFormData({...editFormData, deliveryName: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Receiver Pincode</label>
+                <input type="text" value={editFormData.deliveryPincode} onChange={(e) => setEditFormData({...editFormData, deliveryPincode: e.target.value})} />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Weight (kg)</label>
+                <input type="number" value={editFormData.weight} onChange={(e) => setEditFormData({...editFormData, weight: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Total Value (₹)</label>
+                <input type="number" value={editFormData.total_value} onChange={(e) => setEditFormData({...editFormData, total_value: e.target.value})} />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Status</label>
+              <select value={editFormData.status} onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}>
+                {statusOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button className="cancel-btn" onClick={() => setIsEditing(false)}>Cancel</button>
+            <button className="save-btn" onClick={saveEditShipment}><Save size={16} /> Save Changes</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================
   // 🎨 TRACKING RESULT MODAL
   // ============================================
   const renderTrackingModal = () => {
     if (!trackingResult) return null;
     
     return (
-      <div className="tracking-modal-overlay" onClick={() => setTrackingResult(null)}>
+      <div className="modal-overlay" onClick={() => setTrackingResult(null)}>
         <div className="tracking-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="tracking-modal-header">
+          <div className="modal-header">
             <h3><Truck size={20} /> Tracking Details</h3>
             <button className="close-modal" onClick={() => setTrackingResult(null)}>✕</button>
           </div>
-          <div className="tracking-modal-body">
-            <div className="tracking-lr">LR: {trackingResult.lr}</div>
+          <div className="modal-body">
+            <div className="tracking-lr">{trackingResult.lr}</div>
             <div className="tracking-status-large">
               <div className={`status-icon status-${trackingResult.status?.toLowerCase() || 'in_transit'}`}>
-                {trackingResult.status === 'delivered' ? <CheckCircle /> : <Activity />}
+                {trackingResult.status === 'delivered' ? <CheckCircle size={40} /> : <Activity size={40} />}
               </div>
-              <div className="status-text">{trackingResult.status || 'In Transit'}</div>
+              <div className="status-text">{statusOptions.find(s => s.value === trackingResult.status)?.label || trackingResult.status || 'In Transit'}</div>
             </div>
             <div className="tracking-details-grid">
               <div className="detail-item">
@@ -389,14 +718,15 @@ function ShipmentDetails() {
               <div className="detail-item">
                 <Calendar size={16} />
                 <div>
-                  <label>Last Update</label>
-                  <p>{new Date().toLocaleString()}</p>
+                  <label>AWB</label>
+                  <p>{trackingResult.awb || 'N/A'}</p>
                 </div>
               </div>
             </div>
           </div>
-          <div className="tracking-modal-footer">
-            <button onClick={() => window.print()} className="print-btn"><Printer size={16} /> Print</button>
+          <div className="modal-footer">
+            <button onClick={() => printDocket(trackingResult)} className="print-btn"><Printer size={16} /> Print Docket</button>
+            <button onClick={() => printLabel(trackingResult)} className="label-btn"><Barcode size={16} /> Print Label</button>
             <button onClick={() => setTrackingResult(null)} className="close-btn">Close</button>
           </div>
         </div>
@@ -429,11 +759,19 @@ function ShipmentDetails() {
               <strong>{shipments.filter(s => s.status === 'delivered').length}</strong>
             </div>
           </div>
+          <div className="stat-card">
+            <Activity size={20} color="#f59e0b" />
+            <div>
+              <span>In Transit</span>
+              <strong>{shipments.filter(s => s.status === 'in_transit' || s.status === 'dispatched').length}</strong>
+            </div>
+          </div>
         </div>
       </div>
 
       {renderShipmentTable()}
       {renderTrackingModal()}
+      {renderEditModal()}
 
       {/* JERVICE AI FLOATING ASSISTANT */}
       <div className={`jervice-container ${isJerviceOpen ? 'open' : ''}`}>
@@ -449,7 +787,7 @@ function ShipmentDetails() {
             <div className="jervice-header">
               <div className="ai-identity">
                 <ShieldCheck size={16} color="#00ff00" />
-                <span className="ai-title">🎤 BIGG BOSS MODE | HINDI AI</span>
+                <span className="ai-title">🎤 BIGG BOSS MODE | ADVANCED AI</span>
               </div>
               <div className="header-controls">
                 <button 
@@ -492,7 +830,7 @@ function ShipmentDetails() {
             <div className="jervice-input-bar">
               <input 
                 type="text"
-                placeholder="Hindi mein bolein... Jaise: 'Docket FCPL0001 track karo'"
+                placeholder="Example: 'Docket FCPL0001 status update karo delivered'"
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleJerviceChat()}
@@ -506,6 +844,10 @@ function ShipmentDetails() {
               <div className="quick-actions">
                 <button onClick={() => handleJerviceChat("saare order dikhao")}>📋 All Orders</button>
                 <button onClick={() => handleJerviceChat("help")}>❓ Help</button>
+                <button onClick={() => handleJerviceChat("track")}>🔍 Track</button>
+              </div>
+              <div className="voice-commands-hint">
+                🎤 Try: "Docket FCPL0001 status update karo delivered"
               </div>
             </div>
           </div>

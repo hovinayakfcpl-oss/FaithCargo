@@ -122,14 +122,23 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
   useEffect(() => {
     if (lrNumber && barcodeRef.current) {
       try {
-        JsBarcode(barcodeRef.current, lrNumber, {
-          format: "CODE128", 
-          width: 2, 
-          height: 45, 
+        // Clear previous canvas content
+        const canvas = barcodeRef.current;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        JsBarcode(canvas, lrNumber, {
+          format: "CODE128",
+          width: 2,
+          height: 50,
           displayValue: true,
-          fontSize: 12,
-          margin: 5,
-          textAlign: "center"
+          fontSize: 14,
+          font: "monospace",
+          margin: 10,
+          textAlign: "center",
+          textMargin: 2,
+          background: "#ffffff",
+          lineColor: "#000000"
         });
       } catch (err) {
         console.error("Barcode error:", err);
@@ -175,7 +184,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </div>
         <div className="docket-number">
           <div className="lr-badge">CONSIGNMENT NOTE</div>
-          <canvas ref={barcodeRef} className="barcode-canvas"></canvas>
+          <canvas ref={barcodeRef} className="barcode-canvas" width="300" height="80"></canvas>
           <div className="lr-value">{lrNumber || "DRAFT"}</div>
           <div className="awb-value">AWB: {awbNumber || "N/A"}</div>
           <div className="date-value">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
@@ -309,12 +318,12 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         )}
       </div>
 
-      {/* Official Red Stamp - Circular Shape */}
+      {/* Official Round Stamp - Blue Color */}
       <div className="stamp-signature-wrapper">
         <div className="official-stamp">
           <div className="stamp-circle">
-            <div className="stamp-outer">
-              <div className="stamp-inner">
+            <div className="stamp-outer-ring">
+              <div className="stamp-inner-content">
                 <span className="stamp-title">FAITH CARGO</span>
                 <span className="stamp-sub">PVT LTD</span>
                 <div className="stamp-line"></div>
@@ -452,69 +461,73 @@ export default function CreateOrder() {
             <title>Faith Cargo - Docket ${lrNumber}</title>
             <style>
               * { margin: 0; padding: 0; box-sizing: border-box; }
-              body { font-family: Arial, sans-serif; background: white; padding: 20px; }
-              .print-docket { width: 210mm; min-height: 297mm; margin: 0 auto; position: relative; }
-              .docket-inner-border { position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border: 2px solid #d32f2f; pointer-events: none; border-radius: 4px; }
-              .docket-header { display: flex; justify-content: space-between; padding: 15px; border-bottom: 3px solid #d32f2f; }
-              .brand-section { display: flex; gap: 12px; }
-              .brand-logo { height: 55px; }
-              .brand-info h2 { font-size: 16px; font-weight: bold; margin: 0; }
-              .brand-info p { font-size: 8px; color: #666; }
-              .contact-line { font-size: 7px; color: #666; margin-top: 5px; display: flex; flex-direction: column; gap: 2px; }
+              body { font-family: 'Segoe UI', Arial, sans-serif; background: white; padding: 20px; }
+              .print-docket { width: 210mm; min-height: 297mm; margin: 0 auto; position: relative; background: white; }
+              .docket-inner-border { position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border: 2px solid #d32f2f; pointer-events: none; border-radius: 8px; }
+              .docket-header { display: flex; justify-content: space-between; padding: 20px; border-bottom: 3px solid #d32f2f; background: #fef9f9; }
+              .brand-section { display: flex; gap: 15px; align-items: center; }
+              .brand-logo { height: 70px; width: auto; }
+              .brand-info h2 { font-size: 18px; font-weight: bold; margin: 0; color: #1a1a2e; letter-spacing: 0.5px; }
+              .brand-info p { font-size: 9px; color: #d32f2f; font-weight: 600; margin-top: 2px; }
+              .contact-line { font-size: 7px; color: #4a5568; margin-top: 6px; display: flex; flex-direction: column; gap: 2px; }
               .docket-number { text-align: right; }
-              .lr-badge { background: #0f172a; color: white; padding: 3px 10px; font-size: 9px; display: inline-block; }
-              .barcode-canvas { margin: 5px 0; }
-              .lr-value { font-size: 20px; font-weight: bold; color: #d32f2f; font-family: monospace; }
-              .awb-value, .date-value { font-size: 9px; color: #666; }
-              .parties-container { display: flex; gap: 15px; padding: 15px; background: #fafafa; }
-              .party { flex: 1; background: white; border: 1px solid #e2e8f0; border-radius: 8px; }
-              .party-title { background: #f8fafc; padding: 8px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #e2e8f0; }
-              .party-icon { width: 28px; height: 28px; background: #ffebed; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-              .party-title h3 { font-size: 11px; margin: 0; }
-              .party-title span { font-size: 8px; color: #666; }
-              .party-content { padding: 12px; }
-              .party-content h4 { font-size: 11px; margin-bottom: 6px; }
-              .address-text { font-size: 9px; color: #666; margin-bottom: 8px; }
-              .party-contact { display: flex; flex-wrap: wrap; gap: 8px; font-size: 8px; padding-top: 6px; border-top: 1px dashed #e2e8f0; }
+              .lr-badge { background: #0f172a; color: white; padding: 4px 12px; font-size: 10px; font-weight: bold; display: inline-block; border-radius: 4px; }
+              .barcode-canvas { margin: 8px 0; background: white; padding: 5px; }
+              .lr-value { font-size: 22px; font-weight: bold; color: #d32f2f; font-family: monospace; letter-spacing: 2px; }
+              .awb-value, .date-value { font-size: 9px; color: #4a5568; margin-top: 3px; }
+              .parties-container { display: flex; gap: 20px; padding: 20px; background: #f8fafc; }
+              .party { flex: 1; background: white; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+              .party-title { background: #f1f5f9; padding: 10px 15px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #e2e8f0; }
+              .party-icon { width: 32px; height: 32px; background: #ffebed; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+              .party-title h3 { font-size: 12px; margin: 0; color: #1e293b; }
+              .party-title span { font-size: 9px; color: #64748b; }
+              .party-content { padding: 15px; }
+              .party-content h4 { font-size: 13px; margin-bottom: 8px; color: #0f172a; }
+              .address-text { font-size: 10px; color: #475569; margin-bottom: 10px; line-height: 1.4; }
+              .party-contact { display: flex; flex-wrap: wrap; gap: 10px; font-size: 9px; padding-top: 8px; border-top: 1px dashed #e2e8f0; color: #334155; }
               .party-arrow-icon { display: flex; align-items: center; color: #d32f2f; }
-              .shipment-wrapper { padding: 0 15px; margin-bottom: 15px; }
-              .shipment-data-table { width: 100%; border-collapse: collapse; }
-              .shipment-data-table th { background: #f8fafc; padding: 6px; font-size: 8px; border: 1px solid #e2e8f0; }
-              .shipment-data-table td { padding: 6px; font-size: 9px; border: 1px solid #e2e8f0; text-align: center; }
-              .goods-note { font-size: 7px; color: #666; }
-              .mode-label { display: inline-block; padding: 2px 6px; border-radius: 8px; font-size: 7px; font-weight: bold; }
+              .shipment-wrapper { padding: 0 20px; margin-bottom: 20px; }
+              .shipment-data-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+              .shipment-data-table th { background: #f1f5f9; padding: 10px; font-size: 9px; font-weight: 700; text-transform: uppercase; border: 1px solid #e2e8f0; color: #1e293b; }
+              .shipment-data-table td { padding: 10px; font-size: 10px; border: 1px solid #e2e8f0; text-align: center; }
+              .goods-note { font-size: 7px; color: #94a3b8; margin-top: 2px; }
+              .mode-label { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 8px; font-weight: bold; }
               .mode-label.surface { background: #dbeafe; color: #1e40af; }
-              .billing-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 15px; margin-bottom: 15px; }
-              .invoice-section, .freight-section { border: 1px solid #e2e8f0; border-radius: 8px; }
-              .section-header { background: #f8fafc; padding: 6px 10px; font-size: 9px; font-weight: bold; border-bottom: 1px solid #e2e8f0; }
-              .invoice-items, .freight-items { padding: 8px; }
-              .invoice-row-line, .freight-row-line { display: flex; justify-content: space-between; font-size: 8px; padding: 3px 0; }
-              .invoice-total-line { display: flex; justify-content: space-between; font-size: 9px; font-weight: bold; padding-top: 5px; border-top: 1px solid #e2e8f0; }
-              .eway-badge { margin-top: 5px; padding: 3px; background: #fef3c7; text-align: center; font-size: 7px; border-radius: 4px; }
-              .total-freight { font-weight: bold; color: #d32f2f; border-top: 1px solid #e2e8f0; margin-top: 5px; padding-top: 5px; }
-              .rate-note { margin-top: 6px; padding: 3px; background: #e0f2fe; text-align: center; font-size: 7px; border-radius: 4px; }
-              .stamp-signature-wrapper { display: flex; justify-content: space-between; align-items: center; padding: 0 15px; margin-bottom: 15px; }
-              .official-stamp { width: 100px; height: 100px; }
-              .stamp-circle { width: 100%; height: 100%; border-radius: 50%; background: rgba(211,47,47,0.05); display: flex; align-items: center; justify-content: center; }
-              .stamp-outer { width: 85px; height: 85px; border-radius: 50%; border: 2px solid #d32f2f; display: flex; align-items: center; justify-content: center; }
-              .stamp-inner { text-align: center; }
-              .stamp-title { font-size: 9px; font-weight: bold; color: #d32f2f; display: block; }
-              .stamp-sub { font-size: 7px; font-weight: bold; color: #d32f2f; display: block; }
-              .stamp-line { width: 25px; height: 1px; background: #d32f2f; margin: 3px auto; }
-              .stamp-auth { font-size: 6px; font-weight: bold; color: #d32f2f; display: block; }
-              .signature-area { display: flex; gap: 20px; }
+              .mode-label.air { background: #fef3c7; color: #b45309; }
+              .mode-label.rail { background: #e0e7ff; color: #3730a3; }
+              .mode-label.express { background: #dcfce7; color: #166534; }
+              .billing-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 0 20px; margin-bottom: 20px; }
+              .invoice-section, .freight-section { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+              .section-header { background: #f8fafc; padding: 8px 15px; font-size: 10px; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
+              .invoice-items, .freight-items { padding: 12px; }
+              .invoice-row-line, .freight-row-line { display: flex; justify-content: space-between; font-size: 9px; padding: 5px 0; }
+              .invoice-total-line { display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; padding-top: 8px; border-top: 1px solid #e2e8f0; margin-top: 5px; }
+              .eway-badge { margin-top: 8px; padding: 4px; background: #fef3c7; text-align: center; font-size: 8px; border-radius: 6px; color: #92400e; }
+              .total-freight { font-weight: bold; color: #d32f2f; border-top: 1px solid #e2e8f0; margin-top: 8px; padding-top: 8px; }
+              .rate-note { margin-top: 8px; padding: 5px; background: #e0f2fe; text-align: center; font-size: 8px; border-radius: 6px; color: #0369a1; }
+              .stamp-signature-wrapper { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; margin-bottom: 20px; }
+              .official-stamp { width: 120px; height: 120px; }
+              .stamp-circle { width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+              .stamp-outer-ring { width: 110px; height: 110px; border-radius: 50%; border: 3px solid #2563eb; display: flex; align-items: center; justify-content: center; background: rgba(37,99,235,0.03); }
+              .stamp-inner-content { text-align: center; }
+              .stamp-title { font-size: 12px; font-weight: 800; color: #2563eb; display: block; letter-spacing: 1px; }
+              .stamp-sub { font-size: 9px; font-weight: 700; color: #2563eb; display: block; }
+              .stamp-line { width: 30px; height: 1.5px; background: #2563eb; margin: 5px auto; }
+              .stamp-auth { font-size: 7px; font-weight: 600; color: #2563eb; display: block; text-transform: uppercase; }
+              .signature-area { display: flex; gap: 30px; }
               .signature-line-item { text-align: center; }
-              .sign-line { width: 80px; border-top: 1px solid #0f172a; margin-bottom: 3px; }
-              .stamp-box { border: 1px dashed #d32f2f; padding: 5px; font-size: 7px; font-weight: bold; margin-bottom: 3px; color: #d32f2f; background: #fff1f2; }
-              .terms-wrapper { padding: 0 15px; margin-bottom: 15px; }
-              .terms-wrapper h4 { font-size: 9px; margin-bottom: 5px; }
-              .terms-wrapper ul { padding-left: 15px; font-size: 7px; color: #666; }
-              .docket-footer { padding: 8px 15px; background: #0f172a; color: white; display: flex; justify-content: space-between; font-size: 7px; }
-              .footer-copies, .footer-website { display: flex; gap: 15px; }
+              .sign-line { width: 100px; border-top: 1px solid #0f172a; margin-bottom: 6px; }
+              .stamp-box { border: 1px dashed #d32f2f; padding: 6px 12px; font-size: 8px; font-weight: bold; margin-bottom: 5px; color: #d32f2f; background: #fff1f2; border-radius: 4px; }
+              .terms-wrapper { padding: 0 20px; margin-bottom: 20px; }
+              .terms-wrapper h4 { font-size: 10px; margin-bottom: 8px; color: #1e293b; }
+              .terms-wrapper ul { padding-left: 20px; font-size: 8px; color: #475569; }
+              .docket-footer { padding: 12px 20px; background: #0f172a; color: white; display: flex; justify-content: space-between; font-size: 8px; }
+              .footer-copies, .footer-website { display: flex; gap: 20px; }
               .text-center { text-align: center; }
               @media print {
                 body { margin: 0; padding: 0; }
-                .print-docket { margin: 0; }
+                .print-docket { margin: 0; box-shadow: none; }
+                .docket-inner-border { print-color-adjust: exact; }
               }
             </style>
           </head>
@@ -963,15 +976,15 @@ export default function CreateOrder() {
                   printWin.document.write(`
                     <html><head><title>Label - ${isManualLR ? manualLRNumber : lrNumber}</title>
                     <style>
-                      body { font-family: Arial; padding: 20px; }
-                      .label-card { width: 4in; border: 2px solid #d32f2f; padding: 15px; margin: 0 auto; border-radius: 8px; }
-                      .label-header { text-align: center; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; margin-bottom: 10px; }
-                      .label-header h2 { margin: 0; color: #0f172a; }
-                      .label-header p { margin: 2px 0; color: #64748b; font-size: 10px; }
-                      .label-lr { font-size: 22px; font-weight: bold; text-align: center; margin: 15px 0; color: #d32f2f; }
-                      .label-address { font-size: 11px; margin: 8px 0; }
-                      .label-footer { font-size: 9px; text-align: center; margin-top: 12px; padding-top: 8px; border-top: 1px dashed #ccc; }
-                      .barcode-img { text-align: center; margin: 10px 0; }
+                      body { font-family: Arial, sans-serif; padding: 20px; background: #f1f5f9; }
+                      .label-card { width: 4in; border: 3px solid #2563eb; padding: 15px; margin: 0 auto; border-radius: 16px; background: white; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+                      .label-header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 12px; }
+                      .label-header h2 { margin: 0; color: #1e293b; font-size: 16px; }
+                      .label-header p { margin: 3px 0; color: #475569; font-size: 9px; }
+                      .label-lr { font-size: 20px; font-weight: bold; text-align: center; margin: 12px 0; color: #d32f2f; letter-spacing: 1px; }
+                      .barcode-img { text-align: center; margin: 10px 0; background: white; padding: 5px; }
+                      .label-address { font-size: 10px; margin: 6px 0; color: #334155; }
+                      .label-footer { font-size: 8px; text-align: center; margin-top: 12px; padding-top: 8px; border-top: 1px dashed #cbd5e1; color: #64748b; }
                     </style>
                     </head>
                     <body>
@@ -982,7 +995,7 @@ export default function CreateOrder() {
                           <p>GST: 07AAFCF2947K1ZD</p>
                         </div>
                         <div class="label-lr">LR: ${isManualLR ? manualLRNumber : lrNumber}</div>
-                        <div class="barcode-img"><img src="https://barcode.tec-it.com/barcode.ashx?data=${isManualLR ? manualLRNumber : lrNumber}&code=Code128&dpi=96" width="200" /></div>
+                        <div class="barcode-img"><img src="https://barcode.tec-it.com/barcode.ashx?data=${isManualLR ? manualLRNumber : lrNumber}&code=Code128&dpi=96" width="220" /></div>
                         <div class="label-address"><strong>From:</strong> ${pickup.name} - ${pickup.pincode}</div>
                         <div class="label-address"><strong>To:</strong> ${delivery.name} - ${delivery.pincode}</div>
                         <div class="label-footer">Weight: ${chargedWeight} Kg | Mode: ${bookingMode.toUpperCase()} | AWB: ${awbNumber}</div>
