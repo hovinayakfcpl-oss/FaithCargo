@@ -5,7 +5,8 @@ import {
   Volume2, VolumeX, Mic, RefreshCw, FileText, Eye, Trash2,
   Download, Printer, Search, Navigation, Edit3, Save, 
   PlusCircle, Filter, TrendingUp, Award, Crown, Settings,
-  CheckSquare, Square, Printer as PrinterIcon, Barcode
+  CheckSquare, Square, Printer as PrinterIcon, Barcode,
+  Image as ImageIcon, File as FileIcon
 } from "lucide-react";
 import "./ShipmentDetail.css";
 
@@ -13,7 +14,7 @@ function ShipmentDetails() {
   // State Management
   const [isJerviceOpen, setIsJerviceOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: "assistant", content: "🎤 **BIGG BOSS MODE ACTIVE!** Main hoon Jervice AI. Docket number batao, main tracking status bata dunga. Ya rate, booking ke liye pucho!\n\n**NEW FEATURES:**\n✅ Manual Status Update\n✅ Edit Shipment\n✅ Delete Shipment\n✅ Print Docket\n✅ Print Label\n✅ Voice Commands" }
+    { role: "assistant", content: "🎤 **BIGG BOSS MODE ACTIVE!** Main hoon Jervice AI. Docket number batao, main tracking status bata dunga. Ya rate, booking ke liye pucho!\n\n**NEW FEATURES:**\n✅ Manual Status Update\n✅ Edit Shipment\n✅ Delete Shipment\n✅ Print Docket\n✅ Print Label\n✅ Voice Commands\n✅ Invoice Download" }
   ]);
   const [userInput, setUserInput] = useState("");
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
@@ -28,6 +29,8 @@ function ShipmentDetails() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [printDocketData, setPrintDocketData] = useState(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [selectedInvoices, setSelectedInvoices] = useState([]);
   const chatEndRef = useRef(null);
   const recognitionRef = useRef(null);
   const printRef = useRef(null);
@@ -60,13 +63,55 @@ function ShipmentDetails() {
     try {
       const response = await fetch("https://faithcargo.onrender.com/api/shipments/");
       const data = await response.json();
-      setShipments(data);
-      // Update localStorage to sync with Create Order page
-      localStorage.setItem('allShipments', JSON.stringify(data));
+      // Load uploaded invoices from localStorage
+      const enhancedData = data.map(shipment => {
+        const savedInvoices = localStorage.getItem(`invoices_${shipment.lr}`);
+        if (savedInvoices) {
+          return { ...shipment, uploadedInvoices: JSON.parse(savedInvoices) };
+        }
+        return shipment;
+      });
+      setShipments(enhancedData);
+      localStorage.setItem('allShipments', JSON.stringify(enhancedData));
     } catch (error) {
       console.error("Error fetching shipments:", error);
       const localShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
       setShipments(localShipments);
+    }
+  };
+
+  // ============================================
+  // 📎 VIEW INVOICES
+  // ============================================
+  const viewInvoices = (shipment) => {
+    const invoices = shipment.uploadedInvoices || [];
+    if (invoices.length === 0) {
+      alert("No invoices uploaded for this shipment");
+      return;
+    }
+    setSelectedInvoices(invoices);
+    setShowInvoiceModal(true);
+  };
+
+  // ============================================
+  // 📥 DOWNLOAD INVOICE
+  // ============================================
+  const downloadInvoice = (invoice) => {
+    if (invoice.url) {
+      const link = document.createElement('a');
+      link.href = invoice.url;
+      link.download = invoice.name;
+      link.click();
+    } else if (invoice.file) {
+      // If file object is stored
+      const url = URL.createObjectURL(invoice.file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = invoice.name;
+      link.click();
+      URL.revokeObjectURL(url);
+    } else {
+      alert("Invoice file not available for download");
     }
   };
 
@@ -79,6 +124,11 @@ function ShipmentDetails() {
       const response = await fetch(`https://faithcargo.onrender.com/api/shipments/shipment/${docketNumber}`);
       if (response.ok) {
         const data = await response.json();
+        // Load uploaded invoices for this shipment
+        const savedInvoices = localStorage.getItem(`invoices_${data.lr}`);
+        if (savedInvoices) {
+          data.uploadedInvoices = JSON.parse(savedInvoices);
+        }
         setTrackingResult(data);
         return data;
       }
@@ -180,12 +230,14 @@ function ShipmentDetails() {
         });
         
         if (response.ok) {
+          localStorage.removeItem(`invoices_${lrNumber}`);
           fetchShipments();
           speak(`${lrNumber} delete ho gaya, Sir.`);
         } else {
           const localShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
           const filtered = localShipments.filter(s => s.lr !== lrNumber);
           localStorage.setItem('allShipments', JSON.stringify(filtered));
+          localStorage.removeItem(`invoices_${lrNumber}`);
           fetchShipments();
           speak(`${lrNumber} delete ho gaya, Sir.`);
         }
@@ -425,13 +477,15 @@ function ShipmentDetails() {
         const trackingData = await trackShipment(searchDocket);
         
         if (trackingData) {
+          const invoiceCount = trackingData.uploadedInvoices?.length || 0;
           reply = `🎤 **TRACKING UPDATE!** Docket ${searchDocket.toUpperCase()}\n\n` +
                   `📍 **Current Status:** ${statusOptions.find(s => s.value === trackingData.status)?.label || trackingData.status || 'In Transit'}\n` +
                   `🚚 **Route:** ${trackingData.pickupPincode || 'N/A'} → ${trackingData.deliveryPincode || 'N/A'}\n` +
                   `📦 **Weight:** ${trackingData.weight || 0} kg\n` +
                   `👤 **Receiver:** ${trackingData.deliveryName || 'N/A'}\n` +
+                  `📎 **Invoices:** ${invoiceCount} invoice(s) uploaded\n` +
                   `⏰ **Last Update:** ${new Date().toLocaleString()}\n\n` +
-                  `Kya aapko status update karna hai?`;
+                  `Kya aapko status update karna hai ya invoices dekhne hain?`;
         } else {
           reply = `⚠️ **NOT FOUND!** Sir, docket ${searchDocket} system mein nahi mila. Customer care: 9818641504`;
         }
@@ -444,7 +498,7 @@ function ShipmentDetails() {
              lowerInput.includes("sab dikhao") || lowerInput.includes("list")) {
       if (shipments.length > 0) {
         reply = `📋 **ALL SHIPMENTS!** Sir, total ${shipments.length} orders:\n\n` +
-                shipments.slice(0, 5).map(s => `• ${s.lr} - ${s.route || s.pickupPincode + '→' + s.deliveryPincode} - ${statusOptions.find(opt => opt.value === s.status)?.label || s.status}`).join('\n') +
+                shipments.slice(0, 5).map(s => `• ${s.lr} - ${s.route || s.pickupPincode + '→' + s.deliveryPincode} - ${statusOptions.find(opt => opt.value === s.status)?.label || s.status} ${s.uploadedInvoices?.length ? `📎(${s.uploadedInvoices.length})` : ''}`).join('\n') +
                 `\n\nPoori list neeche table mein hai.`;
       } else {
         reply = "Sir, abhi koi shipment nahi hai.";
@@ -466,6 +520,19 @@ function ShipmentDetails() {
       }
     }
     
+    else if ((lowerInput.includes("invoice") || lowerInput.includes("download invoice")) && docketNumber) {
+      const shipment = shipments.find(s => s.lr === docketNumber || s.awb === docketNumber);
+      if (shipment && shipment.uploadedInvoices?.length > 0) {
+        setSelectedInvoices(shipment.uploadedInvoices);
+        setShowInvoiceModal(true);
+        reply = `📎 **INVOICES!** Sir, docket ${docketNumber} ke liye ${shipment.uploadedInvoices.length} invoice(s) hain. Window khulegi.`;
+      } else if (shipment) {
+        reply = `❌ Sir, docket ${docketNumber} ke liye koi invoice upload nahi hai.`;
+      } else {
+        reply = `❌ Sir, docket ${docketNumber} nahi mila.`;
+      }
+    }
+    
     else if (lowerInput.includes("help") || lowerInput.includes("madad") || 
              lowerInput.includes("kya kar sakte ho") || lowerInput.includes("features")) {
       reply = `🎤 **JERVICE AI - COMPLETE FEATURES!** Sir, main ye sab kar sakta hoon:\n\n` +
@@ -474,6 +541,8 @@ function ShipmentDetails() {
               `✅ **Delete Shipment** - "Delete FCPL0001"\n` +
               `✅ **Print Docket** - "Print docket FCPL0001"\n` +
               `✅ **Print Label** - "Print label FCPL0001"\n` +
+              `✅ **View Invoices** - "Invoices FCPL0001"\n` +
+              `✅ **Download Invoice** - "Download invoice FCPL0001"\n` +
               `✅ **All Shipments** - "Saare order dikhao"\n` +
               `✅ **Edit Shipment** - Table mein edit button use karein\n\n` +
               `Aaj kya service chahiye, Sir? 🙏`;
@@ -483,6 +552,7 @@ function ShipmentDetails() {
       reply = `🎤 **SUNIYE!** Main aapka logistics assistant hoon. Mujhse puchiye:\n\n` +
               `• "Track FCPL0001" - Status check\n` +
               `• "Docket FCPL0001 status update karo delivered" - Status change\n` +
+              `• "Invoices FCPL0001" - View uploaded invoices\n` +
               `• "Saare order dikhao" - All shipments\n` +
               `• "Print docket FCPL0001" - Print docket\n` +
               `• "Help" - All features\n\n` +
@@ -559,12 +629,14 @@ function ShipmentDetails() {
               <th>Weight</th>
               <th>Value (₹)</th>
               <th>Status</th>
+              <th>Invoices</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredShipments.map((shipment, idx) => {
               const statusOpt = statusOptions.find(opt => opt.value === shipment.status) || statusOptions[0];
+              const invoiceCount = shipment.uploadedInvoices?.length || 0;
               return (
                 <tr key={idx} className="shipment-row">
                   <td className="lr-cell"><strong>{shipment.lr}</strong></td>
@@ -591,6 +663,19 @@ function ShipmentDetails() {
                       ))}
                     </select>
                   </td>
+                  <td>
+                    {invoiceCount > 0 ? (
+                      <button 
+                        className="invoice-btn" 
+                        onClick={() => viewInvoices(shipment)}
+                        title={`${invoiceCount} invoice(s) uploaded`}
+                      >
+                        <FileText size={16} /> {invoiceCount}
+                      </button>
+                    ) : (
+                      <span className="no-invoice">—</span>
+                    )}
+                  </td>
                   <td className="action-buttons">
                     <button onClick={() => trackShipment(shipment.lr)} className="action-icon view" title="Track">
                       <Eye size={16} />
@@ -616,6 +701,58 @@ function ShipmentDetails() {
       </div>
     </div>
   );
+
+  // ============================================
+  // 📎 INVOICE MODAL
+  // ============================================
+  const renderInvoiceModal = () => {
+    if (!showInvoiceModal) return null;
+    
+    return (
+      <div className="modal-overlay" onClick={() => setShowInvoiceModal(false)}>
+        <div className="invoice-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h3><FileText size={20} /> Uploaded Invoices</h3>
+            <button className="close-modal" onClick={() => setShowInvoiceModal(false)}>✕</button>
+          </div>
+          <div className="modal-body">
+            {selectedInvoices.length === 0 ? (
+              <div className="no-invoices">No invoices uploaded</div>
+            ) : (
+              <div className="invoices-list">
+                {selectedInvoices.map((invoice, idx) => (
+                  <div key={idx} className="invoice-item">
+                    <div className="invoice-icon">
+                      {invoice.name?.match(/\.(jpg|jpeg|png)$/i) ? (
+                        <ImageIcon size={24} />
+                      ) : (
+                        <FileIcon size={24} />
+                      )}
+                    </div>
+                    <div className="invoice-details">
+                      <div className="invoice-name">{invoice.name}</div>
+                      <div className="invoice-size">{invoice.size} KB</div>
+                    </div>
+                    <button 
+                      className="download-invoice-btn"
+                      onClick={() => downloadInvoice(invoice)}
+                      title="Download Invoice"
+                    >
+                      <Download size={18} />
+                      Download
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="modal-footer">
+            <button className="close-btn" onClick={() => setShowInvoiceModal(false)}>Close</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // ============================================
   // ✏️ EDIT MODAL
@@ -691,6 +828,7 @@ function ShipmentDetails() {
   const renderTrackingModal = () => {
     if (!trackingResult) return null;
     const statusOpt = statusOptions.find(opt => opt.value === trackingResult.status) || statusOptions[0];
+    const invoiceCount = trackingResult.uploadedInvoices?.length || 0;
     
     return (
       <div className="modal-overlay" onClick={() => setTrackingResult(null)}>
@@ -737,6 +875,20 @@ function ShipmentDetails() {
                 </div>
               </div>
             </div>
+            {invoiceCount > 0 && (
+              <div className="tracking-invoices">
+                <button 
+                  className="view-invoices-btn"
+                  onClick={() => {
+                    setSelectedInvoices(trackingResult.uploadedInvoices);
+                    setShowInvoiceModal(true);
+                    setTrackingResult(null);
+                  }}
+                >
+                  <FileText size={16} /> View {invoiceCount} Invoice(s)
+                </button>
+              </div>
+            )}
           </div>
           <div className="modal-footer">
             <button onClick={() => printDocket(trackingResult)} className="print-btn"><Printer size={16} /> Print Docket</button>
@@ -786,6 +938,7 @@ function ShipmentDetails() {
       {renderShipmentTable()}
       {renderTrackingModal()}
       {renderEditModal()}
+      {renderInvoiceModal()}
 
       {/* JERVICE AI FLOATING ASSISTANT */}
       <div className={`jervice-container ${isJerviceOpen ? 'open' : ''}`}>
@@ -844,7 +997,7 @@ function ShipmentDetails() {
             <div className="jervice-input-bar">
               <input 
                 type="text"
-                placeholder="Example: 'Docket FCPL0001 status update karo delivered'"
+                placeholder="Example: 'Docket FCPL0001 status update karo delivered' or 'Invoices FCPL0001'"
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleJerviceChat()}
@@ -861,7 +1014,7 @@ function ShipmentDetails() {
                 <button onClick={() => handleJerviceChat("track")}>🔍 Track</button>
               </div>
               <div className="voice-commands-hint">
-                🎤 Try: "Docket FCPL0001 status update karo delivered"
+                🎤 Try: "Invoices FCPL0001" to view uploaded invoices
               </div>
             </div>
           </div>

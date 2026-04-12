@@ -115,9 +115,9 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
 };
 
 // ============================================
-// 🎨 DOCKET COMPONENT - FIXED WITH WATERMARK & SMALLER SIZE
+// 🎨 DOCKET COMPONENT - FIXED WITH PROFESSIONAL HEADER & BLACK BARCODE
 // ============================================
-const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData, status }, ref) => {
+const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData, status, uploadedInvoices }, ref) => {
   const barcodeRef = useRef(null);
   
   useEffect(() => {
@@ -129,14 +129,14 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         
         JsBarcode(canvas, lrNumber, {
           format: "CODE128",
-          width: 1.8,
-          height: 40,
+          width: 2,
+          height: 45,
           displayValue: true,
-          fontSize: 11,
+          fontSize: 12,
           font: "monospace",
           margin: 5,
           textAlign: "center",
-          textMargin: 2,
+          textMargin: 3,
           background: "#ffffff",
           lineColor: "#000000"
         });
@@ -179,6 +179,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
       <div className="docket-watermark">FCPL</div>
       <div className="docket-inner-border"></div>
       
+      {/* Professional Header with Logo */}
       <div className="docket-header">
         <div className="brand-section">
           <img src={logo} alt="FCPL" className="brand-logo" />
@@ -188,20 +189,21 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
             <div className="contact-line">
               <span>🏢 4/15, Kirti Nagar Industrial Area, New Delhi - 110015</span>
               <span>📞 +91 9818641504 | ✉️ care@faithcargo.com</span>
-              <span>🔷 GST: 07AAFCF2947K1ZD</span>
+              <span>🔷 GST: 07AAFCF2947K1ZD | CIN: U60231DL2021PTC384521</span>
             </div>
           </div>
         </div>
         <div className="docket-number">
           <div className="lr-badge">CONSIGNMENT NOTE</div>
-          <canvas ref={barcodeRef} className="barcode-canvas" width="280" height="65"></canvas>
+          <canvas ref={barcodeRef} className="barcode-canvas" width="300" height="75"></canvas>
           <div className="lr-value">{lrNumber || "DRAFT"}</div>
           <div className="awb-value">AWB: {awbNumber || "N/A"}</div>
           <div className="status-badge-docket">{getStatusText()}</div>
-          <div className="date-value">{new Date().toLocaleDateString('en-IN')}</div>
+          <div className="date-value">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
         </div>
       </div>
 
+      {/* Sender & Receiver Section */}
       <div className="parties-container">
         <div className="party sender">
           <div className="party-title">
@@ -219,7 +221,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
             </div>
           </div>
         </div>
-        <div className="party-arrow-icon"><ArrowRight size={24} /></div>
+        <div className="party-arrow-icon"><ArrowRight size={28} /></div>
         <div className="party receiver">
           <div className="party-title">
             <div className="party-icon">📥</div>
@@ -238,13 +240,16 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </div>
       </div>
 
+      {/* Shipment Details Table */}
       <div className="shipment-wrapper">
         <table className="shipment-data-table">
-          <thead><tr><th>PKGS</th><th>DESCRIPTION</th><th>HSN</th><th>ACTUAL WT</th><th>VOL WT</th><th>CHARGED WT</th><th>MODE</th></tr></thead>
+          <thead>
+            <tr><th>PKGS</th><th>DESCRIPTION</th><th>HSN</th><th>ACTUAL WT</th><th>VOL WT</th><th>CHARGED WT</th><th>MODE</th></tr>
+          </thead>
           <tbody>
             <tr>
               <td className="text-center">{safeData.orderDetails.boxesCount || 0}</td>
-              <td><strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong><div className="goods-note">Said to contain</div></td>
+              <td className="text-left"><strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong><div className="goods-note">Said to contain</div></td>
               <td className="text-center">{safeData.orderDetails.hsnCode || "1234"}</td>
               <td className="text-center">{safeData.orderDetails.weight || 0} kg</td>
               <td className="text-center">{safeData.volWeight} kg</td>
@@ -255,6 +260,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </table>
       </div>
 
+      {/* Invoice & Freight Section */}
       <div className="billing-wrapper">
         <div className="invoice-section">
           <div className="section-header">INVOICE DETAILS</div>
@@ -271,8 +277,9 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
             <div className="section-header">FREIGHT BREAKDOWN</div>
             <div className="freight-items">
               <div className="freight-row-line"><span>Base Freight:</span><span>₹{freightData.baseFreight?.toLocaleString()}</span></div>
-              <div className="freight-row-line"><span>Fuel Surcharge:</span><span>₹{freightData.fuelSurcharge?.toLocaleString()}</span></div>
+              <div className="freight-row-line"><span>Fuel Surcharge (10%):</span><span>₹{freightData.fuelSurcharge?.toLocaleString()}</span></div>
               <div className="freight-row-line"><span>GST (18%):</span><span>₹{freightData.gst?.toLocaleString()}</span></div>
+              <div className="freight-row-line"><span>Docket Charge:</span><span>₹{freightData.docketCharge || 100}</span></div>
               <div className="freight-row-line total-freight"><span>TOTAL:</span><span className="total-price">₹{freightData.total?.toLocaleString()}</span></div>
               <div className="rate-note">Rate: ₹{freightData.ratePerKg}/kg | {freightData.fromZone} → {freightData.toZone}</div>
             </div>
@@ -280,6 +287,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         )}
       </div>
 
+      {/* Professional Stamp */}
       <div className="stamp-signature-wrapper">
         <div className="official-stamp">
           <div className="stamp-circle">
@@ -299,6 +307,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </div>
       </div>
 
+      {/* Company Instructions */}
       <div className="company-instructions">
         <h4>📋 IMPORTANT INSTRUCTIONS</h4>
         <div className="instructions-grid">
@@ -309,6 +318,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </div>
       </div>
 
+      {/* Terms & Conditions */}
       <div className="terms-wrapper">
         <h4>TERMS & CONDITIONS</h4>
         <ul>
@@ -319,50 +329,88 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </ul>
       </div>
 
+      {/* Footer */}
       <div className="docket-footer">
-        <div className="footer-copies"><span>📄 ORIGINAL</span><span>📄 DUPLICATE</span><span>📄 TRIPLICATE</span></div>
-        <div className="footer-website"><span>🌐 www.faithcargo.com</span><span>📞 9818641504</span></div>
+        <div className="footer-copies"><span>📄 ORIGINAL - CONSIGNOR</span><span>📄 DUPLICATE - CONSIGNEE</span><span>📄 TRIPLICATE - OFFICE</span></div>
+        <div className="footer-website"><span>🌐 www.faithcargo.com</span><span>📞 9818641504</span><span>✉️ care@faithcargo.com</span></div>
       </div>
     </div>
   );
 });
 
 // ============================================
-// 📎 INVOICE UPLOAD
+// 📎 INVOICE UPLOAD WITH PREVIEW & DOWNLOAD
 // ============================================
-const InvoiceUpload = ({ onUpload }) => {
-  const [files, setFiles] = useState([]);
+const InvoiceUpload = ({ onUpload, uploadedFiles = [], setUploadedFiles }) => {
   const [dragging, setDragging] = useState(false);
+  const [files, setFiles] = useState(uploadedFiles);
 
   const handleUpload = (fileList) => {
     const newFiles = Array.from(fileList).map(f => ({
       id: Date.now() + Math.random(),
       name: f.name,
       size: (f.size / 1024).toFixed(2),
-      file: f
+      file: f,
+      url: URL.createObjectURL(f)
     }));
     const updated = [...files, ...newFiles];
     setFiles(updated);
+    setUploadedFiles && setUploadedFiles(updated);
     onUpload && onUpload(updated);
   };
 
   const removeFile = (id) => {
     const updated = files.filter(f => f.id !== id);
     setFiles(updated);
+    setUploadedFiles && setUploadedFiles(updated);
     onUpload && onUpload(updated);
+  };
+
+  const downloadFile = (file) => {
+    const link = document.createElement('a');
+    link.href = file.url;
+    link.download = file.name;
+    link.click();
   };
 
   return (
     <div className="upload-container">
-      <div className={`upload-dropzone ${dragging ? 'dragging' : ''}`}
+      <div 
+        className={`upload-dropzone ${dragging ? 'dragging' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
-        onDrop={(e) => { e.preventDefault(); setDragging(false); handleUpload(e.dataTransfer.files); }}>
-        <input type="file" id="invoice-files" multiple accept=".pdf,.jpg,.png" onChange={(e) => handleUpload(e.target.files)} style={{ display: 'none' }} />
-        <label htmlFor="invoice-files" className="upload-label-btn"><Upload size={28} /><span>Click or Drag Invoices</span><small>PDF, JPG, PNG (Max 5MB)</small></label>
+        onDrop={(e) => { e.preventDefault(); setDragging(false); handleUpload(e.dataTransfer.files); }}
+      >
+        <input type="file" id="invoice-files" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleUpload(e.target.files)} style={{ display: 'none' }} />
+        <label htmlFor="invoice-files" className="upload-label-btn">
+          <Upload size={28} />
+          <span>Click or Drag Invoices</span>
+          <small>PDF, JPG, JPEG, PNG (Max 5MB)</small>
+        </label>
       </div>
       {files.length > 0 && (
-        <div className="file-list-preview"><h4>{files.length} Invoice(s)</h4>{files.map(f => (<div key={f.id} className="file-preview-item"><File size={14} /> <span>{f.name}</span> <small>{f.size} KB</small><button onClick={() => removeFile(f.id)}><X size={14} /></button></div>))}</div>
+        <div className="file-list-preview">
+          <h4>{files.length} Invoice(s) Uploaded</h4>
+          {files.map(f => (
+            <div key={f.id} className="file-preview-item">
+              {f.name.match(/\.(jpg|jpeg|png)$/i) ? (
+                <img src={f.url} alt={f.name} className="file-thumbnail" />
+              ) : (
+                <File size={16} />
+              )}
+              <span className="file-name">{f.name}</span>
+              <small className="file-size">{f.size} KB</small>
+              <div className="file-actions">
+                <button onClick={() => downloadFile(f)} className="download-file" title="Download">
+                  <Download size={14} />
+                </button>
+                <button onClick={() => removeFile(f.id)} className="remove-file" title="Remove">
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -385,6 +433,7 @@ export default function CreateOrder() {
   const [manualLRNumber, setManualLRNumber] = useState("");
   const [showFreightOnDocket, setShowFreightOnDocket] = useState(true);
   const [shipmentStatus, setShipmentStatus] = useState("booked");
+  const [uploadedFiles, setUploadedFiles] = useState([]);
   
   const [trackingNumber, setTrackingNumber] = useState("");
   const [trackingResult, setTrackingResult] = useState(null);
@@ -401,57 +450,56 @@ export default function CreateOrder() {
         <html><head><title>Faith Cargo - Docket ${lrNumber}</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: Arial, sans-serif; background: white; padding: 10px; }
-          .print-docket { width: 190mm; min-height: 270mm; margin: 0 auto; position: relative; background: white; }
-          .docket-watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 80px; font-weight: bold; color: rgba(0,0,0,0.03); white-space: nowrap; z-index: 0; pointer-events: none; }
-          .docket-inner-border { position: absolute; top: 4px; left: 4px; right: 4px; bottom: 4px; border: 1.5px solid #d32f2f; pointer-events: none; border-radius: 6px; }
-          .docket-header { display: flex; justify-content: space-between; padding: 10px 12px; border-bottom: 2px solid #d32f2f; position: relative; z-index: 1; background: white; }
-          .brand-section { display: flex; gap: 8px; align-items: center; }
-          .brand-logo { height: 40px; }
-          .brand-info h2 { font-size: 12px; font-weight: bold; margin: 0; }
-          .brand-info p { font-size: 6px; color: #666; }
-          .contact-line { font-size: 5px; margin-top: 2px; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; background: white; padding: 15px; }
+          .print-docket { width: 200mm; min-height: 280mm; margin: 0 auto; position: relative; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+          .docket-watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 100px; font-weight: 900; color: rgba(0,0,0,0.02); white-space: nowrap; z-index: 0; pointer-events: none; letter-spacing: 10px; }
+          .docket-inner-border { position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border: 2px solid #d32f2f; pointer-events: none; border-radius: 8px; z-index: 1; }
+          .docket-header { display: flex; justify-content: space-between; padding: 15px 20px; border-bottom: 3px solid #d32f2f; background: white; position: relative; z-index: 2; }
+          .brand-section { display: flex; gap: 12px; align-items: center; }
+          .brand-logo { height: 55px; width: auto; }
+          .brand-info h2 { font-size: 16px; font-weight: 900; margin: 0; color: #1a1a2e; }
+          .brand-info p { font-size: 8px; color: #d32f2f; font-weight: 600; margin-top: 2px; }
+          .contact-line { font-size: 7px; color: #4a5568; margin-top: 5px; }
           .docket-number { text-align: right; }
-          .lr-badge { background: #0f172a; color: white; padding: 2px 6px; font-size: 7px; border-radius: 3px; }
-          .barcode-canvas { margin: 3px 0; }
-          .lr-value { font-size: 14px; font-weight: bold; color: #d32f2f; font-family: monospace; }
-          .status-badge-docket { display: inline-block; margin-top: 3px; padding: 2px 6px; border-radius: 10px; font-size: 6px; font-weight: bold; background: #10b981; color: white; }
-          .parties-container { display: flex; gap: 10px; padding: 10px 12px; position: relative; z-index: 1; background: #fafafa; }
-          .party { flex: 1; background: white; border: 1px solid #e2e8f0; border-radius: 6px; }
-          .party-title { background: #f1f5f9; padding: 4px 8px; display: flex; align-items: center; gap: 5px; border-bottom: 1px solid #e2e8f0; }
-          .party-icon { width: 20px; height: 20px; background: #ffebed; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; }
-          .party-title h3 { font-size: 8px; margin: 0; }
-          .party-content { padding: 6px 8px; }
-          .party-content h4 { font-size: 8px; margin-bottom: 3px; }
-          .address-text { font-size: 6px; color: #666; margin-bottom: 4px; }
-          .party-contact { display: flex; flex-wrap: wrap; gap: 4px; font-size: 5px; padding-top: 3px; border-top: 1px dashed #e2e8f0; }
-          .shipment-wrapper { padding: 0 12px; margin-bottom: 8px; position: relative; z-index: 1; }
-          .shipment-data-table { width: 100%; border-collapse: collapse; font-size: 6px; }
-          .shipment-data-table th { background: #f1f5f9; padding: 3px; border: 1px solid #e2e8f0; }
-          .shipment-data-table td { padding: 3px; border: 1px solid #e2e8f0; text-align: center; }
-          .billing-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 12px; margin-bottom: 8px; position: relative; z-index: 1; }
-          .invoice-section, .freight-section { border: 1px solid #e2e8f0; border-radius: 4px; }
-          .section-header { background: #f8fafc; padding: 3px 6px; font-size: 6px; font-weight: bold; border-bottom: 1px solid #e2e8f0; }
-          .invoice-items, .freight-items { padding: 4px; }
-          .invoice-row-line, .freight-row-line { display: flex; justify-content: space-between; font-size: 5px; padding: 1px 0; }
-          .stamp-signature-wrapper { display: flex; justify-content: space-between; align-items: center; padding: 0 12px; margin-bottom: 8px; position: relative; z-index: 1; }
-          .official-stamp { width: 70px; height: 70px; }
-          .stamp-outer-ring { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #2563eb; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
-          .stamp-title { font-size: 7px; font-weight: 800; color: #2563eb; }
-          .stamp-sub { font-size: 5px; font-weight: 700; color: #2563eb; }
-          .stamp-line { width: 15px; height: 1px; background: #2563eb; margin: 2px auto; }
-          .stamp-auth { font-size: 4px; font-weight: 600; color: #2563eb; }
-          .sign-line { width: 50px; border-top: 1px solid #0f172a; margin-bottom: 2px; }
-          .stamp-box { border: 1px dashed #d32f2f; padding: 2px 5px; font-size: 5px; font-weight: bold; background: #fff1f2; border-radius: 2px; }
-          .company-instructions { margin: 8px 12px; padding: 8px; background: #f0fdf4; border-radius: 6px; border-left: 3px solid #10b981; }
-          .instructions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 5px; }
-          .instruction-item { display: flex; gap: 5px; font-size: 5px; }
-          .instruction-icon { font-size: 10px; }
-          .terms-wrapper { padding: 0 12px; margin-bottom: 8px; position: relative; z-index: 1; }
-          .terms-wrapper h4 { font-size: 6px; margin-bottom: 3px; }
-          .terms-wrapper ul { padding-left: 12px; font-size: 4px; }
-          .docket-footer { padding: 5px 12px; background: #0f172a; color: white; display: flex; justify-content: space-between; font-size: 5px; position: relative; z-index: 1; }
-          @media print { body { margin: 0; padding: 0; } }
+          .lr-badge { background: #0f172a; color: white; padding: 4px 12px; font-size: 9px; font-weight: bold; border-radius: 4px; display: inline-block; }
+          .barcode-canvas { margin: 8px 0; background: white; }
+          .lr-value { font-size: 20px; font-weight: bold; color: #d32f2f; font-family: monospace; letter-spacing: 1px; }
+          .status-badge-docket { display: inline-block; margin-top: 5px; padding: 3px 10px; border-radius: 20px; font-size: 8px; font-weight: bold; background: #10b981; color: white; }
+          .parties-container { display: flex; gap: 20px; padding: 15px 20px; background: #f8fafc; position: relative; z-index: 2; }
+          .party { flex: 1; background: white; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+          .party-title { background: #f1f5f9; padding: 8px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #e2e8f0; }
+          .party-icon { width: 28px; height: 28px; background: #ffebed; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+          .party-title h3 { font-size: 11px; margin: 0; }
+          .party-content { padding: 12px; }
+          .party-content h4 { font-size: 11px; margin-bottom: 6px; }
+          .address-text { font-size: 9px; color: #475569; margin-bottom: 8px; }
+          .party-contact { display: flex; flex-wrap: wrap; gap: 8px; font-size: 8px; padding-top: 6px; border-top: 1px dashed #e2e8f0; }
+          .shipment-wrapper { padding: 0 20px; margin-bottom: 15px; position: relative; z-index: 2; }
+          .shipment-data-table { width: 100%; border-collapse: collapse; font-size: 9px; }
+          .shipment-data-table th { background: #f1f5f9; padding: 8px; font-weight: bold; border: 1px solid #e2e8f0; }
+          .shipment-data-table td { padding: 8px; border: 1px solid #e2e8f0; text-align: center; }
+          .billing-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 0 20px; margin-bottom: 15px; position: relative; z-index: 2; }
+          .invoice-section, .freight-section { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+          .section-header { background: #f8fafc; padding: 8px 12px; font-size: 9px; font-weight: bold; border-bottom: 1px solid #e2e8f0; }
+          .invoice-items, .freight-items { padding: 10px; }
+          .invoice-row-line, .freight-row-line { display: flex; justify-content: space-between; font-size: 8px; padding: 4px 0; }
+          .stamp-signature-wrapper { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; margin-bottom: 15px; position: relative; z-index: 2; }
+          .official-stamp { width: 100px; height: 100px; }
+          .stamp-outer-ring { width: 85px; height: 85px; border-radius: 50%; border: 2.5px solid #2563eb; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
+          .stamp-title { font-size: 9px; font-weight: 800; color: #2563eb; }
+          .stamp-sub { font-size: 7px; font-weight: 700; color: #2563eb; }
+          .stamp-line { width: 20px; height: 1px; background: #2563eb; margin: 3px auto; }
+          .stamp-auth { font-size: 6px; font-weight: 600; color: #2563eb; }
+          .sign-line { width: 80px; border-top: 1px solid #0f172a; margin-bottom: 4px; }
+          .stamp-box { border: 1px dashed #d32f2f; padding: 5px 10px; font-size: 7px; font-weight: bold; background: #fff1f2; border-radius: 4px; }
+          .company-instructions { margin: 0 20px 15px 20px; padding: 12px; background: #f0fdf4; border-radius: 8px; border-left: 3px solid #10b981; position: relative; z-index: 2; }
+          .instructions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+          .instruction-item { display: flex; gap: 8px; font-size: 7px; }
+          .terms-wrapper { padding: 0 20px; margin-bottom: 15px; position: relative; z-index: 2; }
+          .terms-wrapper h4 { font-size: 8px; margin-bottom: 5px; }
+          .terms-wrapper ul { padding-left: 15px; font-size: 6px; }
+          .docket-footer { padding: 10px 20px; background: #0f172a; color: white; display: flex; justify-content: space-between; font-size: 7px; position: relative; z-index: 2; }
+          @media print { body { margin: 0; padding: 0; } .docket-watermark { print-color-adjust: exact; } }
         </style>
         </head><body>${printContent.outerHTML}</body></html>
       `);
@@ -567,7 +615,9 @@ export default function CreateOrder() {
           route: `${pickup.pincode} → ${delivery.pincode}`, 
           value: totalInvoiceValue,
           status: 'booked', 
-          date: new Date().toISOString()
+          date: new Date().toISOString(),
+          invoices: invoices.filter(inv => inv.no && inv.value),
+          uploadedFiles: uploadedFiles
         });
         localStorage.setItem('allShipments', JSON.stringify(allShipments.slice(0, 50)));
       } else {
@@ -704,7 +754,7 @@ export default function CreateOrder() {
 
             <div className="form-section"><div className="section-heading between"><div><FileText size={18} color="#d32f2f" /> Invoice Details</div><button className="add-invoice-btn" onClick={() => setInvoices([...invoices, { id: Date.now(), no: "", value: "" }])}><Plus size={14} /> Add</button></div><div className="section-body">
               {invoices.map(inv => (<div key={inv.id} className="invoice-input-row"><input placeholder="Invoice No" value={inv.no} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, no: e.target.value.toUpperCase()} : i))} /><input type="number" placeholder="Value ₹" value={inv.value} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, value: e.target.value} : i))} /><button className="remove-invoice-btn" onClick={() => setInvoices(invoices.filter(i => i.id !== inv.id))}><Trash2 size={14} /></button></div>))}
-              <InvoiceUpload onUpload={(files) => console.log("Uploaded:", files)} />
+              <InvoiceUpload onUpload={(files) => console.log("Uploaded:", files)} uploadedFiles={uploadedFiles} setUploadedFiles={setUploadedFiles} />
               {needsEwayBill && (<div className="eway-alert"><div className="eway-header"><AlertCircle size={16} /> E-WAY BILL REQUIRED</div><input className="eway-input-field" value={ewayBill} onChange={e => setEwayBill(e.target.value.toUpperCase())} placeholder="12 DIGIT E-WAY BILL NO." maxLength={12} /></div>)}
               <RealTimeFreightCalculator weight={chargedWeight} origin={pickup.pincode} destination={delivery.pincode} bookingMode={bookingMode} onCalculate={setFreightData} />
               <div className="settings-panel">
@@ -720,7 +770,7 @@ export default function CreateOrder() {
 
         {showLR && (<div className="modal-overlay" onClick={() => setShowLR(false)}><div className="modal-dialog" onClick={e => e.stopPropagation()}>
           <div className="modal-icon"><CheckCircle size={60} color="#10b981" /></div><h2>Consignment Generated!</h2><div className="modal-lr-number">{isManualLR ? manualLRNumber : lrNumber}</div><div className="modal-awb-number">AWB: {awbNumber}</div>
-          <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}><PrintDocket ref={printDocketRef} data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight}} lrNumber={isManualLR ? manualLRNumber : lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill} awbNumber={awbNumber} bookingMode={bookingMode} showFreight={showFreightOnDocket} freightData={freightData} status={shipmentStatus} /></div>
+          <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}><PrintDocket ref={printDocketRef} data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight}} lrNumber={isManualLR ? manualLRNumber : lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill} awbNumber={awbNumber} bookingMode={bookingMode} showFreight={showFreightOnDocket} freightData={freightData} status={shipmentStatus} uploadedInvoices={uploadedFiles} /></div>
           <div className="modal-buttons"><button className="modal-btn print-btn" onClick={handlePrintDocket}><Printer size={16} /> Print Docket</button><button className="modal-btn view-btn" onClick={() => window.location.href='/shipments'}><Eye size={16} /> View All</button><button className="modal-btn new-btn" onClick={() => window.location.reload()}><Plus size={16} /> New</button></div>
         </div></div>)}
       </main>

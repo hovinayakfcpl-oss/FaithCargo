@@ -1,6 +1,6 @@
 /* ============================================
-   SHIPMENT DETAILS PAGE - ADVANCED v4.0
-   With Status Update, Edit, Print, Label Features
+   SHIPMENT DETAILS PAGE - ADVANCED v5.0
+   With Status Update, Edit, Print, Label, Invoice Download
    Fixed Status Text Colors
    ============================================ */
 
@@ -253,7 +253,7 @@
 .shipment-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 900px;
+  min-width: 1000px;
 }
 
 .shipment-table th {
@@ -287,6 +287,32 @@
   color: var(--primary-red);
   font-family: monospace;
   font-size: 14px;
+}
+
+/* Invoice Button */
+.invoice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border: none;
+  border-radius: 20px;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.invoice-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+}
+
+.no-invoice {
+  color: var(--text-light);
+  font-size: 12px;
 }
 
 /* Status Select Dropdown - Fixed Colors */
@@ -447,7 +473,8 @@
 
 /* Edit Modal */
 .edit-modal,
-.tracking-modal {
+.tracking-modal,
+.invoice-modal {
   background: white;
   border-radius: 24px;
   width: 90%;
@@ -455,6 +482,90 @@
   max-height: 85vh;
   overflow-y: auto;
   animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Invoice Modal Specific */
+.invoice-modal {
+  max-width: 500px;
+}
+
+.invoices-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.invoice-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: var(--bg-gray);
+  border-radius: var(--radius-md);
+  transition: var(--transition);
+  border: 1px solid var(--border-color);
+}
+
+.invoice-item:hover {
+  transform: translateX(5px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary-purple);
+}
+
+.invoice-icon {
+  width: 48px;
+  height: 48px;
+  background: white;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-purple);
+  box-shadow: var(--shadow-sm);
+}
+
+.invoice-details {
+  flex: 1;
+}
+
+.invoice-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+  word-break: break-all;
+}
+
+.invoice-size {
+  font-size: 11px;
+  color: var(--text-gray);
+}
+
+.download-invoice-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, var(--success), #059669);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.download-invoice-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
+}
+
+.no-invoices {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-gray);
+  font-size: 14px;
 }
 
 .modal-header {
@@ -673,6 +784,31 @@
   margin-top: 4px;
   font-size: 13px;
   color: var(--text-dark);
+}
+
+.tracking-invoices {
+  margin: 20px 0;
+  text-align: center;
+}
+
+.view-invoices-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.view-invoices-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
 }
 
 .tracking-modal-footer {
@@ -1223,6 +1359,20 @@
     width: 28px;
     height: 28px;
   }
+  
+  .invoice-item {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .download-invoice-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .invoice-icon {
+    margin: 0 auto;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1267,6 +1417,10 @@
     font-size: 10px;
     padding: 4px 8px;
   }
+  
+  .invoice-name {
+    font-size: 12px;
+  }
 }
 
 /* --------------------------------------------
@@ -1279,7 +1433,9 @@
   .action-buttons,
   .jervice-container,
   .modal-overlay,
-  .header-stats {
+  .header-stats,
+  .invoice-btn,
+  .tracking-actions {
     display: none !important;
   }
   
