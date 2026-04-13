@@ -6,7 +6,7 @@
     "express": "^5.2.1",
     "framer-motion": "^12.38.0",
     "jsbarcode": "^3.12.3",
-    "lucide-react": "^1.7.0",
+    "lucide-react": "^1.8.0",
     "react-hook-form": "^7.72.1",
     "react-router-dom": "^7.14.0"
   }

@@ -12,11 +12,10 @@ import {
   Percent, DollarSign, Scale, Weight, Ruler, User, Users,
   Stamp, Circle, Star, HelpCircle, Search, Filter,
   RefreshCw, Activity, CheckCircle2, XCircle, Timer, Map, PhoneCall,
-  Bookmark, BookmarkCheck, FolderOpen, SaveAll, AddressBook,
-  Copy, Edit, Trash, Check, ChevronDown, ChevronUp
+  Bookmark, SaveAll, Copy, Edit, Trash, Check, ChevronDown, ChevronUp, FolderOpen, AddressBook
 } from "lucide-react";
 import logo from "../assets/logo.png";
-import stampImage from "../assets/stamp.png"; // Add your stamp image here
+import stampImage from "../assets/stamp.png";
 import "./CreateOrder.css";
 
 // ============================================
@@ -163,6 +162,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
       case 'delivered': return 'DELIVERED';
       case 'in_transit': return 'IN TRANSIT';
       case 'out_for_delivery': return 'OUT FOR DELIVERY';
+      case 'picked': return 'PICKED UP';
       default: return 'BOOKED';
     }
   };
@@ -200,6 +200,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
             <span className="awb-value-bold">{awbNumber || "N/A"}</span>
           </div>
           <div className="status-badge-docket">{getStatusText()}</div>
+          <div className="date-value-docket">{new Date().toLocaleDateString('en-IN')}</div>
         </div>
         <div className="header-right-section">
           <img src={logo} alt="FCPL" className="brand-logo-large" />
@@ -300,7 +301,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         )}
       </div>
 
-      {/* Stamp Image instead of old stamp design */}
+      {/* Stamp Image */}
       <div className="stamp-signature-wrapper-new">
         <div className="stamp-image-container">
           <img src={stampImage} alt="Company Stamp" className="official-stamp-image" />
@@ -438,7 +439,6 @@ const DimensionInput = ({ dimensions, setDimensions, setTotalBoxes }) => {
     setDimensionGroups(dimensionGroups.filter(g => g.id !== id));
   };
 
-  // Calculate total boxes count from dimension groups
   const totalBoxes = dimensionGroups.reduce((sum, g) => sum + (parseInt(g.quantity) || 0), 0);
   
   useEffect(() => {
@@ -499,30 +499,37 @@ const DimensionInput = ({ dimensions, setDimensions, setTotalBoxes }) => {
 // ============================================
 // 💾 SAVED ADDRESSES COMPONENT FOR SHIPPER
 // ============================================
-const SavedAddresses = ({ onSelectAddress, onSaveAddress }) => {
+const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [showAddressList, setShowAddressList] = useState(false);
   const [addressName, setAddressName] = useState("");
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [currentAddress, setCurrentAddress] = useState(null);
 
-  // Load saved addresses from localStorage on mount
   useEffect(() => {
     const addresses = JSON.parse(localStorage.getItem('savedShipperAddresses') || '[]');
     setSavedAddresses(addresses);
   }, []);
 
-  const saveAddressToLocal = (addressData, name) => {
+  const saveAddressToLocal = () => {
+    if (!currentAddress.name || !currentAddress.address) {
+      alert("Please fill address details first!");
+      return;
+    }
+    if (!addressName.trim()) {
+      alert("Please enter a name for this address");
+      return;
+    }
+    
     const newAddress = {
       id: Date.now(),
-      name: name,
-      companyName: addressData.name,
-      contact: addressData.contact,
-      address: addressData.address,
-      pincode: addressData.pincode,
-      city: addressData.city,
-      state: addressData.state,
-      gstin: addressData.gstin,
+      name: addressName,
+      companyName: currentAddress.name,
+      contact: currentAddress.contact,
+      address: currentAddress.address,
+      pincode: currentAddress.pincode,
+      city: currentAddress.city,
+      state: currentAddress.state,
+      gstin: currentAddress.gstin,
       createdAt: new Date().toISOString()
     };
     const updated = [...savedAddresses, newAddress];
@@ -555,20 +562,12 @@ const SavedAddresses = ({ onSelectAddress, onSaveAddress }) => {
   return (
     <div className="saved-addresses-container">
       <div className="address-actions-bar">
-        <button 
-          type="button" 
-          className="address-action-btn saved-list-btn"
-          onClick={() => setShowAddressList(!showAddressList)}
-        >
+        <button type="button" className="address-action-btn saved-list-btn" onClick={() => setShowAddressList(!showAddressList)}>
           <AddressBook size={16} />
           {showAddressList ? "Hide Saved Addresses" : "Show Saved Addresses"}
           {showAddressList ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
-        <button 
-          type="button" 
-          className="address-action-btn save-current-btn"
-          onClick={() => setShowSaveModal(true)}
-        >
+        <button type="button" className="address-action-btn save-current-btn" onClick={() => setShowSaveModal(true)}>
           <SaveAll size={16} />
           Save Current Address
         </button>
@@ -603,22 +602,10 @@ const SavedAddresses = ({ onSelectAddress, onSaveAddress }) => {
         <div className="save-address-modal-overlay" onClick={() => setShowSaveModal(false)}>
           <div className="save-address-modal" onClick={e => e.stopPropagation()}>
             <h3><SaveAll size={20} /> Save Consignor Address</h3>
-            <input 
-              type="text" 
-              placeholder="Enter address name (e.g., Office Delhi, Warehouse Mumbai)" 
-              value={addressName}
-              onChange={e => setAddressName(e.target.value)}
-              className="address-name-input"
-            />
+            <input type="text" placeholder="Enter address name (e.g., Office Delhi, Warehouse Mumbai)" value={addressName} onChange={e => setAddressName(e.target.value)} className="address-name-input" />
             <div className="modal-buttons">
               <button className="cancel-btn" onClick={() => setShowSaveModal(false)}>Cancel</button>
-              <button className="save-btn" onClick={() => {
-                if (addressName.trim()) {
-                  saveAddressToLocal(currentAddress || {}, addressName);
-                } else {
-                  alert("Please enter a name for this address");
-                }
-              }}>Save Address</button>
+              <button className="save-btn" onClick={saveAddressToLocal}>Save Address</button>
             </div>
           </div>
         </div>
@@ -672,9 +659,10 @@ export default function CreateOrder() {
           .barcode-canvas { margin: 5px 0; background: white; }
           .lr-number-bold { font-size: 24px; font-weight: 900; color: #d32f2f; font-family: monospace; letter-spacing: 2px; }
           .awb-section { margin-top: 8px; }
-          .awb-label { font-size: 10px; font-weight: 600; color: #475569; margin-right: 8px; }
+          .awb-label { font-size: 10px; font-weight: 600; color: #475569; margin-right: 8px; text-transform: uppercase; }
           .awb-value-bold { font-size: 14px; font-weight: 800; color: #1e293b; }
-          .status-badge-docket { display: inline-block; margin-top: 10px; padding: 3px 12px; border-radius: 20px; font-size: 9px; font-weight: bold; background: #10b981; color: white; }
+          .status-badge-docket { display: inline-block; margin-top: 10px; padding: 4px 14px; border-radius: 20px; font-size: 9px; font-weight: bold; background: #10b981; color: white; }
+          .date-value-docket { font-size: 8px; color: #64748b; margin-top: 8px; }
           .header-right-section { text-align: right; }
           .brand-logo-large { height: 60px; width: auto; margin-bottom: 8px; }
           .company-details h2 { font-size: 14px; font-weight: 900; margin: 0; color: #1a1a2e; }
@@ -746,9 +734,7 @@ export default function CreateOrder() {
           weight: data.weight,
           material: data.material,
           totalValue: data.totalValue,
-          updatedAt: data.updatedAt,
-          currentLocation: data.currentLocation || "In Transit",
-          estimatedDelivery: data.estimatedDelivery || new Date(Date.now() + 3*24*60*60*1000).toISOString()
+          updatedAt: data.updatedAt
         });
       } else {
         alert("Shipment not found!");
@@ -768,7 +754,6 @@ export default function CreateOrder() {
 
   const totalInvoiceValue = useMemo(() => invoices.reduce((s, inv) => s + (parseFloat(inv.value) || 0), 0), [invoices]);
   
-  // Calculate volumetric weight from dimensions with quantity
   const volWeight = useMemo(() => {
     let totalVol = 0;
     dimensions.forEach(dim => {
@@ -934,13 +919,7 @@ export default function CreateOrder() {
               <span className="tracking-badge-enhanced">Real-Time Updates</span>
             </div>
             <div className="tracking-input-group-enhanced">
-              <input 
-                type="text" 
-                placeholder="Enter LR Number (e.g., FCPL0016) or AWB Number" 
-                value={trackingNumber} 
-                onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())} 
-                onKeyPress={(e) => e.key === 'Enter' && handleTrackShipment()} 
-              />
+              <input type="text" placeholder="Enter LR Number (e.g., FCPL0016) or AWB Number" value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())} onKeyPress={(e) => e.key === 'Enter' && handleTrackShipment()} />
               <button onClick={handleTrackShipment} disabled={trackingLoading}>
                 {trackingLoading ? <RefreshCw size={18} className="spin" /> : <Search size={18} />}
                 {trackingLoading ? "Tracking..." : "Track Shipment"}
@@ -989,41 +968,25 @@ export default function CreateOrder() {
                   <div className="tracking-details-grid-enhanced">
                     <div className="detail-item-enhanced">
                       <Weight size={16} />
-                      <div>
-                        <label>Weight</label>
-                        <p>{trackingResult.weight} kg</p>
-                      </div>
+                      <div><label>Weight</label><p>{trackingResult.weight} kg</p></div>
                     </div>
                     <div className="detail-item-enhanced">
                       <Package size={16} />
-                      <div>
-                        <label>Material</label>
-                        <p>{trackingResult.material || 'General Cargo'}</p>
-                      </div>
+                      <div><label>Material</label><p>{trackingResult.material || 'General Cargo'}</p></div>
                     </div>
                     <div className="detail-item-enhanced">
                       <DollarSign size={16} />
-                      <div>
-                        <label>Invoice Value</label>
-                        <p>₹{trackingResult.totalValue?.toLocaleString()}</p>
-                      </div>
+                      <div><label>Invoice Value</label><p>₹{trackingResult.totalValue?.toLocaleString()}</p></div>
                     </div>
                     <div className="detail-item-enhanced">
                       <Timer size={16} />
-                      <div>
-                        <label>Last Updated</label>
-                        <p>{new Date(trackingResult.updatedAt).toLocaleString()}</p>
-                      </div>
+                      <div><label>Last Updated</label><p>{new Date(trackingResult.updatedAt).toLocaleString()}</p></div>
                     </div>
                   </div>
 
                   <div className="tracking-actions-enhanced">
-                    <button className="tracking-close-enhanced" onClick={() => setTrackingResult(null)}>
-                      Close
-                    </button>
-                    <button className="tracking-refresh-enhanced" onClick={handleTrackShipment}>
-                      <RefreshCw size={14} /> Refresh
-                    </button>
+                    <button className="tracking-close-enhanced" onClick={() => setTrackingResult(null)}>Close</button>
+                    <button className="tracking-refresh-enhanced" onClick={handleTrackShipment}><RefreshCw size={14} /> Refresh</button>
                   </div>
                 </div>
               </div>
@@ -1034,58 +997,28 @@ export default function CreateOrder() {
         <div className="two-column-form">
           <div className="left-form-col">
             <div className="form-section">
-              <div className="section-heading">
-                <MapPin size={18} color="#d32f2f" /> Consignor (Sender)
-              </div>
+              <div className="section-heading"><MapPin size={18} color="#d32f2f" /> Consignor (Sender)</div>
               <div className="section-body">
-                <SavedAddresses 
-                  onSelectAddress={handleSelectSavedAddress} 
-                  onSaveAddress={() => {}} 
-                  currentAddress={pickup}
-                />
+                <SavedAddresses onSelectAddress={handleSelectSavedAddress} currentAddress={pickup} />
                 <div className="form-row">
-                  <div className="form-field">
-                    <label>Company / Name *</label>
-                    <input value={pickup.name} onChange={e => setPickup({...pickup, name: e.target.value.toUpperCase()})} placeholder="Enter sender name" />
-                  </div>
-                  <div className="form-field">
-                    <label>Mobile Number *</label>
-                    <input type="tel" maxLength={10} value={pickup.contact} onChange={e => setPickup({...pickup, contact: e.target.value})} placeholder="10 digit mobile" />
-                  </div>
+                  <div className="form-field"><label>Company / Name *</label><input value={pickup.name} onChange={e => setPickup({...pickup, name: e.target.value.toUpperCase()})} placeholder="Enter sender name" /></div>
+                  <div className="form-field"><label>Mobile Number *</label><input type="tel" maxLength={10} value={pickup.contact} onChange={e => setPickup({...pickup, contact: e.target.value})} placeholder="10 digit mobile" /></div>
                 </div>
-                <div className="form-field full-width">
-                  <label>Full Address *</label>
-                  <textarea rows={2} value={pickup.address} onChange={e => setPickup({...pickup, address: e.target.value})} placeholder="House No, Street, Area" />
-                </div>
+                <div className="form-field full-width"><label>Full Address *</label><textarea rows={2} value={pickup.address} onChange={e => setPickup({...pickup, address: e.target.value})} placeholder="House No, Street, Area" /></div>
                 <div className="form-row">
-                  <div className="form-field">
-                    <label>Pincode *</label>
-                    <input maxLength={6} value={pickup.pincode} onChange={e => { setPickup({...pickup, pincode: e.target.value}); fetchLocation(e.target.value, 'pickup'); }} placeholder="6 digit" />
-                  </div>
-                  <div className="form-field">
-                    <label>City & State</label>
-                    <input className="readonly-field" value={pickup.city ? `${pickup.city}, ${pickup.state}` : ""} readOnly />
-                  </div>
+                  <div className="form-field"><label>Pincode *</label><input maxLength={6} value={pickup.pincode} onChange={e => { setPickup({...pickup, pincode: e.target.value}); fetchLocation(e.target.value, 'pickup'); }} placeholder="6 digit" /></div>
+                  <div className="form-field"><label>City & State</label><input className="readonly-field" value={pickup.city ? `${pickup.city}, ${pickup.state}` : ""} readOnly /></div>
                 </div>
-                <div className="form-field">
-                  <label>GSTIN (Optional)</label>
-                  <input value={pickup.gstin} onChange={e => setPickup({...pickup, gstin: e.target.value.toUpperCase()})} placeholder="15 digit GSTIN" maxLength={15} />
-                </div>
+                <div className="form-field"><label>GSTIN (Optional)</label><input value={pickup.gstin} onChange={e => setPickup({...pickup, gstin: e.target.value.toUpperCase()})} placeholder="15 digit GSTIN" maxLength={15} /></div>
               </div>
             </div>
 
             <div className="form-section">
               <div className="section-heading"><Truck size={18} color="#d32f2f" /> Consignee (Receiver)</div>
               <div className="section-body">
-                <div className="form-row">
-                  <div className="form-field"><label>Receiver Name *</label><input value={delivery.name} onChange={e => setDelivery({...delivery, name: e.target.value.toUpperCase()})} placeholder="Enter receiver name" /></div>
-                  <div className="form-field"><label>Mobile Number *</label><input type="tel" maxLength={10} value={delivery.contact} onChange={e => setDelivery({...delivery, contact: e.target.value})} placeholder="10 digit mobile" /></div>
-                </div>
+                <div className="form-row"><div className="form-field"><label>Receiver Name *</label><input value={delivery.name} onChange={e => setDelivery({...delivery, name: e.target.value.toUpperCase()})} placeholder="Enter receiver name" /></div><div className="form-field"><label>Mobile Number *</label><input type="tel" maxLength={10} value={delivery.contact} onChange={e => setDelivery({...delivery, contact: e.target.value})} placeholder="10 digit mobile" /></div></div>
                 <div className="form-field full-width"><label>Full Address *</label><textarea rows={2} value={delivery.address} onChange={e => setDelivery({...delivery, address: e.target.value})} placeholder="House No, Street, Area" /></div>
-                <div className="form-row">
-                  <div className="form-field"><label>Pincode *</label><input maxLength={6} value={delivery.pincode} onChange={e => { setDelivery({...delivery, pincode: e.target.value}); fetchLocation(e.target.value, 'delivery'); }} placeholder="6 digit" /></div>
-                  <div className="form-field"><label>City & State</label><input className="readonly-field" value={delivery.city ? `${delivery.city}, ${delivery.state}` : ""} readOnly /></div>
-                </div>
+                <div className="form-row"><div className="form-field"><label>Pincode *</label><input maxLength={6} value={delivery.pincode} onChange={e => { setDelivery({...delivery, pincode: e.target.value}); fetchLocation(e.target.value, 'delivery'); }} placeholder="6 digit" /></div><div className="form-field"><label>City & State</label><input className="readonly-field" value={delivery.city ? `${delivery.city}, ${delivery.state}` : ""} readOnly /></div></div>
                 <div className="form-field"><label>GSTIN (Optional)</label><input value={delivery.gstin} onChange={e => setDelivery({...delivery, gstin: e.target.value.toUpperCase()})} placeholder="15 digit GSTIN" maxLength={15} /></div>
               </div>
             </div>
@@ -1103,44 +1036,20 @@ export default function CreateOrder() {
                   <button type="button" className={`mode-option ${bookingMode === 'rail' ? 'active' : ''}`} onClick={() => setBookingMode('rail')}><Train size={16} /> Rail</button>
                   <button type="button" className={`mode-option ${bookingMode === 'express' ? 'active' : ''}`} onClick={() => setBookingMode('express')}><TrendingUp size={16} /> Express</button>
                 </div></div>
-                <div className="form-row">
-                  <div className="form-field"><label>Actual Weight (Kg) *</label><input type="number" step="0.1" value={orderDetails.weight} onChange={e => setOrderDetails({...orderDetails, weight: e.target.value})} placeholder="Weight" /></div>
-                </div>
+                <div className="form-row"><div className="form-field"><label>Actual Weight (Kg) *</label><input type="number" step="0.1" value={orderDetails.weight} onChange={e => setOrderDetails({...orderDetails, weight: e.target.value})} placeholder="Weight" /></div></div>
                 
-                {/* Dimension Input with Quantity */}
-                <DimensionInput 
-                  dimensions={dimensions} 
-                  setDimensions={setDimensions} 
-                  setTotalBoxes={setTotalPackages}
-                />
+                <DimensionInput dimensions={dimensions} setDimensions={setDimensions} setTotalBoxes={setTotalPackages} />
                 
-                <div className="weight-summary">
-                  <span>Volumetric Weight: <strong>{volWeight} kg</strong></span>
-                  <span>Charged Weight: <strong>{chargedWeight} kg</strong></span>
-                </div>
+                <div className="weight-summary"><span>Volumetric Weight: <strong>{volWeight} kg</strong></span><span>Charged Weight: <strong>{chargedWeight} kg</strong></span></div>
               </div>
             </div>
 
             <div className="form-section">
-              <div className="section-heading between">
-                <div><FileText size={18} color="#d32f2f" /> Invoice Details</div>
-                <button className="add-invoice-btn" onClick={() => setInvoices([...invoices, { id: Date.now(), no: "", value: "" }])}><Plus size={14} /> Add</button>
-              </div>
+              <div className="section-heading between"><div><FileText size={18} color="#d32f2f" /> Invoice Details</div><button className="add-invoice-btn" onClick={() => setInvoices([...invoices, { id: Date.now(), no: "", value: "" }])}><Plus size={14} /> Add</button></div>
               <div className="section-body">
-                {invoices.map(inv => (
-                  <div key={inv.id} className="invoice-input-row">
-                    <input placeholder="Invoice No" value={inv.no} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, no: e.target.value.toUpperCase()} : i))} />
-                    <input type="number" placeholder="Value ₹" value={inv.value} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, value: e.target.value} : i))} />
-                    <button className="remove-invoice-btn" onClick={() => setInvoices(invoices.filter(i => i.id !== inv.id))}><Trash2 size={14} /></button>
-                  </div>
-                ))}
+                {invoices.map(inv => (<div key={inv.id} className="invoice-input-row"><input placeholder="Invoice No" value={inv.no} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, no: e.target.value.toUpperCase()} : i))} /><input type="number" placeholder="Value ₹" value={inv.value} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, value: e.target.value} : i))} /><button className="remove-invoice-btn" onClick={() => setInvoices(invoices.filter(i => i.id !== inv.id))}><Trash2 size={14} /></button></div>))}
                 <InvoiceUpload onUpload={(files) => console.log("Uploaded:", files)} uploadedFiles={uploadedFiles} setUploadedFiles={setUploadedFiles} />
-                {needsEwayBill && (
-                  <div className="eway-alert">
-                    <div className="eway-header"><AlertCircle size={16} /> E-WAY BILL REQUIRED</div>
-                    <input className="eway-input-field" value={ewayBill} onChange={e => setEwayBill(e.target.value.toUpperCase())} placeholder="12 DIGIT E-WAY BILL NO." maxLength={12} />
-                  </div>
-                )}
+                {needsEwayBill && (<div className="eway-alert"><div className="eway-header"><AlertCircle size={16} /> E-WAY BILL REQUIRED</div><input className="eway-input-field" value={ewayBill} onChange={e => setEwayBill(e.target.value.toUpperCase())} placeholder="12 DIGIT E-WAY BILL NO." maxLength={12} /></div>)}
                 <RealTimeFreightCalculator weight={chargedWeight} origin={pickup.pincode} destination={delivery.pincode} bookingMode={bookingMode} onCalculate={setFreightData} />
                 <div className="settings-panel">
                   <div className="setting-row"><label>Manual LR Number</label><button className={`toggle-switch ${isManualLR ? 'on' : 'off'}`} onClick={() => setIsManualLR(!isManualLR)}>{isManualLR ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}{isManualLR ? 'Manual ON' : 'Auto'}</button></div>
@@ -1150,44 +1059,15 @@ export default function CreateOrder() {
               </div>
             </div>
 
-            <button className={`generate-btn ${loading ? 'loading-state' : ''}`} onClick={handleCreateOrder} disabled={loading}>
-              {loading ? <Clock size={20} className="spin" /> : <Crown size={20} />}
-              {loading ? "Generating LR..." : "Generate Consignment Note"}
-              <ChevronRight size={18} />
-            </button>
+            <button className={`generate-btn ${loading ? 'loading-state' : ''}`} onClick={handleCreateOrder} disabled={loading}>{loading ? <Clock size={20} className="spin" /> : <Crown size={20} />}{loading ? "Generating LR..." : "Generate Consignment Note"}<ChevronRight size={18} /></button>
           </div>
         </div>
 
-        {showLR && (
-          <div className="modal-overlay" onClick={() => setShowLR(false)}>
-            <div className="modal-dialog" onClick={e => e.stopPropagation()}>
-              <div className="modal-icon"><CheckCircle size={60} color="#10b981" /></div>
-              <h2>Consignment Generated!</h2>
-              <div className="modal-lr-number">{isManualLR ? manualLRNumber : lrNumber}</div>
-              <div className="modal-awb-number">AWB: {awbNumber}</div>
-              <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-                <PrintDocket 
-                  ref={printDocketRef} 
-                  data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight, dimensions}} 
-                  lrNumber={isManualLR ? manualLRNumber : lrNumber} 
-                  totalValue={totalInvoiceValue} 
-                  ewayBill={ewayBill} 
-                  awbNumber={awbNumber} 
-                  bookingMode={bookingMode} 
-                  showFreight={showFreightOnDocket} 
-                  freightData={freightData} 
-                  status={shipmentStatus} 
-                  uploadedInvoices={uploadedFiles} 
-                />
-              </div>
-              <div className="modal-buttons">
-                <button className="modal-btn print-btn" onClick={handlePrintDocket}><Printer size={16} /> Print Docket</button>
-                <button className="modal-btn view-btn" onClick={() => window.location.href='/shipments'}><Eye size={16} /> View All</button>
-                <button className="modal-btn new-btn" onClick={() => window.location.reload()}><Plus size={16} /> New</button>
-              </div>
-            </div>
-          </div>
-        )}
+        {showLR && (<div className="modal-overlay" onClick={() => setShowLR(false)}><div className="modal-dialog" onClick={e => e.stopPropagation()}>
+          <div className="modal-icon"><CheckCircle size={60} color="#10b981" /></div><h2>Consignment Generated!</h2><div className="modal-lr-number">{isManualLR ? manualLRNumber : lrNumber}</div><div className="modal-awb-number">AWB: {awbNumber}</div>
+          <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}><PrintDocket ref={printDocketRef} data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight, dimensions}} lrNumber={isManualLR ? manualLRNumber : lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill} awbNumber={awbNumber} bookingMode={bookingMode} showFreight={showFreightOnDocket} freightData={freightData} status={shipmentStatus} uploadedInvoices={uploadedFiles} /></div>
+          <div className="modal-buttons"><button className="modal-btn print-btn" onClick={handlePrintDocket}><Printer size={16} /> Print Docket</button><button className="modal-btn view-btn" onClick={() => window.location.href='/shipments'}><Eye size={16} /> View All</button><button className="modal-btn new-btn" onClick={() => window.location.reload()}><Plus size={16} /> New</button></div>
+        </div></div>)}
       </main>
     </div>
   );
