@@ -5,10 +5,10 @@ import {
   Plus, Trash2, ChevronDown, ChevronUp, CheckCircle,
   AlertCircle, Zap, Award, Crown, FileText, Receipt,
   Percent, Scale, Fuel, Landmark, Building, Phone,
-  Mail, Globe, Star, Users, Settings, HelpCircle
+  Mail, Globe, Star, Users, Settings, HelpCircle,
+  X, Calculator, ArrowRight, Warehouse, Navigation
 } from "lucide-react";
 import "./B2BRateCalculator.css";
-import logo from "../assets/logo.png";
 
 function B2BRateCalculator() {
   const [form, setForm] = useState({
@@ -32,6 +32,7 @@ function B2BRateCalculator() {
   const [loading, setLoading] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [activeTab, setActiveTab] = useState("surface");
+  const [savedAddresses, setSavedAddresses] = useState([]);
 
   // INPUT HANDLER
   const handleChange = (e) => {
@@ -95,13 +96,15 @@ function B2BRateCalculator() {
         body: JSON.stringify({
           origin: form.origin,
           destination: form.destination,
-          weight: chargeableWeight,
+          weight: actualWeight,
           invoiceValue: Number(form.invoiceValue),
           insurance: form.insurance,
           appointment: form.appointment,
           dimensions: dimensions,
           fragile: form.fragile,
-          express: form.express
+          express: form.express,
+          paymentMode: form.paymentMode,
+          codAmount: Number(form.codAmount)
         })
       });
 
@@ -149,7 +152,8 @@ function B2BRateCalculator() {
         appointment: appointmentVal,
         total: total.toFixed(2),
         totalQty,
-        paymentMode: form.paymentMode
+        paymentMode: form.paymentMode,
+        transitTime: data.transit_time || "2-4 days"
       });
 
     } catch (err) {
@@ -177,13 +181,29 @@ function B2BRateCalculator() {
     setResult(null);
   };
 
+  const quickFillExample = () => {
+    setForm({
+      origin: "110001",
+      destination: "400001",
+      weight: "25.5",
+      invoiceValue: "50000",
+      codAmount: "",
+      paymentMode: "Prepaid", 
+      insurance: false,
+      appointment: false,
+      fragile: false,
+      express: false
+    });
+    setDimensions([{ qty: 2, length: "50", width: "40", height: "30" }]);
+  };
+
   return (
     <div className="b2b-container">
       {/* Header Section */}
       <div className="b2b-header">
         <div className="header-content">
           <div className="logo-area">
-            <img src={logo} alt="Faith Cargo" className="header-logo" />
+            <div className="logo-icon">FC</div>
             <div className="logo-text">
               <h1>Faith Cargo</h1>
               <span>Logistics Pvt. Ltd.</span>
@@ -196,7 +216,11 @@ function B2BRateCalculator() {
             </div>
             <div className="badge">
               <Star size={16} />
-              <span>Trusted Partner</span>
+              <span>4.9 Rating</span>
+            </div>
+            <div className="badge">
+              <Users size={16} />
+              <span>500+ Clients</span>
             </div>
           </div>
         </div>
@@ -206,7 +230,7 @@ function B2BRateCalculator() {
         </div>
       </div>
 
-      {/* Tab Section */}
+      {/* Tabs */}
       <div className="b2b-tabs">
         <button 
           className={`tab-btn ${activeTab === 'surface' ? 'active' : ''}`}
@@ -238,6 +262,10 @@ function B2BRateCalculator() {
             <div className="card-header">
               <h3>Shipment Details</h3>
               <p>Fill the information below to get accurate quote</p>
+              <button className="quick-fill-btn" onClick={quickFillExample}>
+                <Zap size={14} />
+                Quick Fill Example
+              </button>
             </div>
 
             {/* Route Section */}
@@ -330,6 +358,7 @@ function B2BRateCalculator() {
                       placeholder="e.g., 25.5" 
                       value={form.weight}
                       onChange={handleChange}
+                      step="0.1"
                     />
                   </div>
                 </div>
@@ -445,7 +474,7 @@ function B2BRateCalculator() {
                   <span><i className="fas fa-spinner fa-spin"></i> Calculating...</span>
                 ) : (
                   <>
-                    <TrendingUp size={18} />
+                    <Calculator size={18} />
                     Get Live Quote
                   </>
                 )}
@@ -500,7 +529,7 @@ function B2BRateCalculator() {
                   </div>
                   <div className="summary-info">
                     <label>Transit Time</label>
-                    <strong>{result.transit_time || '2-4'} Days</strong>
+                    <strong>{result.transitTime}</strong>
                     <small>Estimated delivery</small>
                   </div>
                 </div>
@@ -589,13 +618,14 @@ function B2BRateCalculator() {
                 </div>
                 <button className="btn-proceed" onClick={() => window.location.href = '/create-order'}>
                   Proceed to Booking
+                  <ArrowRight size={16} />
                 </button>
               </div>
             </div>
           ) : (
             <div className="empty-state">
               <div className="empty-icon">
-                <Truck size={64} />
+                <Calculator size={64} />
               </div>
               <h3>Ready to calculate?</h3>
               <p>Fill in the shipment details on the left and click "Get Live Quote" to see your freight estimate.</p>
@@ -613,6 +643,10 @@ function B2BRateCalculator() {
                   <span>No hidden charges</span>
                 </div>
               </div>
+              <button className="example-btn" onClick={quickFillExample}>
+                <Zap size={16} />
+                Try Example
+              </button>
             </div>
           )}
         </div>
@@ -622,7 +656,7 @@ function B2BRateCalculator() {
       <div className="b2b-footer">
         <div className="footer-content">
           <div className="footer-logo">
-            <img src={logo} alt="Faith Cargo" height="30" />
+            <div className="logo-icon-small">FC</div>
             <span>Faith Cargo Logistics Pvt. Ltd.</span>
           </div>
           <div className="footer-links">
@@ -636,6 +670,9 @@ function B2BRateCalculator() {
             <Mail size={14} />
             <span>care@faithcargo.com</span>
           </div>
+        </div>
+        <div className="footer-copyright">
+          <p>&copy; 2024 Faith Cargo Logistics Pvt. Ltd. All rights reserved.</p>
         </div>
       </div>
     </div>
