@@ -1,6 +1,6 @@
 /* ============================================
-   FAITH CARGO - CREATE ORDER PAGE v8.0
-   PREMIUM UI DESIGN - ENHANCED TRACKING & DIMENSIONS
+   FAITH CARGO - CREATE ORDER PAGE v9.0
+   ULTIMATE PREMIUM UI DESIGN - FULLY OPTIMIZED
    ============================================ */
 
 /* --------------------------------------------
@@ -62,7 +62,7 @@ body {
 }
 
 /* --------------------------------------------
-   2. SCROLLBAR STYLES
+   2. SCROLLBAR STYLES - PREMIUM
    -------------------------------------------- */
 ::-webkit-scrollbar {
   width: 8px;
@@ -75,13 +75,13 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: linear-gradient(135deg, #cbd5e1, #94a3b8);
   border-radius: 10px;
   transition: var(--transition);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--primary-red);
+  background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
 }
 
 /* --------------------------------------------
@@ -94,11 +94,12 @@ body {
 }
 
 /* --------------------------------------------
-   4. SIDEBAR STYLES - PREMIUM
+   4. SIDEBAR STYLES - PREMIUM GLASSMORPHISM
    -------------------------------------------- */
 .order-sidebar {
   width: 280px;
-  background: linear-gradient(180deg, var(--dark-bg) 0%, var(--dark-bg-light) 100%);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.98) 100%);
+  backdrop-filter: blur(10px);
   color: white;
   padding: 28px 20px;
   display: flex;
@@ -108,7 +109,7 @@ body {
   height: 100vh;
   z-index: 100;
   box-shadow: 4px 0 30px rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-logo {
@@ -118,6 +119,17 @@ body {
   padding-bottom: 24px;
   margin-bottom: 24px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.sidebar-logo::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 50px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary-red), transparent);
 }
 
 .sidebar-logo img {
@@ -192,6 +204,10 @@ body {
   box-shadow: 0 4px 15px rgba(211, 47, 47, 0.4);
 }
 
+.nav-link.active::before {
+  display: none;
+}
+
 .sidebar-help {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
   padding: 20px;
@@ -206,6 +222,7 @@ body {
 .sidebar-help:hover {
   transform: translateY(-3px);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .sidebar-help p {
@@ -230,7 +247,7 @@ body {
   margin: 0 auto;
 }
 
-/* Page Header */
+/* Page Header - Premium */
 .page-title-section {
   display: flex;
   justify-content: space-between;
@@ -241,7 +258,14 @@ body {
   background: white;
   padding: 20px 28px;
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  transition: var(--transition);
+}
+
+.page-title-section:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
 }
 
 .page-title-section h1 {
@@ -332,10 +356,11 @@ body {
 }
 
 /* --------------------------------------------
-   7. FORM CARDS - PREMIUM
+   7. FORM CARDS - PREMIUM GLASS DESIGN
    -------------------------------------------- */
 .form-section {
-  background: white;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
   border-radius: var(--radius-xl);
   overflow: hidden;
   margin-bottom: 24px;
@@ -347,6 +372,7 @@ body {
 .form-section:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-lg);
+  border-color: var(--primary-red-light);
 }
 
 .section-heading {
@@ -1927,10 +1953,12 @@ body {
   margin-bottom: 6px;
 }
 
-.barcode-canvas {
+.barcode-image {
   margin: 6px 0;
   background: white;
   display: block;
+  width: 280px;
+  height: auto;
 }
 
 .lr-number-bold {
@@ -1946,7 +1974,7 @@ body {
 }
 
 .awb-label {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-gray);
   margin-right: 10px;
@@ -1968,6 +1996,12 @@ body {
   font-weight: bold;
   background: linear-gradient(135deg, var(--success), #059669);
   color: white;
+}
+
+.date-value-docket {
+  font-size: 9px;
+  color: var(--text-gray);
+  margin-top: 8px;
 }
 
 .header-right-section {
@@ -2005,7 +2039,7 @@ body {
 }
 
 /* --------------------------------------------
-   20. STAMP IMAGE STYLES - PREMIUM
+   20. STAMP IMAGE STYLES - PREMIUM WITH FALLBACK
    -------------------------------------------- */
 .stamp-signature-wrapper-new {
   display: flex;
@@ -2033,6 +2067,83 @@ body {
   object-fit: contain;
   opacity: 0.9;
   filter: drop-shadow(0 2px 5px rgba(0,0,0,0.1));
+}
+
+/* Stamp Fallback Styles */
+.official-stamp-fallback {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.official-stamp-fallback .stamp-circle {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.official-stamp-fallback .stamp-outer-ring {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 2.5px solid var(--primary-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(37, 99, 235, 0.02);
+  position: relative;
+}
+
+.official-stamp-fallback .stamp-outer-ring::before {
+  content: '';
+  position: absolute;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  border: 1px dashed var(--primary-blue);
+  opacity: 0.6;
+}
+
+.official-stamp-fallback .stamp-inner-content {
+  text-align: center;
+  z-index: 2;
+}
+
+.official-stamp-fallback .stamp-title {
+  font-size: 9px;
+  font-weight: 900;
+  color: var(--primary-blue);
+  display: block;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.official-stamp-fallback .stamp-sub {
+  font-size: 7px;
+  font-weight: 800;
+  color: var(--primary-blue);
+  display: block;
+  margin-top: 2px;
+}
+
+.official-stamp-fallback .stamp-line {
+  width: 22px;
+  height: 1.5px;
+  background: var(--primary-blue);
+  margin: 4px auto;
+}
+
+.official-stamp-fallback .stamp-auth {
+  font-size: 6px;
+  font-weight: 700;
+  color: var(--primary-blue);
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .signature-area {
@@ -2097,12 +2208,9 @@ body {
     margin: 8mm;
   }
   
-  .official-stamp-image {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
-  
-  .barcode-canvas {
+  .official-stamp-image,
+  .official-stamp-fallback,
+  .barcode-image {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
@@ -2314,6 +2422,7 @@ body {
 .text-left { text-align: left; }
 .text-red { color: var(--primary-red); }
 
+/* Animations */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(30px); }
   to { opacity: 1; transform: translateY(0); }
@@ -2327,4 +2436,38 @@ body {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* Loading Animation */
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Success Animation */
+@keyframes checkmark {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Hover Effects */
+.hover-lift {
+  transition: var(--transition);
+}
+
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Glass Morphism Effect */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }

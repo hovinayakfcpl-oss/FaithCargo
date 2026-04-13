@@ -13,12 +13,41 @@ import {
   Stamp, Circle, Star, HelpCircle, Search, Filter,
   RefreshCw, Activity, CheckCircle2, XCircle, Timer, Map, PhoneCall,
   Bookmark, SaveAll, Copy, Edit, Trash, Check, ChevronDown, ChevronUp, 
-  FolderOpen, UserPlus, Users as UsersIcon, Mail as MailIcon,
-  Phone as PhoneIcon, MapPin as MapPinIcon, Building as BuildingIcon
+  FolderOpen
 } from "lucide-react";
 import logo from "../assets/logo.png";
-import stampImage from "../assets/stamp.png";
 import "./CreateOrder.css";
+
+// Stamp Image Component with fallback
+const StampImage = () => {
+  const [imgError, setImgError] = useState(false);
+  
+  if (imgError) {
+    return (
+      <div className="official-stamp-fallback">
+        <div className="stamp-circle">
+          <div className="stamp-outer-ring">
+            <div className="stamp-inner-content">
+              <span className="stamp-title">FAITH CARGO</span>
+              <span className="stamp-sub">PVT LTD</span>
+              <div className="stamp-line"></div>
+              <span className="stamp-auth">AUTHORIZED</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <img 
+      src={require("../assets/stamp.png")} 
+      alt="Company Stamp" 
+      className="official-stamp-image"
+      onError={() => setImgError(true)}
+    />
+  );
+};
 
 // ============================================
 // 💰 REAL FREIGHT CALCULATOR
@@ -119,10 +148,11 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
 };
 
 // ============================================
-// 🎨 DOCKET COMPONENT - UPGRADED WITH LR/AWB LEFT, LOGO RIGHT, STAMP IMAGE
+// 🎨 DOCKET COMPONENT - WITH AWB: NUMBER FORMAT
 // ============================================
 const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData, status, uploadedInvoices }, ref) => {
   const barcodeRef = useRef(null);
+  const [barcodeImageUrl, setBarcodeImageUrl] = useState("");
   
   useEffect(() => {
     if (lrNumber && barcodeRef.current) {
@@ -144,6 +174,9 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
           background: "#ffffff",
           lineColor: "#000000"
         });
+        
+        const imageUrl = canvas.toDataURL("image/png");
+        setBarcodeImageUrl(imageUrl);
       } catch (err) {
         console.error("Barcode error:", err);
       }
@@ -178,7 +211,6 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
     chargedWeight: data?.chargedWeight || 0
   };
 
-  // Format dimensions for display
   const getDimensionsText = () => {
     if (!safeData.orderDetails.dimensions || safeData.orderDetails.dimensions.length === 0) return "—";
     return safeData.orderDetails.dimensions.map(d => 
@@ -191,14 +223,17 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
       <div className="docket-watermark">FCPL</div>
       <div className="docket-inner-border"></div>
       
-      {/* Professional Header - LR & AWB Left Side with Bold Barcode, Logo & Company Right Side */}
+      <canvas ref={barcodeRef} style={{ display: 'none' }} width="300" height="75"></canvas>
+      
       <div className="docket-header-new">
         <div className="header-left-section">
           <div className="lr-label">CONSIGNMENT NOTE</div>
-          <canvas ref={barcodeRef} className="barcode-canvas" width="280" height="70"></canvas>
+          {barcodeImageUrl && (
+            <img src={barcodeImageUrl} alt="Barcode" className="barcode-image" />
+          )}
           <div className="lr-number-bold">{lrNumber || "DRAFT"}</div>
           <div className="awb-section">
-            <span className="awb-label">AWB NUMBER:</span>
+            <span className="awb-label">AWB:</span>
             <span className="awb-value-bold">{awbNumber || "N/A"}</span>
           </div>
           <div className="status-badge-docket">{getStatusText()}</div>
@@ -218,7 +253,6 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </div>
       </div>
 
-      {/* Sender & Receiver Section */}
       <div className="parties-container">
         <div className="party sender">
           <div className="party-title">
@@ -255,7 +289,6 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </div>
       </div>
 
-      {/* Shipment Details Table with Dimensions */}
       <div className="shipment-wrapper">
         <table className="shipment-data-table">
           <thead>
@@ -276,7 +309,6 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </table>
       </div>
 
-      {/* Invoice & Freight Section */}
       <div className="billing-wrapper">
         <div className="invoice-section">
           <div className="section-header">INVOICE DETAILS</div>
@@ -303,10 +335,9 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         )}
       </div>
 
-      {/* Stamp Image */}
       <div className="stamp-signature-wrapper-new">
         <div className="stamp-image-container">
-          <img src={stampImage} alt="Company Stamp" className="official-stamp-image" />
+          <StampImage />
         </div>
         <div className="signature-area">
           <div className="signature-line-item"><div className="sign-line"></div><p>Receiver's Signature</p></div>
@@ -314,7 +345,6 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </div>
       </div>
 
-      {/* Company Instructions */}
       <div className="company-instructions">
         <h4>📋 IMPORTANT INSTRUCTIONS</h4>
         <div className="instructions-grid">
@@ -325,7 +355,6 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </div>
       </div>
 
-      {/* Terms & Conditions */}
       <div className="terms-wrapper">
         <h4>TERMS & CONDITIONS</h4>
         <ul>
@@ -336,7 +365,6 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </ul>
       </div>
 
-      {/* Footer */}
       <div className="docket-footer">
         <div className="footer-copies"><span>📄 ORIGINAL - CONSIGNOR</span><span>📄 DUPLICATE - CONSIGNEE</span><span>📄 TRIPLICATE - OFFICE</span></div>
         <div className="footer-website"><span>🌐 www.faithcargo.com</span><span>📞 9818641504</span><span>✉️ care@faithcargo.com</span></div>
@@ -499,7 +527,7 @@ const DimensionInput = ({ dimensions, setDimensions, setTotalBoxes }) => {
 };
 
 // ============================================
-// 💾 SAVED ADDRESSES COMPONENT FOR SHIPPER (FIXED)
+// 💾 SAVED ADDRESSES COMPONENT FOR SHIPPER
 // ============================================
 const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
   const [savedAddresses, setSavedAddresses] = useState([]);
@@ -564,20 +592,12 @@ const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
   return (
     <div className="saved-addresses-container">
       <div className="address-actions-bar">
-        <button 
-          type="button" 
-          className="address-action-btn saved-list-btn"
-          onClick={() => setShowAddressList(!showAddressList)}
-        >
-          <FolderOpen size={16} />  {/* Using FolderOpen instead of AddressBook */}
+        <button type="button" className="address-action-btn saved-list-btn" onClick={() => setShowAddressList(!showAddressList)}>
+          <FolderOpen size={16} />
           {showAddressList ? "Hide Saved Addresses" : "Show Saved Addresses"}
           {showAddressList ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
-        <button 
-          type="button" 
-          className="address-action-btn save-current-btn"
-          onClick={() => setShowSaveModal(true)}
-        >
+        <button type="button" className="address-action-btn save-current-btn" onClick={() => setShowSaveModal(true)}>
           <SaveAll size={16} />
           Save Current Address
         </button>
@@ -612,13 +632,7 @@ const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
         <div className="save-address-modal-overlay" onClick={() => setShowSaveModal(false)}>
           <div className="save-address-modal" onClick={e => e.stopPropagation()}>
             <h3><SaveAll size={20} /> Save Consignor Address</h3>
-            <input 
-              type="text" 
-              placeholder="Enter address name (e.g., Office Delhi, Warehouse Mumbai)" 
-              value={addressName}
-              onChange={e => setAddressName(e.target.value)}
-              className="address-name-input"
-            />
+            <input type="text" placeholder="Enter address name (e.g., Office Delhi, Warehouse Mumbai)" value={addressName} onChange={e => setAddressName(e.target.value)} className="address-name-input" />
             <div className="modal-buttons">
               <button className="cancel-btn" onClick={() => setShowSaveModal(false)}>Cancel</button>
               <button className="save-btn" onClick={saveAddressToLocal}>Save Address</button>
@@ -672,10 +686,10 @@ export default function CreateOrder() {
           .docket-header-new { display: flex; justify-content: space-between; padding: 15px 20px; border-bottom: 3px solid #d32f2f; background: white; position: relative; z-index: 2; }
           .header-left-section { text-align: left; }
           .lr-label { font-size: 10px; font-weight: bold; color: #64748b; letter-spacing: 1px; margin-bottom: 5px; }
-          .barcode-canvas { margin: 5px 0; background: white; }
+          .barcode-image { margin: 5px 0; background: white; width: 280px; height: auto; }
           .lr-number-bold { font-size: 24px; font-weight: 900; color: #d32f2f; font-family: monospace; letter-spacing: 2px; }
           .awb-section { margin-top: 8px; }
-          .awb-label { font-size: 10px; font-weight: 600; color: #475569; margin-right: 8px; text-transform: uppercase; }
+          .awb-label { font-size: 12px; font-weight: 700; color: #475569; margin-right: 8px; }
           .awb-value-bold { font-size: 14px; font-weight: 800; color: #1e293b; }
           .status-badge-docket { display: inline-block; margin-top: 10px; padding: 4px 14px; border-radius: 20px; font-size: 9px; font-weight: bold; background: #10b981; color: white; }
           .date-value-docket { font-size: 8px; color: #64748b; margin-top: 8px; }
@@ -706,6 +720,12 @@ export default function CreateOrder() {
           .stamp-signature-wrapper-new { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; margin: 15px 0; position: relative; z-index: 2; }
           .stamp-image-container { width: 120px; height: 120px; }
           .official-stamp-image { width: 100%; height: auto; object-fit: contain; }
+          .official-stamp-fallback { width: 100px; height: 100px; }
+          .stamp-outer-ring { width: 85px; height: 85px; border-radius: 50%; border: 2.5px solid #2563eb; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
+          .stamp-title { font-size: 9px; font-weight: 800; color: #2563eb; }
+          .stamp-sub { font-size: 7px; font-weight: 700; color: #2563eb; }
+          .stamp-line { width: 20px; height: 1px; background: #2563eb; margin: 3px auto; }
+          .stamp-auth { font-size: 6px; font-weight: 600; color: #2563eb; }
           .sign-line { width: 80px; border-top: 1px solid #0f172a; margin-bottom: 4px; }
           .stamp-box { border: 1px dashed #d32f2f; padding: 5px 10px; font-size: 7px; font-weight: bold; background: #fff1f2; border-radius: 4px; }
           .company-instructions { margin: 0 20px 15px 20px; padding: 12px; background: #f0fdf4; border-radius: 8px; border-left: 3px solid #10b981; position: relative; z-index: 2; }
@@ -1080,9 +1100,17 @@ export default function CreateOrder() {
         </div>
 
         {showLR && (<div className="modal-overlay" onClick={() => setShowLR(false)}><div className="modal-dialog" onClick={e => e.stopPropagation()}>
-          <div className="modal-icon"><CheckCircle size={60} color="#10b981" /></div><h2>Consignment Generated!</h2><div className="modal-lr-number">{isManualLR ? manualLRNumber : lrNumber}</div><div className="modal-awb-number">AWB: {awbNumber}</div>
-          <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}><PrintDocket ref={printDocketRef} data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight, dimensions}} lrNumber={isManualLR ? manualLRNumber : lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill} awbNumber={awbNumber} bookingMode={bookingMode} showFreight={showFreightOnDocket} freightData={freightData} status={shipmentStatus} uploadedInvoices={uploadedFiles} /></div>
-          <div className="modal-buttons"><button className="modal-btn print-btn" onClick={handlePrintDocket}><Printer size={16} /> Print Docket</button><button className="modal-btn view-btn" onClick={() => window.location.href='/shipments'}><Eye size={16} /> View All</button><button className="modal-btn new-btn" onClick={() => window.location.reload()}><Plus size={16} /> New</button></div>
+          <div className="modal-icon"><CheckCircle size={60} color="#10b981" /></div><h2>Consignment Generated!</h2>
+          <div className="modal-lr-number">{isManualLR ? manualLRNumber : lrNumber}</div>
+          <div className="modal-awb-number">AWB: {awbNumber}</div>
+          <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+            <PrintDocket ref={printDocketRef} data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight, dimensions}} lrNumber={isManualLR ? manualLRNumber : lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill} awbNumber={awbNumber} bookingMode={bookingMode} showFreight={showFreightOnDocket} freightData={freightData} status={shipmentStatus} uploadedInvoices={uploadedFiles} />
+          </div>
+          <div className="modal-buttons">
+            <button className="modal-btn print-btn" onClick={handlePrintDocket}><Printer size={16} /> Print Docket</button>
+            <button className="modal-btn view-btn" onClick={() => window.location.href='/shipments'}><Eye size={16} /> View All</button>
+            <button className="modal-btn new-btn" onClick={() => window.location.reload()}><Plus size={16} /> New</button>
+          </div>
         </div></div>)}
       </main>
     </div>
