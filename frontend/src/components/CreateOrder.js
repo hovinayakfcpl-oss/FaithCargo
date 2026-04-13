@@ -12,7 +12,9 @@ import {
   Percent, DollarSign, Scale, Weight, Ruler, User, Users,
   Stamp, Circle, Star, HelpCircle, Search, Filter,
   RefreshCw, Activity, CheckCircle2, XCircle, Timer, Map, PhoneCall,
-  Bookmark, SaveAll, Copy, Edit, Trash, Check, ChevronDown, ChevronUp, FolderOpen, AddressBook
+  Bookmark, SaveAll, Copy, Edit, Trash, Check, ChevronDown, ChevronUp, 
+  FolderOpen, UserPlus, Users as UsersIcon, Mail as MailIcon,
+  Phone as PhoneIcon, MapPin as MapPinIcon, Building as BuildingIcon
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import stampImage from "../assets/stamp.png";
@@ -497,7 +499,7 @@ const DimensionInput = ({ dimensions, setDimensions, setTotalBoxes }) => {
 };
 
 // ============================================
-// 💾 SAVED ADDRESSES COMPONENT FOR SHIPPER
+// 💾 SAVED ADDRESSES COMPONENT FOR SHIPPER (FIXED)
 // ============================================
 const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
   const [savedAddresses, setSavedAddresses] = useState([]);
@@ -562,12 +564,20 @@ const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
   return (
     <div className="saved-addresses-container">
       <div className="address-actions-bar">
-        <button type="button" className="address-action-btn saved-list-btn" onClick={() => setShowAddressList(!showAddressList)}>
-          <AddressBook size={16} />
+        <button 
+          type="button" 
+          className="address-action-btn saved-list-btn"
+          onClick={() => setShowAddressList(!showAddressList)}
+        >
+          <FolderOpen size={16} />  {/* Using FolderOpen instead of AddressBook */}
           {showAddressList ? "Hide Saved Addresses" : "Show Saved Addresses"}
           {showAddressList ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
-        <button type="button" className="address-action-btn save-current-btn" onClick={() => setShowSaveModal(true)}>
+        <button 
+          type="button" 
+          className="address-action-btn save-current-btn"
+          onClick={() => setShowSaveModal(true)}
+        >
           <SaveAll size={16} />
           Save Current Address
         </button>
@@ -602,7 +612,13 @@ const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
         <div className="save-address-modal-overlay" onClick={() => setShowSaveModal(false)}>
           <div className="save-address-modal" onClick={e => e.stopPropagation()}>
             <h3><SaveAll size={20} /> Save Consignor Address</h3>
-            <input type="text" placeholder="Enter address name (e.g., Office Delhi, Warehouse Mumbai)" value={addressName} onChange={e => setAddressName(e.target.value)} className="address-name-input" />
+            <input 
+              type="text" 
+              placeholder="Enter address name (e.g., Office Delhi, Warehouse Mumbai)" 
+              value={addressName}
+              onChange={e => setAddressName(e.target.value)}
+              className="address-name-input"
+            />
             <div className="modal-buttons">
               <button className="cancel-btn" onClick={() => setShowSaveModal(false)}>Cancel</button>
               <button className="save-btn" onClick={saveAddressToLocal}>Save Address</button>
