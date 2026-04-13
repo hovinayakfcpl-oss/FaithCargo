@@ -11,9 +11,12 @@ import {
   ArrowRight, Warehouse, Building2, Phone, Mail, Globe,
   Percent, DollarSign, Scale, Weight, Ruler, User, Users,
   Stamp, Circle, Star, HelpCircle, Search, Filter,
-  RefreshCw, Activity, CheckCircle2, XCircle, Timer, Map, PhoneCall
+  RefreshCw, Activity, CheckCircle2, XCircle, Timer, Map, PhoneCall,
+  Bookmark, BookmarkCheck, FolderOpen, SaveAll, AddressBook,
+  Copy, Edit, Trash, Check, ChevronDown, ChevronUp
 } from "lucide-react";
 import logo from "../assets/logo.png";
+import stampImage from "../assets/stamp.png"; // Add your stamp image here
 import "./CreateOrder.css";
 
 // ============================================
@@ -115,7 +118,7 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
 };
 
 // ============================================
-// 🎨 DOCKET COMPONENT - FIXED WITH PROFESSIONAL HEADER & BLACK BARCODE
+// 🎨 DOCKET COMPONENT - UPGRADED WITH LR/AWB LEFT, LOGO RIGHT, STAMP IMAGE
 // ============================================
 const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData, status, uploadedInvoices }, ref) => {
   const barcodeRef = useRef(null);
@@ -160,7 +163,6 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
       case 'delivered': return 'DELIVERED';
       case 'in_transit': return 'IN TRANSIT';
       case 'out_for_delivery': return 'OUT FOR DELIVERY';
-      case 'picked': return 'PICKED UP';
       default: return 'BOOKED';
     }
   };
@@ -168,10 +170,18 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
   const safeData = {
     pickup: data?.pickup || { name: "", address: "", pincode: "", contact: "", city: "", state: "", gstin: "" },
     delivery: data?.delivery || { name: "", address: "", pincode: "", contact: "", city: "", state: "", gstin: "" },
-    orderDetails: data?.orderDetails || { material: "", weight: 0, boxesCount: 0, hsnCode: "" },
+    orderDetails: data?.orderDetails || { material: "", weight: 0, boxesCount: 0, hsnCode: "", dimensions: [] },
     invoices: data?.invoices || [],
     volWeight: data?.volWeight || 0,
     chargedWeight: data?.chargedWeight || 0
+  };
+
+  // Format dimensions for display
+  const getDimensionsText = () => {
+    if (!safeData.orderDetails.dimensions || safeData.orderDetails.dimensions.length === 0) return "—";
+    return safeData.orderDetails.dimensions.map(d => 
+      `${d.quantity} x (${d.length}×${d.width}×${d.height})`
+    ).join(", ");
   };
 
   return (
@@ -179,27 +189,29 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
       <div className="docket-watermark">FCPL</div>
       <div className="docket-inner-border"></div>
       
-      {/* Professional Header with Logo */}
-      <div className="docket-header">
-        <div className="brand-section">
-          <img src={logo} alt="FCPL" className="brand-logo" />
-          <div className="brand-info">
+      {/* Professional Header - LR & AWB Left Side with Bold Barcode, Logo & Company Right Side */}
+      <div className="docket-header-new">
+        <div className="header-left-section">
+          <div className="lr-label">CONSIGNMENT NOTE</div>
+          <canvas ref={barcodeRef} className="barcode-canvas" width="280" height="70"></canvas>
+          <div className="lr-number-bold">{lrNumber || "DRAFT"}</div>
+          <div className="awb-section">
+            <span className="awb-label">AWB NUMBER:</span>
+            <span className="awb-value-bold">{awbNumber || "N/A"}</span>
+          </div>
+          <div className="status-badge-docket">{getStatusText()}</div>
+        </div>
+        <div className="header-right-section">
+          <img src={logo} alt="FCPL" className="brand-logo-large" />
+          <div className="company-details">
             <h2>FAITH CARGO PRIVATE LIMITED</h2>
             <p>ISO 9001:2015 & ISO 14001:2015 CERTIFIED</p>
-            <div className="contact-line">
+            <div className="contact-details">
               <span>🏢 4/15, Kirti Nagar Industrial Area, New Delhi - 110015</span>
               <span>📞 +91 9818641504 | ✉️ care@faithcargo.com</span>
               <span>🔷 GST: 07AAFCF2947K1ZD | CIN: U60231DL2021PTC384521</span>
             </div>
           </div>
-        </div>
-        <div className="docket-number">
-          <div className="lr-badge">CONSIGNMENT NOTE</div>
-          <canvas ref={barcodeRef} className="barcode-canvas" width="300" height="75"></canvas>
-          <div className="lr-value">{lrNumber || "DRAFT"}</div>
-          <div className="awb-value">AWB: {awbNumber || "N/A"}</div>
-          <div className="status-badge-docket">{getStatusText()}</div>
-          <div className="date-value">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
         </div>
       </div>
 
@@ -240,11 +252,11 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </div>
       </div>
 
-      {/* Shipment Details Table */}
+      {/* Shipment Details Table with Dimensions */}
       <div className="shipment-wrapper">
         <table className="shipment-data-table">
           <thead>
-            <tr><th>PKGS</th><th>DESCRIPTION</th><th>HSN</th><th>ACTUAL WT</th><th>VOL WT</th><th>CHARGED WT</th><th>MODE</th></tr>
+            <tr><th>PKGS</th><th>DESCRIPTION</th><th>HSN</th><th>ACTUAL WT</th><th>VOL WT</th><th>CHARGED WT</th><th>MODE</th><th>DIMENSIONS</th></tr>
           </thead>
           <tbody>
             <tr>
@@ -255,6 +267,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
               <td className="text-center">{safeData.volWeight} kg</td>
               <td className="text-center"><strong>{safeData.chargedWeight} kg</strong></td>
               <td className="text-center"><div className={`mode-label mode-${bookingMode || 'surface'}`}>{getModeText()}</div></td>
+              <td className="text-center small-text">{getDimensionsText()}</td>
             </tr>
           </tbody>
         </table>
@@ -287,19 +300,10 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         )}
       </div>
 
-      {/* Professional Stamp */}
-      <div className="stamp-signature-wrapper">
-        <div className="official-stamp">
-          <div className="stamp-circle">
-            <div className="stamp-outer-ring">
-              <div className="stamp-inner-content">
-                <span className="stamp-title">FAITH CARGO</span>
-                <span className="stamp-sub">PVT LTD</span>
-                <div className="stamp-line"></div>
-                <span className="stamp-auth">AUTHORIZED</span>
-              </div>
-            </div>
-          </div>
+      {/* Stamp Image instead of old stamp design */}
+      <div className="stamp-signature-wrapper-new">
+        <div className="stamp-image-container">
+          <img src={stampImage} alt="Company Stamp" className="official-stamp-image" />
         </div>
         <div className="signature-area">
           <div className="signature-line-item"><div className="sign-line"></div><p>Receiver's Signature</p></div>
@@ -417,10 +421,218 @@ const InvoiceUpload = ({ onUpload, uploadedFiles = [], setUploadedFiles }) => {
 };
 
 // ============================================
+// 📦 DIMENSION INPUT WITH QUANTITY OPTION
+// ============================================
+const DimensionInput = ({ dimensions, setDimensions, setTotalBoxes }) => {
+  const [dimensionGroups, setDimensionGroups] = useState(dimensions || []);
+
+  const addDimensionGroup = () => {
+    setDimensionGroups([...dimensionGroups, { id: Date.now(), quantity: 1, length: "", width: "", height: "" }]);
+  };
+
+  const updateDimensionGroup = (id, field, value) => {
+    setDimensionGroups(dimensionGroups.map(g => g.id === id ? { ...g, [field]: value } : g));
+  };
+
+  const removeDimensionGroup = (id) => {
+    setDimensionGroups(dimensionGroups.filter(g => g.id !== id));
+  };
+
+  // Calculate total boxes count from dimension groups
+  const totalBoxes = dimensionGroups.reduce((sum, g) => sum + (parseInt(g.quantity) || 0), 0);
+  
+  useEffect(() => {
+    setDimensions(dimensionGroups);
+    setTotalBoxes(totalBoxes);
+  }, [dimensionGroups, totalBoxes, setDimensions, setTotalBoxes]);
+
+  return (
+    <div className="dimension-panel-enhanced">
+      <div className="dimension-header-enhanced">
+        <span><Layers size={16} /> Package Dimensions (CM)</span>
+        <button type="button" className="add-dimension-btn" onClick={addDimensionGroup}>
+          <Plus size={14} /> Add Dimension Type
+        </button>
+      </div>
+      <div className="dimension-groups">
+        {dimensionGroups.map((group, idx) => (
+          <div key={group.id} className="dimension-group-card">
+            <div className="dimension-group-header">
+              <span className="group-label">Dimension Type {idx + 1}</span>
+              <button className="remove-group-btn" onClick={() => removeDimensionGroup(group.id)}>
+                <Trash2 size={14} />
+              </button>
+            </div>
+            <div className="dimension-group-inputs">
+              <div className="dim-quantity">
+                <label>Qty</label>
+                <input type="number" min="1" value={group.quantity} onChange={e => updateDimensionGroup(group.id, 'quantity', e.target.value)} placeholder="Qty" />
+              </div>
+              <div className="dim-lwh">
+                <label>L (cm)</label>
+                <input type="number" step="0.1" value={group.length} onChange={e => updateDimensionGroup(group.id, 'length', e.target.value)} placeholder="Length" />
+              </div>
+              <div className="dim-lwh">
+                <label>W (cm)</label>
+                <input type="number" step="0.1" value={group.width} onChange={e => updateDimensionGroup(group.id, 'width', e.target.value)} placeholder="Width" />
+              </div>
+              <div className="dim-lwh">
+                <label>H (cm)</label>
+                <input type="number" step="0.1" value={group.height} onChange={e => updateDimensionGroup(group.id, 'height', e.target.value)} placeholder="Height" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {dimensionGroups.length === 0 && (
+        <div className="no-dimensions-msg">
+          <Info size={16} /> Click "Add Dimension Type" to add package dimensions with quantity
+        </div>
+      )}
+      {totalBoxes > 0 && (
+        <div className="total-boxes-summary">Total Packages: <strong>{totalBoxes}</strong></div>
+      )}
+    </div>
+  );
+};
+
+// ============================================
+// 💾 SAVED ADDRESSES COMPONENT FOR SHIPPER
+// ============================================
+const SavedAddresses = ({ onSelectAddress, onSaveAddress }) => {
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [showAddressList, setShowAddressList] = useState(false);
+  const [addressName, setAddressName] = useState("");
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [currentAddress, setCurrentAddress] = useState(null);
+
+  // Load saved addresses from localStorage on mount
+  useEffect(() => {
+    const addresses = JSON.parse(localStorage.getItem('savedShipperAddresses') || '[]');
+    setSavedAddresses(addresses);
+  }, []);
+
+  const saveAddressToLocal = (addressData, name) => {
+    const newAddress = {
+      id: Date.now(),
+      name: name,
+      companyName: addressData.name,
+      contact: addressData.contact,
+      address: addressData.address,
+      pincode: addressData.pincode,
+      city: addressData.city,
+      state: addressData.state,
+      gstin: addressData.gstin,
+      createdAt: new Date().toISOString()
+    };
+    const updated = [...savedAddresses, newAddress];
+    setSavedAddresses(updated);
+    localStorage.setItem('savedShipperAddresses', JSON.stringify(updated));
+    setShowSaveModal(false);
+    setAddressName("");
+    alert("Address saved successfully!");
+  };
+
+  const deleteAddress = (id) => {
+    const updated = savedAddresses.filter(addr => addr.id !== id);
+    setSavedAddresses(updated);
+    localStorage.setItem('savedShipperAddresses', JSON.stringify(updated));
+  };
+
+  const selectAddress = (address) => {
+    onSelectAddress({
+      name: address.companyName,
+      contact: address.contact,
+      address: address.address,
+      pincode: address.pincode,
+      city: address.city,
+      state: address.state,
+      gstin: address.gstin || ""
+    });
+    setShowAddressList(false);
+  };
+
+  return (
+    <div className="saved-addresses-container">
+      <div className="address-actions-bar">
+        <button 
+          type="button" 
+          className="address-action-btn saved-list-btn"
+          onClick={() => setShowAddressList(!showAddressList)}
+        >
+          <AddressBook size={16} />
+          {showAddressList ? "Hide Saved Addresses" : "Show Saved Addresses"}
+          {showAddressList ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+        <button 
+          type="button" 
+          className="address-action-btn save-current-btn"
+          onClick={() => setShowSaveModal(true)}
+        >
+          <SaveAll size={16} />
+          Save Current Address
+        </button>
+      </div>
+
+      {showAddressList && savedAddresses.length > 0 && (
+        <div className="address-list-dropdown">
+          <h4><Bookmark size={14} /> Saved Consignor Addresses</h4>
+          {savedAddresses.map(addr => (
+            <div key={addr.id} className="saved-address-card">
+              <div className="saved-address-info">
+                <strong>{addr.companyName}</strong>
+                <span>{addr.address}</span>
+                <span>{addr.city}, {addr.state} - {addr.pincode}</span>
+                <span>📞 {addr.contact}</span>
+                {addr.gstin && <span>GST: {addr.gstin}</span>}
+              </div>
+              <div className="saved-address-actions">
+                <button className="use-address-btn" onClick={() => selectAddress(addr)}>
+                  <Check size={14} /> Use
+                </button>
+                <button className="delete-address-btn" onClick={() => deleteAddress(addr.id)}>
+                  <Trash size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showSaveModal && (
+        <div className="save-address-modal-overlay" onClick={() => setShowSaveModal(false)}>
+          <div className="save-address-modal" onClick={e => e.stopPropagation()}>
+            <h3><SaveAll size={20} /> Save Consignor Address</h3>
+            <input 
+              type="text" 
+              placeholder="Enter address name (e.g., Office Delhi, Warehouse Mumbai)" 
+              value={addressName}
+              onChange={e => setAddressName(e.target.value)}
+              className="address-name-input"
+            />
+            <div className="modal-buttons">
+              <button className="cancel-btn" onClick={() => setShowSaveModal(false)}>Cancel</button>
+              <button className="save-btn" onClick={() => {
+                if (addressName.trim()) {
+                  saveAddressToLocal(currentAddress || {}, addressName);
+                } else {
+                  alert("Please enter a name for this address");
+                }
+              }}>Save Address</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================
 // 🚀 MAIN COMPONENT
 // ============================================
 export default function CreateOrder() {
-  const [boxes, setBoxes] = useState([]);
+  const [dimensions, setDimensions] = useState([]);
+  const [totalPackages, setTotalPackages] = useState(0);
   const [showLR, setShowLR] = useState(false);
   const [lrNumber, setLrNumber] = useState("");
   const [awbNumber, setAwbNumber] = useState("");
@@ -454,17 +666,20 @@ export default function CreateOrder() {
           .print-docket { width: 200mm; min-height: 280mm; margin: 0 auto; position: relative; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
           .docket-watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 100px; font-weight: 900; color: rgba(0,0,0,0.02); white-space: nowrap; z-index: 0; pointer-events: none; letter-spacing: 10px; }
           .docket-inner-border { position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border: 2px solid #d32f2f; pointer-events: none; border-radius: 8px; z-index: 1; }
-          .docket-header { display: flex; justify-content: space-between; padding: 15px 20px; border-bottom: 3px solid #d32f2f; background: white; position: relative; z-index: 2; }
-          .brand-section { display: flex; gap: 12px; align-items: center; }
-          .brand-logo { height: 55px; width: auto; }
-          .brand-info h2 { font-size: 16px; font-weight: 900; margin: 0; color: #1a1a2e; }
-          .brand-info p { font-size: 8px; color: #d32f2f; font-weight: 600; margin-top: 2px; }
-          .contact-line { font-size: 7px; color: #4a5568; margin-top: 5px; }
-          .docket-number { text-align: right; }
-          .lr-badge { background: #0f172a; color: white; padding: 4px 12px; font-size: 9px; font-weight: bold; border-radius: 4px; display: inline-block; }
-          .barcode-canvas { margin: 8px 0; background: white; }
-          .lr-value { font-size: 20px; font-weight: bold; color: #d32f2f; font-family: monospace; letter-spacing: 1px; }
-          .status-badge-docket { display: inline-block; margin-top: 5px; padding: 3px 10px; border-radius: 20px; font-size: 8px; font-weight: bold; background: #10b981; color: white; }
+          .docket-header-new { display: flex; justify-content: space-between; padding: 15px 20px; border-bottom: 3px solid #d32f2f; background: white; position: relative; z-index: 2; }
+          .header-left-section { text-align: left; }
+          .lr-label { font-size: 10px; font-weight: bold; color: #64748b; letter-spacing: 1px; margin-bottom: 5px; }
+          .barcode-canvas { margin: 5px 0; background: white; }
+          .lr-number-bold { font-size: 24px; font-weight: 900; color: #d32f2f; font-family: monospace; letter-spacing: 2px; }
+          .awb-section { margin-top: 8px; }
+          .awb-label { font-size: 10px; font-weight: 600; color: #475569; margin-right: 8px; }
+          .awb-value-bold { font-size: 14px; font-weight: 800; color: #1e293b; }
+          .status-badge-docket { display: inline-block; margin-top: 10px; padding: 3px 12px; border-radius: 20px; font-size: 9px; font-weight: bold; background: #10b981; color: white; }
+          .header-right-section { text-align: right; }
+          .brand-logo-large { height: 60px; width: auto; margin-bottom: 8px; }
+          .company-details h2 { font-size: 14px; font-weight: 900; margin: 0; color: #1a1a2e; }
+          .company-details p { font-size: 8px; color: #d32f2f; font-weight: 600; margin-top: 2px; }
+          .contact-details { font-size: 7px; color: #4a5568; margin-top: 5px; display: flex; flex-direction: column; gap: 2px; }
           .parties-container { display: flex; gap: 20px; padding: 15px 20px; background: #f8fafc; position: relative; z-index: 2; }
           .party { flex: 1; background: white; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
           .party-title { background: #f1f5f9; padding: 8px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #e2e8f0; }
@@ -478,18 +693,15 @@ export default function CreateOrder() {
           .shipment-data-table { width: 100%; border-collapse: collapse; font-size: 9px; }
           .shipment-data-table th { background: #f1f5f9; padding: 8px; font-weight: bold; border: 1px solid #e2e8f0; }
           .shipment-data-table td { padding: 8px; border: 1px solid #e2e8f0; text-align: center; }
+          .small-text { font-size: 7px; }
           .billing-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 0 20px; margin-bottom: 15px; position: relative; z-index: 2; }
           .invoice-section, .freight-section { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
           .section-header { background: #f8fafc; padding: 8px 12px; font-size: 9px; font-weight: bold; border-bottom: 1px solid #e2e8f0; }
           .invoice-items, .freight-items { padding: 10px; }
           .invoice-row-line, .freight-row-line { display: flex; justify-content: space-between; font-size: 8px; padding: 4px 0; }
-          .stamp-signature-wrapper { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; margin-bottom: 15px; position: relative; z-index: 2; }
-          .official-stamp { width: 100px; height: 100px; }
-          .stamp-outer-ring { width: 85px; height: 85px; border-radius: 50%; border: 2.5px solid #2563eb; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
-          .stamp-title { font-size: 9px; font-weight: 800; color: #2563eb; }
-          .stamp-sub { font-size: 7px; font-weight: 700; color: #2563eb; }
-          .stamp-line { width: 20px; height: 1px; background: #2563eb; margin: 3px auto; }
-          .stamp-auth { font-size: 6px; font-weight: 600; color: #2563eb; }
+          .stamp-signature-wrapper-new { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; margin: 15px 0; position: relative; z-index: 2; }
+          .stamp-image-container { width: 120px; height: 120px; }
+          .official-stamp-image { width: 100%; height: auto; object-fit: contain; }
           .sign-line { width: 80px; border-top: 1px solid #0f172a; margin-bottom: 4px; }
           .stamp-box { border: 1px dashed #d32f2f; padding: 5px 10px; font-size: 7px; font-weight: bold; background: #fff1f2; border-radius: 4px; }
           .company-instructions { margin: 0 20px 15px 20px; padding: 12px; background: #f0fdf4; border-radius: 8px; border-left: 3px solid #10b981; position: relative; z-index: 2; }
@@ -534,7 +746,9 @@ export default function CreateOrder() {
           weight: data.weight,
           material: data.material,
           totalValue: data.totalValue,
-          updatedAt: data.updatedAt
+          updatedAt: data.updatedAt,
+          currentLocation: data.currentLocation || "In Transit",
+          estimatedDelivery: data.estimatedDelivery || new Date(Date.now() + 3*24*60*60*1000).toISOString()
         });
       } else {
         alert("Shipment not found!");
@@ -549,14 +763,24 @@ export default function CreateOrder() {
 
   const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gstin: "" });
   const [delivery, setDelivery] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gstin: "" });
-  const [orderDetails, setOrderDetails] = useState({ material: "", weight: "", boxesCount: 0, hsnCode: "1234" });
+  const [orderDetails, setOrderDetails] = useState({ material: "", weight: "", hsnCode: "1234" });
   const [invoices, setInvoices] = useState([{ id: Date.now(), no: "", value: "" }]);
 
   const totalInvoiceValue = useMemo(() => invoices.reduce((s, inv) => s + (parseFloat(inv.value) || 0), 0), [invoices]);
+  
+  // Calculate volumetric weight from dimensions with quantity
   const volWeight = useMemo(() => {
-    const total = boxes.reduce((acc, b) => acc + ((parseFloat(b.l)||0) * (parseFloat(b.w)||0) * (parseFloat(b.h)||0)) / 4000, 0);
-    return total.toFixed(2);
-  }, [boxes]);
+    let totalVol = 0;
+    dimensions.forEach(dim => {
+      const qty = parseInt(dim.quantity) || 0;
+      const l = parseFloat(dim.length) || 0;
+      const w = parseFloat(dim.width) || 0;
+      const h = parseFloat(dim.height) || 0;
+      totalVol += (l * w * h) / 4000 * qty;
+    });
+    return totalVol.toFixed(2);
+  }, [dimensions]);
+  
   const chargedWeight = Math.max(parseFloat(orderDetails.weight || 0), parseFloat(volWeight));
   const needsEwayBill = totalInvoiceValue >= 50000;
 
@@ -574,6 +798,10 @@ export default function CreateOrder() {
     }
   };
 
+  const handleSelectSavedAddress = (address) => {
+    setPickup(address);
+  };
+
   const handleCreateOrder = async () => {
     if (needsEwayBill && !ewayBill) return alert("E-Way Bill required for invoice > ₹50,000");
     if (!pickup.name || !delivery.name || !orderDetails.weight) return alert("Fill all mandatory fields");
@@ -589,10 +817,11 @@ export default function CreateOrder() {
       deliveryName: delivery.name, deliveryAddress: delivery.address, deliveryPincode: delivery.pincode,
       deliveryContact: delivery.contact, deliveryGstin: delivery.gstin,
       material: orderDetails.material || "General Cargo", hsn: orderDetails.hsnCode,
-      boxes: orderDetails.boxesCount, weight: parseFloat(chargedWeight),
+      boxes: totalPackages, weight: parseFloat(chargedWeight),
       actual_weight: parseFloat(orderDetails.weight || 0), volumetric_weight: parseFloat(volWeight),
       total_value: totalInvoiceValue, eway_bill: needsEwayBill ? ewayBill : "",
       booking_mode: bookingMode,
+      dimensions: dimensions,
       invoices: invoices.filter(inv => inv.no && inv.value).map(inv => ({ invoice_no: inv.no, invoice_value: parseFloat(inv.value) }))
     };
 
@@ -646,23 +875,29 @@ export default function CreateOrder() {
 
   const getTrackingTimeline = (currentStatus) => {
     const steps = [
-      { key: 'booked', label: 'Booked', icon: '📝' },
-      { key: 'picked', label: 'Picked Up', icon: '🚚' },
-      { key: 'in_transit', label: 'In Transit', icon: '🚛' },
-      { key: 'out_for_delivery', label: 'Out for Delivery', icon: '📦' },
-      { key: 'delivered', label: 'Delivered', icon: '✅' }
+      { key: 'booked', label: 'Booked', icon: '📝', desc: 'Order confirmed' },
+      { key: 'picked', label: 'Picked Up', icon: '🚚', desc: 'Shipment collected' },
+      { key: 'in_transit', label: 'In Transit', icon: '🚛', desc: 'On the way' },
+      { key: 'out_for_delivery', label: 'Out for Delivery', icon: '📦', desc: 'Near destination' },
+      { key: 'delivered', label: 'Delivered', icon: '✅', desc: 'Successfully delivered' }
     ];
     const currentIndex = steps.findIndex(s => s.key === currentStatus);
+    
     return (
-      <div className="tracking-timeline">
+      <div className="tracking-timeline-enhanced">
         {steps.map((step, idx) => {
           const isCompleted = idx <= currentIndex;
           const isCurrent = idx === currentIndex;
           return (
-            <div key={step.key} className={`timeline-step ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}`}>
-              <div className="timeline-icon">{isCompleted ? <CheckCircle2 size={20} /> : <span className="step-icon">{step.icon}</span>}</div>
-              <div className="timeline-content"><div className="step-label">{step.label}</div></div>
-              {idx < steps.length - 1 && <div className={`timeline-line ${isCompleted ? 'completed' : ''}`}></div>}
+            <div key={step.key} className={`timeline-step-enhanced ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}`}>
+              <div className="timeline-icon-enhanced">
+                {isCompleted ? <CheckCircle2 size={22} /> : <span className="step-icon-enhanced">{step.icon}</span>}
+              </div>
+              <div className="timeline-content-enhanced">
+                <div className="step-label-enhanced">{step.label}</div>
+                <div className="step-desc-enhanced">{step.desc}</div>
+              </div>
+              {idx < steps.length - 1 && <div className={`timeline-line-enhanced ${isCompleted ? 'completed' : ''}`}></div>}
             </div>
           );
         })}
@@ -692,29 +927,104 @@ export default function CreateOrder() {
         {apiError && <div className="error-notice"><AlertCircle size={18} /> {apiError}</div>}
 
         {showTracking && (
-          <div className="tracking-section">
-            <div className="tracking-header"><Activity size={24} color="#d32f2f" /><h3>Live Shipment Tracking</h3><span className="tracking-badge">Real-Time</span></div>
-            <div className="tracking-input-group">
-              <input type="text" placeholder="Enter LR Number (e.g., FCPL0016)" value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())} onKeyPress={(e) => e.key === 'Enter' && handleTrackShipment()} />
-              <button onClick={handleTrackShipment} disabled={trackingLoading}>{trackingLoading ? <RefreshCw size={18} className="spin" /> : <Search size={18} />}{trackingLoading ? "Tracking..." : "Track Shipment"}</button>
+          <div className="tracking-section-enhanced">
+            <div className="tracking-header-enhanced">
+              <Activity size={24} color="#d32f2f" />
+              <h3>Live Shipment Tracking</h3>
+              <span className="tracking-badge-enhanced">Real-Time Updates</span>
+            </div>
+            <div className="tracking-input-group-enhanced">
+              <input 
+                type="text" 
+                placeholder="Enter LR Number (e.g., FCPL0016) or AWB Number" 
+                value={trackingNumber} 
+                onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())} 
+                onKeyPress={(e) => e.key === 'Enter' && handleTrackShipment()} 
+              />
+              <button onClick={handleTrackShipment} disabled={trackingLoading}>
+                {trackingLoading ? <RefreshCw size={18} className="spin" /> : <Search size={18} />}
+                {trackingLoading ? "Tracking..." : "Track Shipment"}
+              </button>
             </div>
             {trackingResult && (
-              <div className="tracking-result">
-                <div className="tracking-card">
-                  <div className="tracking-card-header"><div><span className="tracking-lr">{trackingResult.lr}</span><span className="tracking-awb">AWB: {trackingResult.awb}</span></div>{getStatusBadge(trackingResult.status)}</div>
-                  <div className="tracking-route-info">
-                    <div className="route-point pickup"><div className="point-icon"><MapPin size={18} /></div><div className="point-details"><label>Pickup</label><p><strong>{trackingResult.pickupName || 'N/A'}</strong></p><span>{trackingResult.pickupPincode}</span></div></div>
-                    <div className="route-arrow">→</div>
-                    <div className="route-point delivery"><div className="point-icon"><Truck size={18} /></div><div className="point-details"><label>Delivery</label><p><strong>{trackingResult.deliveryName || 'N/A'}</strong></p><span>{trackingResult.deliveryPincode}</span></div></div>
+              <div className="tracking-result-enhanced">
+                <div className="tracking-card-enhanced">
+                  <div className="tracking-card-header-enhanced">
+                    <div className="tracking-numbers">
+                      <span className="tracking-lr-enhanced">{trackingResult.lr}</span>
+                      <span className="tracking-awb-enhanced">AWB: {trackingResult.awb}</span>
+                    </div>
+                    {getStatusBadge(trackingResult.status)}
                   </div>
-                  <div className="tracking-timeline-container"><h4>Shipment Progress</h4>{getTrackingTimeline(trackingResult.status)}</div>
-                  <div className="tracking-details-grid">
-                    <div className="detail-item"><Weight size={14} /><div><label>Weight</label><p>{trackingResult.weight} kg</p></div></div>
-                    <div className="detail-item"><Package size={14} /><div><label>Material</label><p>{trackingResult.material || 'General Cargo'}</p></div></div>
-                    <div className="detail-item"><DollarSign size={14} /><div><label>Value</label><p>₹{trackingResult.totalValue?.toLocaleString()}</p></div></div>
-                    <div className="detail-item"><Clock size={14} /><div><label>Updated</label><p>{new Date(trackingResult.updatedAt).toLocaleString()}</p></div></div>
+                  
+                  <div className="tracking-route-info-enhanced">
+                    <div className="route-point-enhanced pickup">
+                      <div className="point-icon-enhanced"><MapPin size={20} /></div>
+                      <div className="point-details-enhanced">
+                        <label>Pickup Location</label>
+                        <p><strong>{trackingResult.pickupName || 'N/A'}</strong></p>
+                        <span>Pincode: {trackingResult.pickupPincode}</span>
+                      </div>
+                    </div>
+                    <div className="route-arrow-enhanced">
+                      <div className="arrow-line"></div>
+                      <Truck size={20} className="truck-icon" />
+                      <div className="arrow-line"></div>
+                    </div>
+                    <div className="route-point-enhanced delivery">
+                      <div className="point-icon-enhanced"><Truck size={20} /></div>
+                      <div className="point-details-enhanced">
+                        <label>Delivery Location</label>
+                        <p><strong>{trackingResult.deliveryName || 'N/A'}</strong></p>
+                        <span>Pincode: {trackingResult.deliveryPincode}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="tracking-actions"><button className="tracking-close" onClick={() => setTrackingResult(null)}>Close</button></div>
+
+                  <div className="tracking-timeline-container-enhanced">
+                    <h4><Clock size={16} /> Shipment Progress</h4>
+                    {getTrackingTimeline(trackingResult.status)}
+                  </div>
+
+                  <div className="tracking-details-grid-enhanced">
+                    <div className="detail-item-enhanced">
+                      <Weight size={16} />
+                      <div>
+                        <label>Weight</label>
+                        <p>{trackingResult.weight} kg</p>
+                      </div>
+                    </div>
+                    <div className="detail-item-enhanced">
+                      <Package size={16} />
+                      <div>
+                        <label>Material</label>
+                        <p>{trackingResult.material || 'General Cargo'}</p>
+                      </div>
+                    </div>
+                    <div className="detail-item-enhanced">
+                      <DollarSign size={16} />
+                      <div>
+                        <label>Invoice Value</label>
+                        <p>₹{trackingResult.totalValue?.toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <div className="detail-item-enhanced">
+                      <Timer size={16} />
+                      <div>
+                        <label>Last Updated</label>
+                        <p>{new Date(trackingResult.updatedAt).toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="tracking-actions-enhanced">
+                    <button className="tracking-close-enhanced" onClick={() => setTrackingResult(null)}>
+                      Close
+                    </button>
+                    <button className="tracking-refresh-enhanced" onClick={handleTrackShipment}>
+                      <RefreshCw size={14} /> Refresh
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -723,56 +1033,161 @@ export default function CreateOrder() {
 
         <div className="two-column-form">
           <div className="left-form-col">
-            <div className="form-section"><div className="section-heading"><MapPin size={18} color="#d32f2f" /> Consignor (Sender)</div><div className="section-body">
-              <div className="form-row"><div className="form-field"><label>Company / Name *</label><input value={pickup.name} onChange={e => setPickup({...pickup, name: e.target.value.toUpperCase()})} placeholder="Enter sender name" /></div><div className="form-field"><label>Mobile Number *</label><input type="tel" maxLength={10} value={pickup.contact} onChange={e => setPickup({...pickup, contact: e.target.value})} placeholder="10 digit mobile" /></div></div>
-              <div className="form-field full-width"><label>Full Address *</label><textarea rows={2} value={pickup.address} onChange={e => setPickup({...pickup, address: e.target.value})} placeholder="House No, Street, Area" /></div>
-              <div className="form-row"><div className="form-field"><label>Pincode *</label><input maxLength={6} value={pickup.pincode} onChange={e => { setPickup({...pickup, pincode: e.target.value}); fetchLocation(e.target.value, 'pickup'); }} placeholder="6 digit" /></div><div className="form-field"><label>City & State</label><input className="readonly-field" value={pickup.city ? `${pickup.city}, ${pickup.state}` : ""} readOnly /></div></div>
-              <div className="form-field"><label>GSTIN (Optional)</label><input value={pickup.gstin} onChange={e => setPickup({...pickup, gstin: e.target.value.toUpperCase()})} placeholder="15 digit GSTIN" maxLength={15} /></div>
-            </div></div>
+            <div className="form-section">
+              <div className="section-heading">
+                <MapPin size={18} color="#d32f2f" /> Consignor (Sender)
+              </div>
+              <div className="section-body">
+                <SavedAddresses 
+                  onSelectAddress={handleSelectSavedAddress} 
+                  onSaveAddress={() => {}} 
+                  currentAddress={pickup}
+                />
+                <div className="form-row">
+                  <div className="form-field">
+                    <label>Company / Name *</label>
+                    <input value={pickup.name} onChange={e => setPickup({...pickup, name: e.target.value.toUpperCase()})} placeholder="Enter sender name" />
+                  </div>
+                  <div className="form-field">
+                    <label>Mobile Number *</label>
+                    <input type="tel" maxLength={10} value={pickup.contact} onChange={e => setPickup({...pickup, contact: e.target.value})} placeholder="10 digit mobile" />
+                  </div>
+                </div>
+                <div className="form-field full-width">
+                  <label>Full Address *</label>
+                  <textarea rows={2} value={pickup.address} onChange={e => setPickup({...pickup, address: e.target.value})} placeholder="House No, Street, Area" />
+                </div>
+                <div className="form-row">
+                  <div className="form-field">
+                    <label>Pincode *</label>
+                    <input maxLength={6} value={pickup.pincode} onChange={e => { setPickup({...pickup, pincode: e.target.value}); fetchLocation(e.target.value, 'pickup'); }} placeholder="6 digit" />
+                  </div>
+                  <div className="form-field">
+                    <label>City & State</label>
+                    <input className="readonly-field" value={pickup.city ? `${pickup.city}, ${pickup.state}` : ""} readOnly />
+                  </div>
+                </div>
+                <div className="form-field">
+                  <label>GSTIN (Optional)</label>
+                  <input value={pickup.gstin} onChange={e => setPickup({...pickup, gstin: e.target.value.toUpperCase()})} placeholder="15 digit GSTIN" maxLength={15} />
+                </div>
+              </div>
+            </div>
 
-            <div className="form-section"><div className="section-heading"><Truck size={18} color="#d32f2f" /> Consignee (Receiver)</div><div className="section-body">
-              <div className="form-row"><div className="form-field"><label>Receiver Name *</label><input value={delivery.name} onChange={e => setDelivery({...delivery, name: e.target.value.toUpperCase()})} placeholder="Enter receiver name" /></div><div className="form-field"><label>Mobile Number *</label><input type="tel" maxLength={10} value={delivery.contact} onChange={e => setDelivery({...delivery, contact: e.target.value})} placeholder="10 digit mobile" /></div></div>
-              <div className="form-field full-width"><label>Full Address *</label><textarea rows={2} value={delivery.address} onChange={e => setDelivery({...delivery, address: e.target.value})} placeholder="House No, Street, Area" /></div>
-              <div className="form-row"><div className="form-field"><label>Pincode *</label><input maxLength={6} value={delivery.pincode} onChange={e => { setDelivery({...delivery, pincode: e.target.value}); fetchLocation(e.target.value, 'delivery'); }} placeholder="6 digit" /></div><div className="form-field"><label>City & State</label><input className="readonly-field" value={delivery.city ? `${delivery.city}, ${delivery.state}` : ""} readOnly /></div></div>
-              <div className="form-field"><label>GSTIN (Optional)</label><input value={delivery.gstin} onChange={e => setDelivery({...delivery, gstin: e.target.value.toUpperCase()})} placeholder="15 digit GSTIN" maxLength={15} /></div>
-            </div></div>
+            <div className="form-section">
+              <div className="section-heading"><Truck size={18} color="#d32f2f" /> Consignee (Receiver)</div>
+              <div className="section-body">
+                <div className="form-row">
+                  <div className="form-field"><label>Receiver Name *</label><input value={delivery.name} onChange={e => setDelivery({...delivery, name: e.target.value.toUpperCase()})} placeholder="Enter receiver name" /></div>
+                  <div className="form-field"><label>Mobile Number *</label><input type="tel" maxLength={10} value={delivery.contact} onChange={e => setDelivery({...delivery, contact: e.target.value})} placeholder="10 digit mobile" /></div>
+                </div>
+                <div className="form-field full-width"><label>Full Address *</label><textarea rows={2} value={delivery.address} onChange={e => setDelivery({...delivery, address: e.target.value})} placeholder="House No, Street, Area" /></div>
+                <div className="form-row">
+                  <div className="form-field"><label>Pincode *</label><input maxLength={6} value={delivery.pincode} onChange={e => { setDelivery({...delivery, pincode: e.target.value}); fetchLocation(e.target.value, 'delivery'); }} placeholder="6 digit" /></div>
+                  <div className="form-field"><label>City & State</label><input className="readonly-field" value={delivery.city ? `${delivery.city}, ${delivery.state}` : ""} readOnly /></div>
+                </div>
+                <div className="form-field"><label>GSTIN (Optional)</label><input value={delivery.gstin} onChange={e => setDelivery({...delivery, gstin: e.target.value.toUpperCase()})} placeholder="15 digit GSTIN" maxLength={15} /></div>
+              </div>
+            </div>
           </div>
 
           <div className="right-form-col">
-            <div className="form-section"><div className="section-heading"><Package size={18} color="#d32f2f" /> Shipment Details</div><div className="section-body">
-              <div className="form-field full-width"><label>Material Description</label><input placeholder="e.g., Industrial Tools, Textile" onChange={e => setOrderDetails({...orderDetails, material: e.target.value.toUpperCase()})} /></div>
-              <div className="form-field full-width"><label>HSN Code</label><input value={orderDetails.hsnCode} onChange={e => setOrderDetails({...orderDetails, hsnCode: e.target.value})} placeholder="HSN Code" /></div>
-              <div className="mode-selector"><label>Booking Mode *</label><div className="mode-options">
-                <button type="button" className={`mode-option ${bookingMode === 'surface' ? 'active' : ''}`} onClick={() => setBookingMode('surface')}><Truck size={16} /> Surface</button>
-                <button type="button" className={`mode-option ${bookingMode === 'air' ? 'active' : ''}`} onClick={() => setBookingMode('air')}><Plane size={16} /> Air</button>
-                <button type="button" className={`mode-option ${bookingMode === 'rail' ? 'active' : ''}`} onClick={() => setBookingMode('rail')}><Train size={16} /> Rail</button>
-                <button type="button" className={`mode-option ${bookingMode === 'express' ? 'active' : ''}`} onClick={() => setBookingMode('express')}><TrendingUp size={16} /> Express</button>
-              </div></div>
-              <div className="form-row"><div className="form-field"><label>Actual Weight (Kg) *</label><input type="number" step="0.1" value={orderDetails.weight} onChange={e => setOrderDetails({...orderDetails, weight: e.target.value})} placeholder="Weight" /></div><div className="form-field"><label>No. of Packages *</label><input type="number" value={orderDetails.boxesCount} onChange={e => { const n = parseInt(e.target.value) || 0; setOrderDetails({...orderDetails, boxesCount: n}); setBoxes(Array.from({length: n}, (_, i) => ({ id: i+1, l: "", w: "", h: "" }))); }} placeholder="Boxes" /></div></div>
-              {boxes.length > 0 && (<div className="dimension-panel"><div className="dimension-header"><span>📦 Dimensions (CM) - ÷4000</span><span className="vol-badge">Vol: {volWeight} Kg</span></div>{boxes.map((box, i) => (<div key={i} className="dimension-input-row"><span className="box-count">#{i+1}</span><input placeholder="L" type="number" step="0.1" onChange={e => { let b = [...boxes]; b[i].l = e.target.value; setBoxes(b); }} /><input placeholder="W" type="number" step="0.1" onChange={e => { let b = [...boxes]; b[i].w = e.target.value; setBoxes(b); }} /><input placeholder="H" type="number" step="0.1" onChange={e => { let b = [...boxes]; b[i].h = e.target.value; setBoxes(b); }} /></div>))}</div>)}
-            </div></div>
-
-            <div className="form-section"><div className="section-heading between"><div><FileText size={18} color="#d32f2f" /> Invoice Details</div><button className="add-invoice-btn" onClick={() => setInvoices([...invoices, { id: Date.now(), no: "", value: "" }])}><Plus size={14} /> Add</button></div><div className="section-body">
-              {invoices.map(inv => (<div key={inv.id} className="invoice-input-row"><input placeholder="Invoice No" value={inv.no} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, no: e.target.value.toUpperCase()} : i))} /><input type="number" placeholder="Value ₹" value={inv.value} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, value: e.target.value} : i))} /><button className="remove-invoice-btn" onClick={() => setInvoices(invoices.filter(i => i.id !== inv.id))}><Trash2 size={14} /></button></div>))}
-              <InvoiceUpload onUpload={(files) => console.log("Uploaded:", files)} uploadedFiles={uploadedFiles} setUploadedFiles={setUploadedFiles} />
-              {needsEwayBill && (<div className="eway-alert"><div className="eway-header"><AlertCircle size={16} /> E-WAY BILL REQUIRED</div><input className="eway-input-field" value={ewayBill} onChange={e => setEwayBill(e.target.value.toUpperCase())} placeholder="12 DIGIT E-WAY BILL NO." maxLength={12} /></div>)}
-              <RealTimeFreightCalculator weight={chargedWeight} origin={pickup.pincode} destination={delivery.pincode} bookingMode={bookingMode} onCalculate={setFreightData} />
-              <div className="settings-panel">
-                <div className="setting-row"><label>Manual LR Number</label><button className={`toggle-switch ${isManualLR ? 'on' : 'off'}`} onClick={() => setIsManualLR(!isManualLR)}>{isManualLR ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}{isManualLR ? 'Manual ON' : 'Auto'}</button></div>
-                {isManualLR && (<input className="manual-lr-input" placeholder="Enter LR Number" value={manualLRNumber} onChange={e => setManualLRNumber(e.target.value.toUpperCase())} />)}
-                <div className="setting-row"><label>Show Freight on Docket</label><button className={`toggle-switch ${showFreightOnDocket ? 'on' : 'off'}`} onClick={() => setShowFreightOnDocket(!showFreightOnDocket)}>{showFreightOnDocket ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}{showFreightOnDocket ? 'Show' : 'Hide'}</button></div>
+            <div className="form-section">
+              <div className="section-heading"><Package size={18} color="#d32f2f" /> Shipment Details</div>
+              <div className="section-body">
+                <div className="form-field full-width"><label>Material Description</label><input placeholder="e.g., Industrial Tools, Textile" onChange={e => setOrderDetails({...orderDetails, material: e.target.value.toUpperCase()})} /></div>
+                <div className="form-field full-width"><label>HSN Code</label><input value={orderDetails.hsnCode} onChange={e => setOrderDetails({...orderDetails, hsnCode: e.target.value})} placeholder="HSN Code" /></div>
+                <div className="mode-selector"><label>Booking Mode *</label><div className="mode-options">
+                  <button type="button" className={`mode-option ${bookingMode === 'surface' ? 'active' : ''}`} onClick={() => setBookingMode('surface')}><Truck size={16} /> Surface</button>
+                  <button type="button" className={`mode-option ${bookingMode === 'air' ? 'active' : ''}`} onClick={() => setBookingMode('air')}><Plane size={16} /> Air</button>
+                  <button type="button" className={`mode-option ${bookingMode === 'rail' ? 'active' : ''}`} onClick={() => setBookingMode('rail')}><Train size={16} /> Rail</button>
+                  <button type="button" className={`mode-option ${bookingMode === 'express' ? 'active' : ''}`} onClick={() => setBookingMode('express')}><TrendingUp size={16} /> Express</button>
+                </div></div>
+                <div className="form-row">
+                  <div className="form-field"><label>Actual Weight (Kg) *</label><input type="number" step="0.1" value={orderDetails.weight} onChange={e => setOrderDetails({...orderDetails, weight: e.target.value})} placeholder="Weight" /></div>
+                </div>
+                
+                {/* Dimension Input with Quantity */}
+                <DimensionInput 
+                  dimensions={dimensions} 
+                  setDimensions={setDimensions} 
+                  setTotalBoxes={setTotalPackages}
+                />
+                
+                <div className="weight-summary">
+                  <span>Volumetric Weight: <strong>{volWeight} kg</strong></span>
+                  <span>Charged Weight: <strong>{chargedWeight} kg</strong></span>
+                </div>
               </div>
-            </div></div>
+            </div>
 
-            <button className={`generate-btn ${loading ? 'loading-state' : ''}`} onClick={handleCreateOrder} disabled={loading}>{loading ? <Clock size={20} className="spin" /> : <Crown size={20} />}{loading ? "Generating LR..." : "Generate Consignment Note"}<ChevronRight size={18} /></button>
+            <div className="form-section">
+              <div className="section-heading between">
+                <div><FileText size={18} color="#d32f2f" /> Invoice Details</div>
+                <button className="add-invoice-btn" onClick={() => setInvoices([...invoices, { id: Date.now(), no: "", value: "" }])}><Plus size={14} /> Add</button>
+              </div>
+              <div className="section-body">
+                {invoices.map(inv => (
+                  <div key={inv.id} className="invoice-input-row">
+                    <input placeholder="Invoice No" value={inv.no} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, no: e.target.value.toUpperCase()} : i))} />
+                    <input type="number" placeholder="Value ₹" value={inv.value} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, value: e.target.value} : i))} />
+                    <button className="remove-invoice-btn" onClick={() => setInvoices(invoices.filter(i => i.id !== inv.id))}><Trash2 size={14} /></button>
+                  </div>
+                ))}
+                <InvoiceUpload onUpload={(files) => console.log("Uploaded:", files)} uploadedFiles={uploadedFiles} setUploadedFiles={setUploadedFiles} />
+                {needsEwayBill && (
+                  <div className="eway-alert">
+                    <div className="eway-header"><AlertCircle size={16} /> E-WAY BILL REQUIRED</div>
+                    <input className="eway-input-field" value={ewayBill} onChange={e => setEwayBill(e.target.value.toUpperCase())} placeholder="12 DIGIT E-WAY BILL NO." maxLength={12} />
+                  </div>
+                )}
+                <RealTimeFreightCalculator weight={chargedWeight} origin={pickup.pincode} destination={delivery.pincode} bookingMode={bookingMode} onCalculate={setFreightData} />
+                <div className="settings-panel">
+                  <div className="setting-row"><label>Manual LR Number</label><button className={`toggle-switch ${isManualLR ? 'on' : 'off'}`} onClick={() => setIsManualLR(!isManualLR)}>{isManualLR ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}{isManualLR ? 'Manual ON' : 'Auto'}</button></div>
+                  {isManualLR && (<input className="manual-lr-input" placeholder="Enter LR Number" value={manualLRNumber} onChange={e => setManualLRNumber(e.target.value.toUpperCase())} />)}
+                  <div className="setting-row"><label>Show Freight on Docket</label><button className={`toggle-switch ${showFreightOnDocket ? 'on' : 'off'}`} onClick={() => setShowFreightOnDocket(!showFreightOnDocket)}>{showFreightOnDocket ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}{showFreightOnDocket ? 'Show' : 'Hide'}</button></div>
+                </div>
+              </div>
+            </div>
+
+            <button className={`generate-btn ${loading ? 'loading-state' : ''}`} onClick={handleCreateOrder} disabled={loading}>
+              {loading ? <Clock size={20} className="spin" /> : <Crown size={20} />}
+              {loading ? "Generating LR..." : "Generate Consignment Note"}
+              <ChevronRight size={18} />
+            </button>
           </div>
         </div>
 
-        {showLR && (<div className="modal-overlay" onClick={() => setShowLR(false)}><div className="modal-dialog" onClick={e => e.stopPropagation()}>
-          <div className="modal-icon"><CheckCircle size={60} color="#10b981" /></div><h2>Consignment Generated!</h2><div className="modal-lr-number">{isManualLR ? manualLRNumber : lrNumber}</div><div className="modal-awb-number">AWB: {awbNumber}</div>
-          <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}><PrintDocket ref={printDocketRef} data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight}} lrNumber={isManualLR ? manualLRNumber : lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill} awbNumber={awbNumber} bookingMode={bookingMode} showFreight={showFreightOnDocket} freightData={freightData} status={shipmentStatus} uploadedInvoices={uploadedFiles} /></div>
-          <div className="modal-buttons"><button className="modal-btn print-btn" onClick={handlePrintDocket}><Printer size={16} /> Print Docket</button><button className="modal-btn view-btn" onClick={() => window.location.href='/shipments'}><Eye size={16} /> View All</button><button className="modal-btn new-btn" onClick={() => window.location.reload()}><Plus size={16} /> New</button></div>
-        </div></div>)}
+        {showLR && (
+          <div className="modal-overlay" onClick={() => setShowLR(false)}>
+            <div className="modal-dialog" onClick={e => e.stopPropagation()}>
+              <div className="modal-icon"><CheckCircle size={60} color="#10b981" /></div>
+              <h2>Consignment Generated!</h2>
+              <div className="modal-lr-number">{isManualLR ? manualLRNumber : lrNumber}</div>
+              <div className="modal-awb-number">AWB: {awbNumber}</div>
+              <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+                <PrintDocket 
+                  ref={printDocketRef} 
+                  data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight, dimensions}} 
+                  lrNumber={isManualLR ? manualLRNumber : lrNumber} 
+                  totalValue={totalInvoiceValue} 
+                  ewayBill={ewayBill} 
+                  awbNumber={awbNumber} 
+                  bookingMode={bookingMode} 
+                  showFreight={showFreightOnDocket} 
+                  freightData={freightData} 
+                  status={shipmentStatus} 
+                  uploadedInvoices={uploadedFiles} 
+                />
+              </div>
+              <div className="modal-buttons">
+                <button className="modal-btn print-btn" onClick={handlePrintDocket}><Printer size={16} /> Print Docket</button>
+                <button className="modal-btn view-btn" onClick={() => window.location.href='/shipments'}><Eye size={16} /> View All</button>
+                <button className="modal-btn new-btn" onClick={() => window.location.reload()}><Plus size={16} /> New</button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
