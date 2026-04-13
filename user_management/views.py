@@ -31,8 +31,9 @@ def test_api(request):
         "timestamp": datetime.now().isoformat(),
         "shipment_models_available": SHIPMENT_MODELS_AVAILABLE,
         "available_endpoints": [
-            {"method": "POST", "url": "/api/user/add-user/", "description": "Create new user"},
+            {"method": "POST", "url": "/api/user/admin-login/", "description": "Admin/Superuser login"},
             {"method": "POST", "url": "/api/user/login/", "description": "User login"},
+            {"method": "POST", "url": "/api/user/add-user/", "description": "Create new user"},
             {"method": "GET", "url": "/api/user/users/", "description": "Get all users"},
             {"method": "GET", "url": "/api/user/users/<id>/", "description": "Get user by ID"},
             {"method": "PUT", "url": "/api/user/update-user/<id>/", "description": "Update user"},
@@ -47,6 +48,57 @@ def test_api(request):
             {"method": "GET", "url": "/api/user/track-shipment/<tracking_id>/", "description": "Track shipment"},
         ]
     })
+
+# ✅ ADMIN LOGIN API - Superuser login
+@api_view(['POST'])
+def admin_login(request):
+    username = request.data.get("username")
+    password = request.data.get("password")
+
+    if not username or not password:
+        return Response({"error": "Username and password required"}, status=400)
+
+    try:
+        # Try to authenticate using CustomUser model
+        user = CustomUser.objects.get(username=username)
+        
+        # Check password
+        if not check_password(password, user.password):
+            return Response({"error": "Invalid password"}, status=400)
+        
+        # Check if user is superuser
+        if not user.is_superuser:
+            return Response({"error": "Not a superuser. Please use User Login."}, status=403)
+        
+        # Admin has all modules access
+        all_modules = {
+            "fcpl_rate": True,
+            "pickup": True,
+            "vendor_manage": True,
+            "vendor_rates": True,
+            "rate_update": True,
+            "pincode": True,
+            "user_management": True,
+            "ba_b2b": True,
+            "create_order": True,
+            "shipment_details": True,
+        }
+        
+        return Response({
+            "status": "success",
+            "id": user.id,
+            "username": user.username,
+            "email": user.email or "",
+            "company": user.company or "",
+            "phone": user.phone or "",
+            "modules": all_modules
+        }, status=200)
+        
+    except CustomUser.DoesNotExist:
+        return Response({"error": "User not found"}, status=404)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
 
 # ✅ ADD USER API
 @api_view(['POST'])
@@ -452,7 +504,6 @@ def calculate_fcpl_rate(request):
         total_charge = freight_charge + fuel_charge + docket_charge
         
         # Determine zone based on distance (simplified logic)
-        # You can implement actual zone logic based on pincode database
         zone = "Green"
         is_oda = False
         
@@ -485,9 +536,6 @@ def calculate_fcpl_rate(request):
 def get_pincode_zone(request, pincode):
     """Get pincode zone information"""
     try:
-        # You can integrate with your pincode database here
-        # For now, return mock data based on pincode pattern
-        
         # Sample pincode data (replace with actual database lookup)
         pincode_data = {
             "110001": {"zone": "Red", "city": "New Delhi", "state": "Delhi", "oda": False},
@@ -496,17 +544,6 @@ def get_pincode_zone(request, pincode):
             "560001": {"zone": "Red", "city": "Bangalore", "state": "Karnataka", "oda": False},
             "700001": {"zone": "Red", "city": "Kolkata", "state": "West Bengal", "oda": False},
             "600001": {"zone": "Red", "city": "Chennai", "state": "Tamil Nadu", "oda": False},
-        }
-        
-        # Default response
-        default_response = {
-            "pincode": pincode,
-            "zone": "Green",
-            "city": "Unknown",
-            "state": "Unknown",
-            "oda": False,
-            "oda_charge": 0,
-            "serviceable": True
         }
         
         if pincode in pincode_data:
@@ -564,11 +601,6 @@ def track_shipment(request, tracking_id):
                 "updated_at": datetime.now().isoformat(),
                 "currentLocation": "Delhi Hub",
                 "estimatedDelivery": (datetime.now() + timedelta(days=3)).isoformat(),
-                "timeline": [
-                    {"status": "Booked", "date": datetime.now().isoformat(), "location": "Delhi"},
-                    {"status": "Picked Up", "date": (datetime.now() - timedelta(hours=12)).isoformat(), "location": "Delhi"},
-                    {"status": "In Transit", "date": datetime.now().isoformat(), "location": "En Route"}
-                ]
             })
         
         # Try to find shipment in database

@@ -10,7 +10,7 @@ import logo from "../assets/logo.png";
 
 function Login() {
   const navigate = useNavigate();
-  const [isAdminLogin, setIsAdminLogin] = useState(true); // Toggle between Admin and User login
+  const [isAdminLogin, setIsAdminLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,6 +29,7 @@ function Login() {
     }
   }, []);
 
+  // ✅ ADMIN LOGIN - Superuser credentials
   const handleAdminLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -42,7 +43,7 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch("https://faithcargo.onrender.com/api/admin-login/", {
+      const response = await fetch("https://faithcargo.onrender.com/api/user/admin-login/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -94,13 +95,14 @@ function Login() {
         setError(data.error || "Invalid admin credentials");
       }
     } catch (err) {
-      console.error("Login Error:", err);
+      console.error("Admin Login Error:", err);
       setError("Server error. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ USER LOGIN - Users created from UserManagement
   const handleUserLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -159,7 +161,7 @@ function Login() {
         setError(data.error || "Invalid user credentials");
       }
     } catch (err) {
-      console.error("Login Error:", err);
+      console.error("User Login Error:", err);
       setError("Server error. Please try again.");
     } finally {
       setLoading(false);
