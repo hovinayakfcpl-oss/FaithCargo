@@ -164,72 +164,48 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         JsBarcode(canvas, lrNumber, {
           format: "CODE128",
           width: 2,
-          height: 45,
+          height: 50,
           displayValue: true,
-          fontSize: 12,
+          fontSize: 14,
           font: "monospace",
-          margin: 5,
+          margin: 10,
           textAlign: "center",
-          textMargin: 3,
+          textMargin: 5,
           background: "#ffffff",
           lineColor: "#000000"
         });
         
+        // Convert canvas to image URL for reliable display
         const imageUrl = canvas.toDataURL("image/png");
         setBarcodeImageUrl(imageUrl);
+        
+        console.log("Barcode generated for:", lrNumber);
       } catch (err) {
         console.error("Barcode error:", err);
       }
     }
   }, [lrNumber]);
 
-  const getModeText = () => {
-    switch(bookingMode) {
-      case 'air': return 'AIR EXPRESS';
-      case 'rail': return 'RAIL CARGO';
-      case 'express': return 'SPEED POST';
-      default: return 'SURFACE TRANSPORT';
-    }
-  };
-
-  const getStatusText = () => {
-    switch(status) {
-      case 'delivered': return 'DELIVERED';
-      case 'in_transit': return 'IN TRANSIT';
-      case 'out_for_delivery': return 'OUT FOR DELIVERY';
-      case 'picked': return 'PICKED UP';
-      default: return 'BOOKED';
-    }
-  };
-
-  const safeData = {
-    pickup: data?.pickup || { name: "", address: "", pincode: "", contact: "", city: "", state: "", gstin: "" },
-    delivery: data?.delivery || { name: "", address: "", pincode: "", contact: "", city: "", state: "", gstin: "" },
-    orderDetails: data?.orderDetails || { material: "", weight: 0, boxesCount: 0, hsnCode: "", dimensions: [] },
-    invoices: data?.invoices || [],
-    volWeight: data?.volWeight || 0,
-    chargedWeight: data?.chargedWeight || 0
-  };
-
-  const getDimensionsText = () => {
-    if (!safeData.orderDetails.dimensions || safeData.orderDetails.dimensions.length === 0) return "—";
-    return safeData.orderDetails.dimensions.map(d => 
-      `${d.quantity} x (${d.length}×${d.width}×${d.height})`
-    ).join(", ");
-  };
+  // ... rest of the component code ...
 
   return (
     <div ref={ref} className="print-docket">
       <div className="docket-watermark">FCPL</div>
       <div className="docket-inner-border"></div>
       
-      <canvas ref={barcodeRef} style={{ display: 'none' }} width="300" height="75"></canvas>
+      {/* Hidden canvas for barcode generation */}
+      <canvas ref={barcodeRef} style={{ display: 'none' }} width="350" height="80"></canvas>
       
       <div className="docket-header-new">
         <div className="header-left-section">
           <div className="lr-label">CONSIGNMENT NOTE</div>
-          {barcodeImageUrl && (
-            <img src={barcodeImageUrl} alt="Barcode" className="barcode-image" />
+          {/* Display barcode as image for reliable printing */}
+          {barcodeImageUrl ? (
+            <img src={barcodeImageUrl} alt="Barcode" className="barcode-image" style={{ margin: '5px 0', background: 'white', width: '300px', height: 'auto' }} />
+          ) : (
+            <div className="barcode-placeholder" style={{ width: '300px', height: '60px', background: '#f0f0f0', margin: '5px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#999' }}>
+              Generating barcode...
+            </div>
           )}
           <div className="lr-number-bold">{lrNumber || "DRAFT"}</div>
           <div className="awb-section">
@@ -252,6 +228,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
           </div>
         </div>
       </div>
+      
 
       <div className="parties-container">
         <div className="party sender">

@@ -1929,7 +1929,7 @@ body {
 }
 
 /* --------------------------------------------
-   19. ENHANCED DOCKET HEADER - LR/AWB LEFT, LOGO RIGHT
+   19. ENHANCED DOCKET HEADER WITH BARCODE - FIXED
    -------------------------------------------- */
 .docket-header-new {
   display: flex;
@@ -1943,6 +1943,7 @@ body {
 
 .header-left-section {
   text-align: left;
+  flex: 1;
 }
 
 .lr-label {
@@ -1953,12 +1954,39 @@ body {
   margin-bottom: 6px;
 }
 
-.barcode-image {
-  margin: 6px 0;
+/* Barcode Styles - Fixed */
+.barcode-canvas {
+  margin: 8px 0;
   background: white;
   display: block;
-  width: 280px;
+  width: 100%;
+  max-width: 300px;
   height: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 5px;
+}
+
+.barcode-image {
+  margin: 8px 0;
+  background: white;
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 5px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Barcode Container */
+.barcode-container {
+  margin: 10px 0;
+  padding: 5px;
+  background: white;
+  border-radius: 8px;
+  display: inline-block;
 }
 
 .lr-number-bold {
@@ -1967,6 +1995,7 @@ body {
   color: var(--primary-red);
   font-family: monospace;
   letter-spacing: 2px;
+  margin-top: 5px;
 }
 
 .awb-section {
@@ -2006,6 +2035,8 @@ body {
 
 .header-right-section {
   text-align: right;
+  flex-shrink: 0;
+  margin-left: 20px;
 }
 
 .brand-logo-large {
@@ -2036,6 +2067,22 @@ body {
   display: flex;
   flex-direction: column;
   gap: 3px;
+}
+
+/* Print Barcode Styles */
+@media print {
+  .barcode-canvas,
+  .barcode-image {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    filter: none;
+    background: white;
+  }
+  
+  .barcode-container {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 }
 
 /* --------------------------------------------
@@ -2210,7 +2257,8 @@ body {
   
   .official-stamp-image,
   .official-stamp-fallback,
-  .barcode-image {
+  .barcode-image,
+  .barcode-canvas {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
@@ -2361,6 +2409,28 @@ body {
   .two-column-form {
     gap: 20px;
   }
+  
+  /* Mobile barcode adjustments */
+  .barcode-image,
+  .barcode-canvas {
+    max-width: 250px;
+  }
+  
+  .lr-number-bold {
+    font-size: 20px;
+  }
+  
+  .header-left-section {
+    margin-right: 10px;
+  }
+  
+  .brand-logo-large {
+    height: 50px;
+  }
+  
+  .company-details h2 {
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -2414,6 +2484,21 @@ body {
   
   .point-details-enhanced p {
     font-size: 13px;
+  }
+  
+  /* Mobile barcode adjustments */
+  .barcode-image,
+  .barcode-canvas {
+    max-width: 200px;
+  }
+  
+  .lr-number-bold {
+    font-size: 18px;
+  }
+  
+  .awb-label,
+  .awb-value-bold {
+    font-size: 11px;
   }
 }
 
