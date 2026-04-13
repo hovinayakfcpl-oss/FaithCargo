@@ -4,11 +4,11 @@ import {
   Shield, Clock, TrendingUp, DollarSign,
   Plus, Trash2, ChevronDown, ChevronUp, CheckCircle,
   Zap, Award, Star, Users, Phone, Mail, Calculator,
-  ArrowRight, Building, Navigation, Locate
+  ArrowRight, Building, FileText
 } from "lucide-react";
 import "./B2BRateCalculator.css";
 
-function B2BRateCalculator() {
+function BaB2bRateCalculator() {
   const [form, setForm] = useState({
     origin: "",
     destination: "",
@@ -30,6 +30,7 @@ function B2BRateCalculator() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(true);
+  const [activeTab, setActiveTab] = useState("surface");
 
   // Fetch pincode details
   const fetchPincodeDetails = async (pincode, type) => {
@@ -127,7 +128,11 @@ function B2BRateCalculator() {
     const totalQty = dimensions.reduce((sum, b) => sum + (parseInt(b.qty) || 0), 0);
 
     try {
-      const res = await fetch("https://faithcargo.onrender.com/api/rates/b2b/calculate/", {
+      const endpoint = activeTab === 'air' 
+        ? "https://faithcargo.onrender.com/api/rates/air/calculate/"
+        : "https://faithcargo.onrender.com/api/rates/b2b/calculate/";
+      
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -139,7 +144,7 @@ function B2BRateCalculator() {
           appointment: form.appointment,
           dimensions: dimensions,
           fragile: form.fragile,
-          express: form.express,
+          express: form.express || activeTab === 'express',
           paymentMode: form.paymentMode,
           codAmount: Number(form.codAmount)
         })
@@ -153,7 +158,7 @@ function B2BRateCalculator() {
         return;
       }
 
-      const freight = Number(data.freight_charge) || (chargeableWeight * 18);
+      const freight = Number(data.freight_charge) || (chargeableWeight * (activeTab === 'air' ? 45 : 18));
       const gst = freight * 0.18;
       const fuel = freight * 0.10;
       const docket = 100;
@@ -163,13 +168,16 @@ function B2BRateCalculator() {
       let cod = (form.paymentMode === "COD" || form.paymentMode === "ToPay") ? 150 : 0;
       let handling = (totalQty === 1 && chargeableWeight > 70) ? 750 : 0;
       let fragileCharge = form.fragile ? 250 : 0;
-      let expressCharge = form.express ? chargeableWeight * 5 : 0;
+      let expressCharge = (form.express || activeTab === 'express') ? chargeableWeight * 5 : 0;
       let insuranceVal = form.insurance ? (parseFloat(form.invoiceValue) || 0) * 0.02 : 0;
       let appointmentVal = form.appointment ? 1500 : 0;
 
       let total = freight + gst + fuel + docket + fov + odaCharge + cod + handling + fragileCharge + expressCharge + insuranceVal + appointmentVal;
 
       if (total < 650) total = 650;
+
+      const transportType = activeTab === 'air' ? 'Air Cargo' : (activeTab === 'express' ? 'Express Delivery' : 'Surface Transport');
+      const transitTime = activeTab === 'air' ? '1-2 days' : (activeTab === 'express' ? '1-3 days' : '2-5 days');
 
       setResult({
         ...data,
@@ -190,7 +198,8 @@ function B2BRateCalculator() {
         total: total.toFixed(2),
         totalQty,
         paymentMode: form.paymentMode,
-        transitTime: data.transit_time || "2-4 days",
+        transitTime: transitTime,
+        transportType: transportType,
         originCity: originDetails.city,
         originState: originDetails.state,
         destCity: destinationDetails.city,
@@ -261,12 +270,37 @@ function B2BRateCalculator() {
           </div>
         </div>
         <div className="header-title">
-          <h2>B2B & BA Rate Calculator</h2>
+          <h2>BA & B2B Rate Calculator</h2>
           <p>Get instant freight quotes for your business shipments</p>
         </div>
       </div>
 
-      {/* Main Calculator Card - Single Card Design */}
+      {/* Tabs */}
+      <div className="b2b-tabs">
+        <button 
+          className={`tab-btn ${activeTab === 'surface' ? 'active' : ''}`}
+          onClick={() => setActiveTab('surface')}
+        >
+          <Truck size={18} />
+          Surface Transport
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'express' ? 'active' : ''}`}
+          onClick={() => setActiveTab('express')}
+        >
+          <Zap size={18} />
+          Express Delivery
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'air' ? 'active' : ''}`}
+          onClick={() => setActiveTab('air')}
+        >
+          <TrendingUp size={18} />
+          Air Cargo
+        </button>
+      </div>
+
+      {/* Main Calculator Card */}
       <div className="calculator-main-card">
         <div className="calculator-grid">
           {/* Left Side - Input Form */}
@@ -443,7 +477,7 @@ function B2BRateCalculator() {
                 <div className="result-header">
                   <div className="quote-badge">
                     <Zap size={18} />
-                    <span>Instant Quote</span>
+                    <span>{result.transportType}</span>
                   </div>
                   <div className="total-amount">
                     <small>Total Amount</small>
@@ -557,4 +591,4 @@ function B2BRateCalculator() {
   );
 }
 
-export default B2BRateCalculator;
+export default BaB2bRateCalculator;
