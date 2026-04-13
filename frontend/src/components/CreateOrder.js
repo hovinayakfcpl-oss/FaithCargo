@@ -148,7 +148,7 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
 };
 
 // ============================================
-// 🎨 DOCKET COMPONENT - WITH AWB: NUMBER FORMAT
+// 🎨 DOCKET COMPONENT - FULLY FIXED WITH WORKING BARCODE
 // ============================================
 const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData, status, uploadedInvoices }, ref) => {
   const barcodeRef = useRef(null);
@@ -175,18 +175,48 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
           lineColor: "#000000"
         });
         
-        // Convert canvas to image URL for reliable display
         const imageUrl = canvas.toDataURL("image/png");
         setBarcodeImageUrl(imageUrl);
-        
-        console.log("Barcode generated for:", lrNumber);
       } catch (err) {
         console.error("Barcode error:", err);
       }
     }
   }, [lrNumber]);
 
-  // ... rest of the component code ...
+  const getModeText = () => {
+    switch(bookingMode) {
+      case 'air': return 'AIR EXPRESS';
+      case 'rail': return 'RAIL CARGO';
+      case 'express': return 'SPEED POST';
+      default: return 'SURFACE TRANSPORT';
+    }
+  };
+
+  const getStatusText = () => {
+    switch(status) {
+      case 'delivered': return 'DELIVERED';
+      case 'in_transit': return 'IN TRANSIT';
+      case 'out_for_delivery': return 'OUT FOR DELIVERY';
+      case 'picked': return 'PICKED UP';
+      default: return 'BOOKED';
+    }
+  };
+
+  const getDimensionsText = () => {
+    if (!data?.orderDetails?.dimensions || data.orderDetails.dimensions.length === 0) return "—";
+    return data.orderDetails.dimensions.map(d => 
+      `${d.quantity} x (${d.length}×${d.width}×${d.height})`
+    ).join(", ");
+  };
+
+  const safeData = {
+    pickup: data?.pickup || { name: "", address: "", pincode: "", contact: "", city: "", state: "", gstin: "" },
+    delivery: data?.delivery || { name: "", address: "", pincode: "", contact: "", city: "", state: "", gstin: "" },
+    orderDetails: data?.orderDetails || { material: "", weight: 0, boxesCount: 0, hsnCode: "", dimensions: [] },
+    invoices: data?.invoices || [],
+    volWeight: data?.volWeight || 0,
+    chargedWeight: data?.chargedWeight || 0
+  };
 
   return (
     <div ref={ref} className="print-docket">
@@ -199,13 +229,10 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
       <div className="docket-header-new">
         <div className="header-left-section">
           <div className="lr-label">CONSIGNMENT NOTE</div>
-          {/* Display barcode as image for reliable printing */}
           {barcodeImageUrl ? (
-            <img src={barcodeImageUrl} alt="Barcode" className="barcode-image" style={{ margin: '5px 0', background: 'white', width: '300px', height: 'auto' }} />
+            <img src={barcodeImageUrl} alt="Barcode" className="barcode-image" />
           ) : (
-            <div className="barcode-placeholder" style={{ width: '300px', height: '60px', background: '#f0f0f0', margin: '5px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#999' }}>
-              Generating barcode...
-            </div>
+            <div className="barcode-placeholder">Generating barcode...</div>
           )}
           <div className="lr-number-bold">{lrNumber || "DRAFT"}</div>
           <div className="awb-section">
@@ -228,7 +255,6 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
           </div>
         </div>
       </div>
-      
 
       <div className="parties-container">
         <div className="party sender">
@@ -663,7 +689,8 @@ export default function CreateOrder() {
           .docket-header-new { display: flex; justify-content: space-between; padding: 15px 20px; border-bottom: 3px solid #d32f2f; background: white; position: relative; z-index: 2; }
           .header-left-section { text-align: left; }
           .lr-label { font-size: 10px; font-weight: bold; color: #64748b; letter-spacing: 1px; margin-bottom: 5px; }
-          .barcode-image { margin: 5px 0; background: white; width: 280px; height: auto; }
+          .barcode-image { margin: 5px 0; background: white; width: 280px; height: auto; display: block; }
+          .barcode-placeholder { width: 280px; height: 60px; background: #f0f0f0; margin: 5px 0; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #999; }
           .lr-number-bold { font-size: 24px; font-weight: 900; color: #d32f2f; font-family: monospace; letter-spacing: 2px; }
           .awb-section { margin-top: 8px; }
           .awb-label { font-size: 12px; font-weight: 700; color: #475569; margin-right: 8px; }
@@ -712,7 +739,7 @@ export default function CreateOrder() {
           .terms-wrapper h4 { font-size: 8px; margin-bottom: 5px; }
           .terms-wrapper ul { padding-left: 15px; font-size: 6px; }
           .docket-footer { padding: 10px 20px; background: #0f172a; color: white; display: flex; justify-content: space-between; font-size: 7px; position: relative; z-index: 2; }
-          @media print { body { margin: 0; padding: 0; } .docket-watermark { print-color-adjust: exact; } }
+          @media print { body { margin: 0; padding: 0; } .docket-watermark { print-color-adjust: exact; } .barcode-image { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
         </style>
         </head><body>${printContent.outerHTML}</body></html>
       `);
@@ -1081,7 +1108,20 @@ export default function CreateOrder() {
           <div className="modal-lr-number">{isManualLR ? manualLRNumber : lrNumber}</div>
           <div className="modal-awb-number">AWB: {awbNumber}</div>
           <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-            <PrintDocket ref={printDocketRef} data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight, dimensions}} lrNumber={isManualLR ? manualLRNumber : lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill} awbNumber={awbNumber} bookingMode={bookingMode} showFreight={showFreightOnDocket} freightData={freightData} status={shipmentStatus} uploadedInvoices={uploadedFiles} />
+            <PrintDocket 
+              key={lrNumber} 
+              ref={printDocketRef} 
+              data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight, dimensions}} 
+              lrNumber={isManualLR ? manualLRNumber : lrNumber} 
+              totalValue={totalInvoiceValue} 
+              ewayBill={ewayBill} 
+              awbNumber={awbNumber} 
+              bookingMode={bookingMode} 
+              showFreight={showFreightOnDocket} 
+              freightData={freightData} 
+              status={shipmentStatus} 
+              uploadedInvoices={uploadedFiles} 
+            />
           </div>
           <div className="modal-buttons">
             <button className="modal-btn print-btn" onClick={handlePrintDocket}><Printer size={16} /> Print Docket</button>
