@@ -1,5 +1,14 @@
 import React, { useState } from "react";
+import { 
+  Truck, MapPin, Weight, Package, CreditCard, 
+  Shield, Clock, Calendar, TrendingUp, DollarSign,
+  Plus, Trash2, ChevronDown, ChevronUp, CheckCircle,
+  AlertCircle, Zap, Award, Crown, FileText, Receipt,
+  Percent, Scale, Fuel, Landmark, Building, Phone,
+  Mail, Globe, Star, Users, Settings, HelpCircle
+} from "lucide-react";
 import "./B2BRateCalculator.css";
+import logo from "../assets/logo.png";
 
 function B2BRateCalculator() {
   const [form, setForm] = useState({
@@ -10,7 +19,9 @@ function B2BRateCalculator() {
     codAmount: "",
     paymentMode: "", 
     insurance: false,
-    appointment: false
+    appointment: false,
+    fragile: false,
+    express: false
   });
 
   const [dimensions, setDimensions] = useState([
@@ -19,7 +30,8 @@ function B2BRateCalculator() {
 
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [show, setShow] = useState(true);
+  const [showBreakdown, setShowBreakdown] = useState(true);
+  const [activeTab, setActiveTab] = useState("surface");
 
   // INPUT HANDLER
   const handleChange = (e) => {
@@ -48,9 +60,21 @@ function B2BRateCalculator() {
     setDimensions(dimensions.filter((_, i) => i !== index));
   };
 
+  // CALCULATE VOLUMETRIC WEIGHT
+  const calculateVolumetric = () => {
+    let volumetric = 0;
+    dimensions.forEach(b => {
+      const l = parseFloat(b.length) || 0;
+      const w = parseFloat(b.width) || 0;
+      const h = parseFloat(b.height) || 0;
+      const qty = parseInt(b.qty) || 0;
+      volumetric += (l * w * h * qty) / 4000;
+    });
+    return volumetric;
+  };
+
   // CALCULATE RATE LOGIC
   const calculateRate = async () => {
-    // Basic Validation
     if (!form.origin || !form.destination || !form.weight) {
       alert("Please enter Origin, Destination, and Weight!");
       return;
@@ -59,14 +83,10 @@ function B2BRateCalculator() {
     setLoading(true);
     setResult(null);
 
-    let volumetric = 0;
-    let totalQty = 0;
-
-    dimensions.forEach(b => {
-      const v = (Number(b.length) * Number(b.width) * Number(b.height) * Number(b.qty)) / 4000;
-      volumetric += Number(v || 0);
-      totalQty += Number(b.qty || 0);
-    });
+    const volumetric = calculateVolumetric();
+    const actualWeight = parseFloat(form.weight) || 0;
+    const chargeableWeight = Math.max(actualWeight, volumetric);
+    const totalQty = dimensions.reduce((sum, b) => sum + (parseInt(b.qty) || 0), 0);
 
     try {
       const res = await fetch("https://faithcargo.onrender.com/api/rates/b2b/calculate/", {
@@ -75,11 +95,13 @@ function B2BRateCalculator() {
         body: JSON.stringify({
           origin: form.origin,
           destination: form.destination,
-          weight: Number(form.weight),
+          weight: chargeableWeight,
           invoiceValue: Number(form.invoiceValue),
           insurance: form.insurance,
           appointment: form.appointment,
-          dimensions: dimensions
+          dimensions: dimensions,
+          fragile: form.fragile,
+          express: form.express
         })
       });
 
@@ -91,171 +113,529 @@ function B2BRateCalculator() {
         return;
       }
 
-      const actual = Number(form.weight);
-      const chargeable = Math.max(actual, volumetric);
-
-      const perKg = chargeable > 0
-        ? (Number(data.freight_charge) / chargeable).toFixed(2)
-        : 0;
-
-      const freight = Number(data.freight_charge);
+      const freight = Number(data.freight_charge) || (chargeableWeight * 18);
       const gst = freight * 0.18;
       const fuel = freight * 0.10;
       const docket = 100;
       const fov = 75;
-
+      const odaCharge = data.oda_charge || 0;
+      
       let cod = (form.paymentMode === "COD" || form.paymentMode === "ToPay") ? 150 : 0;
-      let handling = (totalQty === 1 && chargeable > 70) ? 750 : 0;
-      let insuranceVal = form.insurance ? Number(form.invoiceValue) * 0.02 : 0;
+      let handling = (totalQty === 1 && chargeableWeight > 70) ? 750 : 0;
+      let fragileCharge = form.fragile ? 250 : 0;
+      let expressCharge = form.express ? chargeableWeight * 5 : 0;
+      let insuranceVal = form.insurance ? (parseFloat(form.invoiceValue) || 0) * 0.02 : 0;
       let appointmentVal = form.appointment ? 1500 : 0;
 
-      let total = freight + gst + fuel + docket + fov + cod + handling + insuranceVal + appointmentVal;
+      let total = freight + gst + fuel + docket + fov + odaCharge + cod + handling + fragileCharge + expressCharge + insuranceVal + appointmentVal;
 
-      // Minimum Billing Check
-      if (total < 650) {
-        total = 650;
-      }
+      if (total < 650) total = 650;
 
       setResult({
         ...data,
-        actual,
+        actualWeight,
         volumetric: volumetric.toFixed(2),
-        chargeable: chargeable.toFixed(2),
-        perKg,
+        chargeable: chargeableWeight.toFixed(2),
+        ratePerKg: chargeableWeight > 0 ? (freight / chargeableWeight).toFixed(2) : 0,
         freight,
         fuel: fuel.toFixed(2),
         gst: gst.toFixed(2),
+        odaCharge,
         cod,
         handling,
+        fragileCharge,
+        expressCharge,
         insurance: insuranceVal,
         appointment: appointmentVal,
-        final: total.toFixed(2)
+        total: total.toFixed(2),
+        totalQty,
+        paymentMode: form.paymentMode
       });
 
     } catch (err) {
-      alert("Server Error! Please check your internet or Render backend status.");
+      alert("Server Error! Please check your internet connection.");
       console.error(err);
     }
 
     setLoading(false);
   };
 
+  const resetForm = () => {
+    setForm({
+      origin: "",
+      destination: "",
+      weight: "",
+      invoiceValue: "",
+      codAmount: "",
+      paymentMode: "", 
+      insurance: false,
+      appointment: false,
+      fragile: false,
+      express: false
+    });
+    setDimensions([{ qty: 1, length: "", width: "", height: "" }]);
+    setResult(null);
+  };
+
   return (
-    <div className="main">
-      {/* --- TOP HEADING --- */}
-      <div className="header-section">
-        <h1>FCPL RATE CALCULATOR</h1>
-        <p>Faith Cargo Logistics Pvt. Ltd. - B2B & BA Surface Pricing</p>
+    <div className="b2b-container">
+      {/* Header Section */}
+      <div className="b2b-header">
+        <div className="header-content">
+          <div className="logo-area">
+            <img src={logo} alt="Faith Cargo" className="header-logo" />
+            <div className="logo-text">
+              <h1>Faith Cargo</h1>
+              <span>Logistics Pvt. Ltd.</span>
+            </div>
+          </div>
+          <div className="header-badges">
+            <div className="badge">
+              <Award size={16} />
+              <span>ISO 9001:2015</span>
+            </div>
+            <div className="badge">
+              <Star size={16} />
+              <span>Trusted Partner</span>
+            </div>
+          </div>
+        </div>
+        <div className="header-title">
+          <h2>B2B & BA Rate Calculator</h2>
+          <p>Get instant freight quotes for your business shipments</p>
+        </div>
       </div>
 
-      <div className="layout">
-        {/* LEFT CARD: INPUT FORM */}
-        <div className="card shadow-card">
-          <div className="grid2">
-            <input placeholder="Origin (City/Pincode)" name="origin" onChange={handleChange} />
-            <input placeholder="Destination (City/Pincode)" name="destination" onChange={handleChange} />
-          </div>
+      {/* Tab Section */}
+      <div className="b2b-tabs">
+        <button 
+          className={`tab-btn ${activeTab === 'surface' ? 'active' : ''}`}
+          onClick={() => setActiveTab('surface')}
+        >
+          <Truck size={18} />
+          Surface Transport
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'express' ? 'active' : ''}`}
+          onClick={() => setActiveTab('express')}
+        >
+          <Zap size={18} />
+          Express Delivery
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'air' ? 'active' : ''}`}
+          onClick={() => setActiveTab('air')}
+        >
+          <TrendingUp size={18} />
+          Air Cargo
+        </button>
+      </div>
 
-          <div className="grid2">
-            <select name="paymentMode" value={form.paymentMode} onChange={handleChange}>
-              <option value="" disabled>Select Payment Mode</option>
-              <option value="Prepaid">Prepaid</option>
-              <option value="COD">COD</option>
-              <option value="ToPay">ToPay</option>
-            </select>
-
-            {(form.paymentMode === "COD" || form.paymentMode === "ToPay") && (
-              <input placeholder="COD Amount (₹)" name="codAmount" type="number" onChange={handleChange} />
-            )}
-          </div>
-
-          <div className="grid2">
-            <input placeholder="Actual Weight (Kg)" name="weight" type="number" onChange={handleChange} />
-            <input placeholder="Invoice Value (₹)" name="invoiceValue" type="number" onChange={handleChange} />
-          </div>
-
-          <div className="dim-section">
-            <div className="dim-header">
-              <h4>Shipment Dimensions</h4>
-              <button className="add-btn-small" onClick={addBox}>+ Add Row</button>
+      <div className="b2b-layout">
+        {/* Left Panel - Input Form */}
+        <div className="b2b-form-panel">
+          <div className="form-card">
+            <div className="card-header">
+              <h3>Shipment Details</h3>
+              <p>Fill the information below to get accurate quote</p>
             </div>
 
-            {dimensions.map((d, i) => (
-              <div key={i} className="dim-row">
-                <input placeholder="Qty" value={d.qty} name="qty" type="number" onChange={(e) => handleDimChange(i, e)} />
-                <input placeholder="L (cm)" value={d.length} name="length" type="number" onChange={(e) => handleDimChange(i, e)} />
-                <input placeholder="W (cm)" value={d.width} name="width" type="number" onChange={(e) => handleDimChange(i, e)} />
-                <input placeholder="H (cm)" value={d.height} name="height" type="number" onChange={(e) => handleDimChange(i, e)} />
+            {/* Route Section */}
+            <div className="form-section">
+              <div className="section-title">
+                <MapPin size={18} />
+                <span>Route Information</span>
+              </div>
+              <div className="form-row">
+                <div className="input-group">
+                  <label>Origin (City/Pincode)</label>
+                  <div className="input-wrapper">
+                    <MapPin size={16} className="input-icon" />
+                    <input 
+                      type="text" 
+                      name="origin" 
+                      placeholder="e.g., Delhi / 110001" 
+                      value={form.origin}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+                <div className="input-group">
+                  <label>Destination (City/Pincode)</label>
+                  <div className="input-wrapper">
+                    <MapPin size={16} className="input-icon" />
+                    <input 
+                      type="text" 
+                      name="destination" 
+                      placeholder="e.g., Mumbai / 400001" 
+                      value={form.destination}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                {dimensions.length > 1 && (
-                  <button className="remove-btn" onClick={() => removeBox(i)}>×</button>
+            {/* Payment Section */}
+            <div className="form-section">
+              <div className="section-title">
+                <CreditCard size={18} />
+                <span>Payment Mode</span>
+              </div>
+              <div className="form-row">
+                <div className="input-group">
+                  <label>Payment Mode</label>
+                  <div className="input-wrapper">
+                    <CreditCard size={16} className="input-icon" />
+                    <select name="paymentMode" value={form.paymentMode} onChange={handleChange}>
+                      <option value="" disabled>Select Payment Mode</option>
+                      <option value="Prepaid">Prepaid</option>
+                      <option value="COD">COD (Cash on Delivery)</option>
+                      <option value="ToPay">To Pay</option>
+                    </select>
+                  </div>
+                </div>
+                {(form.paymentMode === "COD" || form.paymentMode === "ToPay") && (
+                  <div className="input-group">
+                    <label>COD Amount (₹)</label>
+                    <div className="input-wrapper">
+                      <DollarSign size={16} className="input-icon" />
+                      <input 
+                        type="number" 
+                        name="codAmount" 
+                        placeholder="Enter amount" 
+                        value={form.codAmount}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
-            ))}
-          </div>
+            </div>
 
-          <div className="check-group">
-            <label><input type="checkbox" name="insurance" onChange={handleChange} /> Insurance (FOV)</label>
-            <label><input type="checkbox" name="appointment" onChange={handleChange} /> Appointment Delivery</label>
-          </div>
+            {/* Weight & Value Section */}
+            <div className="form-section">
+              <div className="section-title">
+                <Weight size={18} />
+                <span>Cargo Details</span>
+              </div>
+              <div className="form-row">
+                <div className="input-group">
+                  <label>Actual Weight (Kg) *</label>
+                  <div className="input-wrapper">
+                    <Weight size={16} className="input-icon" />
+                    <input 
+                      type="number" 
+                      name="weight" 
+                      placeholder="e.g., 25.5" 
+                      value={form.weight}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+                <div className="input-group">
+                  <label>Invoice Value (₹)</label>
+                  <div className="input-wrapper">
+                    <FileText size={16} className="input-icon" />
+                    <input 
+                      type="number" 
+                      name="invoiceValue" 
+                      placeholder="e.g., 50000" 
+                      value={form.invoiceValue}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
 
-          <button className="calc-btn" onClick={calculateRate} disabled={loading}>
-            {loading ? "Calculating..." : "Get Live Quote"}
-          </button>
+            {/* Dimensions Section */}
+            <div className="form-section">
+              <div className="section-title">
+                <Package size={18} />
+                <span>Package Dimensions</span>
+              </div>
+              
+              <div className="dimension-header">
+                <span className="dim-label">Qty</span>
+                <span className="dim-label">Length (cm)</span>
+                <span className="dim-label">Width (cm)</span>
+                <span className="dim-label">Height (cm)</span>
+                <span></span>
+              </div>
+
+              {dimensions.map((d, i) => (
+                <div key={i} className="dimension-row">
+                  <input 
+                    type="number" 
+                    name="qty" 
+                    value={d.qty} 
+                    onChange={(e) => handleDimChange(i, e)} 
+                    placeholder="Qty"
+                    min="1"
+                  />
+                  <input 
+                    type="number" 
+                    name="length" 
+                    value={d.length} 
+                    onChange={(e) => handleDimChange(i, e)} 
+                    placeholder="L"
+                    step="0.1"
+                  />
+                  <input 
+                    type="number" 
+                    name="width" 
+                    value={d.width} 
+                    onChange={(e) => handleDimChange(i, e)} 
+                    placeholder="W"
+                    step="0.1"
+                  />
+                  <input 
+                    type="number" 
+                    name="height" 
+                    value={d.height} 
+                    onChange={(e) => handleDimChange(i, e)} 
+                    placeholder="H"
+                    step="0.1"
+                  />
+                  {dimensions.length > 1 && (
+                    <button className="remove-dim-btn" onClick={() => removeBox(i)}>
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              
+              <button className="add-dim-btn" onClick={addBox}>
+                <Plus size={16} />
+                Add Package
+              </button>
+            </div>
+
+            {/* Additional Services */}
+            <div className="form-section">
+              <div className="section-title">
+                <Shield size={18} />
+                <span>Value Added Services</span>
+              </div>
+              <div className="checkbox-group">
+                <label className="checkbox-label">
+                  <input type="checkbox" name="insurance" checked={form.insurance} onChange={handleChange} />
+                  <span>Insurance (2% of Invoice Value)</span>
+                </label>
+                <label className="checkbox-label">
+                  <input type="checkbox" name="appointment" checked={form.appointment} onChange={handleChange} />
+                  <span>Appointment Delivery (₹1500)</span>
+                </label>
+                <label className="checkbox-label">
+                  <input type="checkbox" name="fragile" checked={form.fragile} onChange={handleChange} />
+                  <span>Fragile Handling (₹250)</span>
+                </label>
+                <label className="checkbox-label">
+                  <input type="checkbox" name="express" checked={form.express} onChange={handleChange} />
+                  <span>Express Priority (₹5/kg extra)</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="action-buttons">
+              <button className="btn-calculate" onClick={calculateRate} disabled={loading}>
+                {loading ? (
+                  <span><i className="fas fa-spinner fa-spin"></i> Calculating...</span>
+                ) : (
+                  <>
+                    <TrendingUp size={18} />
+                    Get Live Quote
+                  </>
+                )}
+              </button>
+              <button className="btn-reset" onClick={resetForm}>
+                Reset All
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* RIGHT CARD: RESULT PANEL */}
-        <div className="card shadow-card result-side">
+        {/* Right Panel - Results */}
+        <div className="b2b-result-panel">
           {result ? (
-            <div className="result-premium">
-              <div className="rp-header">
-                <div className="rp-logo">FCPL</div>
-                <div className="rp-info">
-                  <h3>FCPL Surface Express</h3>
-                  <p>Chargeable Wt: {result.chargeable} Kg</p>
+            <div className="result-card">
+              <div className="result-header">
+                <div className="quote-badge">
+                  <Zap size={20} />
+                  <span>Instant Quote</span>
                 </div>
-                <div className="rp-price">
-                  ₹ {result.final}
-                  <span>{result.final === "650.00" ? "Min ₹650 Applied" : "Incl. All Charges"}</span>
+                <div className="quote-amount">
+                  <small>Total Amount</small>
+                  <h2>₹{result.total}</h2>
+                  {result.total === "650.00" && <span className="min-badge">Min ₹650 Applied</span>}
                 </div>
               </div>
 
-              <div className="rp-toggle" onClick={() => setShow(!show)}>
-                Charges Breakdown {show ? "▲" : "▼"}
+              <div className="result-summary">
+                <div className="summary-item">
+                  <div className="summary-icon">
+                    <Package size={20} />
+                  </div>
+                  <div className="summary-info">
+                    <label>Chargeable Weight</label>
+                    <strong>{result.chargeable} Kg</strong>
+                    <small>Actual: {result.actualWeight} Kg | Vol: {result.volumetric} Kg</small>
+                  </div>
+                </div>
+                <div className="summary-item">
+                  <div className="summary-icon">
+                    <MapPin size={20} />
+                  </div>
+                  <div className="summary-info">
+                    <label>Route</label>
+                    <strong>{result.from_zone || 'N/A'} → {result.to_zone || 'N/A'}</strong>
+                    <small>Rate: ₹{result.ratePerKg}/kg</small>
+                  </div>
+                </div>
+                <div className="summary-item">
+                  <div className="summary-icon">
+                    <Clock size={20} />
+                  </div>
+                  <div className="summary-info">
+                    <label>Transit Time</label>
+                    <strong>{result.transit_time || '2-4'} Days</strong>
+                    <small>Estimated delivery</small>
+                  </div>
+                </div>
               </div>
 
-              {show && (
-                <div className="rp-body">
-                  <div className="rp-row"><span>Route</span><span>{result.from_zone} → {result.to_zone}</span></div>
-                  <div className="rp-row"><span>Actual Weight</span><span>{result.actual} Kg</span></div>
-                  <div className="rp-row"><span>Volumetric Weight</span><span>{result.volumetric} Kg</span></div>
-                  <div className="rp-row highlighted"><span>Chargeable Weight</span><span>{result.chargeable} Kg</span></div>
-                  <hr />
-                  <div className="rp-row"><span>Basic Freight (@ ₹{result.perKg})</span><span>₹ {result.freight}</span></div>
-                  <div className="rp-row"><span>Fuel Surcharge (10%)</span><span>₹ {result.fuel}</span></div>
-                  <div className="rp-row"><span>Docket / Waybill Charge</span><span>₹ 100</span></div>
-                  <div className="rp-row"><span>FOV Charges</span><span>₹ 75</span></div>
-                  
-                  {result.is_oda && <div className="rp-row oda"><span>ODA Charges</span><span>₹ {result.oda_charge}</span></div>}
-                  {result.cod > 0 && <div className="rp-row"><span>COD/ToPay Fee</span><span>₹ 150</span></div>}
-                  {result.handling > 0 && <div className="rp-row"><span>Special Handling</span><span>₹ 750</span></div>}
-                  {form.insurance && <div className="rp-row"><span>Insurance Policy</span><span>₹ {result.insurance}</span></div>}
-                  {form.appointment && <div className="rp-row"><span>Appointment Delivery</span><span>₹ {result.appointment}</span></div>}
-                  
-                  <div className="rp-row gst"><span>GST (18% on Freight)</span><span>₹ {result.gst}</span></div>
-                  <div className="rp-total-final">
+              <div className="breakdown-toggle" onClick={() => setShowBreakdown(!showBreakdown)}>
+                <span>Charges Breakdown</span>
+                {showBreakdown ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </div>
+
+              {showBreakdown && (
+                <div className="breakdown-list">
+                  <div className="breakdown-item">
+                    <span>Basic Freight</span>
+                    <span>₹{result.freight}</span>
+                  </div>
+                  <div className="breakdown-item">
+                    <span>Fuel Surcharge (10%)</span>
+                    <span>₹{result.fuel}</span>
+                  </div>
+                  <div className="breakdown-item">
+                    <span>Docket / Waybill Charge</span>
+                    <span>₹100</span>
+                  </div>
+                  <div className="breakdown-item">
+                    <span>FOV Charges</span>
+                    <span>₹75</span>
+                  </div>
+                  {result.odaCharge > 0 && (
+                    <div className="breakdown-item oda">
+                      <span>ODA Charges</span>
+                      <span>₹{result.odaCharge}</span>
+                    </div>
+                  )}
+                  {result.cod > 0 && (
+                    <div className="breakdown-item">
+                      <span>COD/ToPay Fee</span>
+                      <span>₹{result.cod}</span>
+                    </div>
+                  )}
+                  {result.handling > 0 && (
+                    <div className="breakdown-item">
+                      <span>Special Handling</span>
+                      <span>₹{result.handling}</span>
+                    </div>
+                  )}
+                  {result.fragileCharge > 0 && (
+                    <div className="breakdown-item">
+                      <span>Fragile Handling</span>
+                      <span>₹{result.fragileCharge}</span>
+                    </div>
+                  )}
+                  {result.expressCharge > 0 && (
+                    <div className="breakdown-item">
+                      <span>Express Priority</span>
+                      <span>₹{result.expressCharge}</span>
+                    </div>
+                  )}
+                  {form.insurance && (
+                    <div className="breakdown-item">
+                      <span>Insurance (2%)</span>
+                      <span>₹{result.insurance}</span>
+                    </div>
+                  )}
+                  {form.appointment && (
+                    <div className="breakdown-item">
+                      <span>Appointment Delivery</span>
+                      <span>₹{result.appointment}</span>
+                    </div>
+                  )}
+                  <div className="breakdown-item gst">
+                    <span>GST (18% on Freight)</span>
+                    <span>₹{result.gst}</span>
+                  </div>
+                  <div className="breakdown-total">
                     <span>Total Net Amount</span>
-                    <span>₹ {result.final}</span>
+                    <span>₹{result.total}</span>
                   </div>
                 </div>
               )}
+
+              <div className="result-footer">
+                <div className="footer-note">
+                  <CheckCircle size={14} />
+                  <span>All taxes included. No hidden charges.</span>
+                </div>
+                <button className="btn-proceed" onClick={() => window.location.href = '/create-order'}>
+                  Proceed to Booking
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="placeholder-content">
-              <i className="fas fa-calculator" style={{fontSize: '40px', color: '#ddd', marginBottom: '15px'}}></i>
-              <p>Enter shipment details and click calculate to see the professional quote for <b>Faith Cargo</b>.</p>
+            <div className="empty-state">
+              <div className="empty-icon">
+                <Truck size={64} />
+              </div>
+              <h3>Ready to calculate?</h3>
+              <p>Fill in the shipment details on the left and click "Get Live Quote" to see your freight estimate.</p>
+              <div className="empty-features">
+                <div className="feature">
+                  <CheckCircle size={16} />
+                  <span>Real-time rates</span>
+                </div>
+                <div className="feature">
+                  <CheckCircle size={16} />
+                  <span>Transparent pricing</span>
+                </div>
+                <div className="feature">
+                  <CheckCircle size={16} />
+                  <span>No hidden charges</span>
+                </div>
+              </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="b2b-footer">
+        <div className="footer-content">
+          <div className="footer-logo">
+            <img src={logo} alt="Faith Cargo" height="30" />
+            <span>Faith Cargo Logistics Pvt. Ltd.</span>
+          </div>
+          <div className="footer-links">
+            <a href="#">Terms & Conditions</a>
+            <a href="#">Privacy Policy</a>
+            <a href="#">Contact Support</a>
+          </div>
+          <div className="footer-contact">
+            <Phone size={14} />
+            <span>+91 9818641504</span>
+            <Mail size={14} />
+            <span>care@faithcargo.com</span>
+          </div>
         </div>
       </div>
     </div>
