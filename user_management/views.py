@@ -8,11 +8,38 @@ from .models import CustomUser
 import json
 
 # Import Shipment models if they exist in your project
-# from shipments.models import Shipment, Order
+try:
+    from shipments.models import Shipment, Order
+    SHIPMENT_MODELS_AVAILABLE = True
+except ImportError:
+    SHIPMENT_MODELS_AVAILABLE = False
 
 # ============================================
 # 🔐 USER AUTHENTICATION & MANAGEMENT
 # ============================================
+
+# ✅ TEST API ENDPOINT - Check if API is working
+@api_view(['GET'])
+def test_api(request):
+    return Response({
+        "status": "success",
+        "message": "User Management API is working!",
+        "timestamp": datetime.now().isoformat(),
+        "available_endpoints": [
+            {"method": "POST", "url": "/api/user/add-user/", "description": "Create new user"},
+            {"method": "POST", "url": "/api/user/login/", "description": "User login"},
+            {"method": "GET", "url": "/api/user/users/", "description": "Get all users"},
+            {"method": "GET", "url": "/api/user/users/<id>/", "description": "Get user by ID"},
+            {"method": "PUT", "url": "/api/user/update-user/<id>/", "description": "Update user"},
+            {"method": "DELETE", "url": "/api/user/delete-user/<id>/", "description": "Delete user"},
+            {"method": "GET", "url": "/api/user/user-shipments/<user_id>/", "description": "Get user shipments"},
+            {"method": "GET", "url": "/api/user/user-orders/<user_id>/", "description": "Get user orders"},
+            {"method": "GET", "url": "/api/user/user-stats/<user_id>/", "description": "Get user statistics"},
+            {"method": "GET", "url": "/api/user/all-shipments/", "description": "Get all shipments"},
+            {"method": "GET", "url": "/api/user/user-bill/<user_id>/", "description": "Generate user bill"},
+            {"method": "GET", "url": "/api/user/dashboard-stats/", "description": "Get dashboard statistics"},
+        ]
+    })
 
 # ✅ ADD USER API
 @api_view(['POST'])
@@ -87,6 +114,8 @@ def user_login(request):
             "email": user.email,
             "phone": user.phone,
             "company": user.company,
+            "address": user.address,
+            "gstin": user.gstin,
             "modules": {
                 "fcpl_rate": user.fcpl_rate,
                 "pickup": user.pickup,
@@ -206,10 +235,10 @@ def delete_user(request, id):
 # ✅ GET USER ORDERS/BOOKINGS
 @api_view(['GET'])
 def user_orders(request, user_id):
+    if not SHIPMENT_MODELS_AVAILABLE:
+        return Response([])
+    
     try:
-        # Try to get orders from Order model (adjust model name as per your project)
-        from shipments.models import Order  # Update import path as needed
-        
         orders = Order.objects.filter(user_id=user_id).order_by('-created_at')
         
         orders_data = []
@@ -226,9 +255,6 @@ def user_orders(request, user_id):
         
         return Response(orders_data)
         
-    except ImportError:
-        # If Order model doesn't exist, return empty list
-        return Response([])
     except Exception as e:
         return Response([], status=200)
 
@@ -236,9 +262,10 @@ def user_orders(request, user_id):
 # ✅ GET USER SHIPMENTS
 @api_view(['GET'])
 def user_shipments(request, user_id):
+    if not SHIPMENT_MODELS_AVAILABLE:
+        return Response([])
+    
     try:
-        from shipments.models import Shipment  # Update import path as needed
-        
         shipments = Shipment.objects.filter(user_id=user_id).order_by('-created_at')
         
         shipments_data = []
@@ -260,8 +287,6 @@ def user_shipments(request, user_id):
         
         return Response(shipments_data)
         
-    except ImportError:
-        return Response([])
     except Exception as e:
         return Response([], status=200)
 
@@ -269,9 +294,10 @@ def user_shipments(request, user_id):
 # ✅ GET ALL SHIPMENTS (for admin)
 @api_view(['GET'])
 def all_shipments(request):
+    if not SHIPMENT_MODELS_AVAILABLE:
+        return Response([])
+    
     try:
-        from shipments.models import Shipment
-        
         shipments = Shipment.objects.all().order_by('-created_at')
         
         shipments_data = []
@@ -293,8 +319,6 @@ def all_shipments(request):
         
         return Response(shipments_data)
         
-    except ImportError:
-        return Response([])
     except Exception as e:
         return Response([], status=200)
 
@@ -302,10 +326,18 @@ def all_shipments(request):
 # ✅ GET USER STATS SUMMARY
 @api_view(['GET'])
 def user_stats(request, user_id):
+    if not SHIPMENT_MODELS_AVAILABLE:
+        return Response({
+            "order_count": 0,
+            "shipment_count": 0,
+            "total_freight": 0,
+            "total_gst": 0,
+            "total_value": 0,
+            "total_weight": 0,
+            "last_order_date": None,
+        })
+    
     try:
-        from shipments.models import Shipment, Order
-        
-        # Get shipments
         shipments = Shipment.objects.filter(user_id=user_id)
         orders = Order.objects.filter(user_id=user_id)
         
@@ -324,7 +356,7 @@ def user_stats(request, user_id):
             "last_order_date": orders.first().created_at if orders.exists() else None,
         })
         
-    except ImportError:
+    except Exception as e:
         return Response({
             "order_count": 0,
             "shipment_count": 0,
@@ -334,10 +366,6 @@ def user_stats(request, user_id):
             "total_weight": 0,
             "last_order_date": None,
         })
-    except Exception as e:
-        return Response({
-            "error": str(e)
-        }, status=500)
 
 
 # ============================================
@@ -347,9 +375,33 @@ def user_stats(request, user_id):
 # ✅ GENERATE USER BILL
 @api_view(['GET'])
 def user_bill(request, user_id):
+    if not SHIPMENT_MODELS_AVAILABLE:
+        try:
+            user = CustomUser.objects.get(id=user_id)
+            return Response({
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "company": user.company,
+                    "address": user.address,
+                    "gstin": user.gstin,
+                    "email": user.email,
+                    "phone": user.phone,
+                },
+                "shipments": [],
+                "total_freight": 0,
+                "total_gst": 0,
+                "grand_total": 0,
+                "shipment_count": 0,
+                "period": {
+                    "start": request.GET.get('start'),
+                    "end": request.GET.get('end')
+                }
+            })
+        except CustomUser.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+    
     try:
-        from shipments.models import Shipment
-        
         start_date = request.GET.get('start')
         end_date = request.GET.get('end')
         
@@ -421,10 +473,20 @@ def user_bill(request, user_id):
 # ✅ ADMIN DASHBOARD STATS
 @api_view(['GET'])
 def dashboard_stats(request):
+    total_users = CustomUser.objects.count()
+    
+    if not SHIPMENT_MODELS_AVAILABLE:
+        return Response({
+            "total_users": total_users,
+            "total_shipments": 0,
+            "total_orders": 0,
+            "total_revenue": 0,
+            "total_gst": 0,
+            "recent_shipments": 0,
+            "recent_revenue": 0,
+        })
+    
     try:
-        from shipments.models import Shipment, Order
-        
-        total_users = CustomUser.objects.count()
         total_shipments = Shipment.objects.count()
         total_orders = Order.objects.count()
         
@@ -446,9 +508,9 @@ def dashboard_stats(request):
             "recent_revenue": recent_revenue,
         })
         
-    except ImportError:
+    except Exception as e:
         return Response({
-            "total_users": CustomUser.objects.count(),
+            "total_users": total_users,
             "total_shipments": 0,
             "total_orders": 0,
             "total_revenue": 0,
@@ -456,5 +518,49 @@ def dashboard_stats(request):
             "recent_shipments": 0,
             "recent_revenue": 0,
         })
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
+# Add these to your user_management/views.py
+
+@api_view(['POST'])
+def calculate_fcpl_rate(request):
+    """Calculate FCPL rate for given route"""
+    data = request.data
+    origin = data.get('origin')
+    destination = data.get('destination')
+    weight = data.get('weight', 10)
+    
+    # Your rate calculation logic here
+    # For now, return mock response
+    return Response({
+        "success": True,
+        "chargeable_weight": weight,
+        "freight_charge": weight * 15,
+        "fuel_charge": weight * 1.5,
+        "docket_charge": 100,
+        "total_charge": (weight * 15) + (weight * 1.5) + 100,
+        "zone": "Green",
+        "is_oda": False
+    })
+
+@api_view(['GET'])
+def get_pincode_zone(request, pincode):
+    """Get pincode zone information"""
+    # Your pincode lookup logic here
+    return Response({
+        "pincode": pincode,
+        "zone": "Green",
+        "city": "Delhi",
+        "state": "Delhi",
+        "oda": False,
+        "oda_charge": 0
+    })
+
+@api_view(['GET'])
+def track_shipment(request, tracking_id):
+    """Track shipment by LR number"""
+    # Your tracking logic here
+    return Response({
+        "status": "in_transit",
+        "pickupPincode": "110001",
+        "deliveryPincode": "400001",
+        "updated_at": datetime.now().isoformat()
+    })

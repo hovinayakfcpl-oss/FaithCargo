@@ -7,7 +7,8 @@ import {
   User, CreditCard, PlusCircle, Eye, BarChart3,
   Bell, Search, ChevronRight, Star, Shield,
   Bot, Send, Volume2, VolumeX, Mic, Headphones,
-  Loader, Zap, Award, Crown, DollarSign
+  Loader, Zap, Award, Crown, DollarSign, UserCog,
+  UserPlus, UserCheck, Users as UsersIcon
 } from "lucide-react";
 import "./AdminDashboard.css";
 import "../styles/theme.css";
@@ -21,7 +22,7 @@ const JerviceAI = () => {
   const [messages, setMessages] = useState([
     { 
       role: "assistant", 
-      content: "🎤 **नमस्ते सर!** Main hoon Jervice AI - Aapka Personal Logistics Assistant. Main aapki madad kar sakta hoon:\n\n✅ Real-Time Rate Calculation\n✅ Pincode ODA Status Check\n✅ Order Tracking\n✅ Pickup Schedule\n✅ Vendor Management\n✅ Document Help\n\nAaj main aapki kya seva kar sakta hoon?" 
+      content: "🎤 **नमस्ते सर!** Main hoon Jervice AI - Aapka Personal Logistics Assistant. Main aapki madad kar sakta hoon:\n\n✅ Real-Time Rate Calculation\n✅ Pincode ODA Status Check\n✅ Order Tracking\n✅ Pickup Schedule\n✅ Vendor Management\n✅ Document Help\n✅ User Management\n\nAaj main aapki kya seva kar sakta hoon?" 
     }
   ]);
   const [userInput, setUserInput] = useState("");
@@ -42,7 +43,7 @@ const JerviceAI = () => {
       "Vendor Management - Add and manage vendors",
       "Rate Update - Update shipping rates matrix",
       "Pincode Management - Manage serviceable pincodes",
-      "User Management - Add admin users",
+      "User Management - Add, edit, delete users with permissions",
       "BA & B2B Rate - Business to business rates"
     ],
     contacts: {
@@ -58,7 +59,6 @@ const JerviceAI = () => {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    // Load Indian male voice
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices();
       const maleIndianVoice = voices.find(voice => 
@@ -73,58 +73,46 @@ const JerviceAI = () => {
     loadVoices();
   }, []);
 
-  // 🎤 Male Voice Engine
   const speak = (text) => {
     if (!isVoiceEnabled) return;
-    
     window.speechSynthesis.cancel();
-    
     const cleanText = text.replace(/[🎤✅📦💰⚠️🔍🚚📍⭐]/g, '');
-    
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'hi-IN';
     utterance.rate = 0.9;
     utterance.pitch = 0.7;
     utterance.volume = 1;
-    
     const voices = window.speechSynthesis.getVoices();
     const maleIndianVoice = voices.find(voice => 
       (voice.lang === 'hi-IN' || voice.lang === 'en-IN') && 
       (voice.name.includes('Male') || voice.name.includes('Rohan') || voice.name.includes('Google'))
     );
-    
     if (maleIndianVoice) {
       utterance.voice = maleIndianVoice;
     }
-    
     window.speechSynthesis.speak(utterance);
   };
 
-  // 🎙️ Voice Recognition
   const initVoiceRecognition = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       speak("सर, आपका ब्राउज़र voice command support नहीं करता। कृपया Chrome use करें।");
       return false;
     }
-    
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognitionRef.current = new SpeechRecognition();
     recognitionRef.current.lang = 'hi-IN';
     recognitionRef.current.continuous = false;
     recognitionRef.current.interimResults = false;
-    
     recognitionRef.current.onresult = (event) => {
       const voiceInput = event.results[0][0].transcript;
       setUserInput(voiceInput);
       handleChat(voiceInput);
       setIsListening(false);
     };
-    
     recognitionRef.current.onerror = () => {
       setIsListening(false);
       speak("सर, आवाज़ नहीं सुनाई दी। कृपया दोबारा बोलें।");
     };
-    
     return true;
   };
 
@@ -135,7 +123,6 @@ const JerviceAI = () => {
     speak("बोल रहे हैं... मैं सुन रहा हूँ सर।");
   };
 
-  // 🔥 REAL-TIME RATE CALCULATION FROM API
   const calculateRealTimeRate = async (origin, destination, weight = 10, paymentMode = "prepaid") => {
     try {
       const response = await fetch(`${API_BASE}/fcpl-rate-calculate/`, {
@@ -152,7 +139,6 @@ const JerviceAI = () => {
           dimensions: []
         })
       });
-      
       const data = await response.json();
       if (response.ok && !data.error) {
         return data;
@@ -164,7 +150,6 @@ const JerviceAI = () => {
     }
   };
 
-  // 🔍 PINCODE ODA STATUS CHECK FROM API
   const checkPincodeStatus = async (pincode) => {
     try {
       const response = await fetch(`${API_BASE}/pincode/zone/${pincode}/`);
@@ -179,7 +164,6 @@ const JerviceAI = () => {
     }
   };
 
-  // 🔥 TRACK SHIPMENT FROM API
   const trackShipment = async (trackingNumber) => {
     try {
       const response = await fetch(`${API_BASE}/shipments/shipment/${trackingNumber}`);
@@ -194,115 +178,79 @@ const JerviceAI = () => {
     }
   };
 
-  // 🧠 INTELLIGENT RESPONSE GENERATOR WITH REAL API DATA
   const generateResponse = async (userQuery) => {
     const query = userQuery.toLowerCase();
     
-    // 📍 PINCODE CHECK - Check ODA Status
+    // User Management related queries
+    if (query.includes("user management") || query.includes("user manage") || query.includes("add user") || query.includes("create user")) {
+      return `👥 **User Management Help!** Sir, user management से आप ये कर सकते हैं:\n\n✅ **Add New User** - Username, password, email, phone, company details\n✅ **Assign Permissions** - Module-wise access control\n✅ **Edit User** - Update user details and permissions\n✅ **Delete User** - Remove user accounts\n✅ **View User Stats** - Track user shipments and orders\n✅ **Generate User Bill** - Individual billing for each user\n\n📌 **How to use:**\n1. User Management page पर जाएं\n2. "Create New User" form fill करें\n3. Permissions select करें (Create Order, Shipment Details, etc.)\n4. Submit करें\n\nक्या मैं आपको User Management page पर redirect कर दूं सर?`;
+    }
+    
+    // 📍 PINCODE CHECK
     const pincodeMatch = query.match(/\b\d{6}\b/);
     if (pincodeMatch && (query.includes("pincode") || query.includes("pin code") || query.includes("check") || query.includes("serviceable"))) {
       const pincode = pincodeMatch[0];
       setIsFetching(true);
       const pinData = await checkPincodeStatus(pincode);
       setIsFetching(false);
-      
       if (pinData) {
         const odaText = pinData.oda ? "❌ ODA Area (Out of Delivery Area - Extra charges apply)" : "✅ Regular Area (No extra charges)";
         return `📍 **Pincode Status - ${pincode}**\n\n📌 **Zone:** ${pinData.zone || "Not Available"}\n📌 **City:** ${pinData.city || "N/A"}\n📌 **State:** ${pinData.state || "N/A"}\n📌 **Status:** ${odaText}\n\n💰 **ODA Charges:** ${pinData.oda ? "₹650 or ₹3/kg (whichever higher)" : "No ODA charges"}\n\nक्या आप इस पिनकोड के लिए rate check करवाना चाहेंगे सर?`;
       } else {
-        return `❌ **Pincode Not Found!** Sir, pincode ${pincode} हमारे database में नहीं है।\n\nकृपया check करें:\n1. Pincode सही है या नहीं\n2. या फिर Pincode Management page पर जाकर add करें\n\nक्या मैं और कुछ help कर सकता हूँ सर?`;
+        return `❌ **Pincode Not Found!** Sir, pincode ${pincode} हमारे database में नहीं है।\n\nकृपया Pincode Management page पर जाकर add करें।`;
       }
     }
     
-    // 💰 RATE CALCULATION - Get Real Rates from API
+    // 💰 RATE CALCULATION
     const ratePattern = /(\d{6})\s*(?:to|se|->|से)\s*(\d{6})/i;
     const rateMatch = query.match(ratePattern);
     const weightMatch = query.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilo|kilogram)/i);
     
-    if (rateMatch && (query.includes("rate") || query.includes("price") || query.includes("bhada") || query.includes("kitna"))) {
+    if (rateMatch && (query.includes("rate") || query.includes("price") || query.includes("bhada"))) {
       const origin = rateMatch[1];
       const destination = rateMatch[2];
       const weight = weightMatch ? parseFloat(weightMatch[1]) : 10;
-      
       setIsFetching(true);
       const rateData = await calculateRealTimeRate(origin, destination, weight);
       setIsFetching(false);
-      
       if (rateData) {
-        const odaText = rateData.is_oda ? "⚠️ ODA Area (Extra charges applied)" : "✅ Regular Area";
-        return `💰 **Rate Calculation Result!**\n\n📍 **Route:** ${origin} → ${destination}\n📊 **Weight:** ${rateData.chargeable_weight} kg (Chargeable)\n🎯 **Zone:** ${rateData.zone || "N/A"}\n📍 **Status:** ${odaText}\n\n📋 **Breakdown:**\n• Freight: ₹${rateData.freight_charge?.toLocaleString()}\n• Fuel Surcharge: ₹${rateData.fuel_charge?.toLocaleString()}\n• Docket Charge: ₹${rateData.docket_charge?.toLocaleString()}\n${rateData.oda_charge > 0 ? `• ODA Charge: ₹${rateData.oda_charge?.toLocaleString()}\n` : ''}• Insurance: ₹${rateData.insurance_charge?.toLocaleString()}\n• Appointment: ₹${rateData.appointment_charge?.toLocaleString()}\n\n💰 **Total Amount:** ₹${rateData.total_charge?.toLocaleString()}\n\nक्या मैं इस shipment के लिए order create कर दूं सर?`;
+        return `💰 **Rate Calculation Result!**\n\n📍 **Route:** ${origin} → ${destination}\n📊 **Weight:** ${rateData.chargeable_weight} kg\n📋 **Freight:** ₹${rateData.freight_charge?.toLocaleString()}\n💰 **Total:** ₹${rateData.total_charge?.toLocaleString()}\n\nक्या मैं order create कर दूं सर?`;
       } else {
-        return `❌ **Rate Calculation Failed!** Sir, ${origin} से ${destination} के लिए rate नहीं मिल पाया।\n\nPossible reasons:\n1. Invalid pincode\n2. Route not serviceable\n3. Rate not configured\n\nकृपया Rate Update page पर जाकर rates configure करें या Vinayak Sir से contact करें।`;
+        return `❌ **Rate Calculation Failed!** Sir, rate नहीं मिल पाया। कृपया Rate Update page जाकर rates configure करें।`;
       }
     }
     
     // 🔍 ORDER TRACKING
     const trackingMatch = query.match(/\b(FCPL|FCL|LR)?\s*(\d{4,12})\b/i);
-    if (trackingMatch && (query.includes("track") || query.includes("order") || query.includes("shipment") || query.includes("docket") || query.includes("kahan"))) {
+    if (trackingMatch && (query.includes("track") || query.includes("order") || query.includes("shipment"))) {
       const trackingNo = trackingMatch[2];
       setIsFetching(true);
       const trackingData = await trackShipment(trackingNo);
       setIsFetching(false);
-      
       if (trackingData) {
-        const statusMap = {
-          'booked': '📝 Booked - Order confirmed',
-          'picked': '🚚 Picked Up - Shipment collected',
-          'in_transit': '🚛 In Transit - On the way',
-          'out_for_delivery': '📦 Out for Delivery - Near destination',
-          'delivered': '✅ Delivered - Shipment completed'
-        };
-        const statusText = statusMap[trackingData.status] || trackingData.status;
-        
-        return `✅ **Tracking Update!** Sir, ${trackingNo} के लिए:\n\n📦 **Status:** ${statusText}\n📍 **Route:** ${trackingData.pickupPincode || "N/A"} → ${trackingData.deliveryPincode || "N/A"}\n⏰ **Last Updated:** ${new Date(trackingData.updated_at || Date.now()).toLocaleString()}\n\nक्या आप और details चाहेंगे सर?`;
+        return `✅ **Tracking Update!** Sir, ${trackingNo}:\n\n📦 **Status:** ${trackingData.status || "Booked"}\n📍 **Route:** ${trackingData.pickupPincode || "N/A"} → ${trackingData.deliveryPincode || "N/A"}\n\nक्या आप और details चाहेंगे सर?`;
       } else {
-        return `❌ **Tracking Not Found!** Sir, docket number ${trackingNo} हमारे system में नहीं मिला।\n\nकृपया check करें:\n1. Docket number सही है या नहीं\n2. या फिर Shipment Details page पर जाकर देखें\n\nक्या मैं और कुछ help कर सकता हूँ सर?`;
+        return `❌ **Tracking Not Found!** Sir, docket number ${trackingNo} नहीं मिला।`;
       }
     }
     
     // 🚚 PICKUP REQUEST
-    if (query.includes("pickup") || query.includes("schedule pickup") || query.includes("pick up")) {
-      const pickupPincodeMatch = query.match(/(?:से|from)\s*(\d{6})/i);
-      const deliveryPincodeMatch = query.match(/(?:को|to)\s*(\d{6})/i);
-      
-      if (pickupPincodeMatch && deliveryPincodeMatch) {
-        return `🚚 **Pickup Schedule Confirmation!** Sir, main aapka pickup schedule kar raha hoon:\n\n📍 **Pickup:** ${pickupPincodeMatch[1]}\n📍 **Delivery:** ${deliveryPincodeMatch[1]}\n\nPlease confirm:\n1. Pickup date and time\n2. Number of packages\n3. Total weight\n\nक्या आप Create Order page पर जाकर complete details submit करना चाहेंगे?`;
-      }
-      return `🚚 **Pickup Request Help!** Sir, pickup schedule करने के लिए कृपया बताएं:\n\n• Pickup pincode (से)\n• Delivery pincode (को)\n• Approximate weight\n\nExample: "Schedule pickup from 110001 to 400001 weight 50 kg"\n\nया फिर आप Pickup Request page पर जा सकते हैं।`;
+    if (query.includes("pickup") || query.includes("schedule pickup")) {
+      return `🚚 **Pickup Request Help!** Sir, pickup schedule के लिए बताएं:\n\n• Pickup pincode (से)\n• Delivery pincode (को)\n• Approximate weight\n\nExample: "Schedule pickup from 110001 to 400001 weight 50 kg"`;
     }
     
-    // 💰 RATE HELP - General Rate Inquiry
-    if (query.includes("rate") || query.includes("price") || query.includes("bhada")) {
-      return `💰 **Rate Calculator Help!** Sir, rate calculate करने के लिए कृपया format में बताएं:\n\n**Example:** "110001 to 400001 ka rate 50 kg ke liye"\n\nया फिर:\n• "Mumbai to Delhi rate"\n• "Delhi to Bangalore price"\n\nमैं real-time rate calculate करके बताऊंगा!\n\nआप FCPL Rate Calculator page भी use कर सकते हैं।`;
+    // 📞 CONTACT
+    if (query.includes("contact") || query.includes("number") || query.includes("vinayak")) {
+      return `📞 **Contact Information!**\n\n👤 **Vinayak Sir:** ${systemKnowledge.contacts.vinayak}\n🏢 **Support:** ${systemKnowledge.contacts.support}\n📧 **Email:** ${systemKnowledge.contacts.email}\n🌐 **Website:** ${systemKnowledge.contacts.website}`;
     }
     
-    // 📍 PINCODE HELP
-    if (query.includes("pincode") || query.includes("pin code") || query.includes("serviceable")) {
-      return `📍 **Pincode Check Help!** Sir, pincode check करने के लिए:\n\n**Example:** "Check pincode 110001"\nया "110001 serviceable hai kya?"\n\nमैं बताऊंगा:\n✅ Zone (Red/Blue/Green)\n✅ ODA Status (Extra charges or not)\n✅ City and State details\n\nकृपया 6-digit pincode बताएं सर!`;
+    // ❓ HELP
+    if (query.includes("help") || query.includes("madad") || query.includes("kya kar sakte ho")) {
+      return `🎤 **Jervice AI - Help Menu!**\n\n✅ **Rate Calculate** - "110001 to 400001 ka rate"\n✅ **Pincode Check** - "Check pincode 110001"\n✅ **Track Order** - "Track FCPL1234"\n✅ **User Management** - "Add new user"\n✅ **Schedule Pickup** - "Schedule pickup from 110001 to 400001"\n✅ **Contact Info** - "Vinayak Sir ka number"\n\nकैसे help करूं सर? 🙏`;
     }
     
-    // 📞 CONTACT INFORMATION
-    if (query.includes("contact") || query.includes("number") || query.includes("phone") || query.includes("vinayak")) {
-      return `📞 **Contact Information!** Sir, ये रहे हमारे contact details:\n\n👤 **Vinayak Sir:** ${systemKnowledge.contacts.vinayak}\n🏢 **Support Team:** ${systemKnowledge.contacts.support}\n📧 **Email:** ${systemKnowledge.contacts.email}\n🌐 **Website:** ${systemKnowledge.contacts.website}\n\nक्या मैं और कुछ help कर सकता हूँ सर?`;
-    }
-    
-    // 📝 CREATE ORDER
-    if (query.includes("create order") || query.includes("new booking") || query.includes("book shipment")) {
-      return `📝 **Create Order Guide!** Sir, नया order create करने के लिए:\n\n1. Create Order page पर जाएं\n2. Sender और Receiver details fill करें\n3. Weight, dimensions enter करें\n4. Invoices upload करें\n5. Submit करें\n\nक्या मैं आपको Create Order page पर redirect कर दूं सर?`;
-    }
-    
-    // ❓ HELP MENU
-    if (query.includes("help") || query.includes("madad") || query.includes("support") || query.includes("kya kar sakte ho")) {
-      return `🎤 **Jervice AI - Complete Help Menu!**\n\nMain ये सब कर सकता हूँ:\n\n✅ **Rate Calculate** - "110001 to 400001 ka rate"\n✅ **Pincode Check** - "Check pincode 110001"\n✅ **Track Order** - "Track FCPL1234"\n✅ **Schedule Pickup** - "Schedule pickup from 110001 to 400001"\n✅ **Contact Info** - "Vinayak Sir ka number"\n✅ **Create Order** - "New booking"\n\n**Example Commands:**\n• "Mumbai se Delhi ka rate 50 kg ke liye"\n• "110001 serviceable hai kya?"\n• "Mera order kahan hai FCPL2024001"\n\nकैसे help करूं सर? 🙏`;
-    }
-    
-    // 🏢 VENDOR RELATED
-    if (query.includes("vendor") || query.includes("supplier")) {
-      return `🏢 **Vendor Management!** Sir, vendor related काम के लिए:\n\n✅ Add New Vendor\n✅ Update Vendor Rates\n✅ View Vendor List\n✅ Vendor Performance Report\n\nVendor Manage page पर जाकर details देख सकते हैं।\n\nक्या आप नया vendor add करना चाहेंगे?`;
-    }
-    
-    // ⭐ DEFAULT RESPONSE
-    return `🎤 **सर, मुझे माफ करें!**\n\nमैं आपकी बात समझ गया लेकिन इस विषय के बारे में मेरे पास जानकारी नहीं है।\n\nकृपया मुझसे ये पूछें:\n\n⭐ **Rate Calculate** - "110001 to 400001 ka rate"\n⭐ **Pincode Check** - "Check pincode 110001"\n⭐ **Track Order** - "Track FCPL1234"\n⭐ **Contact Info** - "Vinayak Sir ka number"\n⭐ **Help** - "Kya kar sakte ho"\n\nमैं आपकी पूरी मदद करूंगा सर! 🙏`;
+    // DEFAULT
+    return `🎤 **सर, मैं समझ गया!**\n\nमैं ये कर सकता हूँ:\n⭐ Rate Calculate - "110001 to 400001 ka rate"\n⭐ Pincode Check - "Check pincode 110001"\n⭐ User Management - "User management help"\n⭐ Track Order - "Track FCPL1234"\n\nक्या आपको इनमें से कुछ चाहिए? 🙏`;
   };
 
   const handleChat = async (inputOverride = null) => {
@@ -344,7 +292,7 @@ const JerviceAI = () => {
               </div>
               <div className="ai-details">
                 <h4>Jervice AI Assistant</h4>
-                <p>🎤 Live • Real-Time Rates • Pincode ODA Check</p>
+                <p>🎤 Live • Real-Time Rates • User Management</p>
               </div>
             </div>
             <div className="header-actions">
@@ -384,7 +332,7 @@ const JerviceAI = () => {
             {isFetching && (
               <div className="fetching-indicator">
                 <Loader size={16} className="spin" />
-                <span>Fetching real-time data from server...</span>
+                <span>Fetching real-time data...</span>
               </div>
             )}
             {isListening && (
@@ -413,6 +361,7 @@ const JerviceAI = () => {
               <button onClick={() => handleChat("help")}>❓ Help</button>
               <button onClick={() => handleChat("110001 to 400001 ka rate 50 kg")}>💰 Rates</button>
               <button onClick={() => handleChat("Check pincode 110001")}>📍 Pincode</button>
+              <button onClick={() => handleChat("user management help")}>👥 Users</button>
               <button onClick={() => handleChat("contact vinayak")}>📞 Contact</button>
             </div>
             <div className="system-status">
@@ -463,7 +412,7 @@ function AdminDashboard() {
     { label: "Total Shipments", value: "1,284", change: "+12%", icon: Package, color: "#4361ee" },
     { label: "Active Pickups", value: "48", change: "+5%", icon: Truck, color: "#f59e0b" },
     { label: "Delivered Today", value: "156", change: "+18%", icon: CheckCircle, color: "#10b981" },
-    { label: "Pending Orders", value: "23", change: "-3%", icon: Clock, color: "#ef4444" }
+    { label: "Total Users", value: "24", change: "+8%", icon: UsersIcon, color: "#8b5cf6" }
   ];
 
   const dashboardCards = [
@@ -475,7 +424,7 @@ function AdminDashboard() {
     { title: "Vendor Rates", desc: "View vendor rate cards", link: "/vendor-rate", icon: CreditCard, color: "#ec4898" },
     { title: "Rate Update", desc: "Update shipping rates", link: "/rate-update", icon: TrendingUp, color: "#f97316" },
     { title: "Pincode Management", desc: "Manage service pincodes", link: "/pincode", icon: MapPin, color: "#06b6d4" },
-    { title: "User Management", desc: "Add and manage users", link: "/user-add", icon: Users, color: "#6366f1" },
+    { title: "User Management", desc: "Add, edit, delete users with permissions", link: "/user-management", icon: UserCog, color: "#6366f1", badge: "Advanced" },
     { title: "BA & B2B Rate", desc: "Calculate BA & B2B shipment rates", link: "/ba-b2b-rate", icon: Calculator, color: "#14b8a6" }
   ];
 
@@ -483,6 +432,7 @@ function AdminDashboard() {
     { action: "New order created", id: "FCPL2024001", time: "2 min ago", status: "success" },
     { action: "Pickup completed", id: "PK-2024-1234", time: "15 min ago", status: "info" },
     { action: "Rate updated", id: "Mumbai-Delhi", time: "1 hour ago", status: "warning" },
+    { action: "New user added", id: "client_five", time: "3 hours ago", status: "success" },
     { action: "New vendor added", id: "Vendor #458", time: "3 hours ago", status: "success" }
   ];
 
@@ -609,8 +559,8 @@ function AdminDashboard() {
               <MapPin size={20} />
               <span>Pincode Management</span>
             </div>
-            <div className="nav-item" onClick={() => goTo("/user-add")}>
-              <User size={20} />
+            <div className="nav-item" onClick={() => goTo("/user-management")}>
+              <UserCog size={20} />
               <span>User Management</span>
             </div>
           </div>
@@ -678,7 +628,7 @@ function AdminDashboard() {
                       <p>{card.desc}</p>
                     </div>
                     {card.badge && (
-                      <div className={`card-badge ${card.badge === "New" ? "new" : "urgent"}`}>
+                      <div className={`card-badge ${card.badge === "New" ? "new" : card.badge === "Advanced" ? "advanced" : "urgent"}`}>
                         {card.badge}
                       </div>
                     )}
@@ -714,7 +664,7 @@ function AdminDashboard() {
             <div className="quick-tip">
               <div className="tip-icon">💡</div>
               <div className="tip-content">
-                <strong>Jervice AI Pro Tip:</strong> "110001 to 400001 ka rate 50 kg" - Real-time rate calculate karein!
+                <strong>Jervice AI Pro Tip:</strong> "User management help" - नए users add करना, permissions देना, और user stats देखना सीखें!
               </div>
             </div>
           </div>

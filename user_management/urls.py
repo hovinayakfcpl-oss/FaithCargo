@@ -1,25 +1,31 @@
-# urls.py
 from django.urls import path
 from . import views
 
 urlpatterns = [
-    # User Management
-    path('api/users/', views.user_list, name='user_list'),
-    path('api/users/<int:id>/', views.user_detail, name='user_detail'),
-    path('api/add-user/', views.add_user, name='add_user'),
-    path('api/update-user/<int:id>/', views.update_user, name='update_user'),
-    path('api/delete-user/<int:id>/', views.delete_user, name='delete_user'),
-    path('api/login/', views.user_login, name='user_login'),
+    # Test endpoint
+    path('test/', views.test_api, name='test_api'),
     
-    # User Stats & Shipments
-    path('api/user-orders/<int:user_id>/', views.user_orders, name='user_orders'),
-    path('api/user-shipments/<int:user_id>/', views.user_shipments, name='user_shipments'),
-    path('api/user-stats/<int:user_id>/', views.user_stats, name='user_stats'),
-    path('api/all-shipments/', views.all_shipments, name='all_shipments'),
+    # User Management APIs
+    path('users/', views.user_list, name='user_list'),
+    path('users/<int:id>/', views.user_detail, name='user_detail'),
+    path('add-user/', views.add_user, name='add_user'),
+    path('update-user/<int:id>/', views.update_user, name='update_user'),
+    path('delete-user/<int:id>/', views.delete_user, name='delete_user'),
+    path('login/', views.user_login, name='user_login'),
     
-    # Billing
-    path('api/user-bill/<int:user_id>/', views.user_bill, name='user_bill'),
+    # Shipment APIs
+    path('user-orders/<int:user_id>/', views.user_orders, name='user_orders'),
+    path('user-shipments/<int:user_id>/', views.user_shipments, name='user_shipments'),
+    path('user-stats/<int:user_id>/', views.user_stats, name='user_stats'),
+    path('all-shipments/', views.all_shipments, name='all_shipments'),
     
-    # Dashboard
-    path('api/dashboard-stats/', views.dashboard_stats, name='dashboard_stats'),
+    # Billing APIs
+    path('user-bill/<int:user_id>/', views.user_bill, name='user_bill'),
+    
+    # Dashboard APIs
+    path('dashboard-stats/', views.dashboard_stats, name='dashboard_stats'),
+    # Add these new endpoints for Jervice AI
+    path('fcpl-rate-calculate/', views.calculate_fcpl_rate, name='calculate_fcpl_rate'),
+    path('pincode/zone/<str:pincode>/', views.get_pincode_zone, name='get_pincode_zone'),
+    path('shipments/shipment/<str:tracking_id>/', views.track_shipment, name='track_shipment'),
 ]

@@ -8,18 +8,20 @@ def home(request):
 urlpatterns = [
     path("", home, name="home"),
     path("admin/", admin.site.urls),
-  
+    
+    # API Routes - All APIs under /api/
     path("api/rates/", include("rates.urls")),
-    path("vendors/", include("vendors.urls")),
-    path("pickup/", include("pickup.urls")),
-    path("pincode/", include("pincode.urls")),
-    path("signup/", include("signup.urls")),
-    path('accounts/', include('accounts.urls')),
-    
-    # ✅ API endpoints - Shipments fix kiya gaya hai
+    path("api/vendors/", include("vendors.urls")),  # Changed from vendors/ to api/vendors/
+    path("api/pickup/", include("pickup.urls")),    # Changed from pickup/ to api/pickup/
     path("api/pincode/", include("pincode.urls")),
-    path('api/user/', include('user_management.urls')),
+    path("api/signup/", include("signup.urls")),    # Changed from signup/ to api/signup/
+    path('api/accounts/', include('accounts.urls')),
     
-    # Yahan "shipments/" add kiya hai taaki /api/shipments/ logic kaam kare
-    path("api/shipments/", include("shipments.urls")), 
+    # Shipments API
+    path("api/shipments/", include("shipments.urls")),
+    
+    # User Management API - This is the important one!
+    path('api/user/', include('user_management.urls')),   # All user APIs under /api/user/
 ]
+
+# Remove the duplicate line at the bottom

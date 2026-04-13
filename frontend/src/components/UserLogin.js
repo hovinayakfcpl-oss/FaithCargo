@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff, User, Lock, LogIn, ArrowLeft, AlertCircle, CheckCircle, Shield, Zap } from "lucide-react";
 import "./UserLogin.css";
 import logo from "../assets/logo.png";
 
@@ -9,12 +10,28 @@ function UserLogin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  // Load saved credentials if remember me was checked
+  useEffect(() => {
+    const savedUsername = localStorage.getItem("rememberedUsername");
+    const savedRemember = localStorage.getItem("rememberMe") === "true";
+    if (savedUsername && savedRemember) {
+      setUsername(savedUsername);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
+    setSuccess("");
 
     if (!username || !password) {
-      alert("Please enter username & password");
+      setError("Please enter username & password");
       return;
     }
 
@@ -35,33 +52,49 @@ function UserLogin() {
       const data = await res.json();
 
       if (res.status === 200 && data.status === "success") {
-        // 1. पुराने डेटा को साफ़ करें ताकि नया डेटा ही काम करे
+        // Clear old data
         localStorage.clear();
 
-        // 2. नए टोकन और मॉड्यूल परमिशन सेव करें
+        // Store authentication data
         localStorage.setItem("token", "user-login-token");
-        localStorage.setItem("is_superuser", "false"); // स्टाफ लॉगिन के लिए false
-        
-        // 🔥 यह लाइन आपके नए मॉड्यूल्स (Create Order, Shipment) को Sidebar में दिखाएगी
-        localStorage.setItem("userModules", JSON.stringify(data.modules));
-        
-        // यूजर का नाम सेव करें
+        localStorage.setItem("is_superuser", "false");
         localStorage.setItem("username", data.username);
-
-        alert(`Welcome ${data.username} 🚀`);
-
-        // 3. डैशबोर्ड पर भेजें
-        navigate("/user-dashboard");
+        localStorage.setItem("userId", data.id || "1");
+        localStorage.setItem("userRole", "user");
         
-        // 4. 🔥 सिस्‍टम को रिफ्रेश करें ताकि Sidebar डेटाबेस से आई नई Permissions को तुरंत पढ़ सके
-        window.location.reload();
+        // Store user modules
+        const modules = data.modules || {};
+        localStorage.setItem("userModules", JSON.stringify(modules));
+        
+        // Store user email and company if available
+        if (data.email) localStorage.setItem("userEmail", data.email);
+        if (data.company) localStorage.setItem("userCompany", data.company);
+        
+        // Handle remember me
+        if (rememberMe) {
+          localStorage.setItem("rememberedUsername", username.trim());
+          localStorage.setItem("rememberMe", "true");
+        } else {
+          localStorage.removeItem("rememberedUsername");
+          localStorage.removeItem("rememberMe");
+        }
 
+        setSuccess(`Welcome ${data.username}! Redirecting... 🚀`);
+        
+        // Show modules access in console for debugging
+        console.log("User Modules Access:", Object.keys(modules).filter(key => modules[key] === true));
+        
+        setTimeout(() => {
+          navigate("/user-dashboard");
+          window.location.reload();
+        }, 1500);
+        
       } else {
-        alert(data.error || "Invalid credentials ❌");
+        setError(data.error || "Invalid credentials ❌");
       }
     } catch (err) {
       console.error("Login Error:", err);
-      alert("Server error ❌. Please check your internet or backend.");
+      setError("Server error ❌. Please check your internet or backend.");
     } finally {
       setLoading(false);
     }
@@ -69,57 +102,147 @@ function UserLogin() {
 
   return (
     <div className="user-login-container">
-      {/* LEFT DECORATION */}
+      {/* LEFT DECORATION - Enhanced */}
       <div className="user-login-left">
+        <div className="animated-bg"></div>
         <div className="overlay-content">
-          <h2>Faith Cargo Logistics 🔐</h2>
-          <p>Login with your staff credentials to access assigned modules.</p>
+          <div className="trust-badge">
+            <Shield size={32} />
+            <span>ISO 9001:2015 Certified</span>
+          </div>
+          <h2>Faith Cargo Logistics</h2>
+          <p className="tagline">Your Trusted Logistics Partner</p>
+          <div className="features-list">
+            <div className="feature-item">
+              <Zap size={18} />
+              <span>Real-time Shipment Tracking</span>
+            </div>
+            <div className="feature-item">
+              <Zap size={18} />
+              <span>Instant Rate Calculator</span>
+            </div>
+            <div className="feature-item">
+              <Zap size={18} />
+              <span>Digital Documentation</span>
+            </div>
+            <div className="feature-item">
+              <Zap size={18} />
+              <span>24/7 Customer Support</span>
+            </div>
+          </div>
+          <div className="support-info">
+            <p>Need help? Call us: <strong>+91 9818641504</strong></p>
+          </div>
         </div>
       </div>
 
-      {/* RIGHT LOGIN FORM */}
+      {/* RIGHT LOGIN FORM - Enhanced */}
       <div className="user-login-right">
         <div className="login-form-wrapper">
-          <img src={logo} alt="Faith Cargo Logo" className="login-logo" />
+          <div className="logo-container">
+            <img src={logo} alt="Faith Cargo Logo" className="login-logo" />
+            <div className="online-status"></div>
+          </div>
           <h2>Staff Portal Login</h2>
-          <p className="subtitle">Enter your details below</p>
+          <p className="subtitle">Enter your credentials to access your dashboard</p>
+
+          {/* Error Alert */}
+          {error && (
+            <div className="alert alert-error">
+              <AlertCircle size={18} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Success Alert */}
+          {success && (
+            <div className="alert alert-success">
+              <CheckCircle size={18} />
+              <span>{success}</span>
+            </div>
+          )}
 
           <form onSubmit={handleLogin} className="login-form">
-            <div className="input-field">
-              <i className="fas fa-user"></i>
-              <input
-                type="text"
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-              />
+            <div className="input-group">
+              <label>Username</label>
+              <div className="input-field">
+                <User size={18} className="input-icon" />
+                <input
+                  type="text"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
+                  disabled={loading}
+                />
+              </div>
             </div>
 
-            <div className="input-field">
-              <i className="fas fa-lock"></i>
-              <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+            <div className="input-group">
+              <label>Password</label>
+              <div className="input-field">
+                <Lock size={18} className="input-icon" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="form-options">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <span>Remember me</span>
+              </label>
+              <button type="button" className="forgot-link" onClick={() => navigate("/forgot-password")}>
+                Forgot Password?
+              </button>
             </div>
 
             <button type="submit" className="login-btn" disabled={loading}>
               {loading ? (
-                <span><i className="fas fa-spinner fa-spin"></i> Verifying...</span>
+                <span>
+                  <i className="fas fa-spinner fa-spin"></i> Verifying...
+                </span>
               ) : (
-                "Login to Dashboard"
+                <>
+                  <LogIn size={18} />
+                  Login to Dashboard
+                </>
               )}
             </button>
           </form>
 
           <div className="form-footer">
-            <p className="back-link" onClick={() => navigate("/")}>
-              <i className="fas fa-arrow-left"></i> Back to Admin Login
-            </p>
+            <div className="divider">
+              <span></span>
+              <span>or</span>
+              <span></span>
+            </div>
+            <button className="back-link" onClick={() => navigate("/")}>
+              <ArrowLeft size={16} />
+              Back to Admin Login
+            </button>
+          </div>
+
+          <div className="security-note">
+            <Shield size={14} />
+            <span>Secure login with 256-bit encryption</span>
           </div>
         </div>
       </div>

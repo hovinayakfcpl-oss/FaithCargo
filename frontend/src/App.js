@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 // 🔹 Core Components
@@ -16,11 +16,11 @@ import VendorRates from "./components/VendorRates";
 import RateUpdate from "./components/RateUpdate";
 import PickupAssign from "./components/PickupAssign";
 import PincodeManagement from "./components/PincodeManagement";
-import UserAdd from "./components/UserAdd";
 
 // ✅ NEW MODULES
 import CreateOrder from "./components/CreateOrder";
 import ShipmentDetails from "./components/ShipmentDetails";
+import UserManagement from "./components/UserManagement";
 
 // 🔹 Auth Helpers
 import ForgotPassword from "./components/ForgotPassword";
@@ -28,24 +28,51 @@ import ResetPassword from "./components/ResetPassword";
 import Signup from "./components/Signup";
 
 function App() {
+  const [userModules, setUserModules] = useState({});
+  const [userRole, setUserRole] = useState(null);
+
+  useEffect(() => {
+    // Check authentication status on app load
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("userRole");
+    const modules = localStorage.getItem("userModules");
+    
+    setUserRole(role);
+    
+    if (modules) {
+      try {
+        setUserModules(JSON.parse(modules));
+      } catch (error) {
+        console.error("Error parsing user modules:", error);
+      }
+    }
+  }, []);
+
+  // Route configuration with permissions
+  const routeConfig = [
+    { path: "/fcpl-rate", component: FcplRateCalculator, module: "fcpl_rate", title: "FCPL Rate Calculator" },
+    { path: "/ba-b2b-rate", component: BaB2bRateCalculator, module: "ba_b2b", title: "BA & B2B Rate Calculator" },
+    { path: "/vendor-manage", component: VendorManage, module: "vendor_manage", title: "Vendor Management" },
+    { path: "/vendor-rate", component: VendorRates, module: "vendor_rates", title: "Vendor Rates" },
+    { path: "/rate-update", component: RateUpdate, module: "rate_update", title: "Rate Update" },
+    { path: "/pickup", component: PickupAssign, module: "pickup", title: "Pickup Assignment" },
+    { path: "/pincode", component: PincodeManagement, module: "pincode", title: "Pincode Management" },
+    { path: "/user-management", component: UserManagement, module: "user_management", title: "User Management" },
+    { path: "/create-order", component: CreateOrder, module: "create_order", title: "Create Order" },
+    { path: "/shipment-details", component: ShipmentDetails, module: "shipment_details", title: "Shipment Details" },
+  ];
+
   return (
     <Router>
       <Routes>
-
-        {/* 🔹 ADMIN LOGIN */}
+        {/* 🔹 PUBLIC ROUTES - No authentication required */}
         <Route path="/" element={<Login />} />
-
-        {/* 🔹 USER LOGIN */}
         <Route path="/user-login" element={<UserLogin />} />
-
-        {/* 🔹 Signup */}
         <Route path="/signup" element={<Signup />} />
-
-        {/* 🔹 Forgot / Reset Password */}
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
 
-        {/* 🔥 ADMIN DASHBOARD */}
+        {/* 🔥 ADMIN DASHBOARD - Full Access */}
         <Route
           path="/admin-dashboard"
           element={
@@ -65,127 +92,32 @@ function App() {
           }
         />
 
-        {/* 🔹 FCPL Rate Calculator */}
+        {/* 🔹 DYNAMIC MODULE-BASED PROTECTED ROUTES */}
+        {routeConfig.map((route) => (
+          <Route
+            key={route.path}
+            path={route.path}
+            element={
+              <ProtectedRoute requiredModule={route.module}>
+                {React.createElement(route.component)}
+              </ProtectedRoute>
+            }
+          />
+        ))}
+
+        {/* 🔹 Redirect based on authentication and role */}
         <Route
-          path="/fcpl-rate"
+          path="/dashboard"
           element={
-            <ProtectedRoute>
-              <FcplRateCalculator />
-            </ProtectedRoute>
+            <Navigate 
+              to={userRole === "admin" ? "/admin-dashboard" : "/user-dashboard"} 
+              replace 
+            />
           }
         />
 
-        {/* 🔹 BA & B2B Rate Calculator */}
-        <Route
-          path="/ba-b2b-rate"
-          element={
-            <ProtectedRoute>
-              <BaB2bRateCalculator />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* 🔹 Vendor Manage */}
-        <Route
-          path="/vendor-manage"
-          element={
-            <ProtectedRoute>
-              <VendorManage />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* 🔹 Vendor Rates */}
-        <Route
-          path="/vendor-rate"
-          element={
-            <ProtectedRoute>
-              <VendorRates />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* 🔹 Rate Update */}
-        <Route
-          path="/rate-update"
-          element={
-            <ProtectedRoute>
-              <RateUpdate />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* 🔹 Pickup Assign */}
-        <Route
-          path="/pickup"
-          element={
-            <ProtectedRoute>
-              <PickupAssign />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* 🔹 User Add */}
-        <Route
-          path="/user-add"
-          element={
-            <ProtectedRoute>
-              <UserAdd />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* 🔹 Pincode Management */}
-        <Route
-          path="/pincode"
-          element={
-            <ProtectedRoute>
-              <PincodeManagement />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* ✅ NEW ROUTES */}
-        <Route
-          path="/create-order"
-          element={
-            <ProtectedRoute>
-              <CreateOrder />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/shipment-details"
-          element={
-            <ProtectedRoute>
-              <ShipmentDetails />
-            </ProtectedRoute>
-          }
-        />
-        // उदाहरण: BA & B2B Rate Calculator के लिए
-<Route
-  path="/ba-b2b-rate"
-  element={
-    <ProtectedRoute requiredModule="ba_b2b">
-      <BaB2bRateCalculator />
-    </ProtectedRoute>
-  }
-/>
-
-// उदाहरण: Create Order के लिए
-<Route
-  path="/create-order"
-  element={
-    <ProtectedRoute requiredModule="create_order">
-      <CreateOrder />
-    </ProtectedRoute>
-  }
-/>
-
-        {/* 🔥 DEFAULT FALLBACK */}
-        <Route path="*" element={<Navigate to="/" />} />
-
+        {/* 🔥 DEFAULT FALLBACK - 404 Page */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
