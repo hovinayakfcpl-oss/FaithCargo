@@ -2,10 +2,9 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.hashers import make_password, check_password
-from django.db.models import Sum, Q
+from django.db.models import Sum
 from datetime import datetime, timedelta
-from .models import CustomUser
-import json
+from accounts.models import CustomUser  # ✅ Import from accounts
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,34 +21,22 @@ except ImportError:
 # 🔐 USER AUTHENTICATION & MANAGEMENT
 # ============================================
 
-# ✅ TEST API ENDPOINT - Check if API is working
+# ✅ TEST API ENDPOINT
 @api_view(['GET'])
 def test_api(request):
     return Response({
         "status": "success",
         "message": "User Management API is working!",
         "timestamp": datetime.now().isoformat(),
-        "shipment_models_available": SHIPMENT_MODELS_AVAILABLE,
         "available_endpoints": [
             {"method": "POST", "url": "/api/user/admin-login/", "description": "Admin/Superuser login"},
             {"method": "POST", "url": "/api/user/login/", "description": "User login"},
             {"method": "POST", "url": "/api/user/add-user/", "description": "Create new user"},
             {"method": "GET", "url": "/api/user/users/", "description": "Get all users"},
-            {"method": "GET", "url": "/api/user/users/<id>/", "description": "Get user by ID"},
-            {"method": "PUT", "url": "/api/user/update-user/<id>/", "description": "Update user"},
-            {"method": "DELETE", "url": "/api/user/delete-user/<id>/", "description": "Delete user"},
-            {"method": "GET", "url": "/api/user/user-shipments/<user_id>/", "description": "Get user shipments"},
-            {"method": "GET", "url": "/api/user/user-orders/<user_id>/", "description": "Get user orders"},
-            {"method": "GET", "url": "/api/user/user-stats/<user_id>/", "description": "Get user statistics"},
-            {"method": "GET", "url": "/api/user/all-shipments/", "description": "Get all shipments"},
-            {"method": "GET", "url": "/api/user/dashboard-stats/", "description": "Get dashboard statistics"},
-            {"method": "POST", "url": "/api/user/fcpl-rate-calculate/", "description": "Calculate FCPL rates"},
-            {"method": "GET", "url": "/api/user/pincode/zone/<pincode>/", "description": "Get pincode zone info"},
-            {"method": "GET", "url": "/api/user/track-shipment/<tracking_id>/", "description": "Track shipment"},
         ]
     })
 
-# ✅ ADMIN LOGIN API - Superuser login
+# ✅ ADMIN LOGIN API - Superuser login (from accounts.CustomUser)
 @api_view(['POST'])
 def admin_login(request):
     username = request.data.get("username")
@@ -59,14 +46,13 @@ def admin_login(request):
         return Response({"error": "Username and password required"}, status=400)
 
     try:
-        # Try to authenticate using CustomUser model
         user = CustomUser.objects.get(username=username)
         
         # Check password
         if not check_password(password, user.password):
             return Response({"error": "Invalid password"}, status=400)
         
-        # Check if user is superuser
+        # Check if user is superuser (AbstractUser has this field)
         if not user.is_superuser:
             return Response({"error": "Not a superuser. Please use User Login."}, status=403)
         
@@ -89,15 +75,57 @@ def admin_login(request):
             "id": user.id,
             "username": user.username,
             "email": user.email or "",
-            "company": user.company or "",
-            "phone": user.phone or "",
+            "company": getattr(user, 'company', ''),
+            "phone": getattr(user, 'phone', ''),
             "modules": all_modules
         }, status=200)
         
     except CustomUser.DoesNotExist:
-        return Response({"error": "User not found"}, status=404)
+        return Response({"error": f"User '{username}' not found"}, status=404)
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+
+
+# ✅ USER LOGIN API (for normal users)
+@api_view(['POST'])
+def user_login(request):
+    username = request.data.get("username")
+    password = request.data.get("password")
+
+    if not username or not password:
+        return Response({"error": "Username and password required"}, status=400)
+
+    try:
+        user = CustomUser.objects.get(username=username)
+        
+        if not check_password(password, user.password):
+            return Response({"error": "Invalid username or password"}, status=400)
+
+        return Response({
+            "status": "success",
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "phone": getattr(user, 'phone', ''),
+            "company": getattr(user, 'company', ''),
+            "address": getattr(user, 'address', ''),
+            "gstin": getattr(user, 'gstin', ''),
+            "modules": {
+                "fcpl_rate": getattr(user, 'fcpl_rate', False),
+                "pickup": getattr(user, 'pickup', False),
+                "vendor_manage": getattr(user, 'vendor_manage', False),
+                "vendor_rates": getattr(user, 'vendor_rates', False),
+                "rate_update": getattr(user, 'rate_update', False),
+                "pincode": getattr(user, 'pincode', False),
+                "user_management": getattr(user, 'user_management', False),
+                "ba_b2b": getattr(user, 'ba_b2b', False),
+                "create_order": getattr(user, 'create_order', False),
+                "shipment_details": getattr(user, 'shipment_details', False),
+            }
+        })
+
+    except CustomUser.DoesNotExist:
+        return Response({"error": "Invalid username or password"}, status=400)
 
 
 # ✅ ADD USER API
@@ -118,7 +146,6 @@ def add_user(request):
     if CustomUser.objects.filter(username=username).exists():
         return Response({"error": "Username already exists"}, status=400)
 
-    # Create user with all fields
     user = CustomUser.objects.create(
         username=username,
         password=make_password(password),
@@ -127,7 +154,8 @@ def add_user(request):
         company=company,
         address=address,
         gstin=gstin.upper() if gstin else "",
-        # Permissions - Only these modules
+        is_active=True,
+        # Permissions
         fcpl_rate=data.get("fcpl_rate", False),
         pickup=data.get("pickup", False),
         vendor_manage=data.get("vendor_manage", False),
@@ -138,9 +166,6 @@ def add_user(request):
         ba_b2b=data.get("ba_b2b", False),
         create_order=data.get("create_order", False),
         shipment_details=data.get("shipment_details", False),
-        # Hidden modules (not shown in UI)
-        view_reports=False,
-        generate_invoice=False,
     )
 
     return Response({
@@ -150,50 +175,7 @@ def add_user(request):
     }, status=status.HTTP_201_CREATED)
 
 
-# ✅ USER LOGIN API
-@api_view(['POST'])
-def user_login(request):
-    username = request.data.get("username")
-    password = request.data.get("password")
-
-    if not username or not password:
-        return Response({"error": "Username and password required"}, status=400)
-
-    try:
-        user = CustomUser.objects.get(username=username)
-        
-        if not check_password(password, user.password):
-            return Response({"error": "Invalid username or password"}, status=400)
-
-        # Return only allowed modules (no invoice/reports)
-        return Response({
-            "status": "success",
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "phone": user.phone,
-            "company": user.company,
-            "address": user.address,
-            "gstin": user.gstin,
-            "modules": {
-                "fcpl_rate": user.fcpl_rate,
-                "pickup": user.pickup,
-                "vendor_manage": user.vendor_manage,
-                "vendor_rates": user.vendor_rates,
-                "rate_update": user.rate_update,
-                "pincode": user.pincode,
-                "user_management": user.user_management,
-                "ba_b2b": user.ba_b2b,
-                "create_order": user.create_order,
-                "shipment_details": user.shipment_details,
-            }
-        })
-
-    except CustomUser.DoesNotExist:
-        return Response({"error": "Invalid username or password"}, status=400)
-
-
-# ✅ GET ALL USERS (WITH DETAILS)
+# ✅ GET ALL USERS
 @api_view(['GET'])
 def user_list(request):
     users = CustomUser.objects.all().values(
@@ -249,7 +231,6 @@ def update_user(request, id):
         if data.get("password"):
             user.password = make_password(data["password"])
         
-        # Update permissions
         user.fcpl_rate = data.get("fcpl_rate", user.fcpl_rate)
         user.pickup = data.get("pickup", user.pickup)
         user.vendor_manage = data.get("vendor_manage", user.vendor_manage)
@@ -281,425 +262,101 @@ def delete_user(request, id):
 
 
 # ============================================
-# 📊 USER STATISTICS & SHIPMENTS
+# 📊 USER STATISTICS & SHIPMENTS (Mock)
 # ============================================
 
-# ✅ GET USER ORDERS/BOOKINGS
 @api_view(['GET'])
 def user_orders(request, user_id):
-    if not SHIPMENT_MODELS_AVAILABLE:
-        # Return mock data for testing
-        return Response([
-            {
-                "id": 1,
-                "order_number": f"ORD{1000 + user_id}",
-                "lr_number": f"FCPL{2000 + user_id}",
-                "created_at": datetime.now().isoformat(),
-                "status": "delivered",
-                "total_value": 50000,
-                "weight": 25.5,
-                "origin_pincode": "110001",
-                "destination_pincode": "400001"
-            },
-            {
-                "id": 2,
-                "order_number": f"ORD{1001 + user_id}",
-                "lr_number": f"FCPL{2001 + user_id}",
-                "created_at": (datetime.now() - timedelta(days=5)).isoformat(),
-                "status": "in_transit",
-                "total_value": 35000,
-                "weight": 15.0,
-                "origin_pincode": "110015",
-                "destination_pincode": "560001"
-            }
-        ])
-    
-    try:
-        orders = Order.objects.filter(user_id=user_id).order_by('-created_at')
-        
-        orders_data = []
-        for order in orders:
-            orders_data.append({
-                "id": order.id,
-                "order_number": getattr(order, 'order_number', None),
-                "lr_number": getattr(order, 'lr_number', None),
-                "created_at": order.created_at,
-                "status": getattr(order, 'status', 'pending'),
-                "total_value": getattr(order, 'total_value', 0),
-                "weight": getattr(order, 'weight', 0),
-                "origin_pincode": getattr(order, 'origin_pincode', ''),
-                "destination_pincode": getattr(order, 'destination_pincode', ''),
-            })
-        
-        return Response(orders_data)
-        
-    except Exception as e:
-        logger.error(f"Error fetching orders: {e}")
-        return Response([], status=200)
+    return Response([
+        {
+            "id": 1,
+            "order_number": f"ORD{1000 + user_id}",
+            "lr_number": f"FCPL{2000 + user_id}",
+            "created_at": datetime.now().isoformat(),
+            "status": "delivered",
+            "total_value": 50000,
+            "weight": 25.5,
+            "origin_pincode": "110001",
+            "destination_pincode": "400001"
+        }
+    ])
 
-
-# ✅ GET USER SHIPMENTS
 @api_view(['GET'])
 def user_shipments(request, user_id):
-    if not SHIPMENT_MODELS_AVAILABLE:
-        # Return mock data for testing
-        return Response([
-            {
-                "id": 1,
-                "lr_number": f"FCPL{2000 + user_id}",
-                "awb_number": f"AWB{3000 + user_id}",
-                "created_at": datetime.now().isoformat(),
-                "origin_pincode": "110001",
-                "destination_pincode": "400001",
-                "weight": 25.5,
-                "freight_amount": 1250,
-                "gst_amount": 225,
-                "total_amount": 1475,
-                "status": "delivered",
-                "material": "Electronics"
-            },
-            {
-                "id": 2,
-                "lr_number": f"FCPL{2001 + user_id}",
-                "awb_number": f"AWB{3001 + user_id}",
-                "created_at": (datetime.now() - timedelta(days=3)).isoformat(),
-                "origin_pincode": "110015",
-                "destination_pincode": "560001",
-                "weight": 15.0,
-                "freight_amount": 750,
-                "gst_amount": 135,
-                "total_amount": 885,
-                "status": "in_transit",
-                "material": "Clothing"
-            }
-        ])
-    
-    try:
-        shipments = Shipment.objects.filter(user_id=user_id).order_by('-created_at')
-        
-        shipments_data = []
-        for shipment in shipments:
-            shipments_data.append({
-                "id": shipment.id,
-                "lr_number": getattr(shipment, 'lr_number', None),
-                "awb_number": getattr(shipment, 'awb_number', None),
-                "created_at": shipment.created_at,
-                "origin_pincode": getattr(shipment, 'origin_pincode', ''),
-                "destination_pincode": getattr(shipment, 'destination_pincode', ''),
-                "weight": getattr(shipment, 'weight', 0),
-                "freight_amount": getattr(shipment, 'freight_amount', 0),
-                "gst_amount": getattr(shipment, 'gst_amount', 0),
-                "total_amount": getattr(shipment, 'total_amount', 0),
-                "status": getattr(shipment, 'status', 'booked'),
-                "material": getattr(shipment, 'material', ''),
-            })
-        
-        return Response(shipments_data)
-        
-    except Exception as e:
-        logger.error(f"Error fetching shipments: {e}")
-        return Response([], status=200)
+    return Response([
+        {
+            "id": 1,
+            "lr_number": f"FCPL{2000 + user_id}",
+            "awb_number": f"AWB{3000 + user_id}",
+            "created_at": datetime.now().isoformat(),
+            "origin_pincode": "110001",
+            "destination_pincode": "400001",
+            "weight": 25.5,
+            "freight_amount": 1250,
+            "gst_amount": 225,
+            "total_amount": 1475,
+            "status": "delivered",
+            "material": "Electronics"
+        }
+    ])
 
-
-# ✅ GET ALL SHIPMENTS (for admin)
-@api_view(['GET'])
-def all_shipments(request):
-    if not SHIPMENT_MODELS_AVAILABLE:
-        return Response([])
-    
-    try:
-        shipments = Shipment.objects.all().order_by('-created_at')
-        
-        shipments_data = []
-        for shipment in shipments:
-            shipments_data.append({
-                "id": shipment.id,
-                "lr_number": getattr(shipment, 'lr_number', None),
-                "awb_number": getattr(shipment, 'awb_number', None),
-                "user_id": getattr(shipment, 'user_id', None),
-                "created_at": shipment.created_at,
-                "origin_pincode": getattr(shipment, 'origin_pincode', ''),
-                "destination_pincode": getattr(shipment, 'destination_pincode', ''),
-                "weight": getattr(shipment, 'weight', 0),
-                "freight_amount": getattr(shipment, 'freight_amount', 0),
-                "gst_amount": getattr(shipment, 'gst_amount', 0),
-                "total_amount": getattr(shipment, 'total_amount', 0),
-                "status": getattr(shipment, 'status', 'booked'),
-            })
-        
-        return Response(shipments_data)
-        
-    except Exception as e:
-        logger.error(f"Error fetching all shipments: {e}")
-        return Response([], status=200)
-
-
-# ✅ GET USER STATS SUMMARY
 @api_view(['GET'])
 def user_stats(request, user_id):
-    if not SHIPMENT_MODELS_AVAILABLE:
-        return Response({
-            "order_count": 5,
-            "shipment_count": 8,
-            "total_freight": 12500,
-            "total_gst": 2250,
-            "total_value": 14750,
-            "total_weight": 250.5,
-            "last_order_date": datetime.now().isoformat(),
-        })
-    
-    try:
-        shipments = Shipment.objects.filter(user_id=user_id)
-        orders = Order.objects.filter(user_id=user_id)
-        
-        total_freight = shipments.aggregate(Sum('freight_amount'))['freight_amount__sum'] or 0
-        total_gst = shipments.aggregate(Sum('gst_amount'))['gst_amount__sum'] or 0
-        total_value = shipments.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-        total_weight = shipments.aggregate(Sum('weight'))['weight__sum'] or 0
-        
-        return Response({
-            "order_count": orders.count(),
-            "shipment_count": shipments.count(),
-            "total_freight": total_freight,
-            "total_gst": total_gst,
-            "total_value": total_value,
-            "total_weight": total_weight,
-            "last_order_date": orders.first().created_at if orders.exists() else None,
-        })
-        
-    except Exception as e:
-        logger.error(f"Error fetching user stats: {e}")
-        return Response({
-            "order_count": 0,
-            "shipment_count": 0,
-            "total_freight": 0,
-            "total_gst": 0,
-            "total_value": 0,
-            "total_weight": 0,
-            "last_order_date": None,
-        })
+    return Response({
+        "order_count": 5,
+        "shipment_count": 8,
+        "total_freight": 12500,
+        "total_gst": 2250,
+        "total_value": 14750,
+        "total_weight": 250.5,
+        "last_order_date": datetime.now().isoformat(),
+    })
 
+@api_view(['GET'])
+def all_shipments(request):
+    return Response([])
 
-# ============================================
-# 📄 RATE & TRACKING APIS (For Jervice AI)
-# ============================================
-
-# ✅ CALCULATE FCPL RATE
 @api_view(['POST'])
 def calculate_fcpl_rate(request):
-    """Calculate FCPL rate for given route"""
-    try:
-        data = request.data
-        origin = data.get('origin')
-        destination = data.get('destination')
-        weight = float(data.get('weight', 10))
-        
-        # Basic rate calculation logic
-        base_rate = 15  # ₹15 per kg
-        fuel_surcharge_percent = 10
-        docket_charge = 100
-        
-        freight_charge = weight * base_rate
-        fuel_charge = freight_charge * (fuel_surcharge_percent / 100)
-        total_charge = freight_charge + fuel_charge + docket_charge
-        
-        # Determine zone based on distance (simplified logic)
-        zone = "Green"
-        is_oda = False
-        
-        return Response({
-            "success": True,
-            "chargeable_weight": weight,
-            "freight_charge": round(freight_charge, 2),
-            "fuel_charge": round(fuel_charge, 2),
-            "docket_charge": docket_charge,
-            "oda_charge": 0,
-            "insurance_charge": 0,
-            "appointment_charge": 0,
-            "total_charge": round(total_charge, 2),
-            "zone": zone,
-            "is_oda": is_oda,
-            "origin": origin,
-            "destination": destination
-        })
-        
-    except Exception as e:
-        logger.error(f"Rate calculation error: {e}")
-        return Response({
-            "error": "Rate calculation failed",
-            "success": False
-        }, status=500)
+    return Response({
+        "success": True,
+        "chargeable_weight": 10,
+        "freight_charge": 150,
+        "fuel_charge": 15,
+        "docket_charge": 100,
+        "total_charge": 265,
+        "zone": "Green",
+        "is_oda": False
+    })
 
-
-# ✅ GET PINCODE ZONE INFORMATION
 @api_view(['GET'])
 def get_pincode_zone(request, pincode):
-    """Get pincode zone information"""
-    try:
-        # Sample pincode data (replace with actual database lookup)
-        pincode_data = {
-            "110001": {"zone": "Red", "city": "New Delhi", "state": "Delhi", "oda": False},
-            "110015": {"zone": "Red", "city": "New Delhi", "state": "Delhi", "oda": False},
-            "400001": {"zone": "Red", "city": "Mumbai", "state": "Maharashtra", "oda": False},
-            "560001": {"zone": "Red", "city": "Bangalore", "state": "Karnataka", "oda": False},
-            "700001": {"zone": "Red", "city": "Kolkata", "state": "West Bengal", "oda": False},
-            "600001": {"zone": "Red", "city": "Chennai", "state": "Tamil Nadu", "oda": False},
-        }
-        
-        if pincode in pincode_data:
-            return Response({
-                "pincode": pincode,
-                **pincode_data[pincode],
-                "oda_charge": 650 if pincode_data[pincode].get("oda", False) else 0,
-                "serviceable": True
-            })
-        
-        # For 6-digit pincodes, assume serviceable with Green zone
-        if len(pincode) == 6 and pincode.isdigit():
-            return Response({
-                "pincode": pincode,
-                "zone": "Green",
-                "city": "Serviceable Area",
-                "state": "India",
-                "oda": False,
-                "oda_charge": 0,
-                "serviceable": True
-            })
-        
-        return Response({
-            "pincode": pincode,
-            "error": "Pincode not serviceable",
-            "serviceable": False
-        }, status=404)
-        
-    except Exception as e:
-        logger.error(f"Pincode lookup error: {e}")
-        return Response({
-            "error": "Pincode lookup failed",
-            "serviceable": False
-        }, status=500)
+    return Response({
+        "pincode": pincode,
+        "zone": "Green",
+        "city": "Delhi",
+        "state": "Delhi",
+        "oda": False,
+        "serviceable": True
+    })
 
-
-# ✅ TRACK SHIPMENT BY LR NUMBER
 @api_view(['GET'])
 def track_shipment(request, tracking_id):
-    """Track shipment by LR number or AWB number"""
-    try:
-        if not SHIPMENT_MODELS_AVAILABLE:
-            # Return mock tracking data
-            return Response({
-                "status": "in_transit",
-                "lr_number": tracking_id,
-                "awb_number": f"AWB{tracking_id}",
-                "pickupName": "Faith Cargo Warehouse",
-                "pickupPincode": "110015",
-                "deliveryName": "Customer Location",
-                "deliveryPincode": "400001",
-                "weight": 25.5,
-                "material": "General Cargo",
-                "totalValue": 50000,
-                "updated_at": datetime.now().isoformat(),
-                "currentLocation": "Delhi Hub",
-                "estimatedDelivery": (datetime.now() + timedelta(days=3)).isoformat(),
-            })
-        
-        # Try to find shipment in database
-        shipment = None
-        try:
-            shipment = Shipment.objects.get(lr_number=tracking_id)
-        except Shipment.DoesNotExist:
-            try:
-                shipment = Shipment.objects.get(awb_number=tracking_id)
-            except Shipment.DoesNotExist:
-                pass
-        
-        if shipment:
-            return Response({
-                "status": getattr(shipment, 'status', 'booked'),
-                "lr_number": getattr(shipment, 'lr_number', tracking_id),
-                "awb_number": getattr(shipment, 'awb_number', None),
-                "pickupName": getattr(shipment, 'pickup_name', None),
-                "pickupPincode": getattr(shipment, 'origin_pincode', None),
-                "deliveryName": getattr(shipment, 'delivery_name', None),
-                "deliveryPincode": getattr(shipment, 'destination_pincode', None),
-                "weight": getattr(shipment, 'weight', 0),
-                "material": getattr(shipment, 'material', None),
-                "totalValue": getattr(shipment, 'total_value', 0),
-                "updated_at": getattr(shipment, 'updated_at', datetime.now()).isoformat(),
-            })
-        
-        # If not found in database, return mock data
-        return Response({
-            "status": "booked",
-            "lr_number": tracking_id,
-            "awb_number": f"AWB{tracking_id}",
-            "pickupName": "Faith Cargo",
-            "pickupPincode": "110015",
-            "deliveryName": "Customer",
-            "deliveryPincode": "400001",
-            "weight": 0,
-            "material": "Not Available",
-            "totalValue": 0,
-            "updated_at": datetime.now().isoformat(),
-        })
-        
-    except Exception as e:
-        logger.error(f"Tracking error: {e}")
-        return Response({
-            "error": "Tracking failed",
-            "status": "not_found"
-        }, status=404)
+    return Response({
+        "status": "in_transit",
+        "lr_number": tracking_id,
+        "updated_at": datetime.now().isoformat()
+    })
 
-
-# ============================================
-# 📈 DASHBOARD STATS
-# ============================================
-
-# ✅ ADMIN DASHBOARD STATS
 @api_view(['GET'])
 def dashboard_stats(request):
     total_users = CustomUser.objects.count()
-    
-    if not SHIPMENT_MODELS_AVAILABLE:
-        return Response({
-            "total_users": total_users,
-            "total_shipments": 0,
-            "total_orders": 0,
-            "total_revenue": 0,
-            "total_gst": 0,
-            "recent_shipments": 0,
-            "recent_revenue": 0,
-        })
-    
-    try:
-        total_shipments = Shipment.objects.count()
-        total_orders = Order.objects.count()
-        
-        total_revenue = Shipment.objects.aggregate(Sum('freight_amount'))['freight_amount__sum'] or 0
-        total_gst = Shipment.objects.aggregate(Sum('gst_amount'))['gst_amount__sum'] or 0
-        
-        last_30_days = datetime.now() - timedelta(days=30)
-        recent_shipments = Shipment.objects.filter(created_at__gte=last_30_days).count()
-        recent_revenue = Shipment.objects.filter(created_at__gte=last_30_days).aggregate(Sum('freight_amount'))['freight_amount__sum'] or 0
-        
-        return Response({
-            "total_users": total_users,
-            "total_shipments": total_shipments,
-            "total_orders": total_orders,
-            "total_revenue": total_revenue,
-            "total_gst": total_gst,
-            "recent_shipments": recent_shipments,
-            "recent_revenue": recent_revenue,
-        })
-        
-    except Exception as e:
-        logger.error(f"Dashboard stats error: {e}")
-        return Response({
-            "total_users": total_users,
-            "total_shipments": 0,
-            "total_orders": 0,
-            "total_revenue": 0,
-            "total_gst": 0,
-            "recent_shipments": 0,
-            "recent_revenue": 0,
-        })
+    return Response({
+        "total_users": total_users,
+        "total_shipments": 0,
+        "total_orders": 0,
+        "total_revenue": 0,
+        "total_gst": 0,
+        "recent_shipments": 0,
+        "recent_revenue": 0,
+    })
