@@ -1,127 +1,177 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  User, Lock, Phone, Mail, Building, Eye, EyeOff, 
-  AlertCircle, CheckCircle, Shield, ArrowLeft, 
-  UserPlus, Zap, Award, Crown, Truck, Package
+  Eye, EyeOff, User, Lock, LogIn, ArrowRight, 
+  AlertCircle, CheckCircle, Shield, Zap, Users,
+  Crown, Building, Phone, Mail
 } from "lucide-react";
-import "./Signup.css";
+import "./Login.css";
 import logo from "../assets/logo.png";
 
-function Signup() {
+function Login() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    username: "",
-    password: "",
-    rePassword: "",
-    email: "",
-    phone: "",
-    company: "",
-    address: "",
-    gstin: ""
-  });
-  
-  const [showPassword, setShowPassword] = useState(false);
-  const [showRePassword, setShowRePassword] = useState(false);
+  const [isAdminLogin, setIsAdminLogin] = useState(true); // Toggle between Admin and User login
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [agreeTerms, setAgreeTerms] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
+  // Load saved credentials
+  React.useEffect(() => {
+    const savedUsername = localStorage.getItem("rememberedAdminUsername");
+    const savedRemember = localStorage.getItem("rememberAdmin") === "true";
+    if (savedUsername && savedRemember) {
+      setUsername(savedUsername);
+      setRememberMe(true);
+    }
+  }, []);
 
-  const validateForm = () => {
-    if (!formData.username || !formData.password || !formData.rePassword || !formData.phone) {
-      setError("Please fill all required fields");
-      return false;
-    }
-    
-    if (formData.password !== formData.rePassword) {
-      setError("Passwords do not match");
-      return false;
-    }
-    
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return false;
-    }
-    
-    if (formData.phone.length < 10) {
-      setError("Please enter a valid 10-digit phone number");
-      return false;
-    }
-    
-    if (!agreeTerms) {
-      setError("Please agree to the Terms & Conditions");
-      return false;
-    }
-    
-    return true;
-  };
-
-  const handleSignup = async (e) => {
+  const handleAdminLogin = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-    
-    if (!validateForm()) return;
-    
+
+    if (!username || !password) {
+      setError("Please enter username & password");
+      return;
+    }
+
     setLoading(true);
-    
+
     try {
-      const response = await fetch("https://faithcargo.onrender.com/api/user/add-user/", {
+      const response = await fetch("https://faithcargo.onrender.com/api/admin-login/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: formData.username,
-          password: formData.password,
-          email: formData.email,
-          phone: formData.phone,
-          company: formData.company,
-          address: formData.address,
-          gstin: formData.gstin.toUpperCase(),
-          // Default permissions for new signups (limited access)
-          fcpl_rate: true,
-          pickup: true,
-          vendor_manage: false,
-          vendor_rates: false,
-          rate_update: false,
-          pincode: false,
-          user_management: false,
-          ba_b2b: false,
-          create_order: true,
-          shipment_details: true,
+          username: username.trim(),
+          password: password.trim(),
         }),
       });
-      
+
       const data = await response.json();
-      
-      if (response.ok && data.status === "User created successfully") {
-        setSuccess(`Welcome ${formData.username}! Your account has been created successfully. Redirecting to login...`);
+
+      if (response.status === 200 && data.status === "success") {
+        localStorage.clear();
+        
+        localStorage.setItem("token", "admin-token");
+        localStorage.setItem("userRole", "admin");
+        localStorage.setItem("is_superuser", "true");
+        localStorage.setItem("username", data.username);
+        localStorage.setItem("userId", data.id || "1");
+        
+        // Admin has all modules access
+        const allModules = {
+          fcpl_rate: true,
+          pickup: true,
+          vendor_manage: true,
+          vendor_rates: true,
+          rate_update: true,
+          pincode: true,
+          user_management: true,
+          ba_b2b: true,
+          create_order: true,
+          shipment_details: true,
+        };
+        localStorage.setItem("userModules", JSON.stringify(allModules));
+        
+        if (rememberMe) {
+          localStorage.setItem("rememberedAdminUsername", username.trim());
+          localStorage.setItem("rememberAdmin", "true");
+        } else {
+          localStorage.removeItem("rememberedAdminUsername");
+          localStorage.removeItem("rememberAdmin");
+        }
+
+        setSuccess(`Welcome Admin ${data.username}! Redirecting...`);
         
         setTimeout(() => {
-          navigate("/user-login");
-        }, 2000);
+          navigate("/admin-dashboard");
+        }, 1500);
       } else {
-        setError(data.error || "Signup failed. Please try again.");
+        setError(data.error || "Invalid admin credentials");
       }
-    } catch (error) {
-      console.error("Error during signup:", error);
-      setError("Something went wrong. Please check your internet connection.");
+    } catch (err) {
+      console.error("Login Error:", err);
+      setError("Server error. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleUserLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!username || !password) {
+      setError("Please enter username & password");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch("https://faithcargo.onrender.com/api/user/login/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.status === 200 && data.status === "success") {
+        localStorage.clear();
+        
+        localStorage.setItem("token", "user-token");
+        localStorage.setItem("userRole", "user");
+        localStorage.setItem("is_superuser", "false");
+        localStorage.setItem("username", data.username);
+        localStorage.setItem("userId", data.id || "1");
+        
+        if (data.email) localStorage.setItem("userEmail", data.email);
+        if (data.company) localStorage.setItem("userCompany", data.company);
+        if (data.phone) localStorage.setItem("userPhone", data.phone);
+        
+        const modules = data.modules || {};
+        localStorage.setItem("userModules", JSON.stringify(modules));
+        
+        if (rememberMe) {
+          localStorage.setItem("rememberedUserUsername", username.trim());
+          localStorage.setItem("rememberUser", "true");
+        } else {
+          localStorage.removeItem("rememberedUserUsername");
+          localStorage.removeItem("rememberUser");
+        }
+
+        const enabledModules = Object.keys(modules).filter(key => modules[key] === true);
+        setSuccess(`Welcome ${data.username}! You have access to ${enabledModules.length} modules. Redirecting...`);
+        
+        setTimeout(() => {
+          navigate("/user-dashboard");
+        }, 1500);
+      } else {
+        setError(data.error || "Invalid user credentials");
+      }
+    } catch (err) {
+      console.error("Login Error:", err);
+      setError("Server error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = isAdminLogin ? handleAdminLogin : handleUserLogin;
+
   return (
-    <div className="signup-container">
+    <div className="login-container">
       {/* Left Side - Brand Section */}
-      <div className="signup-left">
+      <div className="login-left">
         <div className="animated-bg"></div>
         <div className="brand-content">
           <div className="trust-badge">
@@ -133,20 +183,20 @@ function Signup() {
           
           <div className="features">
             <div className="feature">
-              <Truck size={20} />
+              <Zap size={20} />
               <span>Real-time Shipment Tracking</span>
             </div>
             <div className="feature">
-              <Package size={20} />
-              <span>Instant Rate Calculator</span>
+              <Building size={20} />
+              <span>Warehouse Management</span>
             </div>
             <div className="feature">
-              <Zap size={20} />
-              <span>Fast & Reliable Delivery</span>
-            </div>
-            <div className="feature">
-              <Award size={20} />
+              <Phone size={20} />
               <span>24/7 Customer Support</span>
+            </div>
+            <div className="feature">
+              <Mail size={20} />
+              <span>Instant Rate Calculator</span>
             </div>
           </div>
           
@@ -167,16 +217,48 @@ function Signup() {
         </div>
       </div>
 
-      {/* Right Side - Signup Form */}
-      <div className="signup-right">
-        <div className="signup-form-wrapper">
+      {/* Right Side - Login Form */}
+      <div className="login-right">
+        <div className="login-form-wrapper">
           <div className="logo-container">
-            <img src={logo} alt="Faith Cargo" className="signup-logo" />
+            <img src={logo} alt="Faith Cargo" className="login-logo" />
             <div className="online-status"></div>
           </div>
           
-          <h2>Create Account</h2>
-          <p className="subtitle">Join Faith Cargo Logistics Platform</p>
+          {/* Login Type Toggle */}
+          <div className="login-tabs">
+            <button 
+              className={`tab-btn ${isAdminLogin ? 'active' : ''}`}
+              onClick={() => {
+                setIsAdminLogin(true);
+                setError("");
+                setUsername("");
+                setPassword("");
+              }}
+            >
+              <Crown size={18} />
+              Admin Login
+            </button>
+            <button 
+              className={`tab-btn ${!isAdminLogin ? 'active' : ''}`}
+              onClick={() => {
+                setIsAdminLogin(false);
+                setError("");
+                setUsername("");
+                setPassword("");
+              }}
+            >
+              <Users size={18} />
+              User Login
+            </button>
+          </div>
+          
+          <h2>{isAdminLogin ? "Admin Portal" : "Staff Portal"}</h2>
+          <p className="subtitle">
+            {isAdminLogin 
+              ? "Enter your superuser credentials to access admin dashboard" 
+              : "Enter your credentials to access your assigned modules"}
+          </p>
           
           {/* Error Alert */}
           {error && (
@@ -194,175 +276,67 @@ function Signup() {
             </div>
           )}
           
-          <form onSubmit={handleSignup} className="signup-form">
-            <div className="form-row">
-              <div className="input-group">
-                <label>Username *</label>
-                <div className="input-field">
-                  <User size={18} className="input-icon" />
-                  <input
-                    type="text"
-                    name="username"
-                    placeholder="Enter username"
-                    value={formData.username}
-                    onChange={handleChange}
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-              
-              <div className="input-group">
-                <label>Email (Optional)</label>
-                <div className="input-field">
-                  <Mail size={18} className="input-icon" />
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="Enter email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    disabled={loading}
-                  />
-                </div>
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="input-group">
+              <label>Username</label>
+              <div className="input-field">
+                <User size={18} className="input-icon" />
+                <input
+                  type="text"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
+                  disabled={loading}
+                />
               </div>
             </div>
-            
-            <div className="form-row">
-              <div className="input-group">
-                <label>Password *</label>
-                <div className="input-field">
-                  <Lock size={18} className="input-icon" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    placeholder="Enter password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-              
-              <div className="input-group">
-                <label>Confirm Password *</label>
-                <div className="input-field">
-                  <Lock size={18} className="input-icon" />
-                  <input
-                    type={showRePassword ? "text" : "password"}
-                    name="rePassword"
-                    placeholder="Confirm password"
-                    value={formData.rePassword}
-                    onChange={handleChange}
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() => setShowRePassword(!showRePassword)}
-                  >
-                    {showRePassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
+
+            <div className="input-group">
+              <label>Password</label>
+              <div className="input-field">
+                <Lock size={18} className="input-icon" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
-            
-            <div className="form-row">
-              <div className="input-group">
-                <label>Phone Number *</label>
-                <div className="input-field">
-                  <Phone size={18} className="input-icon" />
-                  <input
-                    type="tel"
-                    name="phone"
-                    placeholder="10-digit mobile number"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    maxLength="10"
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-              
-              <div className="input-group">
-                <label>Company Name</label>
-                <div className="input-field">
-                  <Building size={18} className="input-icon" />
-                  <input
-                    type="text"
-                    name="company"
-                    placeholder="Your company name"
-                    value={formData.company}
-                    onChange={handleChange}
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="form-row">
-              <div className="input-group full-width">
-                <label>Address</label>
-                <div className="input-field">
-                  <input
-                    type="text"
-                    name="address"
-                    placeholder="Your full address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="form-row">
-              <div className="input-group">
-                <label>GSTIN (Optional)</label>
-                <div className="input-field">
-                  <input
-                    type="text"
-                    name="gstin"
-                    placeholder="15-digit GST number"
-                    value={formData.gstin}
-                    onChange={handleChange}
-                    maxLength="15"
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="terms-checkbox">
+
+            <div className="form-options">
               <label className="checkbox-label">
                 <input
                   type="checkbox"
-                  checked={agreeTerms}
-                  onChange={(e) => setAgreeTerms(e.target.checked)}
-                  disabled={loading}
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                 />
-                <span>
-                  I agree to the <a href="#">Terms & Conditions</a> and 
-                  <a href="#"> Privacy Policy</a>
-                </span>
+                <span>Remember me</span>
               </label>
+              <button type="button" className="forgot-link" onClick={() => navigate("/forgot-password")}>
+                Forgot Password?
+              </button>
             </div>
-            
-            <button type="submit" className="signup-btn" disabled={loading}>
+
+            <button type="submit" className="login-btn" disabled={loading}>
               {loading ? (
                 <span>
-                  <i className="fas fa-spinner fa-spin"></i> Creating Account...
+                  <i className="fas fa-spinner fa-spin"></i> Verifying...
                 </span>
               ) : (
                 <>
-                  <UserPlus size={18} />
-                  Create Account
+                  <LogIn size={18} />
+                  {isAdminLogin ? "Login as Admin" : "Login to Dashboard"}
                 </>
               )}
             </button>
@@ -371,18 +345,18 @@ function Signup() {
           <div className="form-footer">
             <div className="divider">
               <span></span>
-              <span>Already have an account?</span>
+              <span>New to Faith Cargo?</span>
               <span></span>
             </div>
-            <button className="back-link" onClick={() => navigate("/user-login")}>
-              <ArrowLeft size={16} />
-              Back to Login
+            <button className="signup-link" onClick={() => navigate("/signup")}>
+              <ArrowRight size={16} />
+              Create New Account
             </button>
           </div>
           
           <div className="security-note">
             <Shield size={14} />
-            <span>Secure registration with 256-bit encryption</span>
+            <span>Secure login with 256-bit encryption</span>
           </div>
         </div>
       </div>
@@ -390,4 +364,4 @@ function Signup() {
   );
 }
 
-export default Signup;
+export default Login;
