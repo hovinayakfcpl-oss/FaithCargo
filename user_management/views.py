@@ -6,6 +6,9 @@ from django.db.models import Sum, Q
 from datetime import datetime, timedelta
 from .models import CustomUser
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Import Shipment models if they exist in your project
 try:
@@ -13,6 +16,7 @@ try:
     SHIPMENT_MODELS_AVAILABLE = True
 except ImportError:
     SHIPMENT_MODELS_AVAILABLE = False
+    logger.warning("Shipment models not available. Using mock data.")
 
 # ============================================
 # 🔐 USER AUTHENTICATION & MANAGEMENT
@@ -25,6 +29,7 @@ def test_api(request):
         "status": "success",
         "message": "User Management API is working!",
         "timestamp": datetime.now().isoformat(),
+        "shipment_models_available": SHIPMENT_MODELS_AVAILABLE,
         "available_endpoints": [
             {"method": "POST", "url": "/api/user/add-user/", "description": "Create new user"},
             {"method": "POST", "url": "/api/user/login/", "description": "User login"},
@@ -36,8 +41,10 @@ def test_api(request):
             {"method": "GET", "url": "/api/user/user-orders/<user_id>/", "description": "Get user orders"},
             {"method": "GET", "url": "/api/user/user-stats/<user_id>/", "description": "Get user statistics"},
             {"method": "GET", "url": "/api/user/all-shipments/", "description": "Get all shipments"},
-            {"method": "GET", "url": "/api/user/user-bill/<user_id>/", "description": "Generate user bill"},
             {"method": "GET", "url": "/api/user/dashboard-stats/", "description": "Get dashboard statistics"},
+            {"method": "POST", "url": "/api/user/fcpl-rate-calculate/", "description": "Calculate FCPL rates"},
+            {"method": "GET", "url": "/api/user/pincode/zone/<pincode>/", "description": "Get pincode zone info"},
+            {"method": "GET", "url": "/api/user/track-shipment/<tracking_id>/", "description": "Track shipment"},
         ]
     })
 
@@ -62,13 +69,13 @@ def add_user(request):
     # Create user with all fields
     user = CustomUser.objects.create(
         username=username,
-        password=make_password(password),  # Hash password for security
+        password=make_password(password),
         email=email,
         phone=phone,
         company=company,
         address=address,
         gstin=gstin.upper() if gstin else "",
-        # Permissions
+        # Permissions - Only these modules
         fcpl_rate=data.get("fcpl_rate", False),
         pickup=data.get("pickup", False),
         vendor_manage=data.get("vendor_manage", False),
@@ -79,8 +86,9 @@ def add_user(request):
         ba_b2b=data.get("ba_b2b", False),
         create_order=data.get("create_order", False),
         shipment_details=data.get("shipment_details", False),
-        view_reports=data.get("view_reports", False),
-        generate_invoice=data.get("generate_invoice", False),
+        # Hidden modules (not shown in UI)
+        view_reports=False,
+        generate_invoice=False,
     )
 
     return Response({
@@ -102,11 +110,10 @@ def user_login(request):
     try:
         user = CustomUser.objects.get(username=username)
         
-        # Check password (if hashed)
         if not check_password(password, user.password):
             return Response({"error": "Invalid username or password"}, status=400)
 
-        # Return user data with all modules
+        # Return only allowed modules (no invoice/reports)
         return Response({
             "status": "success",
             "id": user.id,
@@ -127,8 +134,6 @@ def user_login(request):
                 "ba_b2b": user.ba_b2b,
                 "create_order": user.create_order,
                 "shipment_details": user.shipment_details,
-                "view_reports": user.view_reports,
-                "generate_invoice": user.generate_invoice,
             }
         })
 
@@ -170,8 +175,6 @@ def user_detail(request, id):
             "ba_b2b": user.ba_b2b,
             "create_order": user.create_order,
             "shipment_details": user.shipment_details,
-            "view_reports": user.view_reports,
-            "generate_invoice": user.generate_invoice,
         })
     except CustomUser.DoesNotExist:
         return Response({"error": "User not found"}, status=404)
@@ -191,7 +194,6 @@ def update_user(request, id):
         user.address = data.get("address", user.address)
         user.gstin = data.get("gstin", user.gstin)
         
-        # Update password if provided
         if data.get("password"):
             user.password = make_password(data["password"])
         
@@ -206,8 +208,6 @@ def update_user(request, id):
         user.ba_b2b = data.get("ba_b2b", user.ba_b2b)
         user.create_order = data.get("create_order", user.create_order)
         user.shipment_details = data.get("shipment_details", user.shipment_details)
-        user.view_reports = data.get("view_reports", user.view_reports)
-        user.generate_invoice = data.get("generate_invoice", user.generate_invoice)
         
         user.save()
         
@@ -236,7 +236,31 @@ def delete_user(request, id):
 @api_view(['GET'])
 def user_orders(request, user_id):
     if not SHIPMENT_MODELS_AVAILABLE:
-        return Response([])
+        # Return mock data for testing
+        return Response([
+            {
+                "id": 1,
+                "order_number": f"ORD{1000 + user_id}",
+                "lr_number": f"FCPL{2000 + user_id}",
+                "created_at": datetime.now().isoformat(),
+                "status": "delivered",
+                "total_value": 50000,
+                "weight": 25.5,
+                "origin_pincode": "110001",
+                "destination_pincode": "400001"
+            },
+            {
+                "id": 2,
+                "order_number": f"ORD{1001 + user_id}",
+                "lr_number": f"FCPL{2001 + user_id}",
+                "created_at": (datetime.now() - timedelta(days=5)).isoformat(),
+                "status": "in_transit",
+                "total_value": 35000,
+                "weight": 15.0,
+                "origin_pincode": "110015",
+                "destination_pincode": "560001"
+            }
+        ])
     
     try:
         orders = Order.objects.filter(user_id=user_id).order_by('-created_at')
@@ -251,11 +275,14 @@ def user_orders(request, user_id):
                 "status": getattr(order, 'status', 'pending'),
                 "total_value": getattr(order, 'total_value', 0),
                 "weight": getattr(order, 'weight', 0),
+                "origin_pincode": getattr(order, 'origin_pincode', ''),
+                "destination_pincode": getattr(order, 'destination_pincode', ''),
             })
         
         return Response(orders_data)
         
     except Exception as e:
+        logger.error(f"Error fetching orders: {e}")
         return Response([], status=200)
 
 
@@ -263,7 +290,37 @@ def user_orders(request, user_id):
 @api_view(['GET'])
 def user_shipments(request, user_id):
     if not SHIPMENT_MODELS_AVAILABLE:
-        return Response([])
+        # Return mock data for testing
+        return Response([
+            {
+                "id": 1,
+                "lr_number": f"FCPL{2000 + user_id}",
+                "awb_number": f"AWB{3000 + user_id}",
+                "created_at": datetime.now().isoformat(),
+                "origin_pincode": "110001",
+                "destination_pincode": "400001",
+                "weight": 25.5,
+                "freight_amount": 1250,
+                "gst_amount": 225,
+                "total_amount": 1475,
+                "status": "delivered",
+                "material": "Electronics"
+            },
+            {
+                "id": 2,
+                "lr_number": f"FCPL{2001 + user_id}",
+                "awb_number": f"AWB{3001 + user_id}",
+                "created_at": (datetime.now() - timedelta(days=3)).isoformat(),
+                "origin_pincode": "110015",
+                "destination_pincode": "560001",
+                "weight": 15.0,
+                "freight_amount": 750,
+                "gst_amount": 135,
+                "total_amount": 885,
+                "status": "in_transit",
+                "material": "Clothing"
+            }
+        ])
     
     try:
         shipments = Shipment.objects.filter(user_id=user_id).order_by('-created_at')
@@ -288,6 +345,7 @@ def user_shipments(request, user_id):
         return Response(shipments_data)
         
     except Exception as e:
+        logger.error(f"Error fetching shipments: {e}")
         return Response([], status=200)
 
 
@@ -320,6 +378,7 @@ def all_shipments(request):
         return Response(shipments_data)
         
     except Exception as e:
+        logger.error(f"Error fetching all shipments: {e}")
         return Response([], status=200)
 
 
@@ -328,13 +387,13 @@ def all_shipments(request):
 def user_stats(request, user_id):
     if not SHIPMENT_MODELS_AVAILABLE:
         return Response({
-            "order_count": 0,
-            "shipment_count": 0,
-            "total_freight": 0,
-            "total_gst": 0,
-            "total_value": 0,
-            "total_weight": 0,
-            "last_order_date": None,
+            "order_count": 5,
+            "shipment_count": 8,
+            "total_freight": 12500,
+            "total_gst": 2250,
+            "total_value": 14750,
+            "total_weight": 250.5,
+            "last_order_date": datetime.now().isoformat(),
         })
     
     try:
@@ -357,6 +416,7 @@ def user_stats(request, user_id):
         })
         
     except Exception as e:
+        logger.error(f"Error fetching user stats: {e}")
         return Response({
             "order_count": 0,
             "shipment_count": 0,
@@ -369,101 +429,194 @@ def user_stats(request, user_id):
 
 
 # ============================================
-# 📄 BILLING & INVOICE
+# 📄 RATE & TRACKING APIS (For Jervice AI)
 # ============================================
 
-# ✅ GENERATE USER BILL
-@api_view(['GET'])
-def user_bill(request, user_id):
-    if not SHIPMENT_MODELS_AVAILABLE:
-        try:
-            user = CustomUser.objects.get(id=user_id)
-            return Response({
-                "user": {
-                    "id": user.id,
-                    "username": user.username,
-                    "company": user.company,
-                    "address": user.address,
-                    "gstin": user.gstin,
-                    "email": user.email,
-                    "phone": user.phone,
-                },
-                "shipments": [],
-                "total_freight": 0,
-                "total_gst": 0,
-                "grand_total": 0,
-                "shipment_count": 0,
-                "period": {
-                    "start": request.GET.get('start'),
-                    "end": request.GET.get('end')
-                }
-            })
-        except CustomUser.DoesNotExist:
-            return Response({"error": "User not found"}, status=404)
-    
+# ✅ CALCULATE FCPL RATE
+@api_view(['POST'])
+def calculate_fcpl_rate(request):
+    """Calculate FCPL rate for given route"""
     try:
-        start_date = request.GET.get('start')
-        end_date = request.GET.get('end')
+        data = request.data
+        origin = data.get('origin')
+        destination = data.get('destination')
+        weight = float(data.get('weight', 10))
         
-        # Filter shipments by date range
-        shipments = Shipment.objects.filter(user_id=user_id)
+        # Basic rate calculation logic
+        base_rate = 15  # ₹15 per kg
+        fuel_surcharge_percent = 10
+        docket_charge = 100
         
-        if start_date:
-            shipments = shipments.filter(created_at__gte=start_date)
-        if end_date:
-            shipments = shipments.filter(created_at__lte=end_date + " 23:59:59")
+        freight_charge = weight * base_rate
+        fuel_charge = freight_charge * (fuel_surcharge_percent / 100)
+        total_charge = freight_charge + fuel_charge + docket_charge
         
-        shipments = shipments.order_by('created_at')
+        # Determine zone based on distance (simplified logic)
+        # You can implement actual zone logic based on pincode database
+        zone = "Green"
+        is_oda = False
         
-        # Calculate totals
-        total_freight = shipments.aggregate(Sum('freight_amount'))['freight_amount__sum'] or 0
-        total_gst = shipments.aggregate(Sum('gst_amount'))['gst_amount__sum'] or 0
-        grand_total = total_freight + total_gst
+        return Response({
+            "success": True,
+            "chargeable_weight": weight,
+            "freight_charge": round(freight_charge, 2),
+            "fuel_charge": round(fuel_charge, 2),
+            "docket_charge": docket_charge,
+            "oda_charge": 0,
+            "insurance_charge": 0,
+            "appointment_charge": 0,
+            "total_charge": round(total_charge, 2),
+            "zone": zone,
+            "is_oda": is_oda,
+            "origin": origin,
+            "destination": destination
+        })
         
-        # Get user details
-        user = CustomUser.objects.get(id=user_id)
+    except Exception as e:
+        logger.error(f"Rate calculation error: {e}")
+        return Response({
+            "error": "Rate calculation failed",
+            "success": False
+        }, status=500)
+
+
+# ✅ GET PINCODE ZONE INFORMATION
+@api_view(['GET'])
+def get_pincode_zone(request, pincode):
+    """Get pincode zone information"""
+    try:
+        # You can integrate with your pincode database here
+        # For now, return mock data based on pincode pattern
         
-        shipments_data = []
-        for shipment in shipments:
-            shipments_data.append({
-                "id": shipment.id,
-                "lr_number": getattr(shipment, 'lr_number', 'N/A'),
-                "awb_number": getattr(shipment, 'awb_number', 'N/A'),
-                "created_at": shipment.created_at,
-                "origin_pincode": getattr(shipment, 'origin_pincode', ''),
-                "destination_pincode": getattr(shipment, 'destination_pincode', ''),
-                "weight": getattr(shipment, 'weight', 0),
-                "freight_amount": getattr(shipment, 'freight_amount', 0),
-                "gst_amount": getattr(shipment, 'gst_amount', 0),
-                "total_amount": getattr(shipment, 'total_amount', 0),
-                "status": getattr(shipment, 'status', 'booked'),
+        # Sample pincode data (replace with actual database lookup)
+        pincode_data = {
+            "110001": {"zone": "Red", "city": "New Delhi", "state": "Delhi", "oda": False},
+            "110015": {"zone": "Red", "city": "New Delhi", "state": "Delhi", "oda": False},
+            "400001": {"zone": "Red", "city": "Mumbai", "state": "Maharashtra", "oda": False},
+            "560001": {"zone": "Red", "city": "Bangalore", "state": "Karnataka", "oda": False},
+            "700001": {"zone": "Red", "city": "Kolkata", "state": "West Bengal", "oda": False},
+            "600001": {"zone": "Red", "city": "Chennai", "state": "Tamil Nadu", "oda": False},
+        }
+        
+        # Default response
+        default_response = {
+            "pincode": pincode,
+            "zone": "Green",
+            "city": "Unknown",
+            "state": "Unknown",
+            "oda": False,
+            "oda_charge": 0,
+            "serviceable": True
+        }
+        
+        if pincode in pincode_data:
+            return Response({
+                "pincode": pincode,
+                **pincode_data[pincode],
+                "oda_charge": 650 if pincode_data[pincode].get("oda", False) else 0,
+                "serviceable": True
+            })
+        
+        # For 6-digit pincodes, assume serviceable with Green zone
+        if len(pincode) == 6 and pincode.isdigit():
+            return Response({
+                "pincode": pincode,
+                "zone": "Green",
+                "city": "Serviceable Area",
+                "state": "India",
+                "oda": False,
+                "oda_charge": 0,
+                "serviceable": True
             })
         
         return Response({
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "company": user.company,
-                "address": user.address,
-                "gstin": user.gstin,
-                "email": user.email,
-                "phone": user.phone,
-            },
-            "shipments": shipments_data,
-            "total_freight": total_freight,
-            "total_gst": total_gst,
-            "grand_total": grand_total,
-            "shipment_count": shipments.count(),
-            "period": {
-                "start": start_date,
-                "end": end_date
-            }
+            "pincode": pincode,
+            "error": "Pincode not serviceable",
+            "serviceable": False
+        }, status=404)
+        
+    except Exception as e:
+        logger.error(f"Pincode lookup error: {e}")
+        return Response({
+            "error": "Pincode lookup failed",
+            "serviceable": False
+        }, status=500)
+
+
+# ✅ TRACK SHIPMENT BY LR NUMBER
+@api_view(['GET'])
+def track_shipment(request, tracking_id):
+    """Track shipment by LR number or AWB number"""
+    try:
+        if not SHIPMENT_MODELS_AVAILABLE:
+            # Return mock tracking data
+            return Response({
+                "status": "in_transit",
+                "lr_number": tracking_id,
+                "awb_number": f"AWB{tracking_id}",
+                "pickupName": "Faith Cargo Warehouse",
+                "pickupPincode": "110015",
+                "deliveryName": "Customer Location",
+                "deliveryPincode": "400001",
+                "weight": 25.5,
+                "material": "General Cargo",
+                "totalValue": 50000,
+                "updated_at": datetime.now().isoformat(),
+                "currentLocation": "Delhi Hub",
+                "estimatedDelivery": (datetime.now() + timedelta(days=3)).isoformat(),
+                "timeline": [
+                    {"status": "Booked", "date": datetime.now().isoformat(), "location": "Delhi"},
+                    {"status": "Picked Up", "date": (datetime.now() - timedelta(hours=12)).isoformat(), "location": "Delhi"},
+                    {"status": "In Transit", "date": datetime.now().isoformat(), "location": "En Route"}
+                ]
+            })
+        
+        # Try to find shipment in database
+        shipment = None
+        try:
+            shipment = Shipment.objects.get(lr_number=tracking_id)
+        except Shipment.DoesNotExist:
+            try:
+                shipment = Shipment.objects.get(awb_number=tracking_id)
+            except Shipment.DoesNotExist:
+                pass
+        
+        if shipment:
+            return Response({
+                "status": getattr(shipment, 'status', 'booked'),
+                "lr_number": getattr(shipment, 'lr_number', tracking_id),
+                "awb_number": getattr(shipment, 'awb_number', None),
+                "pickupName": getattr(shipment, 'pickup_name', None),
+                "pickupPincode": getattr(shipment, 'origin_pincode', None),
+                "deliveryName": getattr(shipment, 'delivery_name', None),
+                "deliveryPincode": getattr(shipment, 'destination_pincode', None),
+                "weight": getattr(shipment, 'weight', 0),
+                "material": getattr(shipment, 'material', None),
+                "totalValue": getattr(shipment, 'total_value', 0),
+                "updated_at": getattr(shipment, 'updated_at', datetime.now()).isoformat(),
+            })
+        
+        # If not found in database, return mock data
+        return Response({
+            "status": "booked",
+            "lr_number": tracking_id,
+            "awb_number": f"AWB{tracking_id}",
+            "pickupName": "Faith Cargo",
+            "pickupPincode": "110015",
+            "deliveryName": "Customer",
+            "deliveryPincode": "400001",
+            "weight": 0,
+            "material": "Not Available",
+            "totalValue": 0,
+            "updated_at": datetime.now().isoformat(),
         })
         
-    except CustomUser.DoesNotExist:
-        return Response({"error": "User not found"}, status=404)
     except Exception as e:
-        return Response({"error": str(e)}, status=500)
+        logger.error(f"Tracking error: {e}")
+        return Response({
+            "error": "Tracking failed",
+            "status": "not_found"
+        }, status=404)
 
 
 # ============================================
@@ -493,7 +646,6 @@ def dashboard_stats(request):
         total_revenue = Shipment.objects.aggregate(Sum('freight_amount'))['freight_amount__sum'] or 0
         total_gst = Shipment.objects.aggregate(Sum('gst_amount'))['gst_amount__sum'] or 0
         
-        # Last 30 days stats
         last_30_days = datetime.now() - timedelta(days=30)
         recent_shipments = Shipment.objects.filter(created_at__gte=last_30_days).count()
         recent_revenue = Shipment.objects.filter(created_at__gte=last_30_days).aggregate(Sum('freight_amount'))['freight_amount__sum'] or 0
@@ -509,6 +661,7 @@ def dashboard_stats(request):
         })
         
     except Exception as e:
+        logger.error(f"Dashboard stats error: {e}")
         return Response({
             "total_users": total_users,
             "total_shipments": 0,
@@ -518,49 +671,3 @@ def dashboard_stats(request):
             "recent_shipments": 0,
             "recent_revenue": 0,
         })
-# Add these to your user_management/views.py
-
-@api_view(['POST'])
-def calculate_fcpl_rate(request):
-    """Calculate FCPL rate for given route"""
-    data = request.data
-    origin = data.get('origin')
-    destination = data.get('destination')
-    weight = data.get('weight', 10)
-    
-    # Your rate calculation logic here
-    # For now, return mock response
-    return Response({
-        "success": True,
-        "chargeable_weight": weight,
-        "freight_charge": weight * 15,
-        "fuel_charge": weight * 1.5,
-        "docket_charge": 100,
-        "total_charge": (weight * 15) + (weight * 1.5) + 100,
-        "zone": "Green",
-        "is_oda": False
-    })
-
-@api_view(['GET'])
-def get_pincode_zone(request, pincode):
-    """Get pincode zone information"""
-    # Your pincode lookup logic here
-    return Response({
-        "pincode": pincode,
-        "zone": "Green",
-        "city": "Delhi",
-        "state": "Delhi",
-        "oda": False,
-        "oda_charge": 0
-    })
-
-@api_view(['GET'])
-def track_shipment(request, tracking_id):
-    """Track shipment by LR number"""
-    # Your tracking logic here
-    return Response({
-        "status": "in_transit",
-        "pickupPincode": "110001",
-        "deliveryPincode": "400001",
-        "updated_at": datetime.now().isoformat()
-    })

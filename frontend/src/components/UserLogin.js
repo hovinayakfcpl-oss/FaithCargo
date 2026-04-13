@@ -62,13 +62,16 @@ function UserLogin() {
         localStorage.setItem("userId", data.id || "1");
         localStorage.setItem("userRole", "user");
         
-        // Store user modules
+        // Store user modules - ONLY SELECTED MODULES FROM USERMANAGEMENT
         const modules = data.modules || {};
         localStorage.setItem("userModules", JSON.stringify(modules));
         
-        // Store user email and company if available
+        // Store user details
         if (data.email) localStorage.setItem("userEmail", data.email);
         if (data.company) localStorage.setItem("userCompany", data.company);
+        if (data.phone) localStorage.setItem("userPhone", data.phone);
+        if (data.address) localStorage.setItem("userAddress", data.address);
+        if (data.gstin) localStorage.setItem("userGstin", data.gstin);
         
         // Handle remember me
         if (rememberMe) {
@@ -79,10 +82,18 @@ function UserLogin() {
           localStorage.removeItem("rememberMe");
         }
 
-        setSuccess(`Welcome ${data.username}! Redirecting... 🚀`);
+        // Get list of enabled modules for success message
+        const enabledModules = Object.keys(modules).filter(key => modules[key] === true);
         
-        // Show modules access in console for debugging
-        console.log("User Modules Access:", Object.keys(modules).filter(key => modules[key] === true));
+        setSuccess(`Welcome ${data.username}! Redirecting... 🚀\n\nAvailable Modules: ${enabledModules.length}`);
+        
+        // Debug logs
+        console.log("=== User Login Successful ===");
+        console.log("Username:", data.username);
+        console.log("User ID:", data.id);
+        console.log("Company:", data.company);
+        console.log("Modules Received:", modules);
+        console.log("Enabled Modules:", enabledModules);
         
         setTimeout(() => {
           navigate("/user-dashboard");
@@ -90,7 +101,7 @@ function UserLogin() {
         }, 1500);
         
       } else {
-        setError(data.error || "Invalid credentials ❌");
+        setError(data.error || "Invalid credentials ❌\nPlease check your username and password");
       }
     } catch (err) {
       console.error("Login Error:", err);
@@ -131,7 +142,7 @@ function UserLogin() {
             </div>
           </div>
           <div className="support-info">
-            <p>Need help? Call us: <strong>+91 9818641504</strong></p>
+            <p>Need help? Call us: <strong>+91 9311801079</strong></p>
           </div>
         </div>
       </div>

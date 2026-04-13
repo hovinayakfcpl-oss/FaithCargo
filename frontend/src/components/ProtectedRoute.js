@@ -28,7 +28,6 @@ function ProtectedRoute({ children, requiredModule }) {
 
   // 🔹 Token check: अगर लॉगिन नहीं है तो बाहर भेजें
   if (!token || token === "undefined" || token === "null" || token === "") {
-    // Clear any invalid data
     localStorage.clear();
     return <Navigate to="/" replace />;
   }
@@ -38,7 +37,7 @@ function ProtectedRoute({ children, requiredModule }) {
     return children;
   }
 
-  // 🔥 ROUTE → MODULE MAP (Complete mapping)
+  // 🔥 ROUTE → MODULE MAP (Only these modules - No Invoice/Reports)
   const routePermissions = {
     "/fcpl-rate": "fcpl_rate",
     "/pickup": "pickup",
@@ -47,12 +46,9 @@ function ProtectedRoute({ children, requiredModule }) {
     "/rate-update": "rate_update",
     "/pincode": "pincode",
     "/user-management": "user_management",
-    "/user-add": "user_management",
     "/ba-b2b-rate": "ba_b2b",
     "/create-order": "create_order",
     "/shipment-details": "shipment_details",
-    "/view-reports": "view_reports",
-    "/generate-invoice": "generate_invoice",
   };
 
   const currentPath = location.pathname;
@@ -81,17 +77,14 @@ function ProtectedRoute({ children, requiredModule }) {
   const hasPermission = userModules[requiredPermission] === true;
 
   if (!hasPermission) {
-    console.log(`Access Denied: User ${username} doesn't have ${requiredPermission} permission`);
+    console.log(`🔒 Access Denied: User "${username}" doesn't have "${requiredPermission}" permission`);
+    console.log("Available modules:", Object.keys(userModules).filter(key => userModules[key] === true));
     
-    // Show alert only in development (optional)
-    if (process.env.NODE_ENV === "development") {
-      alert(`Access Denied ❌: You don't have access to ${requiredPermission.replace(/_/g, ' ').toUpperCase()}`);
-    }
-    
-    // Redirect to appropriate dashboard
+    // Redirect to user dashboard
     return <Navigate to="/user-dashboard" replace />;
   }
 
+  console.log(`✅ Access Granted: User "${username}" has "${requiredPermission}" permission`);
   return children;
 }
 

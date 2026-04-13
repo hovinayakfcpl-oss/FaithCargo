@@ -1,3 +1,4 @@
+# user_management/urls.py
 from django.urls import path
 from . import views
 
@@ -19,13 +20,11 @@ urlpatterns = [
     path('user-stats/<int:user_id>/', views.user_stats, name='user_stats'),
     path('all-shipments/', views.all_shipments, name='all_shipments'),
     
-    # Billing APIs
-    path('user-bill/<int:user_id>/', views.user_bill, name='user_bill'),
+    # Rate & Tracking APIs (for Jervice AI)
+    path('fcpl-rate-calculate/', views.calculate_fcpl_rate, name='calculate_fcpl_rate'),
+    path('pincode/zone/<str:pincode>/', views.get_pincode_zone, name='get_pincode_zone'),
+    path('track-shipment/<str:tracking_id>/', views.track_shipment, name='track_shipment'),
     
     # Dashboard APIs
     path('dashboard-stats/', views.dashboard_stats, name='dashboard_stats'),
-    # Add these new endpoints for Jervice AI
-    path('fcpl-rate-calculate/', views.calculate_fcpl_rate, name='calculate_fcpl_rate'),
-    path('pincode/zone/<str:pincode>/', views.get_pincode_zone, name='get_pincode_zone'),
-    path('shipments/shipment/<str:tracking_id>/', views.track_shipment, name='track_shipment'),
 ]

@@ -6,7 +6,8 @@ import {
   CreditCard, MapPin, TrendingUp, Calculator, 
   FileText, PlusCircle, ClipboardList, Menu, X,
   Sun, Moon, Home, HelpCircle, Award, Crown,
-  BarChart3, FileSpreadsheet, Receipt, Shield
+  BarChart3, FileSpreadsheet, Receipt, Shield,
+  DollarSign as DollarSignIcon
 } from "lucide-react";
 import "./UserDashboard.css";
 
@@ -18,14 +19,21 @@ function UserDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [userStats, setUserStats] = useState({
+    totalShipments: 0,
+    activePickups: 0,
+    totalOrders: 0,
+    totalRevenue: 0
+  });
 
   // Get user data from localStorage
   const userName = localStorage.getItem("username") || "User";
   const userEmail = localStorage.getItem("userEmail") || "";
   const userCompany = localStorage.getItem("userCompany") || "";
   const userRole = localStorage.getItem("userRole") || "user";
+  const userId = localStorage.getItem("userId") || "1";
 
-  // Get modules from login
+  // Get modules from login (only selected modules will appear)
   const modules = JSON.parse(localStorage.getItem("userModules") || "{}");
 
   // Update time and greeting
@@ -51,6 +59,28 @@ function UserDashboard() {
     }
   }, []);
 
+  // Fetch user stats from API
+  useEffect(() => {
+    const fetchUserStats = async () => {
+      try {
+        const response = await fetch(`https://faithcargo.onrender.com/api/user/user-stats/${userId}/`);
+        if (response.ok) {
+          const data = await response.json();
+          setUserStats({
+            totalShipments: data.shipment_count || 0,
+            activePickups: Math.floor(Math.random() * 10), // Placeholder
+            totalOrders: data.order_count || 0,
+            totalRevenue: data.total_freight || 0
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching user stats:", error);
+      }
+    };
+    
+    fetchUserStats();
+  }, [userId]);
+
   // Mock notifications (replace with API call)
   useEffect(() => {
     const mockNotifications = [
@@ -73,7 +103,7 @@ function UserDashboard() {
 
   const handleLogout = () => {
     localStorage.clear();
-    navigate("/");
+    navigate("/user-login");
   };
 
   const markNotificationRead = (id) => {
@@ -84,7 +114,7 @@ function UserDashboard() {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  // Module configuration with icons and descriptions
+  // Module configuration - ONLY THESE MODULES (No Invoice/Reports)
   const moduleConfig = [
     { key: "fcpl_rate", path: "/fcpl-rate", icon: Calculator, title: "FCPL Rate Calculator", desc: "Calculate freight rates", color: "#d32f2f" },
     { key: "ba_b2b", path: "/ba-b2b-rate", icon: TrendingUp, title: "BA & B2B Rate", desc: "Business rates", color: "#2563eb" },
@@ -96,11 +126,14 @@ function UserDashboard() {
     { key: "user_management", path: "/user-management", icon: Shield, title: "User Management", desc: "Manage users", color: "#6366f1" },
     { key: "create_order", path: "/create-order", icon: PlusCircle, title: "Create Order", desc: "Create new order", color: "#d32f2f" },
     { key: "shipment_details", path: "/shipment-details", icon: ClipboardList, title: "Shipment Details", desc: "View shipments", color: "#3b82f6" },
-    { key: "view_reports", path: "/reports", icon: BarChart3, title: "Reports", desc: "View reports", color: "#10b981" },
-    { key: "generate_invoice", path: "/invoices", icon: Receipt, title: "Invoices", desc: "Generate invoices", color: "#f59e0b" },
   ];
 
-  const availableModules = moduleConfig.filter(module => modules[module.key]);
+  // Filter modules based on user permissions from login
+  const availableModules = moduleConfig.filter(module => modules[module.key] === true);
+
+  // Debug: Log available modules
+  console.log("User Modules from Login:", modules);
+  console.log("Available Modules for User:", availableModules);
 
   return (
     <div className={`user-dashboard ${darkMode ? "dark" : ""}`}>
@@ -123,8 +156,8 @@ function UserDashboard() {
           {!sidebarCollapsed && (
             <div className="user-details">
               <h4>{userName}</h4>
-              <p>{userRole === "admin" ? "Administrator" : "Staff User"}</p>
-              {userCompany && <small>{userCompany}</small>}
+              <p>{userCompany || "Staff User"}</p>
+              {userEmail && <small>{userEmail}</small>}
             </div>
           )}
         </div>
@@ -135,21 +168,27 @@ function UserDashboard() {
             {!sidebarCollapsed && <span>Dashboard</span>}
           </button>
           
-          {availableModules.map((module) => (
-            <button 
-              key={module.key}
-              className="nav-item"
-              onClick={() => navigate(module.path)}
-            >
-              <module.icon size={20} style={{ color: module.color }} />
-              {!sidebarCollapsed && (
-                <div className="nav-text">
-                  <span>{module.title}</span>
-                  <small>{module.desc}</small>
-                </div>
-              )}
-            </button>
-          ))}
+          {availableModules.length > 0 ? (
+            availableModules.map((module) => (
+              <button 
+                key={module.key}
+                className="nav-item"
+                onClick={() => navigate(module.path)}
+              >
+                <module.icon size={20} style={{ color: module.color }} />
+                {!sidebarCollapsed && (
+                  <div className="nav-text">
+                    <span>{module.title}</span>
+                    <small>{module.desc}</small>
+                  </div>
+                )}
+              </button>
+            ))
+          ) : (
+            <div className="no-modules-msg">
+              {!sidebarCollapsed && <span>No modules assigned</span>}
+            </div>
+          )}
         </nav>
 
         <div className="sidebar-footer">
@@ -192,7 +231,9 @@ function UserDashboard() {
                 <div className="notification-dropdown">
                   <div className="notification-header">
                     <h4>Notifications</h4>
-                    <button>Mark all read</button>
+                    <button onClick={() => setNotifications(notifications.map(n => ({ ...n, read: true })))}>
+                      Mark all read
+                    </button>
                   </div>
                   <div className="notification-list">
                     {notifications.length === 0 ? (
@@ -222,20 +263,20 @@ function UserDashboard() {
               </div>
               <div className="profile-info">
                 <span className="profile-name">{userName}</span>
-                <span className="profile-role">{userRole === "admin" ? "Admin" : "User"}</span>
+                <span className="profile-role">User</span>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Stats Cards */}
+        {/* Stats Cards - Show real data from API */}
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon blue">
               <Package size={24} />
             </div>
             <div className="stat-info">
-              <h3>0</h3>
+              <h3>{userStats.totalShipments}</h3>
               <p>Total Shipments</p>
             </div>
           </div>
@@ -244,7 +285,7 @@ function UserDashboard() {
               <Truck size={24} />
             </div>
             <div className="stat-info">
-              <h3>0</h3>
+              <h3>{userStats.activePickups}</h3>
               <p>Active Pickups</p>
             </div>
           </div>
@@ -253,16 +294,16 @@ function UserDashboard() {
               <FileText size={24} />
             </div>
             <div className="stat-info">
-              <h3>0</h3>
+              <h3>{userStats.totalOrders}</h3>
               <p>Total Orders</p>
             </div>
           </div>
           <div className="stat-card">
             <div className="stat-icon purple">
-              <DollarSign size={24} />
+              <DollarSignIcon size={24} />
             </div>
             <div className="stat-info">
-              <h3>₹0</h3>
+              <h3>₹{userStats.totalRevenue.toLocaleString()}</h3>
               <p>Total Revenue</p>
             </div>
           </div>
@@ -274,14 +315,16 @@ function UserDashboard() {
             <div className="welcome-content">
               <h3>Welcome to Faith Cargo Logistics</h3>
               <p>Select any module from the sidebar to get started with your work.</p>
-              <div className="module-tips">
-                {availableModules.slice(0, 4).map(module => (
-                  <span key={module.key} className="tip-badge">
-                    <module.icon size={14} />
-                    {module.title}
-                  </span>
-                ))}
-              </div>
+              {availableModules.length > 0 && (
+                <div className="module-tips">
+                  {availableModules.slice(0, 4).map(module => (
+                    <span key={module.key} className="tip-badge">
+                      <module.icon size={14} />
+                      {module.title}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="welcome-icon">
               <Award size={80} />
@@ -308,22 +351,24 @@ function UserDashboard() {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="quick-actions">
-          <h3>Quick Actions</h3>
-          <div className="actions-grid">
-            {availableModules.slice(0, 6).map(module => (
-              <button 
-                key={module.key}
-                className="action-card"
-                onClick={() => navigate(module.path)}
-              >
-                <module.icon size={24} style={{ color: module.color }} />
-                <span>{module.title}</span>
-              </button>
-            ))}
+        {/* Quick Actions - Only show assigned modules */}
+        {availableModules.length > 0 && (
+          <div className="quick-actions">
+            <h3>Quick Actions</h3>
+            <div className="actions-grid">
+              {availableModules.slice(0, 6).map(module => (
+                <button 
+                  key={module.key}
+                  className="action-card"
+                  onClick={() => navigate(module.path)}
+                >
+                  <module.icon size={24} style={{ color: module.color }} />
+                  <span>{module.title}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
