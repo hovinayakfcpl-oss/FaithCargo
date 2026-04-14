@@ -4,7 +4,7 @@ import {
   Shield, Clock, TrendingUp, DollarSign,
   Plus, Trash2, ChevronDown, ChevronUp, CheckCircle,
   Zap, Award, Star, Users, Phone, Mail, Calculator,
-  ArrowRight, Building, FileText
+  ArrowRight, Building, FileText, X
 } from "lucide-react";
 import "./B2BRateCalculator.css";
 
@@ -264,9 +264,9 @@ function BaB2bRateCalculator() {
             </div>
           </div>
           <div className="header-badges">
-            <div className="badge"><Award size={16} /><span>ISO 9001:2015</span></div>
-            <div className="badge"><Star size={16} /><span>4.9 Rating</span></div>
-            <div className="badge"><Users size={16} /><span>500+ Clients</span></div>
+            <div className="badge dark-text"><Award size={16} /><span>ISO 9001:2015</span></div>
+            <div className="badge dark-text"><Star size={16} /><span>4.9 Rating</span></div>
+            <div className="badge dark-text"><Users size={16} /><span>500+ Clients</span></div>
           </div>
         </div>
         <div className="header-title">
@@ -302,58 +302,51 @@ function BaB2bRateCalculator() {
 
       {/* Main Calculator Card */}
       <div className="calculator-main-card">
+        <div className="route-row">
+          <div className="route-box">
+            <label><MapPin size={14} /> Origin Pincode *</label>
+            <input 
+              type="text" 
+              name="origin" 
+              placeholder="Enter 6-digit pincode" 
+              value={form.origin}
+              onChange={(e) => handlePincodeChange(e, "origin")}
+              maxLength="6"
+            />
+            {originDetails.city && (
+              <div className="location-tag">
+                <Building size={12} />
+                <span>{originDetails.city}, {originDetails.state}</span>
+              </div>
+            )}
+          </div>
+          <div className="route-arrow-icon">→</div>
+          <div className="route-box">
+            <label><MapPin size={14} /> Destination Pincode *</label>
+            <input 
+              type="text" 
+              name="destination" 
+              placeholder="Enter 6-digit pincode" 
+              value={form.destination}
+              onChange={(e) => handlePincodeChange(e, "destination")}
+              maxLength="6"
+            />
+            {destinationDetails.city && (
+              <div className="location-tag">
+                <Building size={12} />
+                <span>{destinationDetails.city}, {destinationDetails.state}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="calculator-grid">
           {/* Left Side - Input Form */}
           <div className="input-section">
-            <div className="section-title">
-              <Calculator size={20} />
-              <h3>Shipment Details</h3>
-              <button className="quick-fill-btn" onClick={quickFillExample}>
-                <Zap size={14} /> Quick Fill
-              </button>
-            </div>
-
-            {/* Route Section */}
-            <div className="form-group">
-              <label><MapPin size={16} /> Origin Pincode *</label>
-              <input 
-                type="text" 
-                name="origin" 
-                placeholder="Enter 6-digit pincode" 
-                value={form.origin}
-                onChange={(e) => handlePincodeChange(e, "origin")}
-                maxLength="6"
-              />
-              {originDetails.city && (
-                <div className="location-detail">
-                  <Building size={14} />
-                  <span>{originDetails.city}, {originDetails.state}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label><MapPin size={16} /> Destination Pincode *</label>
-              <input 
-                type="text" 
-                name="destination" 
-                placeholder="Enter 6-digit pincode" 
-                value={form.destination}
-                onChange={(e) => handlePincodeChange(e, "destination")}
-                maxLength="6"
-              />
-              {destinationDetails.city && (
-                <div className="location-detail">
-                  <Building size={14} />
-                  <span>{destinationDetails.city}, {destinationDetails.state}</span>
-                </div>
-              )}
-            </div>
-
             {/* Payment & Weight Section */}
             <div className="form-row-2">
               <div className="form-group">
-                <label><CreditCard size={16} /> Payment Mode</label>
+                <label><CreditCard size={14} /> Payment Mode</label>
                 <select name="paymentMode" value={form.paymentMode} onChange={handleChange}>
                   <option value="" disabled>Select Payment Mode</option>
                   <option value="Prepaid">Prepaid</option>
@@ -362,7 +355,7 @@ function BaB2bRateCalculator() {
                 </select>
               </div>
               <div className="form-group">
-                <label><Weight size={16} /> Actual Weight (Kg) *</label>
+                <label><Weight size={14} /> Actual Weight (Kg) *</label>
                 <input 
                   type="number" 
                   name="weight" 
@@ -376,7 +369,7 @@ function BaB2bRateCalculator() {
 
             {(form.paymentMode === "COD" || form.paymentMode === "ToPay") && (
               <div className="form-group">
-                <label><DollarSign size={16} /> COD Amount (₹)</label>
+                <label><DollarSign size={14} /> COD Amount (₹)</label>
                 <input 
                   type="number" 
                   name="codAmount" 
@@ -387,26 +380,27 @@ function BaB2bRateCalculator() {
               </div>
             )}
 
-            <div className="form-group">
-              <label><FileText size={16} /> Invoice Value (₹)</label>
-              <input 
-                type="number" 
-                name="invoiceValue" 
-                placeholder="Enter invoice value" 
-                value={form.invoiceValue}
-                onChange={handleChange}
-              />
+            <div className="form-row-2">
+              <div className="form-group">
+                <label><FileText size={14} /> Invoice Value (₹)</label>
+                <input 
+                  type="number" 
+                  name="invoiceValue" 
+                  placeholder="Enter invoice value" 
+                  value={form.invoiceValue}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-group">
+                <label><Package size={14} /> Package Dimensions</label>
+                <button className="add-dim-btn" onClick={addBox}>
+                  <Plus size={12} /> Add
+                </button>
+              </div>
             </div>
 
             {/* Dimensions Section */}
             <div className="dimensions-section">
-              <div className="dimensions-header">
-                <label><Package size={16} /> Package Dimensions</label>
-                <button className="add-dim-btn" onClick={addBox}>
-                  <Plus size={14} /> Add Package
-                </button>
-              </div>
-              
               {dimensions.map((d, i) => (
                 <div key={i} className="dimension-row">
                   <input 
@@ -422,7 +416,7 @@ function BaB2bRateCalculator() {
                     name="length" 
                     value={d.length} 
                     onChange={(e) => handleDimChange(i, e)} 
-                    placeholder="L (cm)"
+                    placeholder="L"
                     step="0.1"
                   />
                   <input 
@@ -430,7 +424,7 @@ function BaB2bRateCalculator() {
                     name="width" 
                     value={d.width} 
                     onChange={(e) => handleDimChange(i, e)} 
-                    placeholder="W (cm)"
+                    placeholder="W"
                     step="0.1"
                   />
                   <input 
@@ -438,36 +432,42 @@ function BaB2bRateCalculator() {
                     name="height" 
                     value={d.height} 
                     onChange={(e) => handleDimChange(i, e)} 
-                    placeholder="H (cm)"
+                    placeholder="H"
                     step="0.1"
                   />
                   {dimensions.length > 1 && (
                     <button className="remove-dim-btn" onClick={() => removeBox(i)}>
-                      <Trash2 size={14} />
+                      <X size={12} />
                     </button>
                   )}
                 </div>
               ))}
             </div>
 
-            {/* Services */}
-            <div className="services-section">
-              <label><Shield size={16} /> Value Added Services</label>
-              <div className="checkbox-group">
-                <label><input type="checkbox" name="insurance" checked={form.insurance} onChange={handleChange} /> Insurance (2% of Invoice Value)</label>
-                <label><input type="checkbox" name="appointment" checked={form.appointment} onChange={handleChange} /> Appointment Delivery (₹1500)</label>
-                <label><input type="checkbox" name="fragile" checked={form.fragile} onChange={handleChange} /> Fragile Handling (₹250)</label>
-                <label><input type="checkbox" name="express" checked={form.express} onChange={handleChange} /> Express Priority (₹5/kg extra)</label>
-              </div>
+            {/* Services - 2 columns */}
+            <div className="services-grid">
+              <label className="checkbox-label">
+                <input type="checkbox" name="insurance" checked={form.insurance} onChange={handleChange} />
+                <span>Insurance (2% of Invoice Value)</span>
+              </label>
+              <label className="checkbox-label">
+                <input type="checkbox" name="appointment" checked={form.appointment} onChange={handleChange} />
+                <span>Appointment Delivery (₹1500)</span>
+              </label>
+              <label className="checkbox-label">
+                <input type="checkbox" name="fragile" checked={form.fragile} onChange={handleChange} />
+                <span>Fragile Handling (₹250)</span>
+              </label>
+              <label className="checkbox-label">
+                <input type="checkbox" name="express" checked={form.express} onChange={handleChange} />
+                <span>Express Priority (₹5/kg extra)</span>
+              </label>
             </div>
 
-            {/* Action Buttons */}
-            <div className="action-buttons">
-              <button className="btn-calculate" onClick={calculateRate} disabled={loading}>
-                {loading ? "Calculating..." : "Get Live Quote"}
-              </button>
-              <button className="btn-reset" onClick={resetForm}>Reset</button>
-            </div>
+            {/* Calculate Button Only */}
+            <button className="btn-calculate" onClick={calculateRate} disabled={loading}>
+              {loading ? "Calculating..." : "Get Live Quote"}
+            </button>
           </div>
 
           {/* Right Side - Results */}
@@ -476,47 +476,42 @@ function BaB2bRateCalculator() {
               <div className="result-content">
                 <div className="result-header">
                   <div className="quote-badge">
-                    <Zap size={18} />
+                    <Zap size={16} />
                     <span>{result.transportType}</span>
                   </div>
                   <div className="total-amount">
                     <small>Total Amount</small>
-                    <h2>₹{result.total}</h2>
+                    <h3>₹{result.total}</h3>
                     {result.total === "650.00" && <span className="min-badge">Min ₹650 Applied</span>}
                   </div>
                 </div>
 
-                <div className="route-info">
-                  <div className="route-point">
-                    <div className="point-icon"><MapPin size={16} /></div>
-                    <div className="point-details">
-                      <strong>Origin</strong>
-                      <p>{result.originCity || form.origin}</p>
-                      <small>{result.originState}</small>
-                    </div>
+                <div className="weight-stats">
+                  <div className="weight-item">
+                    <span>Actual Weight</span>
+                    <strong>{result.actualWeight} Kg</strong>
                   </div>
-                  <div className="route-arrow">→</div>
-                  <div className="route-point">
-                    <div className="point-icon"><Truck size={16} /></div>
-                    <div className="point-details">
-                      <strong>Destination</strong>
-                      <p>{result.destCity || form.destination}</p>
-                      <small>{result.destState}</small>
-                    </div>
+                  <div className="weight-item">
+                    <span>Volumetric Weight</span>
+                    <strong>{result.volumetric} Kg</strong>
                   </div>
-                </div>
-
-                <div className="weight-summary">
-                  <div><span>Actual Weight:</span> <strong>{result.actualWeight} Kg</strong></div>
-                  <div><span>Volumetric Weight:</span> <strong>{result.volumetric} Kg</strong></div>
-                  <div><span>Chargeable Weight:</span> <strong>{result.chargeable} Kg</strong></div>
-                  <div><span>Rate per Kg:</span> <strong>₹{result.ratePerKg}</strong></div>
-                  <div><span>Transit Time:</span> <strong>{result.transitTime}</strong></div>
+                  <div className="weight-item">
+                    <span>Chargeable Weight</span>
+                    <strong>{result.chargeable} Kg</strong>
+                  </div>
+                  <div className="weight-item">
+                    <span>Rate per Kg</span>
+                    <strong>₹{result.ratePerKg}</strong>
+                  </div>
+                  <div className="weight-item">
+                    <span>Transit Time</span>
+                    <strong>{result.transitTime}</strong>
+                  </div>
                 </div>
 
                 <div className="breakdown-toggle" onClick={() => setShowBreakdown(!showBreakdown)}>
                   <span>Charges Breakdown</span>
-                  {showBreakdown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  {showBreakdown ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </div>
 
                 {showBreakdown && (
@@ -537,26 +532,15 @@ function BaB2bRateCalculator() {
                   </div>
                 )}
 
-                <div className="result-footer">
-                  <div className="footer-note">
-                    <CheckCircle size={14} />
-                    <span>All taxes included. No hidden charges.</span>
-                  </div>
-                  <button className="btn-proceed" onClick={() => window.location.href = '/create-order'}>
-                    Proceed to Booking <ArrowRight size={14} />
-                  </button>
-                </div>
+                <button className="btn-proceed" onClick={() => window.location.href = '/create-order'}>
+                  Proceed to Booking <ArrowRight size={14} />
+                </button>
               </div>
             ) : (
               <div className="empty-result">
                 <Calculator size={48} />
-                <h3>Ready to calculate?</h3>
-                <p>Fill in the shipment details on the left and click "Get Live Quote" to see your freight estimate.</p>
-                <div className="features">
-                  <span>✓ Real-time rates</span>
-                  <span>✓ Transparent pricing</span>
-                  <span>✓ No hidden charges</span>
-                </div>
+                <h4>Ready to calculate?</h4>
+                <p>Fill in the details and click "Get Live Quote"</p>
                 <button className="example-btn" onClick={quickFillExample}>
                   <Zap size={14} /> Try Example
                 </button>
@@ -579,8 +563,8 @@ function BaB2bRateCalculator() {
             <a href="#">Contact Support</a>
           </div>
           <div className="footer-contact">
-            <Phone size={14} /><span>+91 9818641504</span>
-            <Mail size={14} /><span>care@faithcargo.com</span>
+            <Phone size={12} /><span>+91 9818641504</span>
+            <Mail size={12} /><span>care@faithcargo.com</span>
           </div>
         </div>
         <div className="footer-copyright">
