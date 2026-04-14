@@ -264,9 +264,9 @@ function BaB2bRateCalculator() {
             </div>
           </div>
           <div className="header-badges">
-            <div className="badge" style={{ color: '#000000' }}><Award size={16} style={{ color: '#000000' }} /><span style={{ color: '#000000' }}>ISO 9001:2015</span></div>
-            <div className="badge" style={{ color: '#000000' }}><Star size={16} style={{ color: '#000000' }} /><span style={{ color: '#000000' }}>4.9 Rating</span></div>
-            <div className="badge" style={{ color: '#000000' }}><Users size={16} style={{ color: '#000000' }} /><span style={{ color: '#000000' }}>500+ Clients</span></div>
+            <div className="badge"><Award size={16} /><span>ISO 9001:2015</span></div>
+            <div className="badge"><Star size={16} /><span>4.9 Rating</span></div>
+            <div className="badge"><Users size={16} /><span>500+ Clients</span></div>
           </div>
         </div>
         <div className="header-title">
@@ -303,7 +303,7 @@ function BaB2bRateCalculator() {
       {/* Main Calculator Card */}
       <div className="calculator-main-card">
         <div className="calculator-grid">
-          {/* Left Side - Input Form */}
+          {/* Left Side - Input Form - Reduced Width */}
           <div className="input-section">
             <div className="section-title">
               <Calculator size={20} />
@@ -399,7 +399,7 @@ function BaB2bRateCalculator() {
               </div>
             )}
 
-            {/* Dimensions Section - Improved Layout */}
+            {/* Dimensions Section */}
             <div className="dimensions-section">
               <div className="dimensions-header">
                 <label><Package size={16} /> Package Dimensions</label>
@@ -483,7 +483,7 @@ function BaB2bRateCalculator() {
             </div>
           </div>
 
-          {/* Right Side - Results */}
+          {/* Right Side - Results - Increased Width */}
           <div className="result-section">
             {result ? (
               <div className="result-content">
@@ -519,30 +519,29 @@ function BaB2bRateCalculator() {
                   </div>
                 </div>
 
-                {/* Weight Summary in 2 rows for better readability */}
+                {/* Weight Summary with Black Text for Actual, Volumetric, Chargeable */}
                 <div className="weight-summary">
-                  <div className="weight-row">
-                    <div className="weight-item">
-                      <span>Actual Weight:</span> 
-                      <strong>{result.actualWeight} Kg</strong>
-                    </div>
-                    <div className="weight-item">
-                      <span>Volumetric Weight:</span> 
-                      <strong>{result.volumetric} Kg</strong>
-                    </div>
+                  <div className="weight-item dark-text">
+                    <span>Actual Weight:</span>
+                    <strong>{result.actualWeight} Kg</strong>
                   </div>
-                  <div className="weight-row">
-                    <div className="weight-item">
-                      <span>Chargeable Weight:</span> 
-                      <strong>{result.chargeable} Kg</strong>
-                    </div>
-                    <div className="weight-item">
-                      <span>Rate per Kg:</span> 
-                      <strong>₹{result.ratePerKg}</strong>
-                    </div>
+                  <div className="weight-item dark-text">
+                    <span>Volumetric Weight:</span>
+                    <strong>{result.volumetric} Kg</strong>
                   </div>
-                  <div className="transit-time">
-                    <span>Transit Time:</span> 
+                  <div className="weight-item dark-text">
+                    <span>Chargeable Weight:</span>
+                    <strong>{result.chargeable} Kg</strong>
+                  </div>
+                </div>
+
+                <div className="rate-transit-row">
+                  <div className="rate-item">
+                    <span>Rate per Kg:</span>
+                    <strong>₹{result.ratePerKg}</strong>
+                  </div>
+                  <div className="transit-item">
+                    <span>Transit Time:</span>
                     <strong>{result.transitTime}</strong>
                   </div>
                 </div>
