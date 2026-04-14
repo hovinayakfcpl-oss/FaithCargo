@@ -6,8 +6,15 @@ function ProtectedRoute({ children, requiredModule }) {
 
   // Get authentication data from localStorage
   const token = localStorage.getItem("token");
+  const clientToken = localStorage.getItem("clientToken");
   const userRole = localStorage.getItem("userRole");
-  const username = localStorage.getItem("username");
+  const loginType = localStorage.getItem("loginType");
+  const username = localStorage.getItem("username") || localStorage.getItem("clientId");
+  
+  // ✅ Check if authenticated via staff token OR client token
+  const isAuthenticated = 
+    (token && token !== "undefined" && token !== "null" && token !== "") ||
+    (clientToken && clientToken !== "undefined" && clientToken !== "null" && clientToken !== "");
   
   // ✅ Superuser check (String or Boolean both handled)
   const isSuperuser = 
@@ -27,9 +34,9 @@ function ProtectedRoute({ children, requiredModule }) {
   }
 
   // 🔹 Token check: अगर लॉगिन नहीं है तो बाहर भेजें
-  if (!token || token === "undefined" || token === "null" || token === "") {
+  if (!isAuthenticated) {
     localStorage.clear();
-    return <Navigate to="/" replace />;
+    return <Navigate to="/user-login" replace />;
   }
 
   // 🔹 Admin/Superuser को हमेशा हर जगह जाने की अनुमति है
@@ -37,7 +44,7 @@ function ProtectedRoute({ children, requiredModule }) {
     return children;
   }
 
-  // 🔥 ROUTE → MODULE MAP (Only these modules - No Invoice/Reports)
+  // 🔥 ROUTE → MODULE MAP (Only these modules)
   const routePermissions = {
     "/fcpl-rate": "fcpl_rate",
     "/pickup": "pickup",
@@ -47,14 +54,21 @@ function ProtectedRoute({ children, requiredModule }) {
     "/pincode": "pincode",
     "/user-management": "user_management",
     "/ba-b2b-rate": "ba_b2b",
+    "/ba-b2b-rate-calculator": "ba_b2b",  // ✅ Added for client
     "/create-order": "create_order",
     "/shipment-details": "shipment_details",
   };
 
   const currentPath = location.pathname;
 
-  // 🔹 Dashboard हमेशा एक्सेसिबल रहेंगे
-  const publicRoutes = ["/user-dashboard", "/admin-dashboard", "/dashboard"];
+  // 🔹 Dashboard और Rate Calculator हमेशा एक्सेसिबल (for clients)
+  const publicRoutes = [
+    "/user-dashboard", 
+    "/admin-dashboard", 
+    "/dashboard",
+    "/ba-b2b-rate-calculator"  // ✅ Clients can access without module check
+  ];
+  
   if (publicRoutes.includes(currentPath)) {
     return children;
   }
@@ -80,7 +94,10 @@ function ProtectedRoute({ children, requiredModule }) {
     console.log(`🔒 Access Denied: User "${username}" doesn't have "${requiredPermission}" permission`);
     console.log("Available modules:", Object.keys(userModules).filter(key => userModules[key] === true));
     
-    // Redirect to user dashboard
+    // Redirect based on login type
+    if (loginType === "client") {
+      return <Navigate to="/ba-b2b-rate-calculator" replace />;
+    }
     return <Navigate to="/user-dashboard" replace />;
   }
 

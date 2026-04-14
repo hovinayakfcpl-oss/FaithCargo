@@ -65,7 +65,7 @@ const NotFoundPage = () => {
         <p style={{ color: "#64748b", marginBottom: "30px" }}>
           Oops! The page you're looking for doesn't exist or has been moved.
         </p>
-        <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
+        <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
           <button
             onClick={() => window.location.href = "/"}
             style={{
@@ -115,10 +115,16 @@ function App() {
   useEffect(() => {
     // Check authentication status on app load
     const token = localStorage.getItem("token");
+    const clientToken = localStorage.getItem("clientToken");
     const role = localStorage.getItem("userRole");
+    const loginType = localStorage.getItem("loginType");
     const modules = localStorage.getItem("userModules");
     
-    setIsAuthenticated(!!token && token !== "undefined" && token !== "null");
+    // Check if authenticated via staff token or client token
+    const hasToken = (token && token !== "undefined" && token !== "null") || 
+                     (clientToken && clientToken !== "undefined" && clientToken !== "null");
+    
+    setIsAuthenticated(hasToken);
     setUserRole(role);
     
     if (modules) {
@@ -134,10 +140,11 @@ function App() {
     setLoading(false);
   }, []);
 
-  // Route configuration with permissions - ONLY THESE MODULES (No Invoice/Reports)
+  // Route configuration with permissions
   const routeConfig = [
     { path: "/fcpl-rate", component: FcplRateCalculator, module: "fcpl_rate", title: "FCPL Rate Calculator", icon: "📊" },
     { path: "/ba-b2b-rate", component: BaB2bRateCalculator, module: "ba_b2b", title: "BA & B2B Rate Calculator", icon: "📈" },
+    { path: "/ba-b2b-rate-calculator", component: BaB2bRateCalculator, module: "ba_b2b", title: "BA & B2B Rate Calculator", icon: "📈" },
     { path: "/vendor-manage", component: VendorManage, module: "vendor_manage", title: "Vendor Management", icon: "🏢" },
     { path: "/vendor-rate", component: VendorRates, module: "vendor_rates", title: "Vendor Rates", icon: "💰" },
     { path: "/rate-update", component: RateUpdate, module: "rate_update", title: "Rate Update", icon: "📝" },

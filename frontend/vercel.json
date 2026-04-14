@@ -1,0 +1,18 @@
+{
+  "rewrites": [
+    { "source": "/create-order", "destination": "/index.html" },
+    { "source": "/ba-b2b-rate-calculator", "destination": "/index.html" },
+    { "source": "/user-login", "destination": "/index.html" },
+    { "source": "/admin-dashboard", "destination": "/index.html" },
+    { "source": "/user-dashboard", "destination": "/index.html" },
+    { "source": "/shipment-details", "destination": "/index.html" },
+    { "source": "/rate-update", "destination": "/index.html" },
+    { "source": "/pincode", "destination": "/index.html" },
+    { "source": "/pickup", "destination": "/index.html" },
+    { "source": "/vendor-manage", "destination": "/index.html" },
+    { "source": "/vendor-rate", "destination": "/index.html" },
+    { "source": "/fcpl-rate", "destination": "/index.html" },
+    { "source": "/user-management", "destination": "/index.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
