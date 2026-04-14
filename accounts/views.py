@@ -1,11 +1,22 @@
+# accounts/views.py
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import status
+from .serializers import (
+    StaffLoginSerializer, ClientLoginSerializer, UserSerializer, 
+    CreateUserSerializer, CreateClientSerializer, ClientDetailsSerializer,
+    ClientRateMatrixSerializer, ClientRatePolicySerializer, 
+    UpdateClientRatesSerializer, ChangePasswordSerializer,
+    ForgotPasswordSerializer, ResetPasswordSerializer
+)
+from .models import CustomUser, ClientRateMatrix, ClientRatePolicy, ClientProfile, ClientSession
+import uuid
 
 User = get_user_model()
 
@@ -46,7 +57,7 @@ def signup(request):
 
 
 # =====================================================
-# 🔥 LOGIN (JWT - FINAL)
+# 🔥 STAFF LOGIN (JWT - FINAL)
 # =====================================================
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -54,7 +65,6 @@ def login(request):
     username = request.data.get("username")
     password = request.data.get("password")
 
-    # 🔍 Debug
     print("LOGIN DATA:", request.data)
 
     if not username or not password:
@@ -66,15 +76,44 @@ def login(request):
     user = authenticate(username=username, password=password)
 
     if user is not None:
+        # Check if user is client (they should use client login)
+        if hasattr(user, 'role') and user.role == 'Client':
+            return Response({
+                "status": "error",
+                "message": "Please use client login portal"
+            }, status=400)
+
         refresh = RefreshToken.for_user(user)
+
+        # Get user modules
+        modules = {
+            'fcpl_rate': user.fcpl_rate,
+            'pickup': user.pickup,
+            'vendor_manage': user.vendor_manage,
+            'vendor_rates': user.vendor_rates,
+            'rate_update': user.rate_update,
+            'pincode': user.pincode,
+            'user_management': user.user_management,
+            'ba_b2b': user.ba_b2b,
+            'create_order': user.create_order,
+            'shipment_details': user.shipment_details,
+        }
 
         return Response({
             "status": "success",
             "access": str(refresh.access_token),
             "refresh": str(refresh),
             "username": user.username,
+            "user_id": user.id,
+            "email": user.email,
+            "phone": user.phone,
+            "company": user.company,
+            "address": user.address,
+            "gstin": user.gstin,
             "is_superuser": user.is_superuser,
             "is_staff": user.is_staff,
+            "role": getattr(user, 'role', 'User'),
+            "modules": modules
         }, status=200)
 
     return Response({
@@ -84,46 +123,364 @@ def login(request):
 
 
 # =====================================================
+# 🆕 CLIENT LOGIN - NEW
+# =====================================================
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def client_login(request):
+    serializer = ClientLoginSerializer(data=request.data)
+    
+    if not serializer.is_valid():
+        return Response({
+            "success": False,
+            "error": serializer.errors.get('non_field_errors', ['Invalid credentials'])[0]
+        }, status=400)
+    
+    user = serializer.validated_data['user']
+    
+    # Create or update session
+    token = str(uuid.uuid4())
+    ClientSession.objects.create(
+        client=user,
+        token=token,
+        ip_address=request.META.get('REMOTE_ADDR'),
+        user_agent=request.META.get('HTTP_USER_AGENT', '')
+    )
+    
+    # Get client rates
+    rate_policy = ClientRatePolicy.objects.filter(client=user).first()
+    zone_rates = ClientRateMatrix.objects.filter(client=user, is_active=True)
+    
+    return Response({
+        "success": True,
+        "token": token,
+        "user": {
+            "clientId": user.client_id,
+            "username": user.username,
+            "companyName": user.company,
+            "email": user.email,
+            "phone": user.phone,
+            "address": user.address,
+            "gstin": user.gstin,
+            "hasCustomRates": rate_policy.is_custom if rate_policy else False
+        },
+        "modules": {
+            "ba_b2b": user.ba_b2b,
+            "create_order": user.create_order,
+            "shipment_details": user.shipment_details
+        }
+    }, status=200)
+
+
+# =====================================================
+# 🆕 GET CLIENT DETAILS - NEW
+# =====================================================
+@api_view(['GET'])
+def get_client_details(request, client_id):
+    try:
+        user = CustomUser.objects.get(client_id__iexact=client_id, role='Client')
+    except CustomUser.DoesNotExist:
+        return Response({
+            "success": False,
+            "error": "Client not found"
+        }, status=404)
+    
+    serializer = ClientDetailsSerializer(user)
+    
+    return Response({
+        "success": True,
+        "user": serializer.data
+    }, status=200)
+
+
+# =====================================================
+# 🆕 GET CLIENT RATES - NEW (for Rate Calculator)
+# =====================================================
+@api_view(['GET'])
+def get_client_rates(request, client_id):
+    try:
+        user = CustomUser.objects.get(client_id__iexact=client_id, role='Client')
+    except CustomUser.DoesNotExist:
+        return Response({
+            "success": False,
+            "error": "Client not found"
+        }, status=404)
+    
+    # Get zone rates
+    zone_rates = ClientRateMatrix.objects.filter(client=user, is_active=True)
+    zone_rates_serializer = ClientRateMatrixSerializer(zone_rates, many=True)
+    
+    # Get rate policy
+    rate_policy = ClientRatePolicy.objects.filter(client=user).first()
+    policy_serializer = ClientRatePolicySerializer(rate_policy) if rate_policy else None
+    
+    return Response({
+        "success": True,
+        "zone_rates": zone_rates_serializer.data,
+        "policy": policy_serializer.data if policy_serializer else None
+    }, status=200)
+
+
+# =====================================================
+# 🆕 UPDATE CLIENT RATES - NEW (Admin only)
+# =====================================================
+@api_view(['PUT', 'POST'])
+def update_client_rates(request, client_id):
+    # Check if user is admin
+    if not request.user.is_superuser and not request.user.user_management:
+        return Response({
+            "success": False,
+            "error": "Permission denied. Admin access required."
+        }, status=403)
+    
+    try:
+        user = CustomUser.objects.get(client_id__iexact=client_id, role='Client')
+    except CustomUser.DoesNotExist:
+        return Response({
+            "success": False,
+            "error": "Client not found"
+        }, status=404)
+    
+    serializer = UpdateClientRatesSerializer(data=request.data)
+    
+    if not serializer.is_valid():
+        return Response({
+            "success": False,
+            "error": serializer.errors
+        }, status=400)
+    
+    data = serializer.validated_data
+    
+    # Update zone rates
+    if 'zone_rates' in data:
+        # Delete existing rates
+        ClientRateMatrix.objects.filter(client=user).delete()
+        
+        # Create new rates
+        for rate in data['zone_rates']:
+            ClientRateMatrix.objects.create(
+                client=user,
+                from_zone=rate['from_zone'],
+                to_zone=rate['to_zone'],
+                rate=rate['rate'],
+                updated_by=request.user
+            )
+    
+    # Update policy
+    if 'policy' in data:
+        policy, created = ClientRatePolicy.objects.get_or_create(client=user)
+        policy.is_custom = True
+        policy.updated_by = request.user
+        
+        for key, value in data['policy'].items():
+            if hasattr(policy, key):
+                setattr(policy, key, value)
+        
+        policy.save()
+    
+    return Response({
+        "success": True,
+        "message": f"Rates updated for {user.client_id}"
+    }, status=200)
+
+
+# =====================================================
+# 🆕 GET ALL CLIENTS - NEW (Admin only)
+# =====================================================
+@api_view(['GET'])
+def get_all_clients(request):
+    # Check if user is admin
+    if not request.user.is_superuser and not request.user.user_management:
+        return Response({
+            "success": False,
+            "error": "Permission denied. Admin access required."
+        }, status=403)
+    
+    clients = CustomUser.objects.filter(role='Client')
+    
+    # Get order counts and freight totals for each client
+    client_data = []
+    for client in clients:
+        rate_policy = ClientRatePolicy.objects.filter(client=client).first()
+        profile = ClientProfile.objects.filter(client=client).first()
+        
+        client_data.append({
+            "id": client.id,
+            "clientId": client.client_id,
+            "companyName": client.company,
+            "email": client.email,
+            "phone": client.phone,
+            "address": client.address,
+            "gstin": client.gstin,
+            "status": "active" if client.is_client_active else "inactive",
+            "totalOrders": profile.total_orders if profile else 0,
+            "totalFreight": float(profile.total_freight) if profile else 0,
+            "hasCustomRates": rate_policy.is_custom if rate_policy else False,
+            "dateJoined": client.date_joined
+        })
+    
+    return Response(client_data, status=200)
+
+
+# =====================================================
+# 🆕 CREATE CLIENT - NEW (Admin only)
+# =====================================================
+@api_view(['POST'])
+def create_client(request):
+    # Check if user is admin
+    if not request.user.is_superuser and not request.user.user_management:
+        return Response({
+            "success": False,
+            "error": "Permission denied. Admin access required."
+        }, status=403)
+    
+    serializer = CreateClientSerializer(data=request.data)
+    
+    if not serializer.is_valid():
+        return Response({
+            "success": False,
+            "error": serializer.errors
+        }, status=400)
+    
+    user = serializer.save()
+    
+    return Response({
+        "success": True,
+        "message": f"Client {user.client_id} created successfully",
+        "client": {
+            "clientId": user.client_id,
+            "companyName": user.company,
+            "email": user.email,
+            "phone": user.phone
+        }
+    }, status=201)
+
+
+# =====================================================
+# 🆕 UPDATE CLIENT STATUS - NEW (Admin only)
+# =====================================================
+@api_view(['PUT'])
+def update_client_status(request, client_id):
+    # Check if user is admin
+    if not request.user.is_superuser and not request.user.user_management:
+        return Response({
+            "success": False,
+            "error": "Permission denied. Admin access required."
+        }, status=403)
+    
+    try:
+        user = CustomUser.objects.get(client_id__iexact=client_id, role='Client')
+    except CustomUser.DoesNotExist:
+        return Response({
+            "success": False,
+            "error": "Client not found"
+        }, status=404)
+    
+    is_active = request.data.get('is_active', False)
+    user.is_client_active = is_active
+    user.is_active = is_active
+    user.save()
+    
+    return Response({
+        "success": True,
+        "message": f"Client {user.client_id} status updated to {'Active' if is_active else 'Inactive'}"
+    }, status=200)
+
+
+# =====================================================
+# 🆕 DELETE CLIENT - NEW (Admin only)
+# =====================================================
+@api_view(['DELETE'])
+def delete_client(request, client_id):
+    # Check if user is admin
+    if not request.user.is_superuser and not request.user.user_management:
+        return Response({
+            "success": False,
+            "error": "Permission denied. Admin access required."
+        }, status=403)
+    
+    try:
+        user = CustomUser.objects.get(client_id__iexact=client_id, role='Client')
+    except CustomUser.DoesNotExist:
+        return Response({
+            "success": False,
+            "error": "Client not found"
+        }, status=404)
+    
+    # Soft delete - just deactivate
+    user.is_active = False
+    user.is_client_active = False
+    user.save()
+    
+    return Response({
+        "success": True,
+        "message": f"Client {user.client_id} has been deactivated"
+    }, status=200)
+
+
+# =====================================================
+# 🆕 GET CLIENT ORDER SUMMARY - NEW
+# =====================================================
+@api_view(['GET'])
+def get_client_order_summary(request, client_id):
+    try:
+        user = CustomUser.objects.get(client_id__iexact=client_id, role='Client')
+    except CustomUser.DoesNotExist:
+        return Response({
+            "success": False,
+            "error": "Client not found"
+        }, status=404)
+    
+    profile = ClientProfile.objects.filter(client=user).first()
+    
+    return Response({
+        "success": True,
+        "total_orders": profile.total_orders if profile else 0,
+        "total_shipments": profile.total_shipments if profile else 0,
+        "total_freight": float(profile.total_freight) if profile else 0,
+        "credit_limit": float(profile.credit_limit) if profile else 0,
+        "credit_used": float(profile.current_credit_used) if profile else 0
+    }, status=200)
+
+
+# =====================================================
 # 🔹 FORGOT PASSWORD
 # =====================================================
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def forgot_password(request):
-    email = request.data.get("email")
-
-    if not email:
-        return Response({"error": "Email required"}, status=400)
-
-    try:
-        user = User.objects.get(email=email)
-
-        token = default_token_generator.make_token(user)
-        reset_link = f"http://localhost:3000/reset-password/{user.pk}/{token}"
-
-        subject = "Faith Cargo - Password Reset"
-
-        html_content = render_to_string(
-            "accounts/password_reset_email.html",
-            {
-                "username": user.username,
-                "reset_link": reset_link,
-            }
-        )
-
-        msg = EmailMultiAlternatives(
-            subject,
-            f"Reset link: {reset_link}",
-            "no-reply@faithcargo.com",
-            [email]
-        )
-
-        msg.attach_alternative(html_content, "text/html")
-        msg.send()
-
-        return Response({"message": "Password reset link sent"}, status=200)
-
-    except User.DoesNotExist:
-        return Response({"error": "Email not found"}, status=404)
+    serializer = ForgotPasswordSerializer(data=request.data)
+    
+    if not serializer.is_valid():
+        return Response({"error": serializer.errors}, status=400)
+    
+    email = serializer.validated_data['email']
+    user = User.objects.get(email=email)
+    
+    token = default_token_generator.make_token(user)
+    reset_link = f"https://faithcargo.vercel.app/reset-password/{user.pk}/{token}"
+    
+    subject = "Faith Cargo - Password Reset"
+    
+    html_content = render_to_string(
+        "accounts/password_reset_email.html",
+        {
+            "username": user.username,
+            "reset_link": reset_link,
+        }
+    )
+    
+    msg = EmailMultiAlternatives(
+        subject,
+        f"Reset link: {reset_link}",
+        "no-reply@faithcargo.com",
+        [email]
+    )
+    
+    msg.attach_alternative(html_content, "text/html")
+    msg.send()
+    
+    return Response({"message": "Password reset link sent"}, status=200)
 
 
 # =====================================================
@@ -132,20 +489,90 @@ def forgot_password(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def reset_password(request, uid, token):
-    new_password = request.data.get("password")
-
-    if not new_password:
-        return Response({"error": "New password required"}, status=400)
-
+    serializer = ResetPasswordSerializer(data=request.data)
+    
+    if not serializer.is_valid():
+        return Response({"error": serializer.errors}, status=400)
+    
     try:
         user = User.objects.get(pk=uid)
-
+        
         if default_token_generator.check_token(user, token):
-            user.set_password(new_password)
+            user.set_password(serializer.validated_data['new_password'])
             user.save()
             return Response({"message": "Password reset successful"}, status=200)
-
+        
         return Response({"error": "Invalid or expired token"}, status=400)
-
+    
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=404)
+
+
+# =====================================================
+# 🔹 CHANGE PASSWORD (Authenticated)
+# =====================================================
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    serializer = ChangePasswordSerializer(data=request.data)
+    
+    if not serializer.is_valid():
+        return Response({"error": serializer.errors}, status=400)
+    
+    user = request.user
+    
+    if not user.check_password(serializer.validated_data['old_password']):
+        return Response({"error": "Old password is incorrect"}, status=400)
+    
+    user.set_password(serializer.validated_data['new_password'])
+    user.save()
+    
+    return Response({"message": "Password changed successfully"}, status=200)
+
+
+# =====================================================
+# 🔹 LOGOUT (Clear session)
+# =====================================================
+@api_view(['POST'])
+def logout(request):
+    token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    
+    # Deactivate session
+    ClientSession.objects.filter(token=token).update(is_active=False)
+    
+    return Response({"message": "Logged out successfully"}, status=200)
+
+
+# =====================================================
+# 🔹 GET CURRENT USER (Authenticated)
+# =====================================================
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_current_user(request):
+    user = request.user
+    
+    modules = {
+        'fcpl_rate': user.fcpl_rate,
+        'pickup': user.pickup,
+        'vendor_manage': user.vendor_manage,
+        'vendor_rates': user.vendor_rates,
+        'rate_update': user.rate_update,
+        'pincode': user.pincode,
+        'user_management': user.user_management,
+        'ba_b2b': user.ba_b2b,
+        'create_order': user.create_order,
+        'shipment_details': user.shipment_details,
+    }
+    
+    return Response({
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "phone": user.phone,
+        "company": user.company,
+        "address": user.address,
+        "gstin": user.gstin,
+        "role": getattr(user, 'role', 'User'),
+        "client_id": getattr(user, 'client_id', None),
+        "modules": modules
+    }, status=200)

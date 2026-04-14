@@ -7,103 +7,159 @@ import {
   Upload, File, Image, X, TrendingUp, Clock, Train, Plane,
   Save, Download, Eye, Award, Gem, Crown, Settings, 
   ToggleLeft, ToggleRight, Building, Hash, Tag, FileSpreadsheet,
-  Barcode, Layers, CheckSquare, Square, Printer as PrinterIcon,
+  Barcode, Layers, CheckSquare, Square, PrinterIcon,
   ArrowRight, Warehouse, Building2, Phone, Mail, Globe,
   Percent, DollarSign, Scale, Weight, Ruler, User, Users,
   Stamp, Circle, Star, HelpCircle, Search, Filter,
   RefreshCw, Activity, CheckCircle2, XCircle, Timer, Map, PhoneCall,
   Bookmark, SaveAll, Copy, Edit, Trash, Check, ChevronDown, ChevronUp, 
-  FolderOpen
+  FolderOpen, LogOut, UserCircle
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import "./CreateOrder.css";
 
-// Stamp Image Component with fallback
-const StampImage = () => {
-  const [imgError, setImgError] = useState(false);
-  
-  if (imgError) {
-    return (
-      <div className="official-stamp-fallback">
-        <div className="stamp-circle">
-          <div className="stamp-outer-ring">
-            <div className="stamp-inner-content">
-              <span className="stamp-title">FAITH CARGO</span>
-              <span className="stamp-sub">PVT LTD</span>
-              <div className="stamp-line"></div>
-              <span className="stamp-auth">AUTHORIZED</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
-  return (
-    <img 
-      src={require("../assets/stamp.png")} 
-      alt="Company Stamp" 
-      className="official-stamp-image"
-      onError={() => setImgError(true)}
-    />
-  );
+// ============================================
+// 🔐 CLIENT AUTHENTICATION CHECK
+// ============================================
+const useClientAuth = () => {
+  const [client, setClient] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [clientRates, setClientRates] = useState(null);
+  const [clientPolicy, setClientPolicy] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("clientToken");
+    const clientId = localStorage.getItem("clientId");
+    
+    if (token && clientId) {
+      fetchClientDetails(clientId, token);
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchClientDetails = async (clientId, token) => {
+    try {
+      const response = await fetch(`https://faithcargo.onrender.com/api/auth/client/${clientId}/`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setClient(data.user);
+        setIsAuthenticated(true);
+        
+        // Fetch client-specific rates
+        const ratesRes = await fetch(`https://faithcargo.onrender.com/api/rates/client/${clientId}/`);
+        const ratesData = await ratesRes.json();
+        setClientRates(ratesData.zone_rates || []);
+        setClientPolicy(ratesData.policy || null);
+      }
+    } catch (error) {
+      console.error("Auth error:", error);
+      localStorage.removeItem("clientToken");
+      localStorage.removeItem("clientId");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem("clientToken");
+    localStorage.removeItem("clientId");
+    setClient(null);
+    setIsAuthenticated(false);
+    window.location.href = "/ba-b2b-rate-calculator";
+  };
+
+  return { client, isAuthenticated, loading, clientRates, clientPolicy, logout };
 };
 
 // ============================================
-// 💰 REAL FREIGHT CALCULATOR
+// 💰 CLIENT-SPECIFIC FREIGHT CALCULATOR
 // ============================================
-const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, onCalculate }) => {
+const ClientFreightCalculator = ({ weight, origin, destination, bookingMode, clientPolicy, clientRates, onCalculate }) => {
   const [freight, setFreight] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Get zone from pincode
+  const getZoneFromPincode = (pincode) => {
+    const firstDigit = pincode?.charAt(0);
+    const zoneMap = {
+      '1': 'N1', '2': 'N2', '3': 'N3',
+      '4': 'C1', '5': 'W1', '6': 'W2',
+      '7': 'S1', '8': 'S2', '9': 'E1',
+      '0': 'NE1'
+    };
+    return zoneMap[firstDigit] || 'NE2';
+  };
+
+  // Get client-specific rate
+  const getClientRate = (originZone, destZone) => {
+    if (clientRates && clientRates.length > 0) {
+      const rate = clientRates.find(r => r.from_zone === originZone && r.to_zone === destZone);
+      if (rate) return rate.rate;
+    }
+    // Default rates based on mode
+    switch(bookingMode) {
+      case 'air': return 45;
+      case 'express': return 25;
+      case 'rail': return 15;
+      default: return 18;
+    }
+  };
 
   useEffect(() => {
     const calculateFreight = async () => {
       if (weight > 0 && origin && destination && origin.length === 6 && destination.length === 6) {
         setLoading(true);
         setError(null);
-        try {
-          const response = await fetch("https://faithcargo.onrender.com/api/shipments/calculate-freight/", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ origin, destination, weight: parseFloat(weight) })
-          });
-          const data = await response.json();
-          
-          if (data.success) {
-            const multiplier = bookingMode === 'air' ? 1.5 : bookingMode === 'express' ? 1.3 : bookingMode === 'rail' ? 0.8 : 1;
-            const baseFreight = data.freight_charge * multiplier;
-            const fuelSurcharge = baseFreight * 0.10;
-            const gst = baseFreight * 0.18;
-            const docketCharge = 100;
-            const fovCharge = 75;
-            let total = baseFreight + fuelSurcharge + gst + docketCharge + fovCharge;
-            if (total < 650) total = 650;
-            
-            const freightResult = {
-              baseFreight: Math.round(baseFreight),
-              fuelSurcharge: Math.round(fuelSurcharge),
-              gst: Math.round(gst),
-              docketCharge, fovCharge,
-              total: Math.round(total),
-              ratePerKg: (baseFreight / weight).toFixed(2),
-              fromZone: data.from_zone,
-              toZone: data.to_zone
-            };
-            setFreight(freightResult);
-            if (onCalculate) onCalculate(freightResult);
-          } else {
-            setError(data.error || "Rate not found");
-          }
-        } catch (err) {
-          setError("Network error");
-        } finally {
-          setLoading(false);
-        }
+        
+        const originZone = getZoneFromPincode(origin);
+        const destZone = getZoneFromPincode(destination);
+        const ratePerKg = getClientRate(originZone, destZone);
+        
+        // Use client policy or defaults
+        const charges = clientPolicy || {
+          minFreight: 650,
+          docketCharge: 100,
+          fuelPercent: 10,
+          fovCharge: 75,
+          gstPercent: 18
+        };
+        
+        const baseFreight = weight * ratePerKg;
+        const fuelSurcharge = baseFreight * (charges.fuelPercent / 100);
+        const gst = baseFreight * (charges.gstPercent / 100);
+        const docketCharge = charges.docketCharge || 100;
+        const fovCharge = charges.fovCharge || 75;
+        
+        let total = baseFreight + fuelSurcharge + gst + docketCharge + fovCharge;
+        if (total < charges.minFreight) total = charges.minFreight;
+        
+        const freightResult = {
+          baseFreight: Math.round(baseFreight),
+          fuelSurcharge: Math.round(fuelSurcharge),
+          gst: Math.round(gst),
+          docketCharge,
+          fovCharge,
+          total: Math.round(total),
+          ratePerKg: ratePerKg.toFixed(2),
+          fromZone: originZone,
+          toZone: destZone,
+          isCustomRate: clientRates?.length > 0
+        };
+        
+        setFreight(freightResult);
+        if (onCalculate) onCalculate(freightResult);
+        setLoading(false);
       }
     };
+    
     calculateFreight();
-  }, [weight, origin, destination, bookingMode]);
+  }, [weight, origin, destination, bookingMode, clientPolicy, clientRates]);
 
   if (!origin || !destination || weight === 0) return null;
 
@@ -112,6 +168,7 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
       <div className="freight-card-header">
         <Calculator size={18} />
         <span>Freight Calculator</span>
+        {freight?.isCustomRate && <span className="custom-rate-badge">⭐ Custom Rate</span>}
         {loading && <span className="loading-badge">Calculating...</span>}
       </div>
       {error && <div className="freight-error-msg"><AlertCircle size={14} /> {error}</div>}
@@ -126,11 +183,11 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
             <span>₹{freight.baseFreight.toLocaleString()}</span>
           </div>
           <div className="freight-row">
-            <span>Fuel Surcharge (10%)</span>
+            <span>Fuel Surcharge</span>
             <span>₹{freight.fuelSurcharge.toLocaleString()}</span>
           </div>
           <div className="freight-row">
-            <span>GST (18%)</span>
+            <span>GST</span>
             <span>₹{freight.gst.toLocaleString()}</span>
           </div>
           <div className="freight-row">
@@ -148,9 +205,9 @@ const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, o
 };
 
 // ============================================
-// 🎨 DOCKET COMPONENT - FULLY FIXED WITH WORKING BARCODE
+// 🎨 DOCKET COMPONENT (Same as before, but add client ID)
 // ============================================
-const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData, status, uploadedInvoices }, ref) => {
+const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData, status, uploadedInvoices, clientId }, ref) => {
   const barcodeRef = useRef(null);
   const [barcodeImageUrl, setBarcodeImageUrl] = useState("");
   
@@ -223,7 +280,6 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
       <div className="docket-watermark">FCPL</div>
       <div className="docket-inner-border"></div>
       
-      {/* Hidden canvas for barcode generation */}
       <canvas ref={barcodeRef} style={{ display: 'none' }} width="350" height="80"></canvas>
       
       <div className="docket-header-new">
@@ -239,6 +295,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
             <span className="awb-label">AWB:</span>
             <span className="awb-value-bold">{awbNumber || "N/A"}</span>
           </div>
+          {clientId && <div className="client-id-docket">Client: {clientId}</div>}
           <div className="status-badge-docket">{getStatusText()}</div>
           <div className="date-value-docket">{new Date().toLocaleDateString('en-IN')}</div>
         </div>
@@ -256,6 +313,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </div>
       </div>
 
+      {/* Rest of the docket content remains same */}
       <div className="parties-container">
         <div className="party sender">
           <div className="party-title">
@@ -328,8 +386,8 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
             <div className="section-header">FREIGHT BREAKDOWN</div>
             <div className="freight-items">
               <div className="freight-row-line"><span>Base Freight:</span><span>₹{freightData.baseFreight?.toLocaleString()}</span></div>
-              <div className="freight-row-line"><span>Fuel Surcharge (10%):</span><span>₹{freightData.fuelSurcharge?.toLocaleString()}</span></div>
-              <div className="freight-row-line"><span>GST (18%):</span><span>₹{freightData.gst?.toLocaleString()}</span></div>
+              <div className="freight-row-line"><span>Fuel Surcharge:</span><span>₹{freightData.fuelSurcharge?.toLocaleString()}</span></div>
+              <div className="freight-row-line"><span>GST:</span><span>₹{freightData.gst?.toLocaleString()}</span></div>
               <div className="freight-row-line"><span>Docket Charge:</span><span>₹{freightData.docketCharge || 100}</span></div>
               <div className="freight-row-line total-freight"><span>TOTAL:</span><span className="total-price">₹{freightData.total?.toLocaleString()}</span></div>
               <div className="rate-note">Rate: ₹{freightData.ratePerKg}/kg | {freightData.fromZone} → {freightData.toZone}</div>
@@ -339,9 +397,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
       </div>
 
       <div className="stamp-signature-wrapper-new">
-        <div className="stamp-image-container">
-          <StampImage />
-        </div>
+        <StampImage />
         <div className="signature-area">
           <div className="signature-line-item"><div className="sign-line"></div><p>Receiver's Signature</p></div>
           <div className="signature-line-item"><div className="stamp-box">FOR FAITH CARGO PVT LTD</div><p>Authorized Signatory</p></div>
@@ -377,7 +433,40 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
 });
 
 // ============================================
-// 📎 INVOICE UPLOAD WITH PREVIEW & DOWNLOAD
+// 🏷️ STAMP IMAGE COMPONENT
+// ============================================
+const StampImage = () => {
+  const [imgError, setImgError] = useState(false);
+  
+  if (imgError) {
+    return (
+      <div className="official-stamp-fallback">
+        <div className="stamp-circle">
+          <div className="stamp-outer-ring">
+            <div className="stamp-inner-content">
+              <span className="stamp-title">FAITH CARGO</span>
+              <span className="stamp-sub">PVT LTD</span>
+              <div className="stamp-line"></div>
+              <span className="stamp-auth">AUTHORIZED</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <img 
+      src={require("../assets/stamp.png")} 
+      alt="Company Stamp" 
+      className="official-stamp-image"
+      onError={() => setImgError(true)}
+    />
+  );
+};
+
+// ============================================
+// 📎 INVOICE UPLOAD COMPONENT
 // ============================================
 const InvoiceUpload = ({ onUpload, uploadedFiles = [], setUploadedFiles }) => {
   const [dragging, setDragging] = useState(false);
@@ -455,7 +544,7 @@ const InvoiceUpload = ({ onUpload, uploadedFiles = [], setUploadedFiles }) => {
 };
 
 // ============================================
-// 📦 DIMENSION INPUT WITH QUANTITY OPTION
+// 📦 DIMENSION INPUT COMPONENT
 // ============================================
 const DimensionInput = ({ dimensions, setDimensions, setTotalBoxes }) => {
   const [dimensionGroups, setDimensionGroups] = useState(dimensions || []);
@@ -530,7 +619,7 @@ const DimensionInput = ({ dimensions, setDimensions, setTotalBoxes }) => {
 };
 
 // ============================================
-// 💾 SAVED ADDRESSES COMPONENT FOR SHIPPER
+// 💾 SAVED ADDRESSES COMPONENT
 // ============================================
 const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
   const [savedAddresses, setSavedAddresses] = useState([]);
@@ -648,9 +737,11 @@ const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
 };
 
 // ============================================
-// 🚀 MAIN COMPONENT
+// 🚀 MAIN CREATE ORDER COMPONENT WITH CLIENT AUTH
 // ============================================
 export default function CreateOrder() {
+  const { client, isAuthenticated, loading: authLoading, clientPolicy, clientRates, logout } = useClientAuth();
+  
   const [dimensions, setDimensions] = useState([]);
   const [totalPackages, setTotalPackages] = useState(0);
   const [showLR, setShowLR] = useState(false);
@@ -674,6 +765,121 @@ export default function CreateOrder() {
   
   const printDocketRef = useRef(null);
 
+  const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gstin: "" });
+  const [delivery, setDelivery] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gstin: "" });
+  const [orderDetails, setOrderDetails] = useState({ material: "", weight: "", hsnCode: "1234" });
+  const [invoices, setInvoices] = useState([{ id: Date.now(), no: "", value: "" }]);
+
+  const totalInvoiceValue = useMemo(() => invoices.reduce((s, inv) => s + (parseFloat(inv.value) || 0), 0), [invoices]);
+  
+  const volWeight = useMemo(() => {
+    let totalVol = 0;
+    dimensions.forEach(dim => {
+      const qty = parseInt(dim.quantity) || 0;
+      const l = parseFloat(dim.length) || 0;
+      const w = parseFloat(dim.width) || 0;
+      const h = parseFloat(dim.height) || 0;
+      totalVol += (l * w * h) / 4000 * qty;
+    });
+    return totalVol.toFixed(2);
+  }, [dimensions]);
+  
+  const chargedWeight = Math.max(parseFloat(orderDetails.weight || 0), parseFloat(volWeight));
+  const needsEwayBill = totalInvoiceValue >= 50000;
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      window.location.href = "/ba-b2b-rate-calculator";
+    }
+  }, [authLoading, isAuthenticated]);
+
+  const fetchLocation = async (pin, type) => {
+    if (pin?.length === 6) {
+      try {
+        const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+        const data = await res.json();
+        if (data?.[0]?.Status === "Success") {
+          const po = data[0].PostOffice[0];
+          const loc = { state: po.State, city: po.District };
+          type === "pickup" ? setPickup(p => ({ ...p, ...loc })) : setDelivery(d => ({ ...d, ...loc }));
+        }
+      } catch (err) {}
+    }
+  };
+
+  const handleSelectSavedAddress = (address) => {
+    setPickup(address);
+  };
+
+  const handleCreateOrder = async () => {
+    if (!isAuthenticated) {
+      alert("Please login first!");
+      window.location.href = "/ba-b2b-rate-calculator";
+      return;
+    }
+    
+    if (needsEwayBill && !ewayBill) return alert("E-Way Bill required for invoice > ₹50,000");
+    if (!pickup.name || !delivery.name || !orderDetails.weight) return alert("Fill all mandatory fields");
+    if (!pickup.pincode || !delivery.pincode) return alert("Enter valid 6-digit pincodes");
+    if (isManualLR && !manualLRNumber) return alert("Enter Manual LR Number");
+
+    setLoading(true);
+    setApiError("");
+
+    const orderData = {
+      clientId: client?.clientId,
+      pickupName: pickup.name, pickupAddress: pickup.address, pickupPincode: pickup.pincode,
+      pickupContact: pickup.contact, pickupGstin: pickup.gstin,
+      deliveryName: delivery.name, deliveryAddress: delivery.address, deliveryPincode: delivery.pincode,
+      deliveryContact: delivery.contact, deliveryGstin: delivery.gstin,
+      material: orderDetails.material || "General Cargo", hsn: orderDetails.hsnCode,
+      boxes: totalPackages, weight: parseFloat(chargedWeight),
+      actual_weight: parseFloat(orderDetails.weight || 0), volumetric_weight: parseFloat(volWeight),
+      total_value: totalInvoiceValue, eway_bill: needsEwayBill ? ewayBill : "",
+      booking_mode: bookingMode,
+      dimensions: dimensions,
+      invoices: invoices.filter(inv => inv.no && inv.value).map(inv => ({ invoice_no: inv.no, invoice_value: parseFloat(inv.value) }))
+    };
+
+    try {
+      const response = await fetch("https://faithcargo.onrender.com/api/shipments/create-order/", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(orderData)
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        setLrNumber(result.lr_number);
+        setAwbNumber(result.awb);
+        setShipmentStatus("booked");
+        setShowLR(true);
+        
+        // Store with client ID
+        const allShipments = JSON.parse(localStorage.getItem(`shipments_${client?.clientId}`) || '[]');
+        allShipments.unshift({
+          lr: isManualLR ? manualLRNumber : result.lr_number, 
+          awb: result.awb,
+          route: `${pickup.pincode} → ${delivery.pincode}`, 
+          value: totalInvoiceValue,
+          status: 'booked', 
+          date: new Date().toISOString(),
+          invoices: invoices.filter(inv => inv.no && inv.value),
+          uploadedFiles: uploadedFiles,
+          clientId: client?.clientId
+        });
+        localStorage.setItem(`shipments_${client?.clientId}`, JSON.stringify(allShipments.slice(0, 50)));
+      } else {
+        setApiError(result.error || "Failed");
+        alert("Error: " + result.error);
+      }
+    } catch (error) {
+      setApiError("Network error");
+      alert("Network error! Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePrintDocket = () => {
     const printContent = printDocketRef.current;
     if (printContent) {
@@ -690,13 +896,8 @@ export default function CreateOrder() {
           .header-left-section { text-align: left; }
           .lr-label { font-size: 10px; font-weight: bold; color: #64748b; letter-spacing: 1px; margin-bottom: 5px; }
           .barcode-image { margin: 5px 0; background: white; width: 280px; height: auto; display: block; }
-          .barcode-placeholder { width: 280px; height: 60px; background: #f0f0f0; margin: 5px 0; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #999; }
           .lr-number-bold { font-size: 24px; font-weight: 900; color: #d32f2f; font-family: monospace; letter-spacing: 2px; }
-          .awb-section { margin-top: 8px; }
-          .awb-label { font-size: 12px; font-weight: 700; color: #475569; margin-right: 8px; }
-          .awb-value-bold { font-size: 14px; font-weight: 800; color: #1e293b; }
           .status-badge-docket { display: inline-block; margin-top: 10px; padding: 4px 14px; border-radius: 20px; font-size: 9px; font-weight: bold; background: #10b981; color: white; }
-          .date-value-docket { font-size: 8px; color: #64748b; margin-top: 8px; }
           .header-right-section { text-align: right; }
           .brand-logo-large { height: 60px; width: auto; margin-bottom: 8px; }
           .company-details h2 { font-size: 14px; font-weight: 900; margin: 0; color: #1a1a2e; }
@@ -705,8 +906,6 @@ export default function CreateOrder() {
           .parties-container { display: flex; gap: 20px; padding: 15px 20px; background: #f8fafc; position: relative; z-index: 2; }
           .party { flex: 1; background: white; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
           .party-title { background: #f1f5f9; padding: 8px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #e2e8f0; }
-          .party-icon { width: 28px; height: 28px; background: #ffebed; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
-          .party-title h3 { font-size: 11px; margin: 0; }
           .party-content { padding: 12px; }
           .party-content h4 { font-size: 11px; margin-bottom: 6px; }
           .address-text { font-size: 9px; color: #475569; margin-bottom: 8px; }
@@ -715,23 +914,13 @@ export default function CreateOrder() {
           .shipment-data-table { width: 100%; border-collapse: collapse; font-size: 9px; }
           .shipment-data-table th { background: #f1f5f9; padding: 8px; font-weight: bold; border: 1px solid #e2e8f0; }
           .shipment-data-table td { padding: 8px; border: 1px solid #e2e8f0; text-align: center; }
-          .small-text { font-size: 7px; }
           .billing-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 0 20px; margin-bottom: 15px; position: relative; z-index: 2; }
           .invoice-section, .freight-section { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
           .section-header { background: #f8fafc; padding: 8px 12px; font-size: 9px; font-weight: bold; border-bottom: 1px solid #e2e8f0; }
           .invoice-items, .freight-items { padding: 10px; }
-          .invoice-row-line, .freight-row-line { display: flex; justify-content: space-between; font-size: 8px; padding: 4px 0; }
           .stamp-signature-wrapper-new { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; margin: 15px 0; position: relative; z-index: 2; }
           .stamp-image-container { width: 120px; height: 120px; }
           .official-stamp-image { width: 100%; height: auto; object-fit: contain; }
-          .official-stamp-fallback { width: 100px; height: 100px; }
-          .stamp-outer-ring { width: 85px; height: 85px; border-radius: 50%; border: 2.5px solid #2563eb; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
-          .stamp-title { font-size: 9px; font-weight: 800; color: #2563eb; }
-          .stamp-sub { font-size: 7px; font-weight: 700; color: #2563eb; }
-          .stamp-line { width: 20px; height: 1px; background: #2563eb; margin: 3px auto; }
-          .stamp-auth { font-size: 6px; font-weight: 600; color: #2563eb; }
-          .sign-line { width: 80px; border-top: 1px solid #0f172a; margin-bottom: 4px; }
-          .stamp-box { border: 1px dashed #d32f2f; padding: 5px 10px; font-size: 7px; font-weight: bold; background: #fff1f2; border-radius: 4px; }
           .company-instructions { margin: 0 20px 15px 20px; padding: 12px; background: #f0fdf4; border-radius: 8px; border-left: 3px solid #10b981; position: relative; z-index: 2; }
           .instructions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
           .instruction-item { display: flex; gap: 8px; font-size: 7px; }
@@ -739,7 +928,7 @@ export default function CreateOrder() {
           .terms-wrapper h4 { font-size: 8px; margin-bottom: 5px; }
           .terms-wrapper ul { padding-left: 15px; font-size: 6px; }
           .docket-footer { padding: 10px 20px; background: #0f172a; color: white; display: flex; justify-content: space-between; font-size: 7px; position: relative; z-index: 2; }
-          @media print { body { margin: 0; padding: 0; } .docket-watermark { print-color-adjust: exact; } .barcode-image { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+          @media print { body { margin: 0; padding: 0; } }
         </style>
         </head><body>${printContent.outerHTML}</body></html>
       `);
@@ -748,6 +937,18 @@ export default function CreateOrder() {
       printWindow.print();
       printWindow.close();
     }
+  };
+
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      'booked': { text: '📝 Booked', class: 'status-booked', color: '#f59e0b' },
+      'picked': { text: '🚚 Picked Up', class: 'status-picked', color: '#3b82f6' },
+      'in_transit': { text: '🚛 In Transit', class: 'status-transit', color: '#8b5cf6' },
+      'out_for_delivery': { text: '📦 Out for Delivery', class: 'status-out', color: '#ec4898' },
+      'delivered': { text: '✅ Delivered', class: 'status-delivered', color: '#10b981' }
+    };
+    const s = statusMap[status] || statusMap.booked;
+    return <span className={`status-badge ${s.class}`} style={{ backgroundColor: `${s.color}15`, color: s.color, borderLeftColor: s.color }}>{s.text}</span>;
   };
 
   const handleTrackShipment = async () => {
@@ -787,117 +988,6 @@ export default function CreateOrder() {
     }
   };
 
-  const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gstin: "" });
-  const [delivery, setDelivery] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gstin: "" });
-  const [orderDetails, setOrderDetails] = useState({ material: "", weight: "", hsnCode: "1234" });
-  const [invoices, setInvoices] = useState([{ id: Date.now(), no: "", value: "" }]);
-
-  const totalInvoiceValue = useMemo(() => invoices.reduce((s, inv) => s + (parseFloat(inv.value) || 0), 0), [invoices]);
-  
-  const volWeight = useMemo(() => {
-    let totalVol = 0;
-    dimensions.forEach(dim => {
-      const qty = parseInt(dim.quantity) || 0;
-      const l = parseFloat(dim.length) || 0;
-      const w = parseFloat(dim.width) || 0;
-      const h = parseFloat(dim.height) || 0;
-      totalVol += (l * w * h) / 4000 * qty;
-    });
-    return totalVol.toFixed(2);
-  }, [dimensions]);
-  
-  const chargedWeight = Math.max(parseFloat(orderDetails.weight || 0), parseFloat(volWeight));
-  const needsEwayBill = totalInvoiceValue >= 50000;
-
-  const fetchLocation = async (pin, type) => {
-    if (pin?.length === 6) {
-      try {
-        const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
-        const data = await res.json();
-        if (data?.[0]?.Status === "Success") {
-          const po = data[0].PostOffice[0];
-          const loc = { state: po.State, city: po.District };
-          type === "pickup" ? setPickup(p => ({ ...p, ...loc })) : setDelivery(d => ({ ...d, ...loc }));
-        }
-      } catch (err) {}
-    }
-  };
-
-  const handleSelectSavedAddress = (address) => {
-    setPickup(address);
-  };
-
-  const handleCreateOrder = async () => {
-    if (needsEwayBill && !ewayBill) return alert("E-Way Bill required for invoice > ₹50,000");
-    if (!pickup.name || !delivery.name || !orderDetails.weight) return alert("Fill all mandatory fields");
-    if (!pickup.pincode || !delivery.pincode) return alert("Enter valid 6-digit pincodes");
-    if (isManualLR && !manualLRNumber) return alert("Enter Manual LR Number");
-
-    setLoading(true);
-    setApiError("");
-
-    const orderData = {
-      pickupName: pickup.name, pickupAddress: pickup.address, pickupPincode: pickup.pincode,
-      pickupContact: pickup.contact, pickupGstin: pickup.gstin,
-      deliveryName: delivery.name, deliveryAddress: delivery.address, deliveryPincode: delivery.pincode,
-      deliveryContact: delivery.contact, deliveryGstin: delivery.gstin,
-      material: orderDetails.material || "General Cargo", hsn: orderDetails.hsnCode,
-      boxes: totalPackages, weight: parseFloat(chargedWeight),
-      actual_weight: parseFloat(orderDetails.weight || 0), volumetric_weight: parseFloat(volWeight),
-      total_value: totalInvoiceValue, eway_bill: needsEwayBill ? ewayBill : "",
-      booking_mode: bookingMode,
-      dimensions: dimensions,
-      invoices: invoices.filter(inv => inv.no && inv.value).map(inv => ({ invoice_no: inv.no, invoice_value: parseFloat(inv.value) }))
-    };
-
-    try {
-      const response = await fetch("https://faithcargo.onrender.com/api/shipments/create-order/", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(orderData)
-      });
-      const result = await response.json();
-
-      if (result.success) {
-        setLrNumber(result.lr_number);
-        setAwbNumber(result.awb);
-        setShipmentStatus("booked");
-        setShowLR(true);
-        
-        const allShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
-        allShipments.unshift({
-          lr: isManualLR ? manualLRNumber : result.lr_number, 
-          awb: result.awb,
-          route: `${pickup.pincode} → ${delivery.pincode}`, 
-          value: totalInvoiceValue,
-          status: 'booked', 
-          date: new Date().toISOString(),
-          invoices: invoices.filter(inv => inv.no && inv.value),
-          uploadedFiles: uploadedFiles
-        });
-        localStorage.setItem('allShipments', JSON.stringify(allShipments.slice(0, 50)));
-      } else {
-        setApiError(result.error || "Failed");
-        alert("Error: " + result.error);
-      }
-    } catch (error) {
-      setApiError("Network error");
-      alert("Network error! Try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStatusBadge = (status) => {
-    const statusMap = {
-      'booked': { text: '📝 Booked', class: 'status-booked', color: '#f59e0b' },
-      'picked': { text: '🚚 Picked Up', class: 'status-picked', color: '#3b82f6' },
-      'in_transit': { text: '🚛 In Transit', class: 'status-transit', color: '#8b5cf6' },
-      'out_for_delivery': { text: '📦 Out for Delivery', class: 'status-out', color: '#ec4898' },
-      'delivered': { text: '✅ Delivered', class: 'status-delivered', color: '#10b981' }
-    };
-    const s = statusMap[status] || statusMap.booked;
-    return <span className={`status-badge ${s.class}`} style={{ backgroundColor: `${s.color}15`, color: s.color, borderLeftColor: s.color }}>{s.text}</span>;
-  };
-
   const getTrackingTimeline = (currentStatus) => {
     const steps = [
       { key: 'booked', label: 'Booked', icon: '📝', desc: 'Order confirmed' },
@@ -930,23 +1020,62 @@ export default function CreateOrder() {
     );
   };
 
+  if (authLoading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Authenticating...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null; // Will redirect via useEffect
+  }
+
   return (
     <div className="create-order-page">
       <aside className="order-sidebar">
-        <div className="sidebar-logo"><img src={logo} alt="FCPL" /><div className="online-indicator"></div></div>
+        <div className="sidebar-logo">
+          <img src={logo} alt="FCPL" />
+          <div className="online-indicator"></div>
+        </div>
+        <div className="client-info-sidebar">
+          <UserCircle size={20} />
+          <div>
+            <span>{client?.companyName || client?.username}</span>
+            <small>{client?.clientId}</small>
+          </div>
+          <button className="logout-sidebar-btn" onClick={logout}>
+            <LogOut size={14} />
+          </button>
+        </div>
         <nav className="sidebar-navigation">
           <div className="nav-link active"><Plus size={18} /> Create Booking</div>
           <div className="nav-link" onClick={() => { setShowTracking(!showTracking); if (!showTracking) setTrackingResult(null); }}><Search size={18} /> Live Tracking</div>
-          <div className="nav-link" onClick={() => window.location.href='/shipments'}><FileText size={18} /> All Dockets</div>
+          <div className="nav-link" onClick={() => window.location.href='/shipments'}><FileText size={18} /> My Dockets</div>
           <div className="nav-link"><CreditCard size={18} /> Payments</div>
         </nav>
+        {clientPolicy && (
+          <div className="sidebar-rates-info">
+            <div className="rate-badge-sidebar">⭐ Custom Rates Active</div>
+            <small>Your negotiated rates are applied</small>
+          </div>
+        )}
         <div className="sidebar-help"><Award size={24} color="#d32f2f" /><p>Support 24/7</p><span>📞 9818641504</span></div>
       </aside>
 
       <main className="order-main-content">
         <div className="page-title-section">
-          <div><h1>Create Shipment</h1><p>Enter consignment details for LR generation</p></div>
-          <div className="stats-badges"><div className="badge">⚡ Charged: {chargedWeight} Kg</div><div className="badge red">💰 Value: ₹{totalInvoiceValue.toLocaleString()}</div></div>
+          <div>
+            <h1>Create Shipment</h1>
+            <p>Welcome, {client?.companyName || client?.username}!</p>
+          </div>
+          <div className="stats-badges">
+            <div className="badge">⚡ Charged: {chargedWeight} Kg</div>
+            <div className="badge red">💰 Value: ₹{totalInvoiceValue.toLocaleString()}</div>
+            {clientPolicy && <div className="badge custom-rate-badge">⭐ Custom Rate Applied</div>}
+          </div>
         </div>
 
         {apiError && <div className="error-notice"><AlertCircle size={18} /> {apiError}</div>}
@@ -1090,7 +1219,18 @@ export default function CreateOrder() {
                 {invoices.map(inv => (<div key={inv.id} className="invoice-input-row"><input placeholder="Invoice No" value={inv.no} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, no: e.target.value.toUpperCase()} : i))} /><input type="number" placeholder="Value ₹" value={inv.value} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, value: e.target.value} : i))} /><button className="remove-invoice-btn" onClick={() => setInvoices(invoices.filter(i => i.id !== inv.id))}><Trash2 size={14} /></button></div>))}
                 <InvoiceUpload onUpload={(files) => console.log("Uploaded:", files)} uploadedFiles={uploadedFiles} setUploadedFiles={setUploadedFiles} />
                 {needsEwayBill && (<div className="eway-alert"><div className="eway-header"><AlertCircle size={16} /> E-WAY BILL REQUIRED</div><input className="eway-input-field" value={ewayBill} onChange={e => setEwayBill(e.target.value.toUpperCase())} placeholder="12 DIGIT E-WAY BILL NO." maxLength={12} /></div>)}
-                <RealTimeFreightCalculator weight={chargedWeight} origin={pickup.pincode} destination={delivery.pincode} bookingMode={bookingMode} onCalculate={setFreightData} />
+                
+                {/* Client-Specific Freight Calculator */}
+                <ClientFreightCalculator 
+                  weight={chargedWeight} 
+                  origin={pickup.pincode} 
+                  destination={delivery.pincode} 
+                  bookingMode={bookingMode}
+                  clientPolicy={clientPolicy}
+                  clientRates={clientRates}
+                  onCalculate={setFreightData} 
+                />
+                
                 <div className="settings-panel">
                   <div className="setting-row"><label>Manual LR Number</label><button className={`toggle-switch ${isManualLR ? 'on' : 'off'}`} onClick={() => setIsManualLR(!isManualLR)}>{isManualLR ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}{isManualLR ? 'Manual ON' : 'Auto'}</button></div>
                   {isManualLR && (<input className="manual-lr-input" placeholder="Enter LR Number" value={manualLRNumber} onChange={e => setManualLRNumber(e.target.value.toUpperCase())} />)}
@@ -1120,12 +1260,13 @@ export default function CreateOrder() {
               showFreight={showFreightOnDocket} 
               freightData={freightData} 
               status={shipmentStatus} 
-              uploadedInvoices={uploadedFiles} 
+              uploadedInvoices={uploadedFiles}
+              clientId={client?.clientId}
             />
           </div>
           <div className="modal-buttons">
             <button className="modal-btn print-btn" onClick={handlePrintDocket}><Printer size={16} /> Print Docket</button>
-            <button className="modal-btn view-btn" onClick={() => window.location.href='/shipments'}><Eye size={16} /> View All</button>
+            <button className="modal-btn view-btn" onClick={() => window.location.href='/shipments'}><Eye size={16} /> My Shipments</button>
             <button className="modal-btn new-btn" onClick={() => window.location.reload()}><Plus size={16} /> New</button>
           </div>
         </div></div>)}

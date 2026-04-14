@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, User, Lock, LogIn, ArrowLeft, AlertCircle, CheckCircle, Shield, Zap } from "lucide-react";
+import { 
+  Eye, EyeOff, User, Lock, LogIn, ArrowLeft, AlertCircle, 
+  CheckCircle, Shield, Zap, Briefcase, Building, Users, 
+  Truck, Package, DollarSign, Clock, MapPin, Phone, Mail,
+  UserCircle, Store, Building2, CreditCard, FileText
+} from "lucide-react";
 import "./UserLogin.css";
 import logo from "../assets/logo.png";
 
 function UserLogin() {
   const navigate = useNavigate();
 
+  // ========== LOGIN TYPE STATE ==========
+  const [loginType, setLoginType] = useState("staff"); // "staff" or "client"
+  
   const [username, setUsername] = useState("");
+  const [clientId, setClientId] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -17,95 +26,188 @@ function UserLogin() {
 
   // Load saved credentials if remember me was checked
   useEffect(() => {
-    const savedUsername = localStorage.getItem("rememberedUsername");
-    const savedRemember = localStorage.getItem("rememberMe") === "true";
-    if (savedUsername && savedRemember) {
-      setUsername(savedUsername);
-      setRememberMe(true);
+    const savedLoginType = localStorage.getItem("savedLoginType");
+    if (savedLoginType === "client") {
+      const savedClientId = localStorage.getItem("rememberedClientId");
+      const savedRemember = localStorage.getItem("rememberClient") === "true";
+      if (savedClientId && savedRemember) {
+        setClientId(savedClientId);
+        setRememberMe(true);
+        setLoginType("client");
+      }
+    } else {
+      const savedUsername = localStorage.getItem("rememberedUsername");
+      const savedRemember = localStorage.getItem("rememberMe") === "true";
+      if (savedUsername && savedRemember) {
+        setUsername(savedUsername);
+        setRememberMe(true);
+        setLoginType("staff");
+      }
     }
   }, []);
+
+  // ========== STAFF LOGIN ==========
+  const handleStaffLogin = async () => {
+    const res = await fetch("https://faithcargo.onrender.com/api/user/login/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: username.trim(),
+        password: password.trim(),
+      }),
+    });
+
+    const data = await res.json();
+
+    if (res.status === 200 && data.status === "success") {
+      // Clear old data
+      localStorage.clear();
+
+      // Store authentication data
+      localStorage.setItem("token", "user-login-token");
+      localStorage.setItem("is_superuser", "false");
+      localStorage.setItem("username", data.username);
+      localStorage.setItem("userId", data.id || "1");
+      localStorage.setItem("userRole", "staff");
+      localStorage.setItem("loginType", "staff");
+      
+      // Store user modules
+      const modules = data.modules || {};
+      localStorage.setItem("userModules", JSON.stringify(modules));
+      
+      // Store user details
+      if (data.email) localStorage.setItem("userEmail", data.email);
+      if (data.company) localStorage.setItem("userCompany", data.company);
+      if (data.phone) localStorage.setItem("userPhone", data.phone);
+      if (data.address) localStorage.setItem("userAddress", data.address);
+      if (data.gstin) localStorage.setItem("userGstin", data.gstin);
+      
+      // Handle remember me
+      if (rememberMe) {
+        localStorage.setItem("rememberedUsername", username.trim());
+        localStorage.setItem("rememberMe", "true");
+        localStorage.setItem("savedLoginType", "staff");
+      } else {
+        localStorage.removeItem("rememberedUsername");
+        localStorage.removeItem("rememberMe");
+      }
+
+      const enabledModules = Object.keys(modules).filter(key => modules[key] === true);
+      setSuccess(`Welcome ${data.username}! Redirecting to Staff Dashboard... 🚀`);
+      
+      console.log("=== Staff Login Successful ===");
+      console.log("Username:", data.username);
+      console.log("Modules:", enabledModules);
+      
+      setTimeout(() => {
+        navigate("/user-dashboard");
+        window.location.reload();
+      }, 1500);
+    } else {
+      setError(data.error || "Invalid staff credentials ❌");
+    }
+  };
+
+  // ========== CLIENT LOGIN ==========
+  const handleClientLogin = async () => {
+    const res = await fetch("https://faithcargo.onrender.com/api/auth/client-login/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientId: clientId.trim().toUpperCase(),
+        password: password.trim(),
+      }),
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      // Clear old data
+      localStorage.clear();
+
+      // Store client authentication data
+      localStorage.setItem("clientToken", data.token);
+      localStorage.setItem("clientId", clientId.trim().toUpperCase());
+      localStorage.setItem("userRole", "client");
+      localStorage.setItem("loginType", "client");
+      
+      // Store client details
+      if (data.user) {
+        localStorage.setItem("clientName", data.user.companyName || data.user.username);
+        localStorage.setItem("clientEmail", data.user.email || "");
+        localStorage.setItem("clientPhone", data.user.phone || "");
+        localStorage.setItem("clientCompany", data.user.companyName || "");
+        localStorage.setItem("clientGstin", data.user.gstin || "");
+      }
+      
+      // Store client-specific modules/permissions
+      const clientModules = {
+        ba_b2b: true,
+        create_order: true,
+        shipment_details: true,
+        fcpl_rate: false,
+        pickup: false,
+        vendor_manage: false,
+        vendor_rates: false,
+        rate_update: false,
+        pincode: false,
+        user_management: false
+      };
+      localStorage.setItem("userModules", JSON.stringify(clientModules));
+      
+      // Handle remember me
+      if (rememberMe) {
+        localStorage.setItem("rememberedClientId", clientId.trim().toUpperCase());
+        localStorage.setItem("rememberClient", "true");
+        localStorage.setItem("savedLoginType", "client");
+      } else {
+        localStorage.removeItem("rememberedClientId");
+        localStorage.removeItem("rememberClient");
+      }
+
+      setSuccess(`Welcome ${data.user?.companyName || clientId}! Redirecting to Rate Calculator... 🚀`);
+      
+      console.log("=== Client Login Successful ===");
+      console.log("Client ID:", clientId);
+      console.log("Client Name:", data.user?.companyName);
+      
+      setTimeout(() => {
+        navigate("/ba-b2b-rate-calculator");
+        window.location.reload();
+      }, 1500);
+    } else {
+      setError(data.error || "Invalid client credentials ❌\nPlease check your Client ID and Password");
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    if (!username || !password) {
-      setError("Please enter username & password");
-      return;
+    if (loginType === "staff") {
+      if (!username || !password) {
+        setError("Please enter username & password");
+        return;
+      }
+    } else {
+      if (!clientId || !password) {
+        setError("Please enter Client ID & password");
+        return;
+      }
     }
 
     setLoading(true);
 
     try {
-      const res = await fetch("https://faithcargo.onrender.com/api/user/login/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: username.trim(),
-          password: password.trim(),
-        }),
-      });
-
-      const data = await res.json();
-
-      if (res.status === 200 && data.status === "success") {
-        // Clear old data
-        localStorage.clear();
-
-        // Store authentication data
-        localStorage.setItem("token", "user-login-token");
-        localStorage.setItem("is_superuser", "false");
-        localStorage.setItem("username", data.username);
-        localStorage.setItem("userId", data.id || "1");
-        localStorage.setItem("userRole", "user");
-        
-        // Store user modules - ONLY SELECTED MODULES FROM USERMANAGEMENT
-        const modules = data.modules || {};
-        localStorage.setItem("userModules", JSON.stringify(modules));
-        
-        // Store user details
-        if (data.email) localStorage.setItem("userEmail", data.email);
-        if (data.company) localStorage.setItem("userCompany", data.company);
-        if (data.phone) localStorage.setItem("userPhone", data.phone);
-        if (data.address) localStorage.setItem("userAddress", data.address);
-        if (data.gstin) localStorage.setItem("userGstin", data.gstin);
-        
-        // Handle remember me
-        if (rememberMe) {
-          localStorage.setItem("rememberedUsername", username.trim());
-          localStorage.setItem("rememberMe", "true");
-        } else {
-          localStorage.removeItem("rememberedUsername");
-          localStorage.removeItem("rememberMe");
-        }
-
-        // Get list of enabled modules for success message
-        const enabledModules = Object.keys(modules).filter(key => modules[key] === true);
-        
-        setSuccess(`Welcome ${data.username}! Redirecting... 🚀\n\nAvailable Modules: ${enabledModules.length}`);
-        
-        // Debug logs
-        console.log("=== User Login Successful ===");
-        console.log("Username:", data.username);
-        console.log("User ID:", data.id);
-        console.log("Company:", data.company);
-        console.log("Modules Received:", modules);
-        console.log("Enabled Modules:", enabledModules);
-        
-        setTimeout(() => {
-          navigate("/user-dashboard");
-          window.location.reload();
-        }, 1500);
-        
+      if (loginType === "staff") {
+        await handleStaffLogin();
       } else {
-        setError(data.error || "Invalid credentials ❌\nPlease check your username and password");
+        await handleClientLogin();
       }
     } catch (err) {
       console.error("Login Error:", err);
-      setError("Server error ❌. Please check your internet or backend.");
+      setError("Server error ❌. Please check your internet connection.");
     } finally {
       setLoading(false);
     }
@@ -147,15 +249,46 @@ function UserLogin() {
         </div>
       </div>
 
-      {/* RIGHT LOGIN FORM - Enhanced */}
+      {/* RIGHT LOGIN FORM - Enhanced with Login Type Toggle */}
       <div className="user-login-right">
         <div className="login-form-wrapper">
           <div className="logo-container">
             <img src={logo} alt="Faith Cargo Logo" className="login-logo" />
             <div className="online-status"></div>
           </div>
-          <h2>Staff Portal Login</h2>
-          <p className="subtitle">Enter your credentials to access your dashboard</p>
+          
+          {/* Login Type Toggle */}
+          <div className="login-type-toggle">
+            <button 
+              className={`toggle-btn ${loginType === 'staff' ? 'active' : ''}`}
+              onClick={() => {
+                setLoginType('staff');
+                setError('');
+                setSuccess('');
+              }}
+            >
+              <Users size={16} />
+              Staff Login
+            </button>
+            <button 
+              className={`toggle-btn ${loginType === 'client' ? 'active' : ''}`}
+              onClick={() => {
+                setLoginType('client');
+                setError('');
+                setSuccess('');
+              }}
+            >
+              <Building2 size={16} />
+              Client Login
+            </button>
+          </div>
+
+          <h2>{loginType === 'staff' ? 'Staff Portal Login' : 'Client Portal Login'}</h2>
+          <p className="subtitle">
+            {loginType === 'staff' 
+              ? 'Enter your credentials to access staff dashboard' 
+              : 'Enter your Client ID and password to access rate calculator'}
+          </p>
 
           {/* Error Alert */}
           {error && (
@@ -174,20 +307,41 @@ function UserLogin() {
           )}
 
           <form onSubmit={handleLogin} className="login-form">
-            <div className="input-group">
-              <label>Username</label>
-              <div className="input-field">
-                <User size={18} className="input-icon" />
-                <input
-                  type="text"
-                  placeholder="Enter your username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  autoComplete="username"
-                  disabled={loading}
-                />
+            {loginType === 'staff' ? (
+              <div className="input-group">
+                <label>Username</label>
+                <div className="input-field">
+                  <User size={18} className="input-icon" />
+                  <input
+                    type="text"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    autoComplete="username"
+                    disabled={loading}
+                  />
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="input-group">
+                <label>Client ID</label>
+                <div className="input-field">
+                  <Building2 size={18} className="input-icon" />
+                  <input
+                    type="text"
+                    placeholder="Enter your Client ID (e.g., CLIENT001)"
+                    value={clientId}
+                    onChange={(e) => setClientId(e.target.value.toUpperCase())}
+                    autoComplete="off"
+                    disabled={loading}
+                  />
+                </div>
+                <div className="input-hint">
+                  <Package size={12} />
+                  <span>Enter the Client ID provided by admin</span>
+                </div>
+              </div>
+            )}
 
             <div className="input-group">
               <label>Password</label>
@@ -233,7 +387,7 @@ function UserLogin() {
               ) : (
                 <>
                   <LogIn size={18} />
-                  Login to Dashboard
+                  {loginType === 'staff' ? 'Login to Staff Dashboard' : 'Access Rate Calculator'}
                 </>
               )}
             </button>
@@ -250,6 +404,16 @@ function UserLogin() {
               Back to Admin Login
             </button>
           </div>
+
+          {loginType === 'client' && (
+            <div className="client-info-note">
+              <div className="note-header">
+                <Info size={14} />
+                <span>New to Faith Cargo?</span>
+              </div>
+              <p>Contact your account manager to get your Client ID and credentials.</p>
+            </div>
+          )}
 
           <div className="security-note">
             <Shield size={14} />

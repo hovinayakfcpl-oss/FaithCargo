@@ -5,11 +5,16 @@ import {
   DollarSign, TrendingUp, Calendar, Search, 
   CheckCircle, XCircle, Clock, Award, Crown,
   Shield, UserPlus, Mail, Phone, MapPin, Building,
-  CreditCard, FileText, Truck, Calculator
+  CreditCard, FileText, Truck, Calculator, 
+  Settings, Zap, BarChart3, Download, Filter
 } from "lucide-react";
 import "./UserManagement.css";
 
 const API_BASE_URL = "https://faithcargo.onrender.com/api/user";
+const RATES_API_URL = "https://faithcargo.onrender.com/api/rates";
+
+// Zone list for rate matrix
+const zones = ["N1","N2","N3","C1","W1","W2","S1","S2","E1","NE1","NE2"];
 
 function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -17,6 +22,30 @@ function UserManagement() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserDetails, setShowUserDetails] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // ========== NEW: Client Rates State ==========
+  const [showRateModal, setShowRateModal] = useState(false);
+  const [rateClient, setRateClient] = useState(null);
+  const [clientRates, setClientRates] = useState({});
+  const [masterRates, setMasterRates] = useState({});
+  const [ratePolicy, setRatePolicy] = useState({
+    minFreight: 600,
+    docketCharge: 50,
+    fuelPercent: 15,
+    fovCharge: 75,
+    odaCharge: 3,
+    codCharge: 150,
+    codPercent: 2.5,
+    handlingCharge: 2,
+    appointmentCharge: 4,
+    cft: 4500,
+    gstPercent: 18
+  });
+  
+  // ========== NEW: Report Filters ==========
+  const [dateRange, setDateRange] = useState({ from: "", to: "" });
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportData, setReportData] = useState(null);
   
   // New User Form
   const [newUser, setNewUser] = useState({ 
@@ -33,7 +62,7 @@ function UserManagement() {
   const [editingUser, setEditingUser] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   
-  // Permissions - ONLY THESE MODULES (No Invoice/Reports)
+  // Permissions
   const [permissions, setPermissions] = useState({
     fcpl_rate: false,
     pickup: false,
@@ -50,15 +79,151 @@ function UserManagement() {
   const token = localStorage.getItem("token");
   const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
 
+  // Create empty rate matrix
+  const createEmptyMatrix = () => {
+    let matrix = {};
+    zones.forEach(f => {
+      matrix[f] = {};
+      zones.forEach(t => {
+        matrix[f][t] = "";
+      });
+    });
+    return matrix;
+  };
+
+  // Fetch master rates
+  const fetchMasterRates = async () => {
+    try {
+      const response = await axios.get("https://faithcargo.onrender.com/api/rates/matrix/");
+      let matrix = createEmptyMatrix();
+      response.data.forEach(r => {
+        if (matrix[r.from_zone]) {
+          matrix[r.from_zone][r.to_zone] = r.rate;
+        }
+      });
+      setMasterRates(matrix);
+    } catch (error) {
+      console.error("Error fetching master rates:", error);
+    }
+  };
+
+  // Fetch client-specific rates
+  const fetchClientRates = async (clientId) => {
+    try {
+      const response = await axios.get(`${RATES_API_URL}/client/${clientId}/`);
+      let matrix = createEmptyMatrix();
+      
+      if (response.data.zone_rates) {
+        response.data.zone_rates.forEach(r => {
+          if (matrix[r.from_zone]) {
+            matrix[r.from_zone][r.to_zone] = r.rate;
+          }
+        });
+      }
+      setClientRates(matrix);
+      
+      if (response.data.policy) {
+        setRatePolicy(response.data.policy);
+      }
+    } catch (error) {
+      console.error("Error fetching client rates:", error);
+      setClientRates(createEmptyMatrix());
+    }
+  };
+
+  // Update client rates
+  const updateClientRates = async () => {
+    if (!rateClient) return;
+    
+    setLoading(true);
+    let zonePayload = [];
+    zones.forEach(f => {
+      zones.forEach(t => {
+        if (clientRates[f] && clientRates[f][t] !== "") {
+          zonePayload.push({
+            from_zone: f,
+            to_zone: t,
+            rate: Number(clientRates[f][t])
+          });
+        }
+      });
+    });
+
+    try {
+      await axios.post(`${RATES_API_URL}/client/${rateClient.id}/update/`, {
+        zone_rates: zonePayload,
+        policy: ratePolicy
+      }, config);
+      alert(`Rates updated for ${rateClient.username}`);
+      setShowRateModal(false);
+      setRateClient(null);
+    } catch (error) {
+      console.error("Error updating client rates:", error);
+      alert("Error updating rates");
+    }
+    setLoading(false);
+  };
+
+  // Handle rate change
+  const handleRateChange = (from, to, value) => {
+    setClientRates(prev => ({
+      ...prev,
+      [from]: {
+        ...prev[from],
+        [to]: value
+      }
+    }));
+  };
+
+  // Handle policy change
+  const handlePolicyChange = (field, value) => {
+    setRatePolicy(prev => ({
+      ...prev,
+      [field]: parseFloat(value) || 0
+    }));
+  };
+
+  // Generate client report with date filter
+  const generateClientReport = async (user, range = dateRange) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/user-report/${user.id}/`, {
+        params: { from_date: range.from, to_date: range.to },
+        ...config
+      });
+      setReportData(response.data);
+      setShowReportModal(true);
+    } catch (error) {
+      console.error("Error generating report:", error);
+      alert("Error generating report");
+    }
+  };
+
+  // Export report as CSV
+  const exportReportCSV = () => {
+    if (!reportData) return;
+    
+    const ordersCSV = reportData.orders.map(o => 
+      `${o.order_number},${o.created_at},${o.origin_pincode},${o.destination_pincode},${o.weight},${o.total_value},${o.status}`
+    ).join('\n');
+    
+    const blob = new Blob([`Order ID,Date,Origin,Destination,Weight,Value,Status\n${ordersCSV}`], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${reportData.username}_report_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchMasterRates();
   }, []);
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${API_BASE_URL}/users/`, config);
-      // Fetch order/shipment stats for each user
       const usersWithStats = await Promise.all(
         res.data.map(async (user) => {
           const stats = await fetchUserStats(user.id);
@@ -164,7 +329,6 @@ function UserManagement() {
   };
 
   const viewUserDetails = async (user) => {
-    // Refresh stats before showing
     const stats = await fetchUserStats(user.id);
     setSelectedUser({ ...user, ...stats });
     setShowUserDetails(true);
@@ -190,6 +354,175 @@ function UserManagement() {
   const totalOrders = users.reduce((sum, u) => sum + (u.orderCount || 0), 0);
   const totalShipments = users.reduce((sum, u) => sum + (u.shipmentCount || 0), 0);
   const totalRevenue = users.reduce((sum, u) => sum + (u.totalFreight || 0), 0);
+
+  // Render Rate Matrix Modal
+  const renderRateModal = () => (
+    <div className="um-modal-overlay" onClick={() => setShowRateModal(false)}>
+      <div className="um-modal rate-modal" onClick={e => e.stopPropagation()}>
+        <div className="um-modal-header">
+          <h2>Custom Rates for: {rateClient?.username}</h2>
+          <button className="um-modal-close" onClick={() => setShowRateModal(false)}>×</button>
+        </div>
+        <div className="um-modal-body">
+          {/* Zone Rate Matrix */}
+          <div className="rate-matrix-section">
+            <h4>Zone Rate Matrix (₹ per kg)</h4>
+            <div className="table-wrapper">
+              <table className="rate-matrix-table">
+                <thead>
+                  <tr>
+                    <th>From ↓ / To →</th>
+                    {zones.map(z => <th key={z}>{z}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {zones.map(from => (
+                    <tr key={from}>
+                      <td className="zone-cell">{from}</td>
+                      {zones.map(to => (
+                        <td key={to}>
+                          <input
+                            type="number"
+                            value={clientRates[from]?.[to] || ""}
+                            onChange={(e) => handleRateChange(from, to, e.target.value)}
+                            placeholder={masterRates[from]?.[to] || "0"}
+                            className="rate-input"
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Rate Policy */}
+          <div className="policy-section">
+            <h4>Rate Policy Overrides</h4>
+            <div className="policy-grid">
+              <div className="policy-field">
+                <label>Min Freight (₹)</label>
+                <input type="number" value={ratePolicy.minFreight} onChange={(e) => handlePolicyChange('minFreight', e.target.value)} />
+              </div>
+              <div className="policy-field">
+                <label>Docket Charge (₹)</label>
+                <input type="number" value={ratePolicy.docketCharge} onChange={(e) => handlePolicyChange('docketCharge', e.target.value)} />
+              </div>
+              <div className="policy-field">
+                <label>Fuel Surcharge (%)</label>
+                <input type="number" value={ratePolicy.fuelPercent} onChange={(e) => handlePolicyChange('fuelPercent', e.target.value)} />
+              </div>
+              <div className="policy-field">
+                <label>FOV Charge (₹)</label>
+                <input type="number" value={ratePolicy.fovCharge} onChange={(e) => handlePolicyChange('fovCharge', e.target.value)} />
+              </div>
+              <div className="policy-field">
+                <label>ODA Charge (₹/kg)</label>
+                <input type="number" value={ratePolicy.odaCharge} onChange={(e) => handlePolicyChange('odaCharge', e.target.value)} />
+              </div>
+              <div className="policy-field">
+                <label>COD Charge (₹)</label>
+                <input type="number" value={ratePolicy.codCharge} onChange={(e) => handlePolicyChange('codCharge', e.target.value)} />
+              </div>
+              <div className="policy-field">
+                <label>COD Percentage (%)</label>
+                <input type="number" value={ratePolicy.codPercent} onChange={(e) => handlePolicyChange('codPercent', e.target.value)} />
+              </div>
+              <div className="policy-field">
+                <label>Handling Charge (₹/kg)</label>
+                <input type="number" value={ratePolicy.handlingCharge} onChange={(e) => handlePolicyChange('handlingCharge', e.target.value)} />
+              </div>
+              <div className="policy-field">
+                <label>Appointment Charge (₹/kg)</label>
+                <input type="number" value={ratePolicy.appointmentCharge} onChange={(e) => handlePolicyChange('appointmentCharge', e.target.value)} />
+              </div>
+              <div className="policy-field">
+                <label>GST (%)</label>
+                <input type="number" value={ratePolicy.gstPercent} onChange={(e) => handlePolicyChange('gstPercent', e.target.value)} />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="um-modal-footer">
+          <button className="um-btn-secondary" onClick={() => setShowRateModal(false)}>Cancel</button>
+          <button className="um-btn-primary" onClick={updateClientRates} disabled={loading}>
+            {loading ? "Saving..." : "Save Custom Rates"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Render Report Modal
+  const renderReportModal = () => (
+    <div className="um-modal-overlay" onClick={() => setShowReportModal(false)}>
+      <div className="um-modal report-modal" onClick={e => e.stopPropagation()}>
+        <div className="um-modal-header">
+          <h2>📊 {reportData?.username}'s Report</h2>
+          <button className="um-modal-close" onClick={() => setShowReportModal(false)}>×</button>
+        </div>
+        <div className="um-modal-body">
+          {/* Summary Stats */}
+          <div className="report-stats">
+            <div className="stat">
+              <span>Total Orders</span>
+              <strong>{reportData?.totalOrders || 0}</strong>
+            </div>
+            <div className="stat">
+              <span>Total Shipments</span>
+              <strong>{reportData?.totalShipments || 0}</strong>
+            </div>
+            <div className="stat">
+              <span>Total Freight</span>
+              <strong>₹{(reportData?.totalFreight || 0).toLocaleString()}</strong>
+            </div>
+            <div className="stat">
+              <span>Total Value</span>
+              <strong>₹{(reportData?.totalValue || 0).toLocaleString()}</strong>
+            </div>
+          </div>
+
+          {/* Orders Table */}
+          <div className="report-table">
+            <h4>Orders</h4>
+            <table>
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Date</th>
+                  <th>Origin</th>
+                  <th>Destination</th>
+                  <th>Weight</th>
+                  <th>Freight</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(reportData?.orders || []).map(order => (
+                  <tr key={order.id}>
+                    <td>{order.order_number}</td>
+                    <td>{new Date(order.created_at).toLocaleDateString()}</td>
+                    <td>{order.origin_pincode}</td>
+                    <td>{order.destination_pincode}</td>
+                    <td>{order.weight} kg</td>
+                    <td>₹{(order.freight_amount || 0).toLocaleString()}</td>
+                    <td>{getOrderStatusBadge(order.status)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="um-modal-footer">
+          <button className="um-btn-secondary" onClick={() => setShowReportModal(false)}>Close</button>
+          <button className="um-btn-primary" onClick={exportReportCSV}>
+            <Download size={16} /> Export CSV
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="um-container">
@@ -364,11 +697,11 @@ function UserManagement() {
           ) : (
             <div className="um-users-list">
               {filteredUsers.map(user => (
-                <div key={user.id} className={`um-user-card ${selectedUser?.id === user.id ? 'active' : ''}`} onClick={() => viewUserDetails(user)}>
+                <div key={user.id} className={`um-user-card ${selectedUser?.id === user.id ? 'active' : ''}`}>
                   <div className="um-user-avatar">
                     <span>{user.username.charAt(0).toUpperCase()}</span>
                   </div>
-                  <div className="um-user-info">
+                  <div className="um-user-info" onClick={() => viewUserDetails(user)}>
                     <div className="um-user-name">{user.username}</div>
                     <div className="um-user-company">{user.company || "Individual"}</div>
                     <div className="um-user-stats">
@@ -378,6 +711,12 @@ function UserManagement() {
                     </div>
                   </div>
                   <div className="um-user-actions">
+                    <button className="um-btn-icon rate" onClick={(e) => { e.stopPropagation(); setRateClient(user); fetchClientRates(user.id); setShowRateModal(true); }} title="Custom Rates">
+                      <Settings size={16} />
+                    </button>
+                    <button className="um-btn-icon report" onClick={(e) => { e.stopPropagation(); generateClientReport(user); }} title="Generate Report">
+                      <BarChart3 size={16} />
+                    </button>
                     <button className="um-btn-icon" onClick={(e) => { e.stopPropagation(); viewUserDetails(user); }} title="View Details">
                       <Eye size={16} />
                     </button>
@@ -395,7 +734,7 @@ function UserManagement() {
         </div>
       </div>
 
-      {/* User Details Modal - Shows Orders & Shipments */}
+      {/* User Details Modal */}
       {showUserDetails && selectedUser && (
         <div className="um-modal-overlay" onClick={() => setShowUserDetails(false)}>
           <div className="um-modal um-details-modal" onClick={e => e.stopPropagation()}>
@@ -405,6 +744,15 @@ function UserManagement() {
             </div>
             
             <div className="um-modal-body">
+              {/* Date Range Filter */}
+              <div className="date-filter">
+                <label>Filter by Date:</label>
+                <input type="date" value={dateRange.from} onChange={e => setDateRange({...dateRange, from: e.target.value})} />
+                <span>to</span>
+                <input type="date" value={dateRange.to} onChange={e => setDateRange({...dateRange, to: e.target.value})} />
+                <button onClick={() => generateClientReport(selectedUser)}><Filter size={14} /> Apply</button>
+              </div>
+
               {/* User Summary Stats */}
               <div className="um-user-summary">
                 <div className="summary-card">
@@ -462,12 +810,13 @@ function UserManagement() {
                         <th>Origin → Dest</th>
                         <th>Weight</th>
                         <th>Value</th>
+                        <th>Freight</th>
                         <th>Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {(selectedUser.orders || []).length === 0 ? (
-                        <tr><td colSpan="6" className="no-data">No orders found</td></tr>
+                        <tr><td colSpan="7" className="no-data">No orders found</td></tr>
                       ) : (
                         (selectedUser.orders || []).map(order => (
                           <tr key={order.id}>
@@ -476,42 +825,8 @@ function UserManagement() {
                             <td>{order.origin_pincode || "N/A"} → {order.destination_pincode || "N/A"}</td>
                             <td>{order.weight || 0} kg</td>
                             <td>₹{(order.total_value || 0).toLocaleString()}</td>
+                            <td>₹{(order.freight_amount || 0).toLocaleString()}</td>
                             <td>{getOrderStatusBadge(order.status)}</td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Shipments Table */}
-              <div className="um-shipments-table">
-                <h4>Shipments by {selectedUser.username}</h4>
-                <div className="table-container">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>LR No.</th>
-                        <th>Date</th>
-                        <th>Route</th>
-                        <th>Weight</th>
-                        <th>Freight</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(selectedUser.shipments || []).length === 0 ? (
-                        <tr><td colSpan="6" className="no-data">No shipments found</td></tr>
-                      ) : (
-                        (selectedUser.shipments || []).map(shipment => (
-                          <tr key={shipment.id}>
-                            <td>{shipment.lr_number || "N/A"}</td>
-                            <td>{new Date(shipment.created_at).toLocaleDateString()}</td>
-                            <td>{shipment.origin_pincode || "N/A"} → {shipment.destination_pincode || "N/A"}</td>
-                            <td>{shipment.weight || 0} kg</td>
-                            <td>₹{(shipment.freight_amount || 0).toLocaleString()}</td>
-                            <td>{getOrderStatusBadge(shipment.status)}</td>
                           </tr>
                         ))
                       )}
@@ -573,6 +888,12 @@ function UserManagement() {
           </div>
         </div>
       )}
+
+      {/* Rate Modal */}
+      {showRateModal && renderRateModal()}
+
+      {/* Report Modal */}
+      {showReportModal && renderReportModal()}
     </div>
   );
 }

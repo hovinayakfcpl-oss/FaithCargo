@@ -1,7 +1,7 @@
 /* ============================================
-   B2B RATE CALCULATOR - PERFECT 50/50 LAYOUT
+   B2B RATE CALCULATOR - COMPLETE v4.0
    FAITH CARGO LOGISTICS
-   BALANCED DESIGN WITH BLACK TEXT FOR RESULTS
+   WITH CLIENT LOGIN & CUSTOM RATES
    ============================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&display=swap');
@@ -270,13 +270,261 @@ body {
 }
 
 /* ============================================
-   TABS SECTION - MODERN
+   CLIENT BAR - NEW
+   ============================================ */
+.client-bar {
+  max-width: 1400px;
+  margin: 0 auto 20px;
+  padding: 0 20px;
+}
+
+.client-profile {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+  background: white;
+  padding: 10px 24px;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+}
+
+.client-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-gray);
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+}
+
+.client-info span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.client-id {
+  color: var(--primary-red) !important;
+  font-size: 11px !important;
+}
+
+.client-rate-badge {
+  background: linear-gradient(135deg, var(--primary-green-light), white);
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary-green-dark);
+  border-left: 3px solid var(--primary-green);
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--border-color);
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--text-gray);
+}
+
+.logout-btn:hover {
+  background: #fee2e2;
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.client-login-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  background: white;
+  padding: 8px 24px;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+}
+
+.client-login-prompt span {
+  font-size: 12px;
+  color: var(--text-gray);
+}
+
+.login-prompt-btn {
+  background: linear-gradient(135deg, var(--primary-purple), var(--primary-purple));
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.login-prompt-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139,92,246,0.3);
+}
+
+/* ============================================
+   LOGIN MODAL - NEW
+   ============================================ */
+.login-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.login-modal {
+  background: white;
+  border-radius: var(--radius-2xl);
+  width: 420px;
+  max-width: 90%;
+  animation: zoomIn 0.3s ease;
+  box-shadow: var(--shadow-2xl);
+}
+
+.login-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 28px;
+  border-bottom: 2px solid var(--border-color);
+  background: linear-gradient(135deg, var(--bg-gray), white);
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+}
+
+.login-modal-header h3 {
+  flex: 1;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-dark);
+}
+
+.login-modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-gray);
+  font-size: 24px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.login-modal-close:hover {
+  background: var(--error);
+  color: white;
+}
+
+.login-modal-body {
+  padding: 28px;
+}
+
+.login-form-group {
+  margin-bottom: 20px;
+}
+
+.login-form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-gray);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.login-form-group input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  transition: var(--transition);
+}
+
+.login-form-group input:focus {
+  outline: none;
+  border-color: var(--primary-red);
+  box-shadow: 0 0 0 3px var(--primary-red-glow);
+}
+
+.login-error {
+  background: #fee2e2;
+  color: var(--error);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  margin-top: 16px;
+  text-align: center;
+}
+
+.login-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 28px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-gray);
+  border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
+}
+
+.login-btn-cancel {
+  padding: 10px 24px;
+  background: white;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.login-btn-cancel:hover {
+  border-color: var(--primary-red);
+  background: var(--primary-red-light);
+}
+
+.login-btn-submit {
+  padding: 10px 24px;
+  background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.login-btn-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(229,57,53,0.3);
+}
+
+/* ============================================
+   TABS SECTION
    ============================================ */
 .b2b-tabs {
   display: flex;
   justify-content: center;
   gap: 14px;
-  margin-top: -24px;
   margin-bottom: 28px;
   padding: 0 20px;
   position: relative;
@@ -344,7 +592,7 @@ body {
    ============================================ */
 .calculator-main-card {
   max-width: 1400px;
-  margin: -28px auto 50px;
+  margin: 0 auto 50px;
   padding: 0 20px;
 }
 
@@ -511,7 +759,7 @@ body {
 }
 
 /* ============================================
-   DIMENSIONS SECTION - COMPACT
+   DIMENSIONS SECTION
    ============================================ */
 .dimensions-section {
   background: linear-gradient(135deg, var(--bg-gray), white);
@@ -800,6 +1048,15 @@ body {
   border: 1px solid rgba(255,255,255,0.1);
 }
 
+.custom-rate-badge {
+  background: var(--primary-green);
+  color: white;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 9px;
+  margin-left: 6px;
+}
+
 .total-amount {
   text-align: right;
 }
@@ -840,7 +1097,7 @@ body {
   backdrop-filter: blur(10px);
   padding: 16px 20px;
   border-radius: var(--radius-xl);
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   border: 1px solid rgba(255,255,255,0.05);
 }
 
@@ -890,6 +1147,27 @@ body {
   padding: 0 16px;
   color: var(--primary-red);
   font-weight: 300;
+}
+
+/* Zone Info - NEW */
+.zone-info {
+  display: flex;
+  justify-content: space-between;
+  background: rgba(255,255,255,0.05);
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  font-size: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.zone-info span:first-child {
+  color: var(--primary-purple);
+}
+
+.zone-info span:last-child {
+  color: var(--primary-green);
+  font-weight: 700;
 }
 
 /* Weight Summary - BLACK TEXT */
@@ -1251,6 +1529,11 @@ body {
   .form-row-3 {
     grid-template-columns: 1fr 1fr 1fr;
   }
+  
+  .client-profile {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1282,7 +1565,6 @@ body {
   .b2b-tabs {
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: -18px;
   }
   
   .tab-btn {
@@ -1352,6 +1634,12 @@ body {
     flex-direction: column;
   }
   
+  .zone-info {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+  
   .footer-content {
     flex-direction: column;
     text-align: center;
@@ -1368,6 +1656,10 @@ body {
   .empty-result .features {
     flex-direction: column;
     gap: 8px;
+  }
+  
+  .client-bar {
+    padding: 0 16px;
   }
 }
 
@@ -1440,6 +1732,10 @@ body {
   .breakdown-total {
     font-size: 14px;
   }
+  
+  .login-modal {
+    width: 95%;
+  }
 }
 
 /* Print Styles */
@@ -1452,7 +1748,9 @@ body {
   .b2b-footer,
   .quick-fill-btn,
   .add-dim-btn,
-  .remove-dim-btn {
+  .remove-dim-btn,
+  .client-bar,
+  .btn-proceed {
     display: none;
   }
   
@@ -1500,6 +1798,11 @@ body {
   }
   
   .weight-item strong {
+    color: black;
+  }
+  
+  .zone-info {
+    background: #f0f0f0;
     color: black;
   }
 }

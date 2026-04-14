@@ -4,11 +4,20 @@ import {
   Shield, Clock, TrendingUp, DollarSign,
   Plus, Trash2, ChevronDown, ChevronUp, CheckCircle,
   Zap, Award, Star, Users, Phone, Mail, Calculator,
-  ArrowRight, Building, FileText
+  ArrowRight, Building, FileText, User, LogOut
 } from "lucide-react";
 import "./B2BRateCalculator.css";
 
 function BaB2bRateCalculator() {
+  // ========== CLIENT AUTHENTICATION STATE ==========
+  const [currentUser, setCurrentUser] = useState(null);
+  const [clientRates, setClientRates] = useState(null);
+  const [clientPolicy, setClientPolicy] = useState(null);
+  const [isClientLoggedIn, setIsClientLoggedIn] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginCredentials, setLoginCredentials] = useState({ clientId: "", password: "" });
+  const [loginError, setLoginError] = useState("");
+
   const [form, setForm] = useState({
     origin: "",
     destination: "",
@@ -31,6 +40,90 @@ function BaB2bRateCalculator() {
   const [loading, setLoading] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [activeTab, setActiveTab] = useState("surface");
+  const [zones, setZones] = useState(["N1","N2","N3","C1","W1","W2","S1","S2","E1","NE1","NE2"]);
+  const [zoneMapping, setZoneMapping] = useState({});
+
+  // ========== CLIENT LOGIN FUNCTIONS ==========
+  const handleClientLogin = async () => {
+    setLoginError("");
+    try {
+      const response = await fetch("https://faithcargo.onrender.com/api/auth/client-login/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: loginCredentials.clientId,
+          password: loginCredentials.password
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setCurrentUser(data.user);
+        localStorage.setItem("clientToken", data.token);
+        localStorage.setItem("clientId", loginCredentials.clientId);
+        setIsClientLoggedIn(true);
+        setShowLoginModal(false);
+        setLoginCredentials({ clientId: "", password: "" });
+        
+        // Fetch client-specific rates
+        await fetchClientSpecificRates(loginCredentials.clientId);
+      } else {
+        setLoginError(data.error || "Invalid credentials");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setLoginError("Server error. Please try again.");
+    }
+  };
+
+  const fetchClientSpecificRates = async (clientId) => {
+    try {
+      const response = await fetch(`https://faithcargo.onrender.com/api/rates/client/${clientId}/`);
+      const data = await response.json();
+      setClientRates(data.zone_rates || []);
+      setClientPolicy(data.policy || null);
+      
+      // Build zone mapping for rate lookup
+      const mapping = {};
+      if (data.zone_rates) {
+        data.zone_rates.forEach(rate => {
+          if (!mapping[rate.from_zone]) mapping[rate.from_zone] = {};
+          mapping[rate.from_zone][rate.to_zone] = rate.rate;
+        });
+      }
+      setZoneMapping(mapping);
+    } catch (error) {
+      console.error("Error fetching client rates:", error);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("clientToken");
+    localStorage.removeItem("clientId");
+    setCurrentUser(null);
+    setIsClientLoggedIn(false);
+    setClientRates(null);
+    setClientPolicy(null);
+    setZoneMapping({});
+    resetForm();
+  };
+
+  // Check for existing session on load
+  useEffect(() => {
+    const savedClientId = localStorage.getItem("clientId");
+    if (savedClientId) {
+      setIsClientLoggedIn(true);
+      fetchClientSpecificRates(savedClientId);
+      // Fetch user details
+      fetch(`https://faithcargo.onrender.com/api/auth/client/${savedClientId}/`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) setCurrentUser(data.user);
+        })
+        .catch(console.error);
+    }
+  }, []);
 
   // Fetch pincode details
   const fetchPincodeDetails = async (pincode, type) => {
@@ -55,6 +148,26 @@ function BaB2bRateCalculator() {
         console.error("Error fetching pincode:", error);
       }
     }
+  };
+
+  // Get zone from pincode (simplified - in production, use actual zone mapping)
+  const getZoneFromPincode = (pincode) => {
+    const firstDigit = pincode.charAt(0);
+    const zoneMap = {
+      '1': 'N1', '2': 'N2', '3': 'N3',
+      '4': 'C1', '5': 'W1', '6': 'W2',
+      '7': 'S1', '8': 'S2', '9': 'E1',
+      '0': 'NE1'
+    };
+    return zoneMap[firstDigit] || 'NE2';
+  };
+
+  // Get rate from client-specific rates or use default
+  const getRateFromZones = (originZone, destZone, defaultRate) => {
+    if (zoneMapping[originZone] && zoneMapping[originZone][destZone]) {
+      return zoneMapping[originZone][destZone];
+    }
+    return defaultRate;
   };
 
   // Handle pincode change
@@ -112,7 +225,52 @@ function BaB2bRateCalculator() {
     return volumetric;
   };
 
-  // CALCULATE RATE LOGIC
+  // Get client-specific rate per kg
+  const getClientRatePerKg = () => {
+    if (!clientPolicy) {
+      // Default rates
+      return activeTab === 'air' ? 45 : (activeTab === 'express' ? 25 : 18);
+    }
+    
+    switch(activeTab) {
+      case 'air': return clientPolicy.air_rate_per_kg || 45;
+      case 'express': return clientPolicy.express_rate_per_kg || 25;
+      default: return clientPolicy.surface_rate_per_kg || 18;
+    }
+  };
+
+  // Get client-specific charges
+  const getClientCharges = () => {
+    if (!clientPolicy) {
+      return {
+        minFreight: 650,
+        docketCharge: 100,
+        fuelPercent: 10,
+        fovCharge: 75,
+        codCharge: 150,
+        fragileCharge: 250,
+        appointmentCharge: 1500,
+        insurancePercent: 2,
+        expressExtra: 5,
+        gstPercent: 18
+      };
+    }
+    
+    return {
+      minFreight: clientPolicy.minFreight || 650,
+      docketCharge: clientPolicy.docketCharge || 100,
+      fuelPercent: clientPolicy.fuelPercent || 10,
+      fovCharge: clientPolicy.fovCharge || 75,
+      codCharge: clientPolicy.codCharge || 150,
+      fragileCharge: clientPolicy.fragileCharge || 250,
+      appointmentCharge: clientPolicy.appointmentCharge || 1500,
+      insurancePercent: clientPolicy.insurancePercent || 2,
+      expressExtra: clientPolicy.expressExtra || 5,
+      gstPercent: clientPolicy.gstPercent || 18
+    };
+  };
+
+  // CALCULATE RATE LOGIC with Client-Specific Rates
   const calculateRate = async () => {
     if (!form.origin || !form.destination || !form.weight) {
       alert("Please enter Origin, Destination, and Weight!");
@@ -126,90 +284,65 @@ function BaB2bRateCalculator() {
     const actualWeight = parseFloat(form.weight) || 0;
     const chargeableWeight = Math.max(actualWeight, volumetric);
     const totalQty = dimensions.reduce((sum, b) => sum + (parseInt(b.qty) || 0), 0);
+    
+    // Get client-specific rates
+    const ratePerKg = getClientRatePerKg();
+    const charges = getClientCharges();
+    
+    // Get zone-based rate if available
+    const originZone = getZoneFromPincode(form.origin);
+    const destZone = getZoneFromPincode(form.destination);
+    const zoneRate = getRateFromZones(originZone, destZone, ratePerKg);
+    
+    const freight = chargeableWeight * zoneRate;
+    const gst = freight * (charges.gstPercent / 100);
+    const fuel = freight * (charges.fuelPercent / 100);
+    const docket = charges.docketCharge;
+    const fov = charges.fovCharge;
+    const odaCharge = 0; // Will be fetched from API if needed
+    
+    let cod = (form.paymentMode === "COD" || form.paymentMode === "ToPay") ? charges.codCharge : 0;
+    let handling = (totalQty === 1 && chargeableWeight > 70) ? 750 : 0;
+    let fragileCharge = form.fragile ? charges.fragileCharge : 0;
+    let expressCharge = (form.express || activeTab === 'express') ? chargeableWeight * charges.expressExtra : 0;
+    let insuranceVal = form.insurance ? (parseFloat(form.invoiceValue) || 0) * (charges.insurancePercent / 100) : 0;
+    let appointmentVal = form.appointment ? charges.appointmentCharge : 0;
 
-    try {
-      const endpoint = activeTab === 'air' 
-        ? "https://faithcargo.onrender.com/api/rates/air/calculate/"
-        : "https://faithcargo.onrender.com/api/rates/b2b/calculate/";
-      
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          origin: form.origin,
-          destination: form.destination,
-          weight: actualWeight,
-          invoiceValue: Number(form.invoiceValue),
-          insurance: form.insurance,
-          appointment: form.appointment,
-          dimensions: dimensions,
-          fragile: form.fragile,
-          express: form.express || activeTab === 'express',
-          paymentMode: form.paymentMode,
-          codAmount: Number(form.codAmount)
-        })
-      });
+    let total = freight + gst + fuel + docket + fov + odaCharge + cod + handling + fragileCharge + expressCharge + insuranceVal + appointmentVal;
 
-      const data = await res.json();
+    if (total < charges.minFreight) total = charges.minFreight;
 
-      if (data.error) {
-        alert(data.error);
-        setLoading(false);
-        return;
-      }
+    const transportType = activeTab === 'air' ? 'Air Cargo' : (activeTab === 'express' ? 'Express Delivery' : 'Surface Transport');
+    const transitTime = activeTab === 'air' ? '1-2 days' : (activeTab === 'express' ? '1-3 days' : '2-5 days');
 
-      const freight = Number(data.freight_charge) || (chargeableWeight * (activeTab === 'air' ? 45 : 18));
-      const gst = freight * 0.18;
-      const fuel = freight * 0.10;
-      const docket = 100;
-      const fov = 75;
-      const odaCharge = data.oda_charge || 0;
-      
-      let cod = (form.paymentMode === "COD" || form.paymentMode === "ToPay") ? 150 : 0;
-      let handling = (totalQty === 1 && chargeableWeight > 70) ? 750 : 0;
-      let fragileCharge = form.fragile ? 250 : 0;
-      let expressCharge = (form.express || activeTab === 'express') ? chargeableWeight * 5 : 0;
-      let insuranceVal = form.insurance ? (parseFloat(form.invoiceValue) || 0) * 0.02 : 0;
-      let appointmentVal = form.appointment ? 1500 : 0;
-
-      let total = freight + gst + fuel + docket + fov + odaCharge + cod + handling + fragileCharge + expressCharge + insuranceVal + appointmentVal;
-
-      if (total < 650) total = 650;
-
-      const transportType = activeTab === 'air' ? 'Air Cargo' : (activeTab === 'express' ? 'Express Delivery' : 'Surface Transport');
-      const transitTime = activeTab === 'air' ? '1-2 days' : (activeTab === 'express' ? '1-3 days' : '2-5 days');
-
-      setResult({
-        ...data,
-        actualWeight,
-        volumetric: volumetric.toFixed(2),
-        chargeable: chargeableWeight.toFixed(2),
-        ratePerKg: chargeableWeight > 0 ? (freight / chargeableWeight).toFixed(2) : 0,
-        freight,
-        fuel: fuel.toFixed(2),
-        gst: gst.toFixed(2),
-        odaCharge,
-        cod,
-        handling,
-        fragileCharge,
-        expressCharge,
-        insurance: insuranceVal,
-        appointment: appointmentVal,
-        total: total.toFixed(2),
-        totalQty,
-        paymentMode: form.paymentMode,
-        transitTime: transitTime,
-        transportType: transportType,
-        originCity: originDetails.city,
-        originState: originDetails.state,
-        destCity: destinationDetails.city,
-        destState: destinationDetails.state
-      });
-
-    } catch (err) {
-      alert("Server Error! Please check your internet connection.");
-      console.error(err);
-    }
+    setResult({
+      actualWeight,
+      volumetric: volumetric.toFixed(2),
+      chargeable: chargeableWeight.toFixed(2),
+      ratePerKg: zoneRate.toFixed(2),
+      freight: freight.toFixed(2),
+      fuel: fuel.toFixed(2),
+      gst: gst.toFixed(2),
+      odaCharge,
+      cod,
+      handling,
+      fragileCharge,
+      expressCharge,
+      insurance: insuranceVal.toFixed(2),
+      appointment: appointmentVal,
+      total: total.toFixed(2),
+      totalQty,
+      paymentMode: form.paymentMode,
+      transitTime: transitTime,
+      transportType: transportType,
+      originCity: originDetails.city,
+      originState: originDetails.state,
+      destCity: destinationDetails.city,
+      destState: destinationDetails.state,
+      originZone,
+      destZone,
+      zoneRate: zoneRate
+    });
 
     setLoading(false);
   };
@@ -251,6 +384,44 @@ function BaB2bRateCalculator() {
     setDimensions([{ qty: 2, length: "50", width: "40", height: "30" }]);
   };
 
+  // Login Modal Component
+  const LoginModal = () => (
+    <div className="login-modal-overlay" onClick={() => setShowLoginModal(false)}>
+      <div className="login-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="login-modal-header">
+          <User size={24} />
+          <h3>Client Login</h3>
+          <button className="login-modal-close" onClick={() => setShowLoginModal(false)}>×</button>
+        </div>
+        <div className="login-modal-body">
+          <div className="login-form-group">
+            <label>Client ID</label>
+            <input
+              type="text"
+              placeholder="Enter your Client ID"
+              value={loginCredentials.clientId}
+              onChange={(e) => setLoginCredentials({...loginCredentials, clientId: e.target.value})}
+            />
+          </div>
+          <div className="login-form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={loginCredentials.password}
+              onChange={(e) => setLoginCredentials({...loginCredentials, password: e.target.value})}
+            />
+          </div>
+          {loginError && <div className="login-error">{loginError}</div>}
+        </div>
+        <div className="login-modal-footer">
+          <button className="login-btn-cancel" onClick={() => setShowLoginModal(false)}>Cancel</button>
+          <button className="login-btn-submit" onClick={handleClientLogin}>Login</button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="b2b-container">
       {/* Header Section */}
@@ -274,6 +445,37 @@ function BaB2bRateCalculator() {
           <p>Get instant freight quotes for your business shipments</p>
         </div>
       </div>
+
+      {/* Client Login/Profile Bar */}
+      <div className="client-bar">
+        {isClientLoggedIn && currentUser ? (
+          <div className="client-profile">
+            <div className="client-info">
+              <User size={16} />
+              <span>{currentUser.companyName || currentUser.username}</span>
+              <span className="client-id">({currentUser.clientId})</span>
+            </div>
+            {clientPolicy && (
+              <div className="client-rate-badge">
+                <span>Custom Rates Active</span>
+              </div>
+            )}
+            <button className="logout-btn" onClick={handleLogout}>
+              <LogOut size={14} /> Logout
+            </button>
+          </div>
+        ) : (
+          <div className="client-login-prompt">
+            <span>Get your custom rates!</span>
+            <button className="login-prompt-btn" onClick={() => setShowLoginModal(true)}>
+              Client Login
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Login Modal */}
+      {showLoginModal && <LoginModal />}
 
       {/* Tabs */}
       <div className="b2b-tabs">
@@ -303,7 +505,7 @@ function BaB2bRateCalculator() {
       {/* Main Calculator Card */}
       <div className="calculator-main-card">
         <div className="calculator-grid">
-          {/* Left Side - Input Form - Reduced Width */}
+          {/* Left Side - Input Form */}
           <div className="input-section">
             <div className="section-title">
               <Calculator size={20} />
@@ -313,7 +515,7 @@ function BaB2bRateCalculator() {
               </button>
             </div>
 
-            {/* Route Section - Origin & Destination side by side */}
+            {/* Route Section */}
             <div className="form-row-2">
               <div className="form-group">
                 <label><MapPin size={16} /> Origin Pincode *</label>
@@ -468,9 +670,9 @@ function BaB2bRateCalculator() {
               <label><Shield size={16} /> Value Added Services</label>
               <div className="checkbox-group">
                 <label><input type="checkbox" name="insurance" checked={form.insurance} onChange={handleChange} /> Insurance (2% of Invoice Value)</label>
-                <label><input type="checkbox" name="appointment" checked={form.appointment} onChange={handleChange} /> Appointment Delivery (₹1500)</label>
-                <label><input type="checkbox" name="fragile" checked={form.fragile} onChange={handleChange} /> Fragile Handling (₹250)</label>
-                <label><input type="checkbox" name="express" checked={form.express} onChange={handleChange} /> Express Priority (₹5/kg extra)</label>
+                <label><input type="checkbox" name="appointment" checked={form.appointment} onChange={handleChange} /> Appointment Delivery</label>
+                <label><input type="checkbox" name="fragile" checked={form.fragile} onChange={handleChange} /> Fragile Handling</label>
+                <label><input type="checkbox" name="express" checked={form.express} onChange={handleChange} /> Express Priority</label>
               </div>
             </div>
 
@@ -483,7 +685,7 @@ function BaB2bRateCalculator() {
             </div>
           </div>
 
-          {/* Right Side - Results - Increased Width */}
+          {/* Right Side - Results */}
           <div className="result-section">
             {result ? (
               <div className="result-content">
@@ -491,6 +693,7 @@ function BaB2bRateCalculator() {
                   <div className="quote-badge">
                     <Zap size={18} />
                     <span>{result.transportType}</span>
+                    {isClientLoggedIn && <span className="custom-rate-badge">Custom Rate</span>}
                   </div>
                   <div className="total-amount">
                     <small>Total Amount</small>
@@ -519,7 +722,15 @@ function BaB2bRateCalculator() {
                   </div>
                 </div>
 
-                {/* Weight Summary with Black Text for Actual, Volumetric, Chargeable */}
+                {/* Zone Info if available */}
+                {result.originZone && result.destZone && (
+                  <div className="zone-info">
+                    <span>Zone: {result.originZone} → {result.destZone}</span>
+                    <span>Rate: ₹{result.zoneRate}/kg</span>
+                  </div>
+                )}
+
+                {/* Weight Summary */}
                 <div className="weight-summary">
                   <div className="weight-item dark-text">
                     <span>Actual Weight:</span>
@@ -554,7 +765,7 @@ function BaB2bRateCalculator() {
                 {showBreakdown && (
                   <div className="breakdown-list">
                     <div className="breakdown-item"><span>Basic Freight</span><span>₹{result.freight}</span></div>
-                    <div className="breakdown-item"><span>Fuel Surcharge (10%)</span><span>₹{result.fuel}</span></div>
+                    <div className="breakdown-item"><span>Fuel Surcharge</span><span>₹{result.fuel}</span></div>
                     <div className="breakdown-item"><span>Docket / Waybill Charge</span><span>₹100</span></div>
                     <div className="breakdown-item"><span>FOV Charges</span><span>₹75</span></div>
                     {result.odaCharge > 0 && <div className="breakdown-item oda"><span>ODA Charges</span><span>₹{result.odaCharge}</span></div>}
@@ -562,9 +773,9 @@ function BaB2bRateCalculator() {
                     {result.handling > 0 && <div className="breakdown-item"><span>Special Handling</span><span>₹{result.handling}</span></div>}
                     {result.fragileCharge > 0 && <div className="breakdown-item"><span>Fragile Handling</span><span>₹{result.fragileCharge}</span></div>}
                     {result.expressCharge > 0 && <div className="breakdown-item"><span>Express Priority</span><span>₹{result.expressCharge}</span></div>}
-                    {form.insurance && <div className="breakdown-item"><span>Insurance (2%)</span><span>₹{result.insurance}</span></div>}
+                    {form.insurance && <div className="breakdown-item"><span>Insurance</span><span>₹{result.insurance}</span></div>}
                     {form.appointment && <div className="breakdown-item"><span>Appointment Delivery</span><span>₹{result.appointment}</span></div>}
-                    <div className="breakdown-item gst"><span>GST (18% on Freight)</span><span>₹{result.gst}</span></div>
+                    <div className="breakdown-item gst"><span>GST</span><span>₹{result.gst}</span></div>
                     <div className="breakdown-total"><span>Total Net Amount</span><span>₹{result.total}</span></div>
                   </div>
                 )}

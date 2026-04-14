@@ -1,5 +1,6 @@
 /* ============================================
-   FAITH CARGO - CREATE ORDER PAGE v10.0
+   FAITH CARGO - CREATE ORDER PAGE v11.0
+   WITH CLIENT AUTHENTICATION & CUSTOM RATES
    ULTIMATE PREMIUM UI DESIGN - FULLY OPTIMIZED
    ============================================ */
 
@@ -15,6 +16,8 @@
   --primary-blue-dark: #1d4ed8;
   --primary-blue-light: #dbeafe;
   --primary-blue-glow: rgba(37, 99, 235, 0.15);
+  --primary-purple: #8b5cf6;
+  --primary-purple-light: #ede9fe;
   --dark-bg: #0f172a;
   --dark-bg-light: #1e293b;
   --text-dark: #0f172a;
@@ -40,6 +43,7 @@
   --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
   --shadow-blue: 0 10px 25px -5px rgba(37, 99, 235, 0.2);
   --shadow-red: 0 10px 25px -5px rgba(211, 47, 47, 0.3);
+  --shadow-purple: 0 10px 25px -5px rgba(139, 92, 246, 0.3);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -157,6 +161,82 @@ body {
   50% { transform: scale(1.3); opacity: 0.7; }
 }
 
+/* Client Info Sidebar - NEW */
+.client-info-sidebar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+  border-radius: var(--radius-lg);
+  margin-bottom: 24px;
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: var(--transition);
+}
+
+.client-info-sidebar:hover {
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.08));
+  transform: translateY(-2px);
+}
+
+.client-info-sidebar div {
+  flex: 1;
+}
+
+.client-info-sidebar span {
+  font-size: 14px;
+  font-weight: 700;
+  display: block;
+  color: white;
+}
+
+.client-info-sidebar small {
+  font-size: 10px;
+  color: var(--text-light);
+}
+
+.logout-sidebar-btn {
+  background: rgba(239, 68, 68, 0.2);
+  border: none;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: #f87171;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logout-sidebar-btn:hover {
+  background: #ef4444;
+  color: white;
+  transform: scale(1.05);
+}
+
+/* Sidebar Rates Info - NEW */
+.sidebar-rates-info {
+  background: linear-gradient(135deg, var(--primary-purple-light), rgba(139, 92, 246, 0.1));
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 20px;
+  text-align: center;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.rate-badge-sidebar {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary-purple);
+  display: block;
+  margin-bottom: 5px;
+}
+
+.sidebar-rates-info small {
+  font-size: 10px;
+  color: var(--text-light);
+}
+
 .sidebar-navigation {
   flex: 1;
 }
@@ -247,6 +327,32 @@ body {
   margin: 0 auto;
 }
 
+/* Loading Container */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #eef2f7 100%);
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid var(--bg-light);
+  border-top-color: var(--primary-red);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-container p {
+  font-size: 14px;
+  color: var(--text-gray);
+  font-weight: 500;
+}
+
 /* Page Header - Premium */
 .page-title-section {
   display: flex;
@@ -286,6 +392,7 @@ body {
 .stats-badges {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .badge {
@@ -311,6 +418,12 @@ body {
   background: linear-gradient(135deg, var(--primary-red-light), white);
   color: var(--primary-red);
   border-left: 3px solid var(--primary-red);
+}
+
+.badge.custom-rate-badge {
+  background: linear-gradient(135deg, var(--primary-purple-light), white);
+  color: var(--primary-purple);
+  border-left: 3px solid var(--primary-purple);
 }
 
 /* Error Notice */
@@ -461,6 +574,7 @@ body {
   display: flex;
   gap: 12px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .address-action-btn {
@@ -519,6 +633,8 @@ body {
   margin-bottom: 10px;
   transition: var(--transition);
   border: 1px solid transparent;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .saved-address-card:hover {
@@ -898,6 +1014,8 @@ body {
   font-size: 13px;
   font-weight: 600;
   border-left: 3px solid var(--info);
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .weight-summary strong {
@@ -1046,6 +1164,7 @@ body {
   font-size: 12px;
   border: 1px solid var(--border-color);
   transition: var(--transition);
+  flex-wrap: wrap;
 }
 
 .file-preview-item:hover {
@@ -1109,7 +1228,7 @@ body {
 }
 
 /* --------------------------------------------
-   13. FREIGHT CARD - PREMIUM
+   13. FREIGHT CARD - PREMIUM WITH CUSTOM RATE BADGE
    -------------------------------------------- */
 .freight-card {
   margin-top: 20px;
@@ -1127,6 +1246,17 @@ body {
   font-weight: 800;
   margin-bottom: 16px;
   color: #92400e;
+  flex-wrap: wrap;
+}
+
+.custom-rate-badge {
+  background: linear-gradient(135deg, var(--primary-purple), #7c3aed);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: auto;
 }
 
 .loading-badge {
@@ -1157,6 +1287,8 @@ body {
   margin-bottom: 14px;
   padding-bottom: 12px;
   border-bottom: 1px dashed #fde68a;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .route-badge {
@@ -1251,6 +1383,8 @@ body {
   background: var(--bg-gray);
   border-radius: var(--radius-md);
   transition: var(--transition);
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .setting-row:hover {
@@ -1555,6 +1689,7 @@ body {
   margin-bottom: 28px;
   position: relative;
   z-index: 1;
+  flex-wrap: wrap;
 }
 
 .tracking-input-group-enhanced input {
@@ -1566,6 +1701,7 @@ body {
   background: white;
   box-shadow: var(--shadow-lg);
   transition: var(--transition);
+  min-width: 200px;
 }
 
 .tracking-input-group-enhanced input:focus {
@@ -1889,6 +2025,7 @@ body {
   gap: 16px;
   padding: 28px;
   background: white;
+  flex-wrap: wrap;
 }
 
 .tracking-close-enhanced {
@@ -1939,6 +2076,8 @@ body {
   background: white;
   position: relative;
   z-index: 2;
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
 .header-left-section {
@@ -1995,13 +2134,16 @@ body {
   margin: 8px 0;
 }
 
-/* Barcode Container */
-.barcode-container {
-  margin: 10px 0;
-  padding: 5px;
-  background: white;
-  border-radius: 8px;
+/* Client ID Docket - NEW */
+.client-id-docket {
+  margin-top: 8px;
+  font-size: 9px;
+  color: var(--primary-purple);
+  background: var(--primary-purple-light);
   display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: 600;
 }
 
 .lr-number-bold {
@@ -2051,7 +2193,6 @@ body {
 .header-right-section {
   text-align: right;
   flex-shrink: 0;
-  margin-left: 20px;
 }
 
 .brand-logo-large {
@@ -2094,11 +2235,6 @@ body {
     background: white;
   }
   
-  .barcode-container {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
-  
   .barcode-placeholder {
     display: none;
   }
@@ -2115,6 +2251,8 @@ body {
   margin: 20px 0;
   position: relative;
   z-index: 2;
+  flex-wrap: wrap;
+  gap: 30px;
 }
 
 .stamp-image-container {
@@ -2215,6 +2353,7 @@ body {
 .signature-area {
   display: flex;
   gap: 40px;
+  flex-wrap: wrap;
 }
 
 .signature-line-item {
@@ -2251,7 +2390,9 @@ body {
   .error-notice,
   .sidebar-navigation,
   .sidebar-help,
-  .tracking-section-enhanced {
+  .tracking-section-enhanced,
+  .client-info-sidebar,
+  .sidebar-rates-info {
     display: none !important;
   }
   
@@ -2387,6 +2528,7 @@ body {
   .stamp-signature-wrapper-new {
     flex-direction: column;
     gap: 25px;
+    align-items: center;
   }
   
   .modal-dialog {
@@ -2449,6 +2591,15 @@ body {
   
   .company-details h2 {
     font-size: 12px;
+  }
+  
+  .docket-header-new {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .header-right-section {
+    text-align: center;
   }
 }
 
@@ -2519,12 +2670,28 @@ body {
   .awb-value-bold {
     font-size: 11px;
   }
+  
+  .signature-area {
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+  }
+  
+  .tracking-timeline-enhanced {
+    gap: 15px;
+  }
+  
+  .timeline-step-enhanced {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
 /* Utilities */
 .text-center { text-align: center; }
 .text-left { text-align: left; }
 .text-red { color: var(--primary-red); }
+.text-purple { color: var(--primary-purple); }
 
 /* Animations */
 @keyframes fadeInUp {

@@ -1,5 +1,6 @@
 /* ============================================
-   USER LOGIN - ULTIMATE PREMIUM DESIGN v4.0
+   USER LOGIN - ULTIMATE PREMIUM DESIGN v5.0
+   WITH STAFF & CLIENT LOGIN TOGGLE
    FAITH CARGO LOGISTICS
    ============================================ */
 
@@ -16,6 +17,9 @@
   --primary-blue-light: #dbeafe;
   --primary-purple: #667eea;
   --primary-purple-dark: #764ba2;
+  --primary-purple-light: #ede9fe;
+  --primary-green: #10b981;
+  --primary-green-dark: #059669;
   --dark-bg: #0f172a;
   --text-dark: #0f172a;
   --text-gray: #64748b;
@@ -39,6 +43,7 @@
   --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
   --shadow-glow-red: 0 0 20px rgba(211, 47, 47, 0.3);
   --shadow-glow-purple: 0 0 20px rgba(102, 126, 234, 0.3);
+  --shadow-glow-green: 0 0 20px rgba(16, 185, 129, 0.3);
   --radius-xs: 4px;
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -108,7 +113,7 @@ body {
    -------------------------------------------- */
 .user-login-left {
   flex: 1;
-  background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-red-dark) 100%);
+  background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-purple) 100%);
   position: relative;
   display: flex;
   align-items: center;
@@ -351,6 +356,47 @@ body {
   }
 }
 
+/* ============================================
+   LOGIN TYPE TOGGLE - NEW
+   ============================================ */
+.login-type-toggle {
+  display: flex;
+  gap: 12px;
+  background: var(--bg-gray);
+  padding: 6px;
+  border-radius: var(--radius-full);
+  margin-bottom: 28px;
+  border: 1px solid var(--border-color);
+}
+
+.toggle-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--text-gray);
+}
+
+.toggle-btn:hover {
+  background: rgba(211, 47, 47, 0.1);
+  color: var(--primary-red);
+}
+
+.toggle-btn.active {
+  background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
 /* Heading */
 .login-form-wrapper h2 {
   font-size: 32px;
@@ -402,6 +448,44 @@ body {
   color: var(--success-dark);
   border-left: 4px solid var(--success);
   box-shadow: var(--shadow-sm);
+}
+
+/* Input Hint - NEW */
+.input-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.input-hint svg {
+  opacity: 0.7;
+}
+
+/* Client Info Note - NEW */
+.client-info-note {
+  margin-top: 24px;
+  padding: 16px;
+  background: linear-gradient(135deg, var(--primary-purple-light), white);
+  border-radius: var(--radius-lg);
+  border-left: 3px solid var(--primary-purple);
+}
+
+.note-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--primary-purple);
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.client-info-note p {
+  font-size: 11px;
+  color: var(--text-gray);
 }
 
 /* Form Styles */
@@ -707,6 +791,15 @@ body {
     padding: 12px 16px;
     font-size: 12px;
   }
+  
+  .login-type-toggle {
+    margin-bottom: 24px;
+  }
+  
+  .toggle-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -747,6 +840,19 @@ body {
     padding: 6px 16px;
     font-size: 11px;
   }
+  
+  .toggle-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .login-type-toggle {
+    gap: 8px;
+  }
+  
+  .client-info-note {
+    padding: 12px;
+  }
 }
 
 @media (max-width: 380px) {
@@ -761,6 +867,14 @@ body {
   .checkbox-label,
   .forgot-link {
     font-size: 12px;
+  }
+  
+  .toggle-btn span {
+    display: none;
+  }
+  
+  .toggle-btn svg {
+    margin: 0;
   }
 }
 
@@ -800,6 +914,7 @@ body {
 .text-red { color: var(--primary-red); }
 .text-green { color: var(--success); }
 .text-blue { color: var(--primary-blue); }
+.text-purple { color: var(--primary-purple); }
 
 .mt-1 { margin-top: 4px; }
 .mt-2 { margin-top: 8px; }
@@ -817,7 +932,8 @@ body {
 @media print {
   .user-login-left,
   .security-note,
-  .back-link {
+  .back-link,
+  .client-info-note {
     display: none !important;
   }
   
