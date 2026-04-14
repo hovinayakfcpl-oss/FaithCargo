@@ -10,19 +10,15 @@ urlpatterns = [
     path("", home, name="home"),
     path("admin/", admin.site.urls),
     
-    # API Routes - All APIs under /api/
+    # ✅ IMPORTANT: Accounts URLs directly under /api/
+    path("api/", include("accounts.urls")),  # This is the key fix!
+    
+    # Other APIs
     path("api/rates/", include("rates.urls")),
     path("api/vendors/", include("vendors.urls")),
     path("api/pickup/", include("pickup.urls")),
     path("api/pincode/", include("pincode.urls")),
     path("api/signup/", include("signup.urls")),
-    
-    # ✅ FIXED: Accounts URLs directly under /api/ (not /api/accounts/)
-    path("api/", include("accounts.urls")),  # This makes /api/auth/client-login/ work
-    
-    # Shipments API
     path("api/shipments/", include("shipments.urls")),
-    
-    # User Management API
     path('api/user/', include('user_management.urls')),
 ]
