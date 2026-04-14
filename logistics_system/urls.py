@@ -6,14 +6,16 @@ from django.http import JsonResponse
 def home(request):
     return JsonResponse({"message": "Faith Cargo Logistics Backend Running"})
 
+def test_api(request):
+    return JsonResponse({"status": "success", "message": "API is working!"})
+
 urlpatterns = [
     path("", home, name="home"),
+    path("test/", test_api, name="test_api"),  # ✅ Add test endpoint
     path("admin/", admin.site.urls),
     
-    # ✅ IMPORTANT: Accounts URLs directly under /api/
-    path("api/", include("accounts.urls")),  # This is the key fix!
-    
-    # Other APIs
+    # APIs
+    path("api/", include("accounts.urls")),     # ✅ This is critical
     path("api/rates/", include("rates.urls")),
     path("api/vendors/", include("vendors.urls")),
     path("api/pickup/", include("pickup.urls")),
