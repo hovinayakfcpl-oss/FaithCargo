@@ -730,3 +730,91 @@ def dashboard_stats(request):
         "recent_shipments": min(10, total_shipments),
         "recent_revenue": float(total_freight) * 0.1,
     })
+
+# usermanagement/views.py - Update create_client function
+
+@api_view(['POST'])
+def create_client(request):
+    """Create a new client"""
+    try:
+        data = request.data
+        print("Received client data:", data)  # Debug log
+        
+        client_id = data.get("clientId", "").upper()
+        company_name = data.get("companyName", "")
+        email = data.get("email", "")
+        password = data.get("password", "")
+        phone = data.get("phone", "")
+        address = data.get("address", "")
+        gstin = data.get("gstin", "")
+        
+        # Validation
+        if not client_id:
+            return Response({"error": "Client ID is required"}, status=400)
+        if not company_name:
+            return Response({"error": "Company Name is required"}, status=400)
+        if not email:
+            return Response({"error": "Email is required"}, status=400)
+        if not password:
+            return Response({"error": "Password is required"}, status=400)
+        
+        # Check if client_id already exists
+        if CustomUser.objects.filter(client_id=client_id).exists():
+            return Response({"error": f"Client ID '{client_id}' already exists"}, status=400)
+        
+        # Check if email already exists
+        if CustomUser.objects.filter(email=email).exists():
+            return Response({"error": f"Email '{email}' already exists"}, status=400)
+        
+        # Check if username already exists
+        username = client_id.lower()
+        if CustomUser.objects.filter(username=username).exists():
+            return Response({"error": f"Username '{username}' already exists"}, status=400)
+        
+        # Create client user
+        user = CustomUser.objects.create(
+            username=username,
+            password=make_password(password),
+            email=email,
+            phone=phone,
+            company=company_name,
+            address=address,
+            gstin=gstin.upper() if gstin else "",
+            role='Client',
+            client_id=client_id,
+            is_client_active=True,
+            is_active=True,
+            # Default client permissions
+            ba_b2b=True,
+            create_order=True,
+            shipment_details=True,
+            fcpl_rate=False,
+            pickup=False,
+            vendor_manage=False,
+            vendor_rates=False,
+            rate_update=False,
+            pincode=False,
+            user_management=False,
+        )
+        
+        # Create client profile
+        ClientProfile.objects.get_or_create(client=user)
+        
+        # Create default rate policy
+        ClientRatePolicy.objects.get_or_create(client=user, defaults={'is_custom': False})
+        
+        return Response({
+            "success": True,
+            "message": f"Client {client_id} created successfully",
+            "client": {
+                "id": user.id,
+                "clientId": user.client_id,
+                "companyName": user.company,
+                "email": user.email,
+                "phone": user.phone
+            }
+        }, status=201)
+        
+    except Exception as e:
+        print(f"Error creating client: {str(e)}")
+        return Response({"error": str(e)}, status=500)

@@ -30,4 +30,9 @@ urlpatterns = [
     
     # Dashboard
     path('dashboard-stats/', views.dashboard_stats, name='dashboard_stats'),
+    path('clients/', views.client_list, name='client_list'),
+    path('client/create/', views.create_client, name='create_client'),
+    path('client/<str:client_id>/status/', views.update_client_status, name='update_client_status'),
+    path('client/<str:client_id>/delete/', views.delete_client, name='delete_client'),
+    path('client/<str:client_id>/summary/', views.get_client_order_summary, name='get_client_order_summary'),
 ]
