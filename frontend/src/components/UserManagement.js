@@ -26,9 +26,9 @@ function UserManagement() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserDetails, setShowUserDetails] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("clients"); // 'clients' or 'staff'
+  const [activeTab, setActiveTab] = useState("clients");
   
-  // ========== Client Rates State ==========
+  // Client Rates State
   const [showRateModal, setShowRateModal] = useState(false);
   const [rateClient, setRateClient] = useState(null);
   const [clientRates, setClientRates] = useState({});
@@ -54,7 +54,7 @@ function UserManagement() {
     cft: 4500
   });
   
-  // ========== Report Filters ==========
+  // Report Filters
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportData, setReportData] = useState(null);
@@ -102,6 +102,75 @@ function UserManagement() {
 
   const token = localStorage.getItem("token");
   const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+
+  // ✅ Handle Check Change
+  const handleCheckChange = (e) => {
+    setPermissions({ ...permissions, [e.target.name]: e.target.checked });
+  };
+
+  // ✅ Add User
+  const addUser = async () => {
+    if (!newUser.username || !newUser.password) {
+      alert("Please fill Username and Password");
+      return;
+    }
+
+    const payload = { ...newUser, ...permissions };
+
+    try {
+      await axios.post(`${API_BASE_URL}/add-user/`, payload, config);
+      alert("User Created Successfully!");
+      setNewUser({ username: "", password: "", email: "", phone: "", company: "", address: "", gstin: "" });
+      setPermissions({
+        fcpl_rate: false, pickup: false, vendor_manage: false, vendor_rates: false,
+        rate_update: false, pincode: false, user_management: false, ba_b2b: false,
+        create_order: false, shipment_details: false
+      });
+      fetchStaffUsers();
+    } catch (err) {
+      alert("Error adding user. Check if backend fields match.");
+    }
+  };
+
+  // ✅ Update User
+  const updateUser = async () => {
+    if (!editingUser) return;
+    try {
+      await axios.put(`${API_BASE_URL}/update-user/${editingUser.id}/`, editingUser, config);
+      alert("User Updated Successfully!");
+      setShowEditModal(false);
+      setEditingUser(null);
+      fetchStaffUsers();
+    } catch (err) {
+      alert("Error updating user");
+    }
+  };
+
+  // ✅ Delete User
+  const deleteUser = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this user?")) return;
+    try {
+      await axios.delete(`${API_BASE_URL}/delete-user/${id}/`, config);
+      setUsers(users.filter(u => u.id !== id));
+      if (selectedUser?.id === id) {
+        setSelectedUser(null);
+        setShowUserDetails(false);
+      }
+    } catch (err) {
+      alert("Error deleting user");
+    }
+  };
+
+  // ✅ View User Details
+  const viewUserDetails = async (user) => {
+    try {
+      const stats = await fetchUserStats(user.id);
+      setSelectedUser({ ...user, ...stats });
+      setShowUserDetails(true);
+    } catch (err) {
+      console.error("Error fetching user details:", err);
+    }
+  };
 
   // Create empty rate matrix
   const createEmptyMatrix = () => {
@@ -174,11 +243,11 @@ function UserManagement() {
     });
 
     try {
-      await axios.post(`${RATES_API_URL}/client/${rateClient.client_id}/update/`, {
+      await axios.post(`${RATES_API_URL}/client/${rateClient.clientId}/update/`, {
         zone_rates: zonePayload,
         policy: ratePolicy
       }, config);
-      alert(`✅ Rates updated for ${rateClient.companyName || rateClient.username}`);
+      alert(`✅ Rates updated for ${rateClient.companyName}`);
       setShowRateModal(false);
       setRateClient(null);
       fetchClients();
@@ -223,13 +292,13 @@ function UserManagement() {
   const generateClientReport = async (client) => {
     setLoading(true);
     try {
-      const orders = await fetchClientOrders(client.client_id);
+      const orders = await fetchClientOrders(client.clientId);
       const totalFreight = orders.reduce((sum, o) => sum + (o.value || 0), 0);
       const totalOrders = orders.length;
       
       setReportData({
         username: client.companyName || client.username,
-        clientId: client.client_id,
+        clientId: client.clientId,
         totalOrders: totalOrders,
         totalShipments: totalOrders,
         totalFreight: totalFreight,
@@ -307,6 +376,43 @@ function UserManagement() {
       console.error("Error fetching users:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch user stats
+  const fetchUserStats = async (userId) => {
+    try {
+      const [ordersRes, shipmentsRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/user-orders/${userId}/`, config),
+        axios.get(`${API_BASE_URL}/user-shipments/${userId}/`, config)
+      ]);
+      
+      const orders = ordersRes.data || [];
+      const shipments = shipmentsRes.data || [];
+      
+      const totalFreight = shipments.reduce((sum, s) => sum + (s.freight_amount || 0), 0);
+      const totalValue = shipments.reduce((sum, s) => sum + (s.total_amount || 0), 0);
+      
+      return {
+        orderCount: orders.length,
+        shipmentCount: shipments.length,
+        totalFreight: totalFreight,
+        totalValue: totalValue,
+        lastOrderDate: orders[0]?.created_at || null,
+        shipments: shipments,
+        orders: orders
+      };
+    } catch (err) {
+      console.error("Error fetching user stats:", err);
+      return {
+        orderCount: 0,
+        shipmentCount: 0,
+        totalFreight: 0,
+        totalValue: 0,
+        lastOrderDate: null,
+        shipments: [],
+        orders: []
+      };
     }
   };
 
@@ -394,6 +500,11 @@ function UserManagement() {
     client.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const filteredUsers = users.filter(user => 
+    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.company?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const totalClients = clients.length;
   const totalClientOrders = clients.reduce((sum, c) => sum + (c.orderCount || 0), 0);
   const totalClientRevenue = clients.reduce((sum, c) => sum + (c.totalFreight || 0), 0);
@@ -403,11 +514,10 @@ function UserManagement() {
     <div className="um-modal-overlay" onClick={() => setShowRateModal(false)}>
       <div className="um-modal rate-modal" onClick={e => e.stopPropagation()}>
         <div className="um-modal-header">
-          <h2>⭐ Custom Rates for: {rateClient?.companyName || rateClient?.username}</h2>
+          <h2>⭐ Custom Rates for: {rateClient?.companyName}</h2>
           <button className="um-modal-close" onClick={() => setShowRateModal(false)}>×</button>
         </div>
         <div className="um-modal-body">
-          {/* Zone Rate Matrix */}
           <div className="rate-matrix-section">
             <h4>📊 Zone Rate Matrix (₹ per kg)</h4>
             <div className="table-wrapper">
@@ -439,64 +549,6 @@ function UserManagement() {
                 </tbody>
               </table>
             </div>
-            <div className="matrix-note">
-              <small>💡 Tip: Leave empty to use master rates</small>
-            </div>
-          </div>
-
-          {/* Rate Policy */}
-          <div className="policy-section">
-            <h4>⚙️ Rate Policy Overrides</h4>
-            <div className="policy-grid">
-              <div className="policy-field">
-                <label>Surface Rate (₹/kg)</label>
-                <input type="number" step="0.5" value={ratePolicy.surface_rate_per_kg} onChange={(e) => handlePolicyChange('surface_rate_per_kg', e.target.value)} />
-              </div>
-              <div className="policy-field">
-                <label>Express Rate (₹/kg)</label>
-                <input type="number" step="0.5" value={ratePolicy.express_rate_per_kg} onChange={(e) => handlePolicyChange('express_rate_per_kg', e.target.value)} />
-              </div>
-              <div className="policy-field">
-                <label>Air Rate (₹/kg)</label>
-                <input type="number" step="0.5" value={ratePolicy.air_rate_per_kg} onChange={(e) => handlePolicyChange('air_rate_per_kg', e.target.value)} />
-              </div>
-              <div className="policy-field">
-                <label>Min Freight (₹)</label>
-                <input type="number" value={ratePolicy.minFreight} onChange={(e) => handlePolicyChange('minFreight', e.target.value)} />
-              </div>
-              <div className="policy-field">
-                <label>Docket Charge (₹)</label>
-                <input type="number" value={ratePolicy.docketCharge} onChange={(e) => handlePolicyChange('docketCharge', e.target.value)} />
-              </div>
-              <div className="policy-field">
-                <label>Fuel Surcharge (%)</label>
-                <input type="number" step="0.5" value={ratePolicy.fuelPercent} onChange={(e) => handlePolicyChange('fuelPercent', e.target.value)} />
-              </div>
-              <div className="policy-field">
-                <label>GST (%)</label>
-                <input type="number" step="0.5" value={ratePolicy.gstPercent} onChange={(e) => handlePolicyChange('gstPercent', e.target.value)} />
-              </div>
-              <div className="policy-field">
-                <label>ODA Charge (₹/kg)</label>
-                <input type="number" step="0.5" value={ratePolicy.odaCharge} onChange={(e) => handlePolicyChange('odaCharge', e.target.value)} />
-              </div>
-              <div className="policy-field">
-                <label>COD Charge (₹)</label>
-                <input type="number" value={ratePolicy.codCharge} onChange={(e) => handlePolicyChange('codCharge', e.target.value)} />
-              </div>
-              <div className="policy-field">
-                <label>Fragile Charge (₹)</label>
-                <input type="number" value={ratePolicy.fragileCharge} onChange={(e) => handlePolicyChange('fragileCharge', e.target.value)} />
-              </div>
-              <div className="policy-field">
-                <label>Appointment Charge (₹)</label>
-                <input type="number" value={ratePolicy.appointmentCharge} onChange={(e) => handlePolicyChange('appointmentCharge', e.target.value)} />
-              </div>
-              <div className="policy-field">
-                <label>Insurance (%)</label>
-                <input type="number" step="0.5" value={ratePolicy.insurancePercent} onChange={(e) => handlePolicyChange('insurancePercent', e.target.value)} />
-              </div>
-            </div>
           </div>
         </div>
         <div className="um-modal-footer">
@@ -525,26 +577,17 @@ function UserManagement() {
               <strong>{reportData?.totalOrders || 0}</strong>
             </div>
             <div className="stat">
-              <span>Total Shipments</span>
-              <strong>{reportData?.totalShipments || 0}</strong>
-            </div>
-            <div className="stat">
-              <span>Total Freight</span>
-              <strong>₹{(reportData?.totalFreight || 0).toLocaleString()}</strong>
-            </div>
-            <div className="stat">
-              <span>Client ID</span>
-              <strong>{reportData?.clientId}</strong>
+              <span>Total Value</span>
+              <strong>₹{(reportData?.totalValue || 0).toLocaleString()}</strong>
             </div>
           </div>
-
           <div className="report-table">
             <h4>📦 Order History</h4>
             <div className="table-container">
               <table>
                 <thead>
                   <tr>
-                    <th>LR Number</th>
+                    <th>Order ID</th>
                     <th>Date</th>
                     <th>Route</th>
                     <th>Weight</th>
@@ -558,7 +601,7 @@ function UserManagement() {
                   ) : (
                     (reportData?.orders || []).map(order => (
                       <tr key={order.id}>
-                        <td><strong>{order.order_number}</strong></td>
+                        <td>{order.order_number}</td>
                         <td>{new Date(order.created_at).toLocaleDateString()}</td>
                         <td>{order.origin_pincode} → {order.destination_pincode}</td>
                         <td>{order.weight} kg</td>
@@ -576,96 +619,6 @@ function UserManagement() {
           <button className="um-btn-secondary" onClick={() => setShowReportModal(false)}>Close</button>
           <button className="um-btn-primary" onClick={exportReportCSV}>
             <Download size={16} /> Export CSV
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Render Create Client Modal
-  const renderCreateClientModal = () => (
-    <div className="um-modal-overlay" onClick={() => setShowClientModal(false)}>
-      <div className="um-modal client-modal" onClick={e => e.stopPropagation()}>
-        <div className="um-modal-header">
-          <h2><UserPlus size={20} /> Create New Client</h2>
-          <button className="um-modal-close" onClick={() => setShowClientModal(false)}>×</button>
-        </div>
-        <div className="um-modal-body">
-          <div className="form-row">
-            <div className="form-field">
-              <label>Client ID *</label>
-              <input
-                type="text"
-                placeholder="e.g., CLIENT001"
-                value={newClient.clientId}
-                onChange={e => setNewClient({...newClient, clientId: e.target.value.toUpperCase()})}
-              />
-            </div>
-            <div className="form-field">
-              <label>Company Name *</label>
-              <input
-                type="text"
-                placeholder="Company Name"
-                value={newClient.companyName}
-                onChange={e => setNewClient({...newClient, companyName: e.target.value})}
-              />
-            </div>
-          </div>
-          <div className="form-row">
-            <div className="form-field">
-              <label>Email *</label>
-              <input
-                type="email"
-                placeholder="client@company.com"
-                value={newClient.email}
-                onChange={e => setNewClient({...newClient, email: e.target.value})}
-              />
-            </div>
-            <div className="form-field">
-              <label>Phone *</label>
-              <input
-                type="tel"
-                placeholder="9876543210"
-                value={newClient.phone}
-                onChange={e => setNewClient({...newClient, phone: e.target.value})}
-              />
-            </div>
-          </div>
-          <div className="form-row">
-            <div className="form-field">
-              <label>Password *</label>
-              <input
-                type="password"
-                placeholder="Create password"
-                value={newClient.password}
-                onChange={e => setNewClient({...newClient, password: e.target.value})}
-              />
-            </div>
-            <div className="form-field">
-              <label>GSTIN</label>
-              <input
-                type="text"
-                placeholder="22AAAAA0000A1Z"
-                value={newClient.gstin}
-                onChange={e => setNewClient({...newClient, gstin: e.target.value.toUpperCase()})}
-              />
-            </div>
-          </div>
-          <div className="form-field full-width">
-            <label>Address</label>
-            <textarea
-              rows="2"
-              placeholder="Full address"
-              value={newClient.address}
-              onChange={e => setNewClient({...newClient, address: e.target.value})}
-            />
-          </div>
-        </div>
-        <div className="um-modal-footer">
-          <button className="um-btn-secondary" onClick={() => setShowClientModal(false)}>Cancel</button>
-          <button className="um-btn-primary" onClick={createClient} disabled={loading}>
-            {loading ? <RefreshCw size={16} className="spin" /> : <UserPlus size={16} />}
-            {loading ? "Creating..." : "Create Client"}
           </button>
         </div>
       </div>
@@ -748,7 +701,6 @@ function UserManagement() {
           </div>
           
           {activeTab === "clients" ? (
-            // Client Creation Form
             <div className="client-form">
               <div className="form-group">
                 <input
@@ -803,7 +755,6 @@ function UserManagement() {
               </button>
             </div>
           ) : (
-            // Staff User Creation Form
             <>
               <div className="um-form-group">
                 <div className="um-form-row">
@@ -939,7 +890,6 @@ function UserManagement() {
           ) : (
             <div className="um-users-list">
               {activeTab === "clients" ? (
-                // Clients List
                 filteredClients.map(client => (
                   <div key={client.id} className="um-user-card">
                     <div className="um-user-avatar" style={{ background: "linear-gradient(135deg, #8b5cf6, #7c3aed)" }}>
@@ -954,60 +904,23 @@ function UserManagement() {
                       <div className="um-user-stats">
                         <span><Package size={12} /> {client.orderCount || 0} Orders</span>
                         <span><DollarSign size={12} /> ₹{(client.totalFreight || 0).toLocaleString()}</span>
-                        <span className={client.status === "active" ? "status-active" : "status-inactive"}>
-                          {client.status === "active" ? "🟢 Active" : "🔴 Inactive"}
-                        </span>
                       </div>
                     </div>
                     <div className="um-user-actions">
-                      <button 
-                        className="um-btn-icon rate" 
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          setRateClient(client); 
-                          fetchClientRates(client.clientId); 
-                          setShowRateModal(true); 
-                        }} 
-                        title="Custom Rates"
-                      >
+                      <button className="um-btn-icon rate" onClick={(e) => { e.stopPropagation(); setRateClient(client); fetchClientRates(client.clientId); setShowRateModal(true); }} title="Custom Rates">
                         <Settings size={16} />
                       </button>
-                      <button 
-                        className="um-btn-icon report" 
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          generateClientReport(client); 
-                        }} 
-                        title="View Report"
-                      >
+                      <button className="um-btn-icon report" onClick={(e) => { e.stopPropagation(); generateClientReport(client); }} title="View Report">
                         <BarChart3 size={16} />
                       </button>
-                      <button 
-                        className="um-btn-icon" 
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          updateClientStatus(client.clientId, client.status !== "active"); 
-                        }} 
-                        title={client.status === "active" ? "Deactivate" : "Activate"}
-                      >
-                        {client.status === "active" ? <UserX size={16} /> : <UserCheck size={16} />}
-                      </button>
-                      <button 
-                        className="um-btn-icon delete" 
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          deleteClient(client.clientId); 
-                        }} 
-                        title="Delete"
-                      >
+                      <button className="um-btn-icon delete" onClick={(e) => { e.stopPropagation(); deleteClient(client.clientId); }} title="Delete">
                         <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
                 ))
               ) : (
-                // Staff Users List
-                users.map(user => (
+                filteredUsers.map(user => (
                   <div key={user.id} className="um-user-card">
                     <div className="um-user-avatar">
                       <span>{user.username.charAt(0).toUpperCase()}</span>
@@ -1016,9 +929,9 @@ function UserManagement() {
                       <div className="um-user-name">{user.username}</div>
                       <div className="um-user-company">{user.company || "Staff"}</div>
                       <div className="um-user-stats">
-                        <span><FileText size={12} /> {user.orderCount || 0} Orders</span>
-                        <span><Package size={12} /> {user.shipmentCount || 0} Shipments</span>
-                        <span><DollarSign size={12} /> ₹{(user.totalFreight || 0).toLocaleString()}</span>
+                        <span><FileText size={12} /> 0 Orders</span>
+                        <span><Package size={12} /> 0 Shipments</span>
+                        <span><DollarSign size={12} /> ₹0</span>
                       </div>
                     </div>
                     <div className="um-user-actions">
@@ -1040,10 +953,140 @@ function UserManagement() {
         </div>
       </div>
 
-      {/* Modals */}
+      {/* Edit User Modal */}
+      {showEditModal && editingUser && (
+        <div className="um-modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="um-modal um-edit-modal" onClick={e => e.stopPropagation()}>
+            <div className="um-modal-header">
+              <h2>Edit User: {editingUser.username}</h2>
+              <button className="um-modal-close" onClick={() => setShowEditModal(false)}>×</button>
+            </div>
+            <div className="um-modal-body">
+              <div className="um-form-group">
+                <input
+                  type="text"
+                  placeholder="Username"
+                  value={editingUser.username}
+                  onChange={e => setEditingUser({ ...editingUser, username: e.target.value })}
+                />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={editingUser.email || ''}
+                  onChange={e => setEditingUser({ ...editingUser, email: e.target.value })}
+                />
+                <input
+                  type="tel"
+                  placeholder="Phone"
+                  value={editingUser.phone || ''}
+                  onChange={e => setEditingUser({ ...editingUser, phone: e.target.value })}
+                />
+                <input
+                  type="text"
+                  placeholder="Company"
+                  value={editingUser.company || ''}
+                  onChange={e => setEditingUser({ ...editingUser, company: e.target.value })}
+                />
+                <textarea
+                  placeholder="Address"
+                  rows="2"
+                  value={editingUser.address || ''}
+                  onChange={e => setEditingUser({ ...editingUser, address: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="um-modal-footer">
+              <button className="um-btn-secondary" onClick={() => setShowEditModal(false)}>Cancel</button>
+              <button className="um-btn-primary" onClick={updateUser}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Details Modal */}
+      {showUserDetails && selectedUser && (
+        <div className="um-modal-overlay" onClick={() => setShowUserDetails(false)}>
+          <div className="um-modal um-details-modal" onClick={e => e.stopPropagation()}>
+            <div className="um-modal-header">
+              <h2>{selectedUser.username}'s Report</h2>
+              <button className="um-modal-close" onClick={() => setShowUserDetails(false)}>×</button>
+            </div>
+            <div className="um-modal-body">
+              <div className="um-user-summary">
+                <div className="summary-card">
+                  <FileText size={24} color="#3b82f6" />
+                  <div>
+                    <strong>{selectedUser.orderCount || 0}</strong>
+                    <span>Total Orders</span>
+                  </div>
+                </div>
+                <div className="summary-card">
+                  <Package size={24} color="#10b981" />
+                  <div>
+                    <strong>{selectedUser.shipmentCount || 0}</strong>
+                    <span>Total Shipments</span>
+                  </div>
+                </div>
+                <div className="summary-card">
+                  <DollarSign size={24} color="#f59e0b" />
+                  <div>
+                    <strong>₹{(selectedUser.totalFreight || 0).toLocaleString()}</strong>
+                    <span>Total Freight</span>
+                  </div>
+                </div>
+              </div>
+              <div className="um-user-details">
+                <h4>User Information</h4>
+                <div className="details-grid">
+                  <div><label>Username:</label> <span>{selectedUser.username}</span></div>
+                  <div><label>Email:</label> <span>{selectedUser.email || "N/A"}</span></div>
+                  <div><label>Phone:</label> <span>{selectedUser.phone || "N/A"}</span></div>
+                  <div><label>Company:</label> <span>{selectedUser.company || "N/A"}</span></div>
+                </div>
+              </div>
+              <div className="um-orders-table">
+                <h4>Orders Created by {selectedUser.username}</h4>
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Order ID</th>
+                        <th>Date</th>
+                        <th>Origin → Dest</th>
+                        <th>Weight</th>
+                        <th>Value</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(selectedUser.orders || []).length === 0 ? (
+                        <tr><td colSpan="6" className="no-data">No orders found</td></tr>
+                      ) : (
+                        (selectedUser.orders || []).map(order => (
+                          <tr key={order.id}>
+                            <td>{order.order_number || order.lr_number}</td>
+                            <td>{new Date(order.created_at).toLocaleDateString()}</td>
+                            <td>{order.origin_pincode} → {order.destination_pincode}</td>
+                            <td>{order.weight} kg</td>
+                            <td>₹{(order.total_value || 0).toLocaleString()}</td>
+                            <td>{getOrderStatusBadge(order.status)}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rate Modal */}
       {showRateModal && renderRateModal()}
+
+      {/* Report Modal */}
       {showReportModal && renderReportModal()}
-      {showClientModal && renderCreateClientModal()}
     </div>
   );
 }
