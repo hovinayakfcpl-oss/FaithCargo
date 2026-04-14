@@ -416,8 +416,9 @@ function UserManagement() {
     }
   };
 
-  // Create new client
+  // ✅ FIXED: Create new client with proper payload
   const createClient = async () => {
+    // Validation
     if (!newClient.clientId || !newClient.companyName || !newClient.email || !newClient.password) {
       alert("Please fill all required fields: Client ID, Company Name, Email, Password");
       return;
@@ -425,7 +426,23 @@ function UserManagement() {
 
     setLoading(true);
     try {
-      await axios.post(`${API_BASE_URL}/client/create/`, newClient, config);
+      // Make sure data is sent in correct format
+      const payload = {
+        clientId: newClient.clientId.toUpperCase(),
+        companyName: newClient.companyName,
+        email: newClient.email,
+        password: newClient.password,
+        phone: newClient.phone || "",
+        address: newClient.address || "",
+        gstin: newClient.gstin || ""
+      };
+      
+      console.log("Sending payload:", payload); // Debug log
+      
+      const response = await axios.post(`${API_BASE_URL}/client/create/`, payload, config);
+      
+      console.log("Response:", response.data); // Debug log
+      
       alert(`✅ Client ${newClient.clientId} created successfully!`);
       setNewClient({
         clientId: "",
@@ -440,7 +457,8 @@ function UserManagement() {
       fetchClients();
     } catch (err) {
       console.error("Error creating client:", err);
-      alert("❌ Error creating client: " + (err.response?.data?.error || "Unknown error"));
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || "Unknown error";
+      alert(`❌ Error creating client: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -1060,7 +1078,7 @@ function UserManagement() {
                     </thead>
                     <tbody>
                       {(selectedUser.orders || []).length === 0 ? (
-                        <tr><td colSpan="6" className="no-data">No orders found</td></tr>
+                        <td><td colSpan="6" className="no-data">No orders found</td></td>
                       ) : (
                         (selectedUser.orders || []).map(order => (
                           <tr key={order.id}>

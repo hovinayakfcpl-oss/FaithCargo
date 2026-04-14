@@ -1,5 +1,5 @@
 /* ============================================
-   USER MANAGEMENT - PREMIUM UI DESIGN v5.0
+   USER MANAGEMENT - PREMIUM UI DESIGN v6.0
    FAITH CARGO LOGISTICS
    WITH CLIENT RATES, REPORT MODALS & TABS
    ============================================ */
@@ -30,9 +30,13 @@
   --bg-gray: #f8fafc;
   --bg-light: #f1f5f9;
   --success: #10b981;
+  --success-light: #d1fae5;
   --warning: #f59e0b;
+  --warning-light: #fef3c7;
   --info: #3b82f6;
+  --info-light: #dbeafe;
   --error: #ef4444;
+  --error-light: #fee2e2;
   --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
@@ -161,7 +165,7 @@
 }
 
 /* --------------------------------------------
-   4. TABS SECTION - NEW
+   4. TABS SECTION
    -------------------------------------------- */
 .um-tabs {
   display: flex;
@@ -1509,4 +1513,76 @@ tr:hover td {
     backdrop-filter: none;
     background: white;
   }
+}
+
+/* --------------------------------------------
+   23. CLIENT CREATION SUCCESS STYLES
+   -------------------------------------------- */
+.success-message {
+  background: linear-gradient(135deg, var(--success-light), white);
+  border-left: 4px solid var(--success);
+  color: var(--success-dark);
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideIn 0.3s ease;
+}
+
+.error-message {
+  background: linear-gradient(135deg, var(--error-light), white);
+  border-left: 4px solid var(--error);
+  color: var(--error-dark);
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideIn 0.3s ease;
+}
+
+/* Client Modal Form Styles */
+.client-modal .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.client-modal .form-field {
+  margin-bottom: 0;
+}
+
+.client-modal .form-field label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-gray);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.client-modal input,
+.client-modal textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  transition: var(--transition);
+  background: var(--bg-gray);
+}
+
+.client-modal input:focus,
+.client-modal textarea:focus {
+  outline: none;
+  border-color: var(--primary-red);
+  background: white;
+  box-shadow: 0 0 0 3px var(--primary-red-glow);
 }
