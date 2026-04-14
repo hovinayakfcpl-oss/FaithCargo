@@ -4,7 +4,7 @@ import {
   Shield, Clock, TrendingUp, DollarSign,
   Plus, Trash2, ChevronDown, ChevronUp, CheckCircle,
   Zap, Award, Star, Users, Phone, Mail, Calculator,
-  ArrowRight, Building, FileText, X
+  ArrowRight, Building, FileText, X, Circle
 } from "lucide-react";
 import "./B2BRateCalculator.css";
 
@@ -18,19 +18,19 @@ function BaB2bRateCalculator() {
     paymentMode: "", 
     insurance: false,
     appointment: false,
-    fragile: false,
     express: false
   });
 
   const [originDetails, setOriginDetails] = useState({ city: "", state: "" });
   const [destinationDetails, setDestinationDetails] = useState({ city: "", state: "" });
   const [dimensions, setDimensions] = useState([
-    { qty: 1, length: "", width: "", height: "" }
+    { id: 1, qty: 1, length: "", width: "", height: "" }
   ]);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [activeTab, setActiveTab] = useState("surface");
+  let nextId = 2;
 
   // Fetch pincode details
   const fetchPincodeDetails = async (pincode, type) => {
@@ -82,21 +82,22 @@ function BaB2bRateCalculator() {
   };
 
   // DIMENSION CHANGE HANDLER
-  const handleDimChange = (i, e) => {
-    const { name, value } = e.target;
-    const newDims = [...dimensions];
-    newDims[i][name] = value;
-    setDimensions(newDims);
+  const handleDimChange = (id, field, value) => {
+    setDimensions(dimensions.map(dim => 
+      dim.id === id ? { ...dim, [field]: value } : dim
+    ));
   };
 
   // ADD BOX
   const addBox = () => {
-    setDimensions([...dimensions, { qty: 1, length: "", width: "", height: "" }]);
+    setDimensions([...dimensions, { id: nextId++, qty: 1, length: "", width: "", height: "" }]);
   };
 
   // REMOVE BOX
-  const removeBox = (index) => {
-    setDimensions(dimensions.filter((_, i) => i !== index));
+  const removeBox = (id) => {
+    if (dimensions.length > 1) {
+      setDimensions(dimensions.filter(dim => dim.id !== id));
+    }
   };
 
   // CALCULATE VOLUMETRIC WEIGHT
@@ -142,8 +143,7 @@ function BaB2bRateCalculator() {
           invoiceValue: Number(form.invoiceValue),
           insurance: form.insurance,
           appointment: form.appointment,
-          dimensions: dimensions,
-          fragile: form.fragile,
+          dimensions: dimensions.map(d => ({ qty: d.qty, length: d.length, width: d.width, height: d.height })),
           express: form.express || activeTab === 'express',
           paymentMode: form.paymentMode,
           codAmount: Number(form.codAmount)
@@ -167,12 +167,11 @@ function BaB2bRateCalculator() {
       
       let cod = (form.paymentMode === "COD" || form.paymentMode === "ToPay") ? 150 : 0;
       let handling = (totalQty === 1 && chargeableWeight > 70) ? 750 : 0;
-      let fragileCharge = form.fragile ? 250 : 0;
       let expressCharge = (form.express || activeTab === 'express') ? chargeableWeight * 5 : 0;
       let insuranceVal = form.insurance ? (parseFloat(form.invoiceValue) || 0) * 0.02 : 0;
       let appointmentVal = form.appointment ? 1500 : 0;
 
-      let total = freight + gst + fuel + docket + fov + odaCharge + cod + handling + fragileCharge + expressCharge + insuranceVal + appointmentVal;
+      let total = freight + gst + fuel + docket + fov + odaCharge + cod + handling + expressCharge + insuranceVal + appointmentVal;
 
       if (total < 650) total = 650;
 
@@ -191,7 +190,6 @@ function BaB2bRateCalculator() {
         odaCharge,
         cod,
         handling,
-        fragileCharge,
         expressCharge,
         insurance: insuranceVal,
         appointment: appointmentVal,
@@ -224,12 +222,12 @@ function BaB2bRateCalculator() {
       paymentMode: "", 
       insurance: false,
       appointment: false,
-      fragile: false,
       express: false
     });
     setOriginDetails({ city: "", state: "" });
     setDestinationDetails({ city: "", state: "" });
-    setDimensions([{ qty: 1, length: "", width: "", height: "" }]);
+    setDimensions([{ id: 1, qty: 1, length: "", width: "", height: "" }]);
+    nextId = 2;
     setResult(null);
   };
 
@@ -243,12 +241,12 @@ function BaB2bRateCalculator() {
       paymentMode: "Prepaid", 
       insurance: false,
       appointment: false,
-      fragile: false,
       express: false
     });
     fetchPincodeDetails("110001", "origin");
     fetchPincodeDetails("400001", "destination");
-    setDimensions([{ qty: 2, length: "50", width: "40", height: "30" }]);
+    setDimensions([{ id: 1, qty: 2, length: "50", width: "40", height: "30" }]);
+    nextId = 2;
   };
 
   return (
@@ -264,9 +262,9 @@ function BaB2bRateCalculator() {
             </div>
           </div>
           <div className="header-badges">
-            <div className="badge dark-text"><Award size={16} /><span>ISO 9001:2015</span></div>
-            <div className="badge dark-text"><Star size={16} /><span>4.9 Rating</span></div>
-            <div className="badge dark-text"><Users size={16} /><span>500+ Clients</span></div>
+            <div className="badge"><Award size={14} /><span>ISO 9001:2015</span></div>
+            <div className="badge"><Star size={14} /><span>4.9 Rating</span></div>
+            <div className="badge"><Users size={14} /><span>500+ Clients</span></div>
           </div>
         </div>
         <div className="header-title">
@@ -277,85 +275,71 @@ function BaB2bRateCalculator() {
 
       {/* Tabs */}
       <div className="b2b-tabs">
-        <button 
-          className={`tab-btn ${activeTab === 'surface' ? 'active' : ''}`}
-          onClick={() => setActiveTab('surface')}
-        >
-          <Truck size={18} />
-          Surface Transport
+        <button className={`tab-btn ${activeTab === 'surface' ? 'active' : ''}`} onClick={() => setActiveTab('surface')}>
+          <Truck size={14} /> Surface Transport
         </button>
-        <button 
-          className={`tab-btn ${activeTab === 'express' ? 'active' : ''}`}
-          onClick={() => setActiveTab('express')}
-        >
-          <Zap size={18} />
-          Express Delivery
+        <button className={`tab-btn ${activeTab === 'express' ? 'active' : ''}`} onClick={() => setActiveTab('express')}>
+          <Zap size={14} /> Express Delivery
         </button>
-        <button 
-          className={`tab-btn ${activeTab === 'air' ? 'active' : ''}`}
-          onClick={() => setActiveTab('air')}
-        >
-          <TrendingUp size={18} />
-          Air Cargo
+        <button className={`tab-btn ${activeTab === 'air' ? 'active' : ''}`} onClick={() => setActiveTab('air')}>
+          <TrendingUp size={14} /> Air Cargo
         </button>
+      </div>
+
+      {/* Route Row - Origin & Destination Side by Side */}
+      <div className="route-row">
+        <div className="route-box">
+          <label><MapPin size={12} /> Origin Pincode *</label>
+          <input 
+            type="text" 
+            placeholder="Enter 6-digit pincode" 
+            value={form.origin}
+            onChange={(e) => handlePincodeChange(e, "origin")}
+            maxLength="6"
+          />
+          {originDetails.city && (
+            <div className="location-tag">
+              <Building size={10} />
+              <span>{originDetails.city}, {originDetails.state}</span>
+            </div>
+          )}
+        </div>
+        <div className="route-arrow">→</div>
+        <div className="route-box">
+          <label><MapPin size={12} /> Destination Pincode *</label>
+          <input 
+            type="text" 
+            placeholder="Enter 6-digit pincode" 
+            value={form.destination}
+            onChange={(e) => handlePincodeChange(e, "destination")}
+            maxLength="6"
+          />
+          {destinationDetails.city && (
+            <div className="location-tag">
+              <Building size={10} />
+              <span>{destinationDetails.city}, {destinationDetails.state}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main Calculator Card */}
       <div className="calculator-main-card">
-        <div className="route-row">
-          <div className="route-box">
-            <label><MapPin size={14} /> Origin Pincode *</label>
-            <input 
-              type="text" 
-              name="origin" 
-              placeholder="Enter 6-digit pincode" 
-              value={form.origin}
-              onChange={(e) => handlePincodeChange(e, "origin")}
-              maxLength="6"
-            />
-            {originDetails.city && (
-              <div className="location-tag">
-                <Building size={12} />
-                <span>{originDetails.city}, {originDetails.state}</span>
-              </div>
-            )}
-          </div>
-          <div className="route-arrow-icon">→</div>
-          <div className="route-box">
-            <label><MapPin size={14} /> Destination Pincode *</label>
-            <input 
-              type="text" 
-              name="destination" 
-              placeholder="Enter 6-digit pincode" 
-              value={form.destination}
-              onChange={(e) => handlePincodeChange(e, "destination")}
-              maxLength="6"
-            />
-            {destinationDetails.city && (
-              <div className="location-tag">
-                <Building size={12} />
-                <span>{destinationDetails.city}, {destinationDetails.state}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
         <div className="calculator-grid">
           {/* Left Side - Input Form */}
           <div className="input-section">
-            {/* Payment & Weight Section */}
             <div className="form-row-2">
               <div className="form-group">
-                <label><CreditCard size={14} /> Payment Mode</label>
+                <label><CreditCard size={12} /> Payment Mode</label>
                 <select name="paymentMode" value={form.paymentMode} onChange={handleChange}>
                   <option value="" disabled>Select Payment Mode</option>
                   <option value="Prepaid">Prepaid</option>
-                  <option value="COD">COD (Cash on Delivery)</option>
+                  <option value="COD">COD</option>
                   <option value="ToPay">To Pay</option>
                 </select>
               </div>
               <div className="form-group">
-                <label><Weight size={14} /> Actual Weight (Kg) *</label>
+                <label><Weight size={12} /> Weight (Kg) *</label>
                 <input 
                   type="number" 
                   name="weight" 
@@ -369,7 +353,7 @@ function BaB2bRateCalculator() {
 
             {(form.paymentMode === "COD" || form.paymentMode === "ToPay") && (
               <div className="form-group">
-                <label><DollarSign size={14} /> COD Amount (₹)</label>
+                <label><DollarSign size={12} /> COD Amount (₹)</label>
                 <input 
                   type="number" 
                   name="codAmount" 
@@ -382,7 +366,7 @@ function BaB2bRateCalculator() {
 
             <div className="form-row-2">
               <div className="form-group">
-                <label><FileText size={14} /> Invoice Value (₹)</label>
+                <label><FileText size={12} /> Invoice Value (₹)</label>
                 <input 
                   type="number" 
                   name="invoiceValue" 
@@ -392,60 +376,59 @@ function BaB2bRateCalculator() {
                 />
               </div>
               <div className="form-group">
-                <label><Package size={14} /> Package Dimensions</label>
+                <label><Package size={12} /> Package Dimensions</label>
                 <button className="add-dim-btn" onClick={addBox}>
                   <Plus size={12} /> Add
                 </button>
               </div>
             </div>
 
-            {/* Dimensions Section */}
+            {/* Dimensions Section - One Line */}
             <div className="dimensions-section">
-              {dimensions.map((d, i) => (
-                <div key={i} className="dimension-row">
+              {dimensions.map((dim, idx) => (
+                <div key={dim.id} className="dimension-row">
                   <input 
                     type="number" 
-                    name="qty" 
-                    value={d.qty} 
-                    onChange={(e) => handleDimChange(i, e)} 
-                    placeholder="Qty"
+                    placeholder="Qty" 
+                    value={dim.qty} 
+                    onChange={(e) => handleDimChange(dim.id, 'qty', e.target.value)}
                     min="1"
                   />
                   <input 
                     type="number" 
-                    name="length" 
-                    value={d.length} 
-                    onChange={(e) => handleDimChange(i, e)} 
-                    placeholder="L"
+                    placeholder="L (cm)" 
+                    value={dim.length} 
+                    onChange={(e) => handleDimChange(dim.id, 'length', e.target.value)}
                     step="0.1"
                   />
                   <input 
                     type="number" 
-                    name="width" 
-                    value={d.width} 
-                    onChange={(e) => handleDimChange(i, e)} 
-                    placeholder="W"
+                    placeholder="W (cm)" 
+                    value={dim.width} 
+                    onChange={(e) => handleDimChange(dim.id, 'width', e.target.value)}
                     step="0.1"
                   />
                   <input 
                     type="number" 
-                    name="height" 
-                    value={d.height} 
-                    onChange={(e) => handleDimChange(i, e)} 
-                    placeholder="H"
+                    placeholder="H (cm)" 
+                    value={dim.height} 
+                    onChange={(e) => handleDimChange(dim.id, 'height', e.target.value)}
                     step="0.1"
                   />
                   {dimensions.length > 1 && (
-                    <button className="remove-dim-btn" onClick={() => removeBox(i)}>
-                      <X size={12} />
+                    <button className="remove-dim-btn" onClick={() => removeBox(dim.id)}>
+                      <X size={14} />
                     </button>
+                  )}
+                  {idx === dimensions.length - 1 && dimensions.length === 1 && (
+                    <div className="dim-placeholder"></div>
                   )}
                 </div>
               ))}
             </div>
 
-            {/* Services - 2 columns */}
-            <div className="services-grid">
+            {/* Services */}
+            <div className="services-group">
               <label className="checkbox-label">
                 <input type="checkbox" name="insurance" checked={form.insurance} onChange={handleChange} />
                 <span>Insurance (2% of Invoice Value)</span>
@@ -455,16 +438,11 @@ function BaB2bRateCalculator() {
                 <span>Appointment Delivery (₹1500)</span>
               </label>
               <label className="checkbox-label">
-                <input type="checkbox" name="fragile" checked={form.fragile} onChange={handleChange} />
-                <span>Fragile Handling (₹250)</span>
-              </label>
-              <label className="checkbox-label">
                 <input type="checkbox" name="express" checked={form.express} onChange={handleChange} />
                 <span>Express Priority (₹5/kg extra)</span>
               </label>
             </div>
 
-            {/* Calculate Button Only */}
             <button className="btn-calculate" onClick={calculateRate} disabled={loading}>
               {loading ? "Calculating..." : "Get Live Quote"}
             </button>
@@ -476,37 +454,22 @@ function BaB2bRateCalculator() {
               <div className="result-content">
                 <div className="result-header">
                   <div className="quote-badge">
-                    <Zap size={16} />
+                    <Zap size={14} />
                     <span>{result.transportType}</span>
                   </div>
                   <div className="total-amount">
                     <small>Total Amount</small>
                     <h3>₹{result.total}</h3>
-                    {result.total === "650.00" && <span className="min-badge">Min ₹650 Applied</span>}
+                    {result.total === "650.00" && <span className="min-badge">Min ₹650</span>}
                   </div>
                 </div>
 
                 <div className="weight-stats">
-                  <div className="weight-item">
-                    <span>Actual Weight</span>
-                    <strong>{result.actualWeight} Kg</strong>
-                  </div>
-                  <div className="weight-item">
-                    <span>Volumetric Weight</span>
-                    <strong>{result.volumetric} Kg</strong>
-                  </div>
-                  <div className="weight-item">
-                    <span>Chargeable Weight</span>
-                    <strong>{result.chargeable} Kg</strong>
-                  </div>
-                  <div className="weight-item">
-                    <span>Rate per Kg</span>
-                    <strong>₹{result.ratePerKg}</strong>
-                  </div>
-                  <div className="weight-item">
-                    <span>Transit Time</span>
-                    <strong>{result.transitTime}</strong>
-                  </div>
+                  <div><span>Actual</span><strong>{result.actualWeight} kg</strong></div>
+                  <div><span>Volumetric</span><strong>{result.volumetric} kg</strong></div>
+                  <div><span>Chargeable</span><strong>{result.chargeable} kg</strong></div>
+                  <div><span>Rate/kg</span><strong>₹{result.ratePerKg}</strong></div>
+                  <div><span>Transit</span><strong>{result.transitTime}</strong></div>
                 </div>
 
                 <div className="breakdown-toggle" onClick={() => setShowBreakdown(!showBreakdown)}>
@@ -518,12 +481,11 @@ function BaB2bRateCalculator() {
                   <div className="breakdown-list">
                     <div className="breakdown-item"><span>Basic Freight</span><span>₹{result.freight}</span></div>
                     <div className="breakdown-item"><span>Fuel Surcharge (10%)</span><span>₹{result.fuel}</span></div>
-                    <div className="breakdown-item"><span>Docket / Waybill Charge</span><span>₹100</span></div>
+                    <div className="breakdown-item"><span>Docket Charge</span><span>₹100</span></div>
                     <div className="breakdown-item"><span>FOV Charges</span><span>₹75</span></div>
                     {result.odaCharge > 0 && <div className="breakdown-item oda"><span>ODA Charges</span><span>₹{result.odaCharge}</span></div>}
                     {result.cod > 0 && <div className="breakdown-item"><span>COD/ToPay Fee</span><span>₹{result.cod}</span></div>}
                     {result.handling > 0 && <div className="breakdown-item"><span>Special Handling</span><span>₹{result.handling}</span></div>}
-                    {result.fragileCharge > 0 && <div className="breakdown-item"><span>Fragile Handling</span><span>₹{result.fragileCharge}</span></div>}
                     {result.expressCharge > 0 && <div className="breakdown-item"><span>Express Priority</span><span>₹{result.expressCharge}</span></div>}
                     {form.insurance && <div className="breakdown-item"><span>Insurance (2%)</span><span>₹{result.insurance}</span></div>}
                     {form.appointment && <div className="breakdown-item"><span>Appointment Delivery</span><span>₹{result.appointment}</span></div>}
@@ -538,11 +500,11 @@ function BaB2bRateCalculator() {
               </div>
             ) : (
               <div className="empty-result">
-                <Calculator size={48} />
+                <Calculator size={40} />
                 <h4>Ready to calculate?</h4>
-                <p>Fill in the details and click "Get Live Quote"</p>
+                <p>Fill details and click "Get Live Quote"</p>
                 <button className="example-btn" onClick={quickFillExample}>
-                  <Zap size={14} /> Try Example
+                  <Zap size={12} /> Try Example
                 </button>
               </div>
             )}
@@ -568,7 +530,7 @@ function BaB2bRateCalculator() {
           </div>
         </div>
         <div className="footer-copyright">
-          <p>&copy; 2024 Faith Cargo Logistics Pvt. Ltd. All rights reserved.</p>
+          <p>&copy; 2024 Faith Cargo Logistics Pvt. Ltd.</p>
         </div>
       </div>
     </div>
