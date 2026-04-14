@@ -4,7 +4,8 @@ import {
   Eye, EyeOff, User, Lock, LogIn, ArrowLeft, AlertCircle, 
   CheckCircle, Shield, Zap, Briefcase, Building, Users, 
   Truck, Package, DollarSign, Clock, MapPin, Phone, Mail,
-  UserCircle, Store, Building2, CreditCard, FileText
+  UserCircle, Store, Building2, CreditCard, FileText,
+  Info
 } from "lucide-react";
 import "./UserLogin.css";
 import logo from "../assets/logo.png";
