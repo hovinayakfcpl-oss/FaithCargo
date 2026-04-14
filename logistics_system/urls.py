@@ -1,3 +1,4 @@
+# logistics_system/urls.py
 from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
@@ -11,17 +12,17 @@ urlpatterns = [
     
     # API Routes - All APIs under /api/
     path("api/rates/", include("rates.urls")),
-    path("api/vendors/", include("vendors.urls")),  # Changed from vendors/ to api/vendors/
-    path("api/pickup/", include("pickup.urls")),    # Changed from pickup/ to api/pickup/
+    path("api/vendors/", include("vendors.urls")),
+    path("api/pickup/", include("pickup.urls")),
     path("api/pincode/", include("pincode.urls")),
-    path("api/signup/", include("signup.urls")),    # Changed from signup/ to api/signup/
-    path('api/accounts/', include('accounts.urls')),
+    path("api/signup/", include("signup.urls")),
+    
+    # ✅ FIXED: Accounts URLs directly under /api/ (not /api/accounts/)
+    path("api/", include("accounts.urls")),  # This makes /api/auth/client-login/ work
     
     # Shipments API
     path("api/shipments/", include("shipments.urls")),
     
-    # User Management API - This is the important one!
-    path('api/user/', include('user_management.urls')),   # All user APIs under /api/user/
+    # User Management API
+    path('api/user/', include('user_management.urls')),
 ]
-
-# Remove the duplicate line at the bottom
