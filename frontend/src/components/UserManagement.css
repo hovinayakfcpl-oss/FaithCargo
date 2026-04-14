@@ -1,7 +1,7 @@
 /* ============================================
-   USER MANAGEMENT - PREMIUM UI DESIGN v4.0
+   USER MANAGEMENT - PREMIUM UI DESIGN v5.0
    FAITH CARGO LOGISTICS
-   WITH CLIENT RATES & REPORT MODALS
+   WITH CLIENT RATES, REPORT MODALS & TABS
    ============================================ */
 
 /* --------------------------------------------
@@ -161,7 +161,48 @@
 }
 
 /* --------------------------------------------
-   4. CONTENT GRID
+   4. TABS SECTION - NEW
+   -------------------------------------------- */
+.um-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 28px;
+  background: white;
+  padding: 8px;
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+}
+
+.um-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 28px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-gray);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.um-tab:hover {
+  background: var(--bg-gray);
+  color: var(--primary-red);
+  transform: translateY(-2px);
+}
+
+.um-tab.active {
+  background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
+  color: white;
+  box-shadow: var(--shadow-md);
+}
+
+/* --------------------------------------------
+   5. CONTENT GRID
    -------------------------------------------- */
 .um-content-grid {
   display: grid;
@@ -176,7 +217,7 @@
 }
 
 /* --------------------------------------------
-   5. FORM CARD - CREATE USER
+   6. FORM CARD - CREATE USER/CLIENT
    -------------------------------------------- */
 .um-form-card {
   background: white;
@@ -210,6 +251,39 @@
   margin: 0;
   flex: 1;
   color: var(--text-dark);
+}
+
+/* Client Form */
+.client-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.client-form .form-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.client-form input,
+.client-form textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  transition: var(--transition);
+  background: var(--bg-gray);
+  font-family: inherit;
+}
+
+.client-form input:focus,
+.client-form textarea:focus {
+  outline: none;
+  border-color: var(--primary-red);
+  background: white;
+  box-shadow: 0 0 0 4px var(--primary-red-glow);
 }
 
 /* Form Groups */
@@ -337,7 +411,7 @@
 }
 
 /* --------------------------------------------
-   6. USERS CARD - USER LIST
+   7. USERS CARD - USER LIST
    -------------------------------------------- */
 .um-users-card {
   background: white;
@@ -436,6 +510,11 @@
   transform: scale(1.05);
 }
 
+/* Client Avatar - Purple Gradient */
+.um-user-avatar.client {
+  background: linear-gradient(135deg, var(--primary-purple), #7c3aed);
+}
+
 .um-user-info {
   flex: 1;
 }
@@ -445,6 +524,30 @@
   font-size: 16px;
   color: var(--text-dark);
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.client-id-badge {
+  font-size: 10px;
+  background: linear-gradient(135deg, var(--primary-purple), #7c3aed);
+  color: white;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.status-active {
+  color: var(--success) !important;
+  background: var(--success-light) !important;
+}
+
+.status-inactive {
+  color: var(--error) !important;
+  background: var(--error-light) !important;
 }
 
 .um-user-company {
@@ -513,7 +616,7 @@
 }
 
 /* --------------------------------------------
-   7. MODAL STYLES
+   8. MODAL STYLES
    -------------------------------------------- */
 .um-modal-overlay {
   position: fixed;
@@ -544,6 +647,11 @@
   overflow-y: auto;
   animation: zoomIn 0.3s ease;
   box-shadow: var(--shadow-2xl);
+}
+
+/* Client Modal */
+.client-modal {
+  max-width: 600px;
 }
 
 /* Rate Modal - Larger */
@@ -586,6 +694,9 @@
   font-weight: 800;
   margin: 0;
   color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .um-modal-close {
@@ -624,8 +735,18 @@
   z-index: 10;
 }
 
+/* Matrix Note */
+.matrix-note {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: var(--info-light);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--info);
+}
+
 /* --------------------------------------------
-   8. DATE FILTER
+   9. DATE FILTER
    -------------------------------------------- */
 .date-filter {
   display: flex;
@@ -674,7 +795,7 @@
 }
 
 /* --------------------------------------------
-   9. USER SUMMARY CARDS (Modal)
+   10. USER SUMMARY CARDS (Modal)
    -------------------------------------------- */
 .um-user-summary {
   display: grid;
@@ -715,7 +836,7 @@
 }
 
 /* --------------------------------------------
-   10. RATE MATRIX TABLE
+   11. RATE MATRIX TABLE
    -------------------------------------------- */
 .rate-matrix-section {
   margin-bottom: 32px;
@@ -770,7 +891,7 @@
 }
 
 .rate-input {
-  width: 70px;
+  width: 80px;
   padding: 6px 8px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
@@ -791,7 +912,7 @@
 }
 
 /* --------------------------------------------
-   11. POLICY SECTION (Rate Modal)
+   12. POLICY SECTION (Rate Modal)
    -------------------------------------------- */
 .policy-section {
   margin-top: 24px;
@@ -856,7 +977,7 @@
 }
 
 /* --------------------------------------------
-   12. REPORT STATS
+   13. REPORT STATS
    -------------------------------------------- */
 .report-stats {
   display: grid;
@@ -894,7 +1015,7 @@
 }
 
 /* --------------------------------------------
-   13. REPORT TABLE
+   14. REPORT TABLE
    -------------------------------------------- */
 .report-table {
   margin-top: 20px;
@@ -911,7 +1032,7 @@
 }
 
 /* --------------------------------------------
-   14. USER DETAILS SECTION
+   15. USER DETAILS SECTION
    -------------------------------------------- */
 .um-user-details {
   background: linear-gradient(135deg, var(--bg-gray), white);
@@ -957,7 +1078,7 @@
 }
 
 /* --------------------------------------------
-   15. ORDERS & SHIPMENTS TABLES
+   16. ORDERS & SHIPMENTS TABLES
    -------------------------------------------- */
 .um-orders-table, .um-shipments-table {
   margin-bottom: 28px;
@@ -1024,14 +1145,14 @@ tr:hover td {
 }
 
 /* --------------------------------------------
-   16. EDIT MODAL
+   17. EDIT MODAL
    -------------------------------------------- */
 .um-edit-modal {
   max-width: 550px;
 }
 
 /* --------------------------------------------
-   17. LOADING STATE
+   18. LOADING STATE
    -------------------------------------------- */
 .um-loading {
   text-align: center;
@@ -1041,7 +1162,7 @@ tr:hover td {
 }
 
 /* --------------------------------------------
-   18. BUTTONS
+   19. BUTTONS
    -------------------------------------------- */
 .um-btn-primary {
   background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
@@ -1084,8 +1205,18 @@ tr:hover td {
   transform: translateY(-2px);
 }
 
+/* Spin Animation */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* --------------------------------------------
-   19. RESPONSIVE DESIGN
+   20. RESPONSIVE DESIGN
    -------------------------------------------- */
 @media (max-width: 1024px) {
   .um-container {
@@ -1112,6 +1243,10 @@ tr:hover td {
   .policy-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  
+  .client-form .form-group {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1121,6 +1256,15 @@ tr:hover td {
   
   .um-stats-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .um-tabs {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .um-tab {
+    justify-content: center;
   }
   
   .um-form-card {
@@ -1199,6 +1343,10 @@ tr:hover td {
     width: 55px;
     padding: 4px;
   }
+  
+  .client-form .form-group {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1258,10 +1406,15 @@ tr:hover td {
     width: 45px;
     font-size: 10px;
   }
+  
+  .um-user-name {
+    flex-direction: column;
+    align-items: center;
+  }
 }
 
 /* --------------------------------------------
-   20. ANIMATIONS
+   21. ANIMATIONS
    -------------------------------------------- */
 @keyframes slideIn {
   from {
@@ -1294,7 +1447,7 @@ tr:hover td {
 }
 
 /* --------------------------------------------
-   21. UTILITY CLASSES
+   22. UTILITY CLASSES
    -------------------------------------------- */
 .text-center { text-align: center; }
 .text-left { text-align: left; }
@@ -1329,7 +1482,8 @@ tr:hover td {
   .um-user-actions,
   .um-search-box,
   .um-modal-footer,
-  .date-filter button {
+  .date-filter button,
+  .um-tabs {
     display: none;
   }
   

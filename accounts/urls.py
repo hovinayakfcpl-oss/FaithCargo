@@ -35,5 +35,6 @@ urlpatterns = [
     path("users/client/create/", views.create_client, name="create_client"),
     path("users/client/<str:client_id>/status/", views.update_client_status, name="update_client_status"),
     path("users/client/<str:client_id>/delete/", views.delete_client, name="delete_client"),
+    path("clients/public/", views.get_all_clients_public, name="get_all_clients_public"),
     path("users/client/<str:client_id>/summary/", views.get_client_order_summary, name="get_client_order_summary"),
 ]

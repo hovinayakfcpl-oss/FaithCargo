@@ -12,7 +12,7 @@ function RateUpdate() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   
-  // ========== NEW: Client Management State ==========
+  // ========== Client Management State ==========
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
   const [showClientRates, setShowClientRates] = useState(false);
@@ -21,20 +21,27 @@ function RateUpdate() {
   
   // ========== Rate Policy Default Values ==========
   const [ratePolicy, setRatePolicy] = useState({
-    minFreight: 600,
-    docketCharge: 50,
-    fuelPercent: 15,
+    surface_rate_per_kg: 18,
+    express_rate_per_kg: 25,
+    air_rate_per_kg: 45,
+    rail_rate_per_kg: 15,
+    minFreight: 650,
+    docketCharge: 100,
+    fuelPercent: 10,
     fovCharge: 75,
-    odaCharge: 3, // per kg or 650 per docket
+    odaCharge: 3,
     codCharge: 150,
     codPercent: 2.5,
-    handlingCharge: 2, // per kg above 101kg
-    appointmentCharge: 4, // per kg or 1250
-    cft: 4500,
-    gstPercent: 18
+    fragileCharge: 250,
+    appointmentCharge: 1500,
+    handlingCharge: 2,
+    insurancePercent: 2,
+    expressExtra: 5,
+    gstPercent: 18,
+    cft: 4500
   });
   
-  // ========== NEW: Edit Policy State ==========
+  // ========== Edit Policy State ==========
   const [editingPolicy, setEditingPolicy] = useState(false);
   const [tempPolicy, setTempPolicy] = useState({});
 
@@ -50,17 +57,59 @@ function RateUpdate() {
     return matrix;
   };
 
-  // Fetch all clients for dropdown
+  // ✅ FIXED: Fetch all clients for dropdown (Public endpoint)
   const fetchClients = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch('https://faithcargo.onrender.com/api/users/clients/', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
+      setLoading(true);
+      // Try multiple endpoints
+      let data = [];
+      
+      // Try public endpoint first
+      try {
+        const response = await fetch('https://faithcargo.onrender.com/api/accounts/clients/public/');
+        if (response.ok) {
+          data = await response.json();
+          console.log("✅ Clients fetched from public endpoint:", data);
+        }
+      } catch (e) {
+        console.log("Public endpoint failed, trying alternative...");
+      }
+      
+      // If no data, try with token
+      if (!data || data.length === 0) {
+        const token = localStorage.getItem("token");
+        if (token) {
+          const response = await fetch('https://faithcargo.onrender.com/api/users/clients/', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.ok) {
+            data = await response.json();
+            console.log("✅ Clients fetched from auth endpoint:", data);
+          }
+        }
+      }
+      
+      // If still no data, try user endpoint
+      if (!data || data.length === 0) {
+        const token = localStorage.getItem("token");
+        if (token) {
+          const response = await fetch('https://faithcargo.onrender.com/api/user/users/', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const users = await response.json();
+            data = users.filter(u => u.role === 'Client');
+            console.log("✅ Clients fetched from users endpoint:", data);
+          }
+        }
+      }
+      
       setClients(data);
     } catch (error) {
       console.error('Error fetching clients:', error);
+      setClients([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -124,7 +173,6 @@ function RateUpdate() {
     if (selectedOption === "b2b") {
       fetchMasterMatrix();
     } else if (selectedOption === "fcpl") {
-      // FCPL rates logic
       setRates(createEmptyMatrix());
     }
   }, [selectedOption]);
@@ -175,9 +223,10 @@ function RateUpdate() {
         body: JSON.stringify(payload)
       });
       const data = await res.json();
-      setMessage(data.message || "Master Rates Updated Successfully");
+      setMessage(data.message || "✅ Master Rates Updated Successfully");
+      setTimeout(() => setMessage(""), 3000);
     } catch {
-      setMessage("Server Error");
+      setMessage("❌ Server Error");
     }
     setLoading(false);
   };
@@ -209,10 +258,11 @@ function RateUpdate() {
         })
       });
       const data = await res.json();
-      setMessage(data.message || `Rates updated for ${selectedClient}`);
+      setMessage(data.message || `✅ Rates updated for ${selectedClient}`);
       setShowClientRates(false);
+      setTimeout(() => setMessage(""), 3000);
     } catch {
-      setMessage("Server Error");
+      setMessage("❌ Server Error");
     }
     setLoading(false);
   };
@@ -227,10 +277,11 @@ function RateUpdate() {
         body: JSON.stringify(ratePolicy)
       });
       const data = await res.json();
-      setMessage(data.message || "Rate Policy Updated Successfully");
+      setMessage(data.message || "✅ Rate Policy Updated Successfully");
       setEditingPolicy(false);
+      setTimeout(() => setMessage(""), 3000);
     } catch {
-      setMessage("Server Error");
+      setMessage("❌ Server Error");
     }
     setLoading(false);
   };
@@ -263,16 +314,17 @@ function RateUpdate() {
                   <td key={to}>
                     <input
                       type="number"
+                      step="0.5"
                       value={rateData[from]?.[to] || ""}
                       onChange={(e) => onChangeHandler(from, to, e.target.value)}
-                      placeholder="Rate"
+                      placeholder={masterRates[from]?.[to] || "0"}
                     />
                   </td>
                 ))}
               </tr>
             ))}
           </tbody>
-        </table>
+         </table>
       </div>
     </div>
   );
@@ -295,113 +347,87 @@ function RateUpdate() {
       
       <div className="policy-grid">
         <div className="policy-box">
+          <h4>Surface Rate</h4>
+          {editingPolicy ? (
+            <input type="number" step="0.5" value={tempPolicy.surface_rate_per_kg} onChange={(e) => setTempPolicy({...tempPolicy, surface_rate_per_kg: parseFloat(e.target.value)})} />
+          ) : <p>₹{ratePolicy.surface_rate_per_kg}/kg</p>}
+        </div>
+        
+        <div className="policy-box">
+          <h4>Express Rate</h4>
+          {editingPolicy ? (
+            <input type="number" step="0.5" value={tempPolicy.express_rate_per_kg} onChange={(e) => setTempPolicy({...tempPolicy, express_rate_per_kg: parseFloat(e.target.value)})} />
+          ) : <p>₹{ratePolicy.express_rate_per_kg}/kg</p>}
+        </div>
+        
+        <div className="policy-box">
+          <h4>Air Rate</h4>
+          {editingPolicy ? (
+            <input type="number" step="0.5" value={tempPolicy.air_rate_per_kg} onChange={(e) => setTempPolicy({...tempPolicy, air_rate_per_kg: parseFloat(e.target.value)})} />
+          ) : <p>₹{ratePolicy.air_rate_per_kg}/kg</p>}
+        </div>
+        
+        <div className="policy-box">
           <h4>Min Freight</h4>
           {editingPolicy ? (
-            <input
-              type="number"
-              value={tempPolicy.minFreight}
-              onChange={(e) => setTempPolicy({...tempPolicy, minFreight: parseFloat(e.target.value)})}
-            />
+            <input type="number" value={tempPolicy.minFreight} onChange={(e) => setTempPolicy({...tempPolicy, minFreight: parseFloat(e.target.value)})} />
           ) : <p>₹{ratePolicy.minFreight}</p>}
         </div>
         
         <div className="policy-box">
           <h4>Docket Charge</h4>
           {editingPolicy ? (
-            <input
-              type="number"
-              value={tempPolicy.docketCharge}
-              onChange={(e) => setTempPolicy({...tempPolicy, docketCharge: parseFloat(e.target.value)})}
-            />
+            <input type="number" value={tempPolicy.docketCharge} onChange={(e) => setTempPolicy({...tempPolicy, docketCharge: parseFloat(e.target.value)})} />
           ) : <p>₹{ratePolicy.docketCharge}</p>}
         </div>
         
         <div className="policy-box">
           <h4>Fuel Surcharge</h4>
           {editingPolicy ? (
-            <input
-              type="number"
-              value={tempPolicy.fuelPercent}
-              onChange={(e) => setTempPolicy({...tempPolicy, fuelPercent: parseFloat(e.target.value)})}
-            />
+            <input type="number" step="0.5" value={tempPolicy.fuelPercent} onChange={(e) => setTempPolicy({...tempPolicy, fuelPercent: parseFloat(e.target.value)})} />
           ) : <p>{ratePolicy.fuelPercent}%</p>}
-        </div>
-        
-        <div className="policy-box">
-          <h4>FOV Charge</h4>
-          {editingPolicy ? (
-            <input
-              type="number"
-              value={tempPolicy.fovCharge}
-              onChange={(e) => setTempPolicy({...tempPolicy, fovCharge: parseFloat(e.target.value)})}
-            />
-          ) : <p>₹{ratePolicy.fovCharge}</p>}
-        </div>
-        
-        <div className="policy-box">
-          <h4>ODA Charge</h4>
-          {editingPolicy ? (
-            <input
-              type="number"
-              value={tempPolicy.odaCharge}
-              onChange={(e) => setTempPolicy({...tempPolicy, odaCharge: parseFloat(e.target.value)})}
-            />
-          ) : <p>₹{ratePolicy.odaCharge}/kg OR ₹650/docket</p>}
-        </div>
-        
-        <div className="policy-box">
-          <h4>COD Charge</h4>
-          {editingPolicy ? (
-            <input
-              type="number"
-              value={tempPolicy.codCharge}
-              onChange={(e) => setTempPolicy({...tempPolicy, codCharge: parseFloat(e.target.value)})}
-            />
-          ) : <p>₹{ratePolicy.codCharge} OR {ratePolicy.codPercent}%</p>}
-        </div>
-        
-        <div className="policy-box">
-          <h4>Handling Charge</h4>
-          {editingPolicy ? (
-            <input
-              type="number"
-              value={tempPolicy.handlingCharge}
-              onChange={(e) => setTempPolicy({...tempPolicy, handlingCharge: parseFloat(e.target.value)})}
-            />
-          ) : <p>₹{ratePolicy.handlingCharge}/kg (101kg+)</p>}
-        </div>
-        
-        <div className="policy-box">
-          <h4>Appointment Delivery</h4>
-          {editingPolicy ? (
-            <input
-              type="number"
-              value={tempPolicy.appointmentCharge}
-              onChange={(e) => setTempPolicy({...tempPolicy, appointmentCharge: parseFloat(e.target.value)})}
-            />
-          ) : <p>₹{ratePolicy.appointmentCharge}/kg OR ₹1250</p>}
         </div>
         
         <div className="policy-box">
           <h4>GST</h4>
           {editingPolicy ? (
-            <input
-              type="number"
-              value={tempPolicy.gstPercent}
-              onChange={(e) => setTempPolicy({...tempPolicy, gstPercent: parseFloat(e.target.value)})}
-            />
+            <input type="number" step="0.5" value={tempPolicy.gstPercent} onChange={(e) => setTempPolicy({...tempPolicy, gstPercent: parseFloat(e.target.value)})} />
           ) : <p>{ratePolicy.gstPercent}%</p>}
         </div>
         
         <div className="policy-box">
-          <h4>CFT</h4>
+          <h4>ODA Charge</h4>
           {editingPolicy ? (
-            <input
-              type="number"
-              value={tempPolicy.cft}
-              onChange={(e) => setTempPolicy({...tempPolicy, cft: parseFloat(e.target.value)})}
-            />
-          ) : <p>{ratePolicy.cft}</p>}
+            <input type="number" step="0.5" value={tempPolicy.odaCharge} onChange={(e) => setTempPolicy({...tempPolicy, odaCharge: parseFloat(e.target.value)})} />
+          ) : <p>₹{ratePolicy.odaCharge}/kg</p>}
+        </div>
+        
+        <div className="policy-box">
+          <h4>COD Charge</h4>
+          {editingPolicy ? (
+            <input type="number" value={tempPolicy.codCharge} onChange={(e) => setTempPolicy({...tempPolicy, codCharge: parseFloat(e.target.value)})} />
+          ) : <p>₹{ratePolicy.codCharge}</p>}
+        </div>
+        
+        <div className="policy-box">
+          <h4>Fragile Charge</h4>
+          {editingPolicy ? (
+            <input type="number" value={tempPolicy.fragileCharge} onChange={(e) => setTempPolicy({...tempPolicy, fragileCharge: parseFloat(e.target.value)})} />
+          ) : <p>₹{ratePolicy.fragileCharge}</p>}
+        </div>
+        
+        <div className="policy-box">
+          <h4>Appointment Charge</h4>
+          {editingPolicy ? (
+            <input type="number" value={tempPolicy.appointmentCharge} onChange={(e) => setTempPolicy({...tempPolicy, appointmentCharge: parseFloat(e.target.value)})} />
+          ) : <p>₹{ratePolicy.appointmentCharge}</p>}
+        </div>
+        
+        <div className="policy-box">
+          <h4>Insurance</h4>
+          {editingPolicy ? (
+            <input type="number" step="0.5" value={tempPolicy.insurancePercent} onChange={(e) => setTempPolicy({...tempPolicy, insurancePercent: parseFloat(e.target.value)})} />
+          ) : <p>{ratePolicy.insurancePercent}%</p>}
         </div>
       </div>
       
@@ -431,15 +457,15 @@ function RateUpdate() {
         }}
       >
         <option value="">-- Master Rates (Default) --</option>
-        {clients.filter(c => c.role === 'client').map(client => (
-          <option key={client.clientId} value={client.clientId}>
-            {client.companyName} ({client.clientId})
+        {clients.map(client => (
+          <option key={client.clientId || client.id} value={client.clientId || client.id}>
+            {client.companyName || client.username} ({client.clientId || client.username})
           </option>
         ))}
       </select>
       {selectedClient && (
         <button onClick={() => setShowClientRates(true)}>
-          Edit Client Rates
+          ✏️ Edit Client Rates
         </button>
       )}
     </div>
@@ -475,14 +501,14 @@ function RateUpdate() {
       {/* Master Rate Matrix */}
       {selectedOption === "b2b" && !showClientRates && (
         <>
-          {renderRateTable(rates, handleChange, "Master Zone Rate Matrix")}
+          {renderRateTable(rates, handleChange, "📊 Master Zone Rate Matrix")}
           
           <div className="buttons">
             <button onClick={updateRate} disabled={loading}>
-              {loading ? "Updating..." : "Update Master Rates"}
+              {loading ? "⏳ Updating..." : "💾 Update Master Rates"}
             </button>
-            <button onClick={() => navigate("/admin")}>
-              Dashboard
+            <button onClick={() => navigate("/admin-dashboard")}>
+              📋 Dashboard
             </button>
           </div>
         </>
@@ -493,16 +519,16 @@ function RateUpdate() {
         <div className="modal-overlay" onClick={() => setShowClientRates(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Custom Rates for: {selectedClient}</h3>
+              <h3>⭐ Custom Rates for: {selectedClient}</h3>
               <button className="close-btn" onClick={() => setShowClientRates(false)}>×</button>
             </div>
             
-            {renderRateTable(clientRates, handleClientRateChange, "Client Zone Rate Matrix")}
+            {renderRateTable(clientRates, handleClientRateChange, "🎯 Client Zone Rate Matrix")}
             
             <div className="modal-buttons">
               <button onClick={() => setShowClientRates(false)}>Cancel</button>
               <button onClick={updateClientRates} disabled={loading}>
-                {loading ? "Saving..." : "Save Client Rates"}
+                {loading ? "💾 Saving..." : "✅ Save Client Rates"}
               </button>
             </div>
           </div>

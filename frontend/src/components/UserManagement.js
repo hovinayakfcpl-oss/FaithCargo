@@ -6,43 +6,55 @@ import {
   CheckCircle, XCircle, Clock, Award, Crown,
   Shield, UserPlus, Mail, Phone, MapPin, Building,
   CreditCard, FileText, Truck, Calculator, 
-  Settings, Zap, BarChart3, Download, Filter
+  Settings, Zap, BarChart3, Download, Filter,
+  Building2, UserCheck, UserX, RefreshCw, Save,
+  X, ChevronLeft, ChevronRight, AlertTriangle
 } from "lucide-react";
 import "./UserManagement.css";
 
 const API_BASE_URL = "https://faithcargo.onrender.com/api/user";
 const RATES_API_URL = "https://faithcargo.onrender.com/api/rates";
+const SHIPMENTS_API_URL = "https://faithcargo.onrender.com/api/shipments";
 
 // Zone list for rate matrix
 const zones = ["N1","N2","N3","C1","W1","W2","S1","S2","E1","NE1","NE2"];
 
 function UserManagement() {
   const [users, setUsers] = useState([]);
+  const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserDetails, setShowUserDetails] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("clients"); // 'clients' or 'staff'
   
-  // ========== NEW: Client Rates State ==========
+  // ========== Client Rates State ==========
   const [showRateModal, setShowRateModal] = useState(false);
   const [rateClient, setRateClient] = useState(null);
   const [clientRates, setClientRates] = useState({});
   const [masterRates, setMasterRates] = useState({});
   const [ratePolicy, setRatePolicy] = useState({
-    minFreight: 600,
-    docketCharge: 50,
-    fuelPercent: 15,
+    surface_rate_per_kg: 18,
+    express_rate_per_kg: 25,
+    air_rate_per_kg: 45,
+    rail_rate_per_kg: 15,
+    minFreight: 650,
+    docketCharge: 100,
+    fuelPercent: 10,
     fovCharge: 75,
     odaCharge: 3,
     codCharge: 150,
     codPercent: 2.5,
+    fragileCharge: 250,
+    appointmentCharge: 1500,
     handlingCharge: 2,
-    appointmentCharge: 4,
-    cft: 4500,
-    gstPercent: 18
+    insurancePercent: 2,
+    expressExtra: 5,
+    gstPercent: 18,
+    cft: 4500
   });
   
-  // ========== NEW: Report Filters ==========
+  // ========== Report Filters ==========
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportData, setReportData] = useState(null);
@@ -57,6 +69,18 @@ function UserManagement() {
     address: "",
     gstin: ""
   });
+  
+  // New Client Form
+  const [newClient, setNewClient] = useState({
+    clientId: "",
+    companyName: "",
+    email: "",
+    password: "",
+    phone: "",
+    address: "",
+    gstin: ""
+  });
+  const [showClientModal, setShowClientModal] = useState(false);
   
   // Edit User
   const [editingUser, setEditingUser] = useState(null);
@@ -94,7 +118,7 @@ function UserManagement() {
   // Fetch master rates
   const fetchMasterRates = async () => {
     try {
-      const response = await axios.get("https://faithcargo.onrender.com/api/rates/matrix/");
+      const response = await axios.get(`${RATES_API_URL}/matrix/`);
       let matrix = createEmptyMatrix();
       response.data.forEach(r => {
         if (matrix[r.from_zone]) {
@@ -150,16 +174,17 @@ function UserManagement() {
     });
 
     try {
-      await axios.post(`${RATES_API_URL}/client/${rateClient.id}/update/`, {
+      await axios.post(`${RATES_API_URL}/client/${rateClient.client_id}/update/`, {
         zone_rates: zonePayload,
         policy: ratePolicy
       }, config);
-      alert(`Rates updated for ${rateClient.username}`);
+      alert(`✅ Rates updated for ${rateClient.companyName || rateClient.username}`);
       setShowRateModal(false);
       setRateClient(null);
+      fetchClients();
     } catch (error) {
       console.error("Error updating client rates:", error);
-      alert("Error updating rates");
+      alert("❌ Error updating rates");
     }
     setLoading(false);
   };
@@ -183,18 +208,50 @@ function UserManagement() {
     }));
   };
 
-  // Generate client report with date filter
-  const generateClientReport = async (user, range = dateRange) => {
+  // Fetch client orders from shipments API
+  const fetchClientOrders = async (clientId) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/user-report/${user.id}/`, {
-        params: { from_date: range.from, to_date: range.to },
-        ...config
+      const response = await axios.get(`${SHIPMENTS_API_URL}/client/${clientId}/orders/`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching client orders:", error);
+      return [];
+    }
+  };
+
+  // Generate client report
+  const generateClientReport = async (client) => {
+    setLoading(true);
+    try {
+      const orders = await fetchClientOrders(client.client_id);
+      const totalFreight = orders.reduce((sum, o) => sum + (o.value || 0), 0);
+      const totalOrders = orders.length;
+      
+      setReportData({
+        username: client.companyName || client.username,
+        clientId: client.client_id,
+        totalOrders: totalOrders,
+        totalShipments: totalOrders,
+        totalFreight: totalFreight,
+        totalValue: totalFreight,
+        orders: orders.map(o => ({
+          id: o.id,
+          order_number: o.lr,
+          created_at: o.date,
+          origin_pincode: o.route?.split(' → ')[0],
+          destination_pincode: o.route?.split(' → ')[1],
+          weight: o.weight,
+          total_value: o.value,
+          freight_amount: o.value,
+          status: o.status
+        }))
       });
-      setReportData(response.data);
       setShowReportModal(true);
     } catch (error) {
       console.error("Error generating report:", error);
       alert("Error generating report");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -202,35 +259,50 @@ function UserManagement() {
   const exportReportCSV = () => {
     if (!reportData) return;
     
-    const ordersCSV = reportData.orders.map(o => 
+    const headers = "Order ID,Date,Origin,Destination,Weight,Value,Status\n";
+    const rows = reportData.orders.map(o => 
       `${o.order_number},${o.created_at},${o.origin_pincode},${o.destination_pincode},${o.weight},${o.total_value},${o.status}`
     ).join('\n');
     
-    const blob = new Blob([`Order ID,Date,Origin,Destination,Weight,Value,Status\n${ordersCSV}`], { type: 'text/csv' });
+    const blob = new Blob([headers + rows], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${reportData.username}_report_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `${reportData.clientId}_report_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  useEffect(() => {
-    fetchUsers();
-    fetchMasterRates();
-  }, []);
+  // Fetch all clients
+  const fetchClients = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/clients/`, config);
+      const clientsWithOrders = await Promise.all(
+        res.data.map(async (client) => {
+          const orders = await fetchClientOrders(client.clientId);
+          const totalFreight = orders.reduce((sum, o) => sum + (o.value || 0), 0);
+          return { 
+            ...client, 
+            orderCount: orders.length,
+            totalFreight: totalFreight
+          };
+        })
+      );
+      setClients(clientsWithOrders);
+    } catch (err) {
+      console.error("Error fetching clients:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const fetchUsers = async () => {
+  // Fetch staff users
+  const fetchStaffUsers = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${API_BASE_URL}/users/`, config);
-      const usersWithStats = await Promise.all(
-        res.data.map(async (user) => {
-          const stats = await fetchUserStats(user.id);
-          return { ...user, ...stats };
-        })
-      );
-      setUsers(usersWithStats);
+      setUsers(res.data);
     } catch (err) {
       console.error("Error fetching users:", err);
     } finally {
@@ -238,101 +310,71 @@ function UserManagement() {
     }
   };
 
-  const fetchUserStats = async (userId) => {
-    try {
-      const [ordersRes, shipmentsRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/user-orders/${userId}/`, config),
-        axios.get(`${API_BASE_URL}/user-shipments/${userId}/`, config)
-      ]);
-      
-      const orders = ordersRes.data || [];
-      const shipments = shipmentsRes.data || [];
-      
-      const totalFreight = shipments.reduce((sum, s) => sum + (s.freight_amount || 0), 0);
-      const totalValue = shipments.reduce((sum, s) => sum + (s.total_amount || 0), 0);
-      
-      return {
-        orderCount: orders.length,
-        shipmentCount: shipments.length,
-        totalFreight: totalFreight,
-        totalValue: totalValue,
-        lastOrderDate: orders[0]?.created_at || null,
-        shipments: shipments,
-        orders: orders
-      };
-    } catch (err) {
-      console.error("Error fetching user stats:", err);
-      return {
-        orderCount: 0,
-        shipmentCount: 0,
-        totalFreight: 0,
-        totalValue: 0,
-        lastOrderDate: null,
-        shipments: [],
-        orders: []
-      };
-    }
-  };
-
-  const handleCheckChange = (e) => {
-    setPermissions({ ...permissions, [e.target.name]: e.target.checked });
-  };
-
-  const addUser = async () => {
-    if (!newUser.username || !newUser.password) {
-      alert("Please fill Username and Password");
+  // Create new client
+  const createClient = async () => {
+    if (!newClient.clientId || !newClient.companyName || !newClient.email || !newClient.password) {
+      alert("Please fill all required fields: Client ID, Company Name, Email, Password");
       return;
     }
 
-    const payload = { ...newUser, ...permissions };
-
+    setLoading(true);
     try {
-      await axios.post(`${API_BASE_URL}/add-user/`, payload, config);
-      alert("User Created Successfully!");
-      setNewUser({ username: "", password: "", email: "", phone: "", company: "", address: "", gstin: "" });
-      setPermissions({
-        fcpl_rate: false, pickup: false, vendor_manage: false, vendor_rates: false,
-        rate_update: false, pincode: false, user_management: false, ba_b2b: false,
-        create_order: false, shipment_details: false
+      await axios.post(`${API_BASE_URL}/client/create/`, newClient, config);
+      alert(`✅ Client ${newClient.clientId} created successfully!`);
+      setNewClient({
+        clientId: "",
+        companyName: "",
+        email: "",
+        password: "",
+        phone: "",
+        address: "",
+        gstin: ""
       });
-      fetchUsers();
+      setShowClientModal(false);
+      fetchClients();
     } catch (err) {
-      alert("Error adding user. Check if backend fields match.");
+      console.error("Error creating client:", err);
+      alert("❌ Error creating client: " + (err.response?.data?.error || "Unknown error"));
+    } finally {
+      setLoading(false);
     }
   };
 
-  const updateUser = async () => {
-    if (!editingUser) return;
+  // Delete client
+  const deleteClient = async (clientId) => {
+    if (!window.confirm(`Are you sure you want to delete client ${clientId}?`)) return;
+    
+    setLoading(true);
     try {
-      await axios.put(`${API_BASE_URL}/update-user/${editingUser.id}/`, editingUser, config);
-      alert("User Updated Successfully!");
-      setShowEditModal(false);
-      setEditingUser(null);
-      fetchUsers();
+      await axios.delete(`${API_BASE_URL}/client/${clientId}/delete/`, config);
+      alert(`✅ Client ${clientId} deleted successfully`);
+      fetchClients();
     } catch (err) {
-      alert("Error updating user");
+      console.error("Error deleting client:", err);
+      alert("❌ Error deleting client");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const deleteUser = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
+  // Update client status
+  const updateClientStatus = async (clientId, isActive) => {
     try {
-      await axios.delete(`${API_BASE_URL}/delete-user/${id}/`, config);
-      setUsers(users.filter(u => u.id !== id));
-      if (selectedUser?.id === id) {
-        setSelectedUser(null);
-        setShowUserDetails(false);
-      }
+      await axios.put(`${API_BASE_URL}/client/${clientId}/status/`, { is_active: isActive }, config);
+      fetchClients();
     } catch (err) {
-      alert("Error deleting user");
+      console.error("Error updating client status:", err);
     }
   };
 
-  const viewUserDetails = async (user) => {
-    const stats = await fetchUserStats(user.id);
-    setSelectedUser({ ...user, ...stats });
-    setShowUserDetails(true);
-  };
+  useEffect(() => {
+    fetchMasterRates();
+    if (activeTab === "clients") {
+      fetchClients();
+    } else {
+      fetchStaffUsers();
+    }
+  }, [activeTab]);
 
   const getOrderStatusBadge = (status) => {
     const statusMap = {
@@ -346,27 +388,28 @@ function UserManagement() {
     return <span className="order-status" style={{ background: `${s.color}20`, color: s.color }}>{s.text}</span>;
   };
 
-  const filteredUsers = users.filter(user => 
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.company?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredClients = clients.filter(client => 
+    client.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.clientId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalOrders = users.reduce((sum, u) => sum + (u.orderCount || 0), 0);
-  const totalShipments = users.reduce((sum, u) => sum + (u.shipmentCount || 0), 0);
-  const totalRevenue = users.reduce((sum, u) => sum + (u.totalFreight || 0), 0);
+  const totalClients = clients.length;
+  const totalClientOrders = clients.reduce((sum, c) => sum + (c.orderCount || 0), 0);
+  const totalClientRevenue = clients.reduce((sum, c) => sum + (c.totalFreight || 0), 0);
 
   // Render Rate Matrix Modal
   const renderRateModal = () => (
     <div className="um-modal-overlay" onClick={() => setShowRateModal(false)}>
       <div className="um-modal rate-modal" onClick={e => e.stopPropagation()}>
         <div className="um-modal-header">
-          <h2>Custom Rates for: {rateClient?.username}</h2>
+          <h2>⭐ Custom Rates for: {rateClient?.companyName || rateClient?.username}</h2>
           <button className="um-modal-close" onClick={() => setShowRateModal(false)}>×</button>
         </div>
         <div className="um-modal-body">
           {/* Zone Rate Matrix */}
           <div className="rate-matrix-section">
-            <h4>Zone Rate Matrix (₹ per kg)</h4>
+            <h4>📊 Zone Rate Matrix (₹ per kg)</h4>
             <div className="table-wrapper">
               <table className="rate-matrix-table">
                 <thead>
@@ -383,6 +426,7 @@ function UserManagement() {
                         <td key={to}>
                           <input
                             type="number"
+                            step="0.5"
                             value={clientRates[from]?.[to] || ""}
                             onChange={(e) => handleRateChange(from, to, e.target.value)}
                             placeholder={masterRates[from]?.[to] || "0"}
@@ -395,12 +439,27 @@ function UserManagement() {
                 </tbody>
               </table>
             </div>
+            <div className="matrix-note">
+              <small>💡 Tip: Leave empty to use master rates</small>
+            </div>
           </div>
 
           {/* Rate Policy */}
           <div className="policy-section">
-            <h4>Rate Policy Overrides</h4>
+            <h4>⚙️ Rate Policy Overrides</h4>
             <div className="policy-grid">
+              <div className="policy-field">
+                <label>Surface Rate (₹/kg)</label>
+                <input type="number" step="0.5" value={ratePolicy.surface_rate_per_kg} onChange={(e) => handlePolicyChange('surface_rate_per_kg', e.target.value)} />
+              </div>
+              <div className="policy-field">
+                <label>Express Rate (₹/kg)</label>
+                <input type="number" step="0.5" value={ratePolicy.express_rate_per_kg} onChange={(e) => handlePolicyChange('express_rate_per_kg', e.target.value)} />
+              </div>
+              <div className="policy-field">
+                <label>Air Rate (₹/kg)</label>
+                <input type="number" step="0.5" value={ratePolicy.air_rate_per_kg} onChange={(e) => handlePolicyChange('air_rate_per_kg', e.target.value)} />
+              </div>
               <div className="policy-field">
                 <label>Min Freight (₹)</label>
                 <input type="number" value={ratePolicy.minFreight} onChange={(e) => handlePolicyChange('minFreight', e.target.value)} />
@@ -411,35 +470,31 @@ function UserManagement() {
               </div>
               <div className="policy-field">
                 <label>Fuel Surcharge (%)</label>
-                <input type="number" value={ratePolicy.fuelPercent} onChange={(e) => handlePolicyChange('fuelPercent', e.target.value)} />
+                <input type="number" step="0.5" value={ratePolicy.fuelPercent} onChange={(e) => handlePolicyChange('fuelPercent', e.target.value)} />
               </div>
               <div className="policy-field">
-                <label>FOV Charge (₹)</label>
-                <input type="number" value={ratePolicy.fovCharge} onChange={(e) => handlePolicyChange('fovCharge', e.target.value)} />
+                <label>GST (%)</label>
+                <input type="number" step="0.5" value={ratePolicy.gstPercent} onChange={(e) => handlePolicyChange('gstPercent', e.target.value)} />
               </div>
               <div className="policy-field">
                 <label>ODA Charge (₹/kg)</label>
-                <input type="number" value={ratePolicy.odaCharge} onChange={(e) => handlePolicyChange('odaCharge', e.target.value)} />
+                <input type="number" step="0.5" value={ratePolicy.odaCharge} onChange={(e) => handlePolicyChange('odaCharge', e.target.value)} />
               </div>
               <div className="policy-field">
                 <label>COD Charge (₹)</label>
                 <input type="number" value={ratePolicy.codCharge} onChange={(e) => handlePolicyChange('codCharge', e.target.value)} />
               </div>
               <div className="policy-field">
-                <label>COD Percentage (%)</label>
-                <input type="number" value={ratePolicy.codPercent} onChange={(e) => handlePolicyChange('codPercent', e.target.value)} />
+                <label>Fragile Charge (₹)</label>
+                <input type="number" value={ratePolicy.fragileCharge} onChange={(e) => handlePolicyChange('fragileCharge', e.target.value)} />
               </div>
               <div className="policy-field">
-                <label>Handling Charge (₹/kg)</label>
-                <input type="number" value={ratePolicy.handlingCharge} onChange={(e) => handlePolicyChange('handlingCharge', e.target.value)} />
-              </div>
-              <div className="policy-field">
-                <label>Appointment Charge (₹/kg)</label>
+                <label>Appointment Charge (₹)</label>
                 <input type="number" value={ratePolicy.appointmentCharge} onChange={(e) => handlePolicyChange('appointmentCharge', e.target.value)} />
               </div>
               <div className="policy-field">
-                <label>GST (%)</label>
-                <input type="number" value={ratePolicy.gstPercent} onChange={(e) => handlePolicyChange('gstPercent', e.target.value)} />
+                <label>Insurance (%)</label>
+                <input type="number" step="0.5" value={ratePolicy.insurancePercent} onChange={(e) => handlePolicyChange('insurancePercent', e.target.value)} />
               </div>
             </div>
           </div>
@@ -447,6 +502,7 @@ function UserManagement() {
         <div className="um-modal-footer">
           <button className="um-btn-secondary" onClick={() => setShowRateModal(false)}>Cancel</button>
           <button className="um-btn-primary" onClick={updateClientRates} disabled={loading}>
+            {loading ? <RefreshCw size={16} className="spin" /> : <Save size={16} />}
             {loading ? "Saving..." : "Save Custom Rates"}
           </button>
         </div>
@@ -459,11 +515,10 @@ function UserManagement() {
     <div className="um-modal-overlay" onClick={() => setShowReportModal(false)}>
       <div className="um-modal report-modal" onClick={e => e.stopPropagation()}>
         <div className="um-modal-header">
-          <h2>📊 {reportData?.username}'s Report</h2>
+          <h2>📊 Report: {reportData?.username}</h2>
           <button className="um-modal-close" onClick={() => setShowReportModal(false)}>×</button>
         </div>
         <div className="um-modal-body">
-          {/* Summary Stats */}
           <div className="report-stats">
             <div className="stat">
               <span>Total Orders</span>
@@ -478,40 +533,43 @@ function UserManagement() {
               <strong>₹{(reportData?.totalFreight || 0).toLocaleString()}</strong>
             </div>
             <div className="stat">
-              <span>Total Value</span>
-              <strong>₹{(reportData?.totalValue || 0).toLocaleString()}</strong>
+              <span>Client ID</span>
+              <strong>{reportData?.clientId}</strong>
             </div>
           </div>
 
-          {/* Orders Table */}
           <div className="report-table">
-            <h4>Orders</h4>
-            <table>
-              <thead>
-                <tr>
-                  <th>Order ID</th>
-                  <th>Date</th>
-                  <th>Origin</th>
-                  <th>Destination</th>
-                  <th>Weight</th>
-                  <th>Freight</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(reportData?.orders || []).map(order => (
-                  <tr key={order.id}>
-                    <td>{order.order_number}</td>
-                    <td>{new Date(order.created_at).toLocaleDateString()}</td>
-                    <td>{order.origin_pincode}</td>
-                    <td>{order.destination_pincode}</td>
-                    <td>{order.weight} kg</td>
-                    <td>₹{(order.freight_amount || 0).toLocaleString()}</td>
-                    <td>{getOrderStatusBadge(order.status)}</td>
+            <h4>📦 Order History</h4>
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>LR Number</th>
+                    <th>Date</th>
+                    <th>Route</th>
+                    <th>Weight</th>
+                    <th>Value</th>
+                    <th>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {(reportData?.orders || []).length === 0 ? (
+                    <tr><td colSpan="6" className="no-data">No orders found</td></tr>
+                  ) : (
+                    (reportData?.orders || []).map(order => (
+                      <tr key={order.id}>
+                        <td><strong>{order.order_number}</strong></td>
+                        <td>{new Date(order.created_at).toLocaleDateString()}</td>
+                        <td>{order.origin_pincode} → {order.destination_pincode}</td>
+                        <td>{order.weight} kg</td>
+                        <td>₹{(order.total_value || 0).toLocaleString()}</td>
+                        <td>{getOrderStatusBadge(order.status)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
         <div className="um-modal-footer">
@@ -524,17 +582,107 @@ function UserManagement() {
     </div>
   );
 
+  // Render Create Client Modal
+  const renderCreateClientModal = () => (
+    <div className="um-modal-overlay" onClick={() => setShowClientModal(false)}>
+      <div className="um-modal client-modal" onClick={e => e.stopPropagation()}>
+        <div className="um-modal-header">
+          <h2><UserPlus size={20} /> Create New Client</h2>
+          <button className="um-modal-close" onClick={() => setShowClientModal(false)}>×</button>
+        </div>
+        <div className="um-modal-body">
+          <div className="form-row">
+            <div className="form-field">
+              <label>Client ID *</label>
+              <input
+                type="text"
+                placeholder="e.g., CLIENT001"
+                value={newClient.clientId}
+                onChange={e => setNewClient({...newClient, clientId: e.target.value.toUpperCase()})}
+              />
+            </div>
+            <div className="form-field">
+              <label>Company Name *</label>
+              <input
+                type="text"
+                placeholder="Company Name"
+                value={newClient.companyName}
+                onChange={e => setNewClient({...newClient, companyName: e.target.value})}
+              />
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-field">
+              <label>Email *</label>
+              <input
+                type="email"
+                placeholder="client@company.com"
+                value={newClient.email}
+                onChange={e => setNewClient({...newClient, email: e.target.value})}
+              />
+            </div>
+            <div className="form-field">
+              <label>Phone *</label>
+              <input
+                type="tel"
+                placeholder="9876543210"
+                value={newClient.phone}
+                onChange={e => setNewClient({...newClient, phone: e.target.value})}
+              />
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-field">
+              <label>Password *</label>
+              <input
+                type="password"
+                placeholder="Create password"
+                value={newClient.password}
+                onChange={e => setNewClient({...newClient, password: e.target.value})}
+              />
+            </div>
+            <div className="form-field">
+              <label>GSTIN</label>
+              <input
+                type="text"
+                placeholder="22AAAAA0000A1Z"
+                value={newClient.gstin}
+                onChange={e => setNewClient({...newClient, gstin: e.target.value.toUpperCase()})}
+              />
+            </div>
+          </div>
+          <div className="form-field full-width">
+            <label>Address</label>
+            <textarea
+              rows="2"
+              placeholder="Full address"
+              value={newClient.address}
+              onChange={e => setNewClient({...newClient, address: e.target.value})}
+            />
+          </div>
+        </div>
+        <div className="um-modal-footer">
+          <button className="um-btn-secondary" onClick={() => setShowClientModal(false)}>Cancel</button>
+          <button className="um-btn-primary" onClick={createClient} disabled={loading}>
+            {loading ? <RefreshCw size={16} className="spin" /> : <UserPlus size={16} />}
+            {loading ? "Creating..." : "Create Client"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="um-container">
       {/* Header Stats */}
       <div className="um-stats-grid">
         <div className="um-stat-card">
           <div className="um-stat-icon" style={{ background: "#d32f2f20", color: "#d32f2f" }}>
-            <Users size={24} />
+            <Building2 size={24} />
           </div>
           <div className="um-stat-info">
-            <h3>{users.length}</h3>
-            <p>Total Users</p>
+            <h3>{totalClients}</h3>
+            <p>Total Clients</p>
           </div>
         </div>
         <div className="um-stat-card">
@@ -542,8 +690,8 @@ function UserManagement() {
             <Package size={24} />
           </div>
           <div className="um-stat-info">
-            <h3>{totalShipments}</h3>
-            <p>Total Shipments</p>
+            <h3>{totalClientOrders}</h3>
+            <p>Total Orders</p>
           </div>
         </div>
         <div className="um-stat-card">
@@ -551,141 +699,235 @@ function UserManagement() {
             <DollarSign size={24} />
           </div>
           <div className="um-stat-info">
-            <h3>₹{totalRevenue.toLocaleString()}</h3>
+            <h3>₹{totalClientRevenue.toLocaleString()}</h3>
             <p>Total Revenue</p>
           </div>
         </div>
         <div className="um-stat-card">
-          <div className="um-stat-icon" style={{ background: "#f59e0b20", color: "#f59e0b" }}>
-            <FileText size={24} />
+          <div className="um-stat-icon" style={{ background: "#8b5cf620", color: "#8b5cf6" }}>
+            <TrendingUp size={24} />
           </div>
           <div className="um-stat-info">
-            <h3>{totalOrders}</h3>
-            <p>Total Orders</p>
+            <h3>{activeTab === "clients" ? "Active Clients" : "Staff Users"}</h3>
+            <p>{activeTab === "clients" ? "Registered Clients" : "System Users"}</p>
           </div>
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="um-tabs">
+        <button 
+          className={`um-tab ${activeTab === "clients" ? "active" : ""}`}
+          onClick={() => setActiveTab("clients")}
+        >
+          <Building2 size={16} /> Clients
+        </button>
+        <button 
+          className={`um-tab ${activeTab === "staff" ? "active" : ""}`}
+          onClick={() => setActiveTab("staff")}
+        >
+          <Users size={16} /> Staff Users
+        </button>
+      </div>
+
       <div className="um-content-grid">
-        {/* Create User Form */}
+        {/* Left Panel - Create/Add */}
         <div className="um-form-card">
           <div className="um-card-header">
-            <UserPlus size={20} />
-            <h3>Create New User</h3>
+            {activeTab === "clients" ? (
+              <>
+                <Building2 size={20} />
+                <h3>Add New Client</h3>
+              </>
+            ) : (
+              <>
+                <UserPlus size={20} />
+                <h3>Create Staff User</h3>
+              </>
+            )}
           </div>
           
-          <div className="um-form-group">
-            <div className="um-form-row">
-              <input
-                type="text"
-                placeholder="Username *"
-                value={newUser.username}
-                onChange={e => setNewUser({ ...newUser, username: e.target.value })}
+          {activeTab === "clients" ? (
+            // Client Creation Form
+            <div className="client-form">
+              <div className="form-group">
+                <input
+                  type="text"
+                  placeholder="Client ID *"
+                  value={newClient.clientId}
+                  onChange={e => setNewClient({...newClient, clientId: e.target.value.toUpperCase()})}
+                />
+                <input
+                  type="text"
+                  placeholder="Company Name *"
+                  value={newClient.companyName}
+                  onChange={e => setNewClient({...newClient, companyName: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <input
+                  type="email"
+                  placeholder="Email *"
+                  value={newClient.email}
+                  onChange={e => setNewClient({...newClient, email: e.target.value})}
+                />
+                <input
+                  type="tel"
+                  placeholder="Phone *"
+                  value={newClient.phone}
+                  onChange={e => setNewClient({...newClient, phone: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <input
+                  type="password"
+                  placeholder="Password *"
+                  value={newClient.password}
+                  onChange={e => setNewClient({...newClient, password: e.target.value})}
+                />
+                <input
+                  type="text"
+                  placeholder="GSTIN"
+                  value={newClient.gstin}
+                  onChange={e => setNewClient({...newClient, gstin: e.target.value.toUpperCase()})}
+                />
+              </div>
+              <textarea
+                placeholder="Address"
+                rows="2"
+                value={newClient.address}
+                onChange={e => setNewClient({...newClient, address: e.target.value})}
               />
-              <input
-                type="password"
-                placeholder="Password *"
-                value={newUser.password}
-                onChange={e => setNewUser({ ...newUser, password: e.target.value })}
-              />
+              <button className="um-btn-add" onClick={createClient} disabled={loading}>
+                <Plus size={18} /> Create Client Account
+              </button>
             </div>
-            <div className="um-form-row">
-              <input
-                type="email"
-                placeholder="Email"
-                value={newUser.email}
-                onChange={e => setNewUser({ ...newUser, email: e.target.value })}
-              />
-              <input
-                type="tel"
-                placeholder="Phone"
-                value={newUser.phone}
-                onChange={e => setNewUser({ ...newUser, phone: e.target.value })}
-              />
-            </div>
-            <div className="um-form-row">
-              <input
-                type="text"
-                placeholder="Company Name"
-                value={newUser.company}
-                onChange={e => setNewUser({ ...newUser, company: e.target.value })}
-              />
-              <input
-                type="text"
-                placeholder="GSTIN"
-                value={newUser.gstin}
-                onChange={e => setNewUser({ ...newUser, gstin: e.target.value.toUpperCase() })}
-              />
-            </div>
-            <textarea
-              placeholder="Address"
-              rows="2"
-              value={newUser.address}
-              onChange={e => setNewUser({ ...newUser, address: e.target.value })}
-            />
-          </div>
+          ) : (
+            // Staff User Creation Form
+            <>
+              <div className="um-form-group">
+                <div className="um-form-row">
+                  <input
+                    type="text"
+                    placeholder="Username *"
+                    value={newUser.username}
+                    onChange={e => setNewUser({ ...newUser, username: e.target.value })}
+                  />
+                  <input
+                    type="password"
+                    placeholder="Password *"
+                    value={newUser.password}
+                    onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+                  />
+                </div>
+                <div className="um-form-row">
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={newUser.email}
+                    onChange={e => setNewUser({ ...newUser, email: e.target.value })}
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Phone"
+                    value={newUser.phone}
+                    onChange={e => setNewUser({ ...newUser, phone: e.target.value })}
+                  />
+                </div>
+                <div className="um-form-row">
+                  <input
+                    type="text"
+                    placeholder="Company Name"
+                    value={newUser.company}
+                    onChange={e => setNewUser({ ...newUser, company: e.target.value })}
+                  />
+                  <input
+                    type="text"
+                    placeholder="GSTIN"
+                    value={newUser.gstin}
+                    onChange={e => setNewUser({ ...newUser, gstin: e.target.value.toUpperCase() })}
+                  />
+                </div>
+                <textarea
+                  placeholder="Address"
+                  rows="2"
+                  value={newUser.address}
+                  onChange={e => setNewUser({ ...newUser, address: e.target.value })}
+                />
+              </div>
 
-          <div className="um-permissions-section">
-            <h4>Select Module Permissions</h4>
-            <div className="um-checkbox-grid">
-              <label className="um-checkbox-item">
-                <input type="checkbox" name="fcpl_rate" checked={permissions.fcpl_rate} onChange={handleCheckChange} />
-                <span>📊 FCPL Rate Calculator</span>
-              </label>
-              <label className="um-checkbox-item">
-                <input type="checkbox" name="pickup" checked={permissions.pickup} onChange={handleCheckChange} />
-                <span>🚚 Pickup Request</span>
-              </label>
-              <label className="um-checkbox-item">
-                <input type="checkbox" name="vendor_manage" checked={permissions.vendor_manage} onChange={handleCheckChange} />
-                <span>🏢 Vendor Manage</span>
-              </label>
-              <label className="um-checkbox-item">
-                <input type="checkbox" name="vendor_rates" checked={permissions.vendor_rates} onChange={handleCheckChange} />
-                <span>💰 Vendor Rates</span>
-              </label>
-              <label className="um-checkbox-item">
-                <input type="checkbox" name="rate_update" checked={permissions.rate_update} onChange={handleCheckChange} />
-                <span>📈 Rate Update</span>
-              </label>
-              <label className="um-checkbox-item">
-                <input type="checkbox" name="pincode" checked={permissions.pincode} onChange={handleCheckChange} />
-                <span>📍 Pincode Management</span>
-              </label>
-              <label className="um-checkbox-item">
-                <input type="checkbox" name="user_management" checked={permissions.user_management} onChange={handleCheckChange} />
-                <span>👥 User Management</span>
-              </label>
-              <label className="um-checkbox-item">
-                <input type="checkbox" name="ba_b2b" checked={permissions.ba_b2b} onChange={handleCheckChange} />
-                <span>📊 BA & B2B Rate</span>
-              </label>
-              <label className="um-checkbox-item">
-                <input type="checkbox" name="create_order" checked={permissions.create_order} onChange={handleCheckChange} />
-                <span>📝 Create Order</span>
-              </label>
-              <label className="um-checkbox-item">
-                <input type="checkbox" name="shipment_details" checked={permissions.shipment_details} onChange={handleCheckChange} />
-                <span>📦 Shipment Details</span>
-              </label>
-            </div>
-          </div>
+              <div className="um-permissions-section">
+                <h4>Select Module Permissions</h4>
+                <div className="um-checkbox-grid">
+                  <label className="um-checkbox-item">
+                    <input type="checkbox" name="fcpl_rate" checked={permissions.fcpl_rate} onChange={handleCheckChange} />
+                    <span>📊 FCPL Rate Calculator</span>
+                  </label>
+                  <label className="um-checkbox-item">
+                    <input type="checkbox" name="pickup" checked={permissions.pickup} onChange={handleCheckChange} />
+                    <span>🚚 Pickup Request</span>
+                  </label>
+                  <label className="um-checkbox-item">
+                    <input type="checkbox" name="vendor_manage" checked={permissions.vendor_manage} onChange={handleCheckChange} />
+                    <span>🏢 Vendor Manage</span>
+                  </label>
+                  <label className="um-checkbox-item">
+                    <input type="checkbox" name="vendor_rates" checked={permissions.vendor_rates} onChange={handleCheckChange} />
+                    <span>💰 Vendor Rates</span>
+                  </label>
+                  <label className="um-checkbox-item">
+                    <input type="checkbox" name="rate_update" checked={permissions.rate_update} onChange={handleCheckChange} />
+                    <span>📈 Rate Update</span>
+                  </label>
+                  <label className="um-checkbox-item">
+                    <input type="checkbox" name="pincode" checked={permissions.pincode} onChange={handleCheckChange} />
+                    <span>📍 Pincode Management</span>
+                  </label>
+                  <label className="um-checkbox-item">
+                    <input type="checkbox" name="user_management" checked={permissions.user_management} onChange={handleCheckChange} />
+                    <span>👥 User Management</span>
+                  </label>
+                  <label className="um-checkbox-item">
+                    <input type="checkbox" name="ba_b2b" checked={permissions.ba_b2b} onChange={handleCheckChange} />
+                    <span>📊 BA & B2B Rate</span>
+                  </label>
+                  <label className="um-checkbox-item">
+                    <input type="checkbox" name="create_order" checked={permissions.create_order} onChange={handleCheckChange} />
+                    <span>📝 Create Order</span>
+                  </label>
+                  <label className="um-checkbox-item">
+                    <input type="checkbox" name="shipment_details" checked={permissions.shipment_details} onChange={handleCheckChange} />
+                    <span>📦 Shipment Details</span>
+                  </label>
+                </div>
+              </div>
 
-          <button className="um-btn-add" onClick={addUser}>
-            <Plus size={18} /> Create User Account
-          </button>
+              <button className="um-btn-add" onClick={addUser}>
+                <Plus size={18} /> Create Staff User
+              </button>
+            </>
+          )}
         </div>
 
-        {/* Users List with Stats */}
+        {/* Right Panel - List View */}
         <div className="um-users-card">
           <div className="um-card-header">
-            <Users size={20} />
-            <h3>User Management & Reports</h3>
+            {activeTab === "clients" ? (
+              <>
+                <Building2 size={20} />
+                <h3>Client Management</h3>
+              </>
+            ) : (
+              <>
+                <Users size={20} />
+                <h3>Staff Management</h3>
+              </>
+            )}
             <div className="um-search-box">
               <Search size={16} />
               <input
                 type="text"
-                placeholder="Search users..."
+                placeholder={activeTab === "clients" ? "Search clients..." : "Search users..."}
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
@@ -693,207 +935,115 @@ function UserManagement() {
           </div>
 
           {loading ? (
-            <div className="um-loading">Loading users...</div>
+            <div className="um-loading">Loading...</div>
           ) : (
             <div className="um-users-list">
-              {filteredUsers.map(user => (
-                <div key={user.id} className={`um-user-card ${selectedUser?.id === user.id ? 'active' : ''}`}>
-                  <div className="um-user-avatar">
-                    <span>{user.username.charAt(0).toUpperCase()}</span>
-                  </div>
-                  <div className="um-user-info" onClick={() => viewUserDetails(user)}>
-                    <div className="um-user-name">{user.username}</div>
-                    <div className="um-user-company">{user.company || "Individual"}</div>
-                    <div className="um-user-stats">
-                      <span><FileText size={12} /> {user.orderCount || 0} Orders</span>
-                      <span><Package size={12} /> {user.shipmentCount || 0} Shipments</span>
-                      <span><DollarSign size={12} /> ₹{(user.totalFreight || 0).toLocaleString()}</span>
+              {activeTab === "clients" ? (
+                // Clients List
+                filteredClients.map(client => (
+                  <div key={client.id} className="um-user-card">
+                    <div className="um-user-avatar" style={{ background: "linear-gradient(135deg, #8b5cf6, #7c3aed)" }}>
+                      <span>{client.companyName?.charAt(0).toUpperCase() || "C"}</span>
+                    </div>
+                    <div className="um-user-info" onClick={() => generateClientReport(client)}>
+                      <div className="um-user-name">
+                        {client.companyName}
+                        <span className="client-id-badge">{client.clientId}</span>
+                      </div>
+                      <div className="um-user-company">{client.email}</div>
+                      <div className="um-user-stats">
+                        <span><Package size={12} /> {client.orderCount || 0} Orders</span>
+                        <span><DollarSign size={12} /> ₹{(client.totalFreight || 0).toLocaleString()}</span>
+                        <span className={client.status === "active" ? "status-active" : "status-inactive"}>
+                          {client.status === "active" ? "🟢 Active" : "🔴 Inactive"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="um-user-actions">
+                      <button 
+                        className="um-btn-icon rate" 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setRateClient(client); 
+                          fetchClientRates(client.clientId); 
+                          setShowRateModal(true); 
+                        }} 
+                        title="Custom Rates"
+                      >
+                        <Settings size={16} />
+                      </button>
+                      <button 
+                        className="um-btn-icon report" 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          generateClientReport(client); 
+                        }} 
+                        title="View Report"
+                      >
+                        <BarChart3 size={16} />
+                      </button>
+                      <button 
+                        className="um-btn-icon" 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          updateClientStatus(client.clientId, client.status !== "active"); 
+                        }} 
+                        title={client.status === "active" ? "Deactivate" : "Activate"}
+                      >
+                        {client.status === "active" ? <UserX size={16} /> : <UserCheck size={16} />}
+                      </button>
+                      <button 
+                        className="um-btn-icon delete" 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          deleteClient(client.clientId); 
+                        }} 
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </div>
-                  <div className="um-user-actions">
-                    <button className="um-btn-icon rate" onClick={(e) => { e.stopPropagation(); setRateClient(user); fetchClientRates(user.id); setShowRateModal(true); }} title="Custom Rates">
-                      <Settings size={16} />
-                    </button>
-                    <button className="um-btn-icon report" onClick={(e) => { e.stopPropagation(); generateClientReport(user); }} title="Generate Report">
-                      <BarChart3 size={16} />
-                    </button>
-                    <button className="um-btn-icon" onClick={(e) => { e.stopPropagation(); viewUserDetails(user); }} title="View Details">
-                      <Eye size={16} />
-                    </button>
-                    <button className="um-btn-icon" onClick={(e) => { e.stopPropagation(); setEditingUser(user); setShowEditModal(true); }} title="Edit">
-                      <Edit size={16} />
-                    </button>
-                    <button className="um-btn-icon delete" onClick={(e) => { e.stopPropagation(); deleteUser(user.id); }} title="Delete">
-                      <Trash2 size={16} />
-                    </button>
+                ))
+              ) : (
+                // Staff Users List
+                users.map(user => (
+                  <div key={user.id} className="um-user-card">
+                    <div className="um-user-avatar">
+                      <span>{user.username.charAt(0).toUpperCase()}</span>
+                    </div>
+                    <div className="um-user-info" onClick={() => viewUserDetails(user)}>
+                      <div className="um-user-name">{user.username}</div>
+                      <div className="um-user-company">{user.company || "Staff"}</div>
+                      <div className="um-user-stats">
+                        <span><FileText size={12} /> {user.orderCount || 0} Orders</span>
+                        <span><Package size={12} /> {user.shipmentCount || 0} Shipments</span>
+                        <span><DollarSign size={12} /> ₹{(user.totalFreight || 0).toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <div className="um-user-actions">
+                      <button className="um-btn-icon" onClick={(e) => { e.stopPropagation(); viewUserDetails(user); }} title="View Details">
+                        <Eye size={16} />
+                      </button>
+                      <button className="um-btn-icon" onClick={(e) => { e.stopPropagation(); setEditingUser(user); setShowEditModal(true); }} title="Edit">
+                        <Edit size={16} />
+                      </button>
+                      <button className="um-btn-icon delete" onClick={(e) => { e.stopPropagation(); deleteUser(user.id); }} title="Delete">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* User Details Modal */}
-      {showUserDetails && selectedUser && (
-        <div className="um-modal-overlay" onClick={() => setShowUserDetails(false)}>
-          <div className="um-modal um-details-modal" onClick={e => e.stopPropagation()}>
-            <div className="um-modal-header">
-              <h2>{selectedUser.username}'s Report</h2>
-              <button className="um-modal-close" onClick={() => setShowUserDetails(false)}>×</button>
-            </div>
-            
-            <div className="um-modal-body">
-              {/* Date Range Filter */}
-              <div className="date-filter">
-                <label>Filter by Date:</label>
-                <input type="date" value={dateRange.from} onChange={e => setDateRange({...dateRange, from: e.target.value})} />
-                <span>to</span>
-                <input type="date" value={dateRange.to} onChange={e => setDateRange({...dateRange, to: e.target.value})} />
-                <button onClick={() => generateClientReport(selectedUser)}><Filter size={14} /> Apply</button>
-              </div>
-
-              {/* User Summary Stats */}
-              <div className="um-user-summary">
-                <div className="summary-card">
-                  <FileText size={24} color="#3b82f6" />
-                  <div>
-                    <strong>{selectedUser.orderCount || 0}</strong>
-                    <span>Total Orders</span>
-                  </div>
-                </div>
-                <div className="summary-card">
-                  <Package size={24} color="#10b981" />
-                  <div>
-                    <strong>{selectedUser.shipmentCount || 0}</strong>
-                    <span>Total Shipments</span>
-                  </div>
-                </div>
-                <div className="summary-card">
-                  <DollarSign size={24} color="#f59e0b" />
-                  <div>
-                    <strong>₹{(selectedUser.totalFreight || 0).toLocaleString()}</strong>
-                    <span>Total Freight</span>
-                  </div>
-                </div>
-                <div className="summary-card">
-                  <TrendingUp size={24} color="#8b5cf6" />
-                  <div>
-                    <strong>₹{(selectedUser.totalValue || 0).toLocaleString()}</strong>
-                    <span>Invoice Value</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* User Details */}
-              <div className="um-user-details">
-                <h4>User Information</h4>
-                <div className="details-grid">
-                  <div><label>Username:</label> <span>{selectedUser.username}</span></div>
-                  <div><label>Email:</label> <span>{selectedUser.email || "N/A"}</span></div>
-                  <div><label>Phone:</label> <span>{selectedUser.phone || "N/A"}</span></div>
-                  <div><label>Company:</label> <span>{selectedUser.company || "N/A"}</span></div>
-                  <div><label>GSTIN:</label> <span>{selectedUser.gstin || "N/A"}</span></div>
-                  <div><label>Joined:</label> <span>{new Date(selectedUser.date_joined).toLocaleDateString()}</span></div>
-                </div>
-              </div>
-
-              {/* Orders Table */}
-              <div className="um-orders-table">
-                <h4>Orders Created by {selectedUser.username}</h4>
-                <div className="table-container">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Order ID</th>
-                        <th>Date</th>
-                        <th>Origin → Dest</th>
-                        <th>Weight</th>
-                        <th>Value</th>
-                        <th>Freight</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(selectedUser.orders || []).length === 0 ? (
-                        <tr><td colSpan="7" className="no-data">No orders found</td></tr>
-                      ) : (
-                        (selectedUser.orders || []).map(order => (
-                          <tr key={order.id}>
-                            <td>{order.order_number || order.lr_number || order.id}</td>
-                            <td>{new Date(order.created_at).toLocaleDateString()}</td>
-                            <td>{order.origin_pincode || "N/A"} → {order.destination_pincode || "N/A"}</td>
-                            <td>{order.weight || 0} kg</td>
-                            <td>₹{(order.total_value || 0).toLocaleString()}</td>
-                            <td>₹{(order.freight_amount || 0).toLocaleString()}</td>
-                            <td>{getOrderStatusBadge(order.status)}</td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit User Modal */}
-      {showEditModal && editingUser && (
-        <div className="um-modal-overlay" onClick={() => setShowEditModal(false)}>
-          <div className="um-modal um-edit-modal" onClick={e => e.stopPropagation()}>
-            <div className="um-modal-header">
-              <h2>Edit User: {editingUser.username}</h2>
-              <button className="um-modal-close" onClick={() => setShowEditModal(false)}>×</button>
-            </div>
-            <div className="um-modal-body">
-              <div className="um-form-group">
-                <input
-                  type="text"
-                  placeholder="Username"
-                  value={editingUser.username}
-                  onChange={e => setEditingUser({ ...editingUser, username: e.target.value })}
-                />
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={editingUser.email || ''}
-                  onChange={e => setEditingUser({ ...editingUser, email: e.target.value })}
-                />
-                <input
-                  type="tel"
-                  placeholder="Phone"
-                  value={editingUser.phone || ''}
-                  onChange={e => setEditingUser({ ...editingUser, phone: e.target.value })}
-                />
-                <input
-                  type="text"
-                  placeholder="Company"
-                  value={editingUser.company || ''}
-                  onChange={e => setEditingUser({ ...editingUser, company: e.target.value })}
-                />
-                <textarea
-                  placeholder="Address"
-                  rows="2"
-                  value={editingUser.address || ''}
-                  onChange={e => setEditingUser({ ...editingUser, address: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="um-modal-footer">
-              <button className="um-btn-secondary" onClick={() => setShowEditModal(false)}>Cancel</button>
-              <button className="um-btn-primary" onClick={updateUser}>Save Changes</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Rate Modal */}
+      {/* Modals */}
       {showRateModal && renderRateModal()}
-
-      {/* Report Modal */}
       {showReportModal && renderReportModal()}
+      {showClientModal && renderCreateClientModal()}
     </div>
   );
 }

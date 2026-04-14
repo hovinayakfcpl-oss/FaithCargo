@@ -576,3 +576,28 @@ def get_current_user(request):
         "client_id": getattr(user, 'client_id', None),
         "modules": modules
     }, status=200)
+
+# accounts/views.py - Add this function at the end of file, before the last closing bracket
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_all_clients_public(request):
+    """Public endpoint to get all clients for RateUpdate dropdown"""
+    try:
+        clients = CustomUser.objects.filter(role='Client', is_client_active=True, is_active=True)
+        
+        client_data = []
+        for client in clients:
+            client_data.append({
+                "id": client.id,
+                "clientId": client.client_id,
+                "companyName": client.company or client.username,
+                "email": client.email or "",
+                "phone": client.phone or "",
+                "status": "active" if client.is_client_active else "inactive"
+            })
+        
+        return Response(client_data, status=200)
+    except Exception as e:
+        print(f"Error in get_all_clients_public: {str(e)}")
+        return Response({"error": str(e)}, status=500)
