@@ -1,3 +1,4 @@
+# shipments/views.py
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
@@ -109,8 +110,9 @@ def calculate_freight(request):
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)}, status=500)
 
+
 # =====================================================
-# 🤖 JERVICE AI - INTELLIGENT ASSISTANT (HINDI + BIGG BOSS VOICE)
+# 🤖 JERVICE AI - INTELLIGENT ASSISTANT
 # =====================================================
 
 def extract_docket_number(text):
@@ -147,7 +149,7 @@ def get_shipment_by_lr(lr_number):
             SELECT id, lr_number, awb_number, pickup_pincode, delivery_pincode, 
                    pickup_name, delivery_name, weight, status, 
                    pickup_address, delivery_address, material, total_value,
-                   created_at, booking_mode, pickup_gstin, delivery_gstin
+                   created_at, booking_mode, pickup_gstin, delivery_gstin, client_id
             FROM orders 
             WHERE lr_number = %s OR awb_number = %s
         """, [clean_lr, clean_lr])
@@ -180,13 +182,13 @@ def update_shipment_status(lr_number, new_status):
         return False
 
 def get_shipment_status_text(status):
-    """Convert status to Hindi with Bigg Boss style"""
+    """Convert status to Hindi style"""
     status_map = {
         'booked': '📦 **BOOKED!** Order register ho gaya hai. Abhi pickup pending hai.',
         'picked': '🚚 **PICKED UP!** Driver ne pickup kar liya. Warehouse mein process hoga.',
         'in_transit': '🔄 **IN TRANSIT!** Shipment road par hai. Agle hub mein pahunch raha hai.',
         'out_for_delivery': '🎯 **OUT FOR DELIVERY!** Aaj hi deliver hoga.',
-        'delivered': '✅ **DELIVERED!** Shipment deliver ho chuka hai. SHAABASH!',
+        'delivered': '✅ **DELIVERED!** Shipment deliver ho chuka hai.',
         'cancelled': '❌ **CANCELLED!** Order cancel ho gaya.',
         'hold': '⏸️ **ON HOLD!** Kuch verification pending hai.',
         'dispatched': '✈️ **DISPATCHED!** Shipment dispatch ho chuka hai.'
@@ -251,17 +253,26 @@ Kya main booking process start kar doon, Sir?"""
     except Exception as e:
         return f"Technical issue: {str(e)}"
 
-def get_all_shipments_summary():
-    """Get summary of all shipments"""
+def get_all_shipments_summary(client_id=None):
+    """Get summary of all shipments (optionally filtered by client)"""
     try:
         cursor = connection.cursor()
-        cursor.execute("""
-            SELECT COUNT(*), 
-                   SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END),
-                   SUM(CASE WHEN status = 'in_transit' THEN 1 ELSE 0 END),
-                   SUM(CASE WHEN status = 'booked' THEN 1 ELSE 0 END)
-            FROM orders
-        """)
+        if client_id:
+            cursor.execute("""
+                SELECT COUNT(*), 
+                       SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END),
+                       SUM(CASE WHEN status = 'in_transit' THEN 1 ELSE 0 END),
+                       SUM(CASE WHEN status = 'booked' THEN 1 ELSE 0 END)
+                FROM orders WHERE client_id = %s
+            """, [client_id])
+        else:
+            cursor.execute("""
+                SELECT COUNT(*), 
+                       SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END),
+                       SUM(CASE WHEN status = 'in_transit' THEN 1 ELSE 0 END),
+                       SUM(CASE WHEN status = 'booked' THEN 1 ELSE 0 END)
+                FROM orders
+            """)
         row = cursor.fetchone()
         return {
             'total': row[0] or 0,
@@ -274,7 +285,7 @@ def get_all_shipments_summary():
 
 @csrf_exempt
 def jervice_intelligent_chat(request):
-    """Jervice AI - Bigg Boss Style Hindi Assistant"""
+    """Jervice AI - Hindi Assistant"""
     if request.method != "POST":
         return JsonResponse({"reply": "Sir, POST method use karein."}, status=405)
     
@@ -327,7 +338,7 @@ Sir, docket {docket_number} ka status update karne ke liye batao:
             
             if shipment:
                 status_text = get_shipment_status_text(shipment['status'])
-                reply = f"""🎤 **BIGG BOSS STYLE TRACKING!**
+                reply = f"""🎤 **SHIPMENT TRACKING!**
 
 📋 **Docket:** FCPL{shipment['lr_number']}
 🔢 **AWB:** {shipment.get('awb_number', 'N/A')}
@@ -413,7 +424,7 @@ Mujhse puchiye:
         return JsonResponse({
             "reply": reply,
             "detected_docket": docket_number,
-            "voice_style": "bigg_boss_hindi",
+            "voice_style": "hindi",
             "success": True
         })
         
@@ -422,8 +433,9 @@ Mujhse puchiye:
     except Exception as e:
         return JsonResponse({"reply": f"⚠️ Technical glitch, Sir. Error: {str(e)}", "success": False}, status=500)
 
+
 # =====================================================
-# 📦 CREATE ORDER (With All Columns)
+# 📦 CREATE ORDER (With client_id support)
 # =====================================================
 @csrf_exempt
 def create_order(request):
@@ -436,20 +448,35 @@ def create_order(request):
                 formatted_lr = format_lr(lr_raw)
                 formatted_awb = format_awb(awb_raw)
 
+                # Get client_id if provided (for client-specific orders)
+                client_id = data.get("clientId")
+                
                 # Get GSTIN values (with None default if not provided)
                 pickup_gstin = data.get("pickupGstin")
                 delivery_gstin = data.get("deliveryGstin")
                 
+                # ✅ Ensure client_id column exists (run once)
+                try:
+                    cursor.execute("""
+                        SELECT column_name FROM information_schema.columns 
+                        WHERE table_name='orders' AND column_name='client_id'
+                    """)
+                    if not cursor.fetchone():
+                        cursor.execute("ALTER TABLE orders ADD COLUMN client_id VARCHAR(50)")
+                        cursor.execute("CREATE INDEX IF NOT EXISTS idx_orders_client_id ON orders(client_id)")
+                except:
+                    pass
+                
                 cursor.execute("""
                     INSERT INTO orders (
-                        lr_number, awb_number, 
+                        lr_number, awb_number, client_id,
                         pickup_name, pickup_address, pickup_pincode, pickup_contact, pickup_gstin,
                         delivery_name, delivery_address, delivery_pincode, delivery_contact, delivery_gstin,
                         material, hsn_code, boxes, weight, actual_weight, volumetric_weight, 
                         total_value, eway_bill, status, booking_mode, created_at, updated_at
-                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
+                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
                 """, [
-                    lr_raw, formatted_awb,
+                    lr_raw, formatted_awb, client_id,
                     data.get("pickupName"), data.get("pickupAddress"), data.get("pickupPincode"), 
                     data.get("pickupContact"), pickup_gstin,
                     data.get("deliveryName"), data.get("deliveryAddress"), data.get("deliveryPincode"), 
@@ -461,6 +488,7 @@ def create_order(request):
                 ])
                 order_id = cursor.fetchone()[0]
 
+                # Insert invoices
                 for inv in data.get("invoices", []):
                     if inv.get("invoice_no"):
                         cursor.execute("""
@@ -478,16 +506,29 @@ def create_order(request):
             return JsonResponse({"success": False, "error": f"Database Error: {str(e)}"}, status=500)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
+
 # =====================================================
-# 📋 SHIPMENT LIST
+# 📋 SHIPMENT LIST (with client filter)
 # =====================================================
 def shipment_list(request):
     cursor = connection.cursor()
-    cursor.execute("""
-        SELECT lr_number, awb_number, pickup_pincode, delivery_pincode, 
-               total_value, status, weight, created_at
-        FROM orders ORDER BY id DESC
-    """)
+    
+    # Check if client_id filter is present
+    client_id = request.GET.get('clientId')
+    
+    if client_id:
+        cursor.execute("""
+            SELECT lr_number, awb_number, pickup_pincode, delivery_pincode, 
+                   total_value, status, weight, created_at
+            FROM orders WHERE client_id = %s ORDER BY id DESC
+        """, [client_id])
+    else:
+        cursor.execute("""
+            SELECT lr_number, awb_number, pickup_pincode, delivery_pincode, 
+                   total_value, status, weight, created_at
+            FROM orders ORDER BY id DESC
+        """)
+    
     rows = cursor.fetchall()
     
     data = [{
@@ -501,6 +542,7 @@ def shipment_list(request):
     } for r in rows]
     
     return JsonResponse(data, safe=False)
+
 
 # =====================================================
 # 🔍 SHIPMENT DETAIL
@@ -524,6 +566,7 @@ def shipment_detail(request, lr):
         "success": True,
         "lr": format_lr(order_data['lr_number']),
         "awb": order_data.get('awb_number'),
+        "clientId": order_data.get('client_id'),
         "pickupName": order_data.get('pickup_name'),
         "pickupAddress": order_data.get('pickup_address'),
         "pickupPincode": order_data.get('pickup_pincode'),
@@ -548,6 +591,7 @@ def shipment_detail(request, lr):
         "updatedAt": order_data.get('updated_at'),
         "invoices": [{"invoiceNo": r[0], "invoiceValue": float(r[1])} for r in inv_rows]
     })
+
 
 # =====================================================
 # ✏️ UPDATE SHIPMENT
@@ -581,6 +625,7 @@ def update_shipment(request, lr):
             return JsonResponse({"success": False, "error": str(e)}, status=500)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
+
 # =====================================================
 # 🎯 UPDATE STATUS ONLY
 # =====================================================
@@ -603,6 +648,7 @@ def update_shipment_status_only(request):
             return JsonResponse({"success": False, "error": str(e)}, status=500)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
+
 # =====================================================
 # 🗑️ DELETE SHIPMENT
 # =====================================================
@@ -622,6 +668,7 @@ def delete_shipment(request, lr):
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)}, status=500)
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
 
 # =====================================================
 # 📍 ADD/UPDATE LOCATION
@@ -655,9 +702,37 @@ def add_location(request):
             return JsonResponse({"success": False, "error": str(e)}, status=500)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
+
 # =====================================================
-# 📊 DASHBOARD STATS
+# 📊 DASHBOARD STATS (with client filter)
 # =====================================================
 def dashboard_stats(request):
-    stats = get_all_shipments_summary()
+    client_id = request.GET.get('clientId')
+    stats = get_all_shipments_summary(client_id)
     return JsonResponse(stats)
+
+
+# =====================================================
+# 📋 CLIENT ORDERS (Get all orders for a specific client)
+# =====================================================
+def client_orders(request, client_id):
+    cursor = connection.cursor()
+    cursor.execute("""
+        SELECT lr_number, awb_number, pickup_pincode, delivery_pincode, 
+               total_value, status, weight, created_at
+        FROM orders WHERE client_id = %s ORDER BY id DESC
+    """, [client_id])
+    
+    rows = cursor.fetchall()
+    
+    data = [{
+        "lr": format_lr(r[0]),
+        "awb": r[1],
+        "route": f"{r[2]} → {r[3]}",
+        "value": float(r[4]) if r[4] else 0,
+        "status": r[5],
+        "weight": float(r[6]) if r[6] else 0,
+        "date": r[7].strftime("%Y-%m-%d %H:%M") if r[7] else "N/A"
+    } for r in rows]
+    
+    return JsonResponse(data, safe=False)

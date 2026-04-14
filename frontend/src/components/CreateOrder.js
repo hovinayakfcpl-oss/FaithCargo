@@ -19,24 +19,43 @@ import logo from "../assets/logo.png";
 import "./CreateOrder.css";
 
 // ============================================
-// 🔐 CLIENT AUTHENTICATION CHECK
+// 🔐 AUTHENTICATION CHECK (Both Admin & Client)
 // ============================================
-const useClientAuth = () => {
-  const [client, setClient] = useState(null);
+const useAuth = () => {
+  const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState(null);
   const [clientRates, setClientRates] = useState(null);
   const [clientPolicy, setClientPolicy] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("clientToken");
+    const token = localStorage.getItem("token");
+    const clientToken = localStorage.getItem("clientToken");
+    const userRoleStorage = localStorage.getItem("userRole");
+    const username = localStorage.getItem("username");
     const clientId = localStorage.getItem("clientId");
     
-    if (token && clientId) {
-      fetchClientDetails(clientId, token);
-    } else {
+    // Check if admin (has token)
+    if (token && token !== "undefined" && token !== "null" && token !== "") {
+      setIsAuthenticated(true);
+      setUserRole(userRoleStorage === "admin" ? "admin" : "staff");
+      setUser({ 
+        username: username || "Admin", 
+        role: userRoleStorage === "admin" ? "admin" : "staff",
+        clientId: null 
+      });
       setLoading(false);
+      return;
     }
+    
+    // Check if client (has clientToken)
+    if (clientToken && clientToken !== "undefined" && clientToken !== "null" && clientId) {
+      fetchClientDetails(clientId, clientToken);
+      return;
+    }
+    
+    setLoading(false);
   }, []);
 
   const fetchClientDetails = async (clientId, token) => {
@@ -47,7 +66,13 @@ const useClientAuth = () => {
       const data = await response.json();
       
       if (data.success) {
-        setClient(data.user);
+        setUser({
+          ...data.user,
+          clientId: data.user.clientId,
+          companyName: data.user.companyName,
+          username: data.user.username
+        });
+        setUserRole("client");
         setIsAuthenticated(true);
         
         // Fetch client-specific rates
@@ -66,20 +91,28 @@ const useClientAuth = () => {
   };
 
   const logout = () => {
+    localStorage.removeItem("token");
     localStorage.removeItem("clientToken");
     localStorage.removeItem("clientId");
-    setClient(null);
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("username");
+    setUser(null);
     setIsAuthenticated(false);
-    window.location.href = "/ba-b2b-rate-calculator";
+    // Redirect based on role
+    if (userRole === "admin") {
+      window.location.href = "/";
+    } else {
+      window.location.href = "/ba-b2b-rate-calculator";
+    }
   };
 
-  return { client, isAuthenticated, loading, clientRates, clientPolicy, logout };
+  return { user, isAuthenticated, loading, userRole, clientRates, clientPolicy, logout };
 };
 
 // ============================================
-// 💰 CLIENT-SPECIFIC FREIGHT CALCULATOR
+// 💰 FREIGHT CALCULATOR (Works for both Admin & Client)
 // ============================================
-const ClientFreightCalculator = ({ weight, origin, destination, bookingMode, clientPolicy, clientRates, onCalculate }) => {
+const FreightCalculator = ({ weight, origin, destination, bookingMode, clientPolicy, clientRates, userRole, onCalculate }) => {
   const [freight, setFreight] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -96,9 +129,10 @@ const ClientFreightCalculator = ({ weight, origin, destination, bookingMode, cli
     return zoneMap[firstDigit] || 'NE2';
   };
 
-  // Get client-specific rate
-  const getClientRate = (originZone, destZone) => {
-    if (clientRates && clientRates.length > 0) {
+  // Get rate (client-specific or default)
+  const getRate = (originZone, destZone) => {
+    // For clients with custom rates
+    if (userRole === "client" && clientRates && clientRates.length > 0) {
       const rate = clientRates.find(r => r.from_zone === originZone && r.to_zone === destZone);
       if (rate) return rate.rate;
     }
@@ -119,10 +153,10 @@ const ClientFreightCalculator = ({ weight, origin, destination, bookingMode, cli
         
         const originZone = getZoneFromPincode(origin);
         const destZone = getZoneFromPincode(destination);
-        const ratePerKg = getClientRate(originZone, destZone);
+        const ratePerKg = getRate(originZone, destZone);
         
         // Use client policy or defaults
-        const charges = clientPolicy || {
+        const charges = (userRole === "client" && clientPolicy) ? clientPolicy : {
           minFreight: 650,
           docketCharge: 100,
           fuelPercent: 10,
@@ -149,7 +183,7 @@ const ClientFreightCalculator = ({ weight, origin, destination, bookingMode, cli
           ratePerKg: ratePerKg.toFixed(2),
           fromZone: originZone,
           toZone: destZone,
-          isCustomRate: clientRates?.length > 0
+          isCustomRate: userRole === "client" && clientRates?.length > 0
         };
         
         setFreight(freightResult);
@@ -159,7 +193,7 @@ const ClientFreightCalculator = ({ weight, origin, destination, bookingMode, cli
     };
     
     calculateFreight();
-  }, [weight, origin, destination, bookingMode, clientPolicy, clientRates]);
+  }, [weight, origin, destination, bookingMode, clientPolicy, clientRates, userRole]);
 
   if (!origin || !destination || weight === 0) return null;
 
@@ -169,6 +203,7 @@ const ClientFreightCalculator = ({ weight, origin, destination, bookingMode, cli
         <Calculator size={18} />
         <span>Freight Calculator</span>
         {freight?.isCustomRate && <span className="custom-rate-badge">⭐ Custom Rate</span>}
+        {userRole === "admin" && <span className="admin-badge">Admin Rate</span>}
         {loading && <span className="loading-badge">Calculating...</span>}
       </div>
       {error && <div className="freight-error-msg"><AlertCircle size={14} /> {error}</div>}
@@ -205,9 +240,9 @@ const ClientFreightCalculator = ({ weight, origin, destination, bookingMode, cli
 };
 
 // ============================================
-// 🎨 DOCKET COMPONENT (Same as before, but add client ID)
+// 🎨 DOCKET COMPONENT
 // ============================================
-const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData, status, uploadedInvoices, clientId }, ref) => {
+const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData, status, uploadedInvoices, clientId, userRole }, ref) => {
   const barcodeRef = useRef(null);
   const [barcodeImageUrl, setBarcodeImageUrl] = useState("");
   
@@ -296,6 +331,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
             <span className="awb-value-bold">{awbNumber || "N/A"}</span>
           </div>
           {clientId && <div className="client-id-docket">Client: {clientId}</div>}
+          {userRole === "admin" && <div className="admin-badge-docket">Admin</div>}
           <div className="status-badge-docket">{getStatusText()}</div>
           <div className="date-value-docket">{new Date().toLocaleDateString('en-IN')}</div>
         </div>
@@ -313,7 +349,6 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </div>
       </div>
 
-      {/* Rest of the docket content remains same */}
       <div className="parties-container">
         <div className="party sender">
           <div className="party-title">
@@ -737,10 +772,10 @@ const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
 };
 
 // ============================================
-// 🚀 MAIN CREATE ORDER COMPONENT WITH CLIENT AUTH
+// 🚀 MAIN CREATE ORDER COMPONENT
 // ============================================
 export default function CreateOrder() {
-  const { client, isAuthenticated, loading: authLoading, clientPolicy, clientRates, logout } = useClientAuth();
+  const { user, isAuthenticated, loading: authLoading, userRole, clientPolicy, clientRates, logout } = useAuth();
   
   const [dimensions, setDimensions] = useState([]);
   const [totalPackages, setTotalPackages] = useState(0);
@@ -790,7 +825,7 @@ export default function CreateOrder() {
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      window.location.href = "/ba-b2b-rate-calculator";
+      window.location.href = "/user-login";
     }
   }, [authLoading, isAuthenticated]);
 
@@ -815,7 +850,7 @@ export default function CreateOrder() {
   const handleCreateOrder = async () => {
     if (!isAuthenticated) {
       alert("Please login first!");
-      window.location.href = "/ba-b2b-rate-calculator";
+      window.location.href = "/user-login";
       return;
     }
     
@@ -828,7 +863,7 @@ export default function CreateOrder() {
     setApiError("");
 
     const orderData = {
-      clientId: client?.clientId,
+      clientId: userRole === "client" ? user?.clientId : null,
       pickupName: pickup.name, pickupAddress: pickup.address, pickupPincode: pickup.pincode,
       pickupContact: pickup.contact, pickupGstin: pickup.gstin,
       deliveryName: delivery.name, deliveryAddress: delivery.address, deliveryPincode: delivery.pincode,
@@ -854,8 +889,9 @@ export default function CreateOrder() {
         setShipmentStatus("booked");
         setShowLR(true);
         
-        // Store with client ID
-        const allShipments = JSON.parse(localStorage.getItem(`shipments_${client?.clientId}`) || '[]');
+        // Store with client ID (for clients) or generic for admin
+        const storageKey = userRole === "client" ? `shipments_${user?.clientId}` : "all_shipments";
+        const allShipments = JSON.parse(localStorage.getItem(storageKey) || '[]');
         allShipments.unshift({
           lr: isManualLR ? manualLRNumber : result.lr_number, 
           awb: result.awb,
@@ -865,9 +901,10 @@ export default function CreateOrder() {
           date: new Date().toISOString(),
           invoices: invoices.filter(inv => inv.no && inv.value),
           uploadedFiles: uploadedFiles,
-          clientId: client?.clientId
+          clientId: userRole === "client" ? user?.clientId : null,
+          createdBy: userRole === "admin" ? "Admin" : user?.username
         });
-        localStorage.setItem(`shipments_${client?.clientId}`, JSON.stringify(allShipments.slice(0, 50)));
+        localStorage.setItem(storageKey, JSON.stringify(allShipments.slice(0, 50)));
       } else {
         setApiError(result.error || "Failed");
         alert("Error: " + result.error);
@@ -1033,6 +1070,8 @@ export default function CreateOrder() {
     return null; // Will redirect via useEffect
   }
 
+  const displayName = userRole === "admin" ? "Admin" : (user?.companyName || user?.username);
+
   return (
     <div className="create-order-page">
       <aside className="order-sidebar">
@@ -1043,8 +1082,8 @@ export default function CreateOrder() {
         <div className="client-info-sidebar">
           <UserCircle size={20} />
           <div>
-            <span>{client?.companyName || client?.username}</span>
-            <small>{client?.clientId}</small>
+            <span>{displayName}</span>
+            <small>{userRole === "admin" ? "Administrator" : user?.clientId}</small>
           </div>
           <button className="logout-sidebar-btn" onClick={logout}>
             <LogOut size={14} />
@@ -1056,10 +1095,16 @@ export default function CreateOrder() {
           <div className="nav-link" onClick={() => window.location.href='/shipments'}><FileText size={18} /> My Dockets</div>
           <div className="nav-link"><CreditCard size={18} /> Payments</div>
         </nav>
-        {clientPolicy && (
+        {userRole === "client" && clientPolicy && (
           <div className="sidebar-rates-info">
             <div className="rate-badge-sidebar">⭐ Custom Rates Active</div>
             <small>Your negotiated rates are applied</small>
+          </div>
+        )}
+        {userRole === "admin" && (
+          <div className="sidebar-rates-info">
+            <div className="rate-badge-sidebar">👑 Admin Access</div>
+            <small>Full system access</small>
           </div>
         )}
         <div className="sidebar-help"><Award size={24} color="#d32f2f" /><p>Support 24/7</p><span>📞 9818641504</span></div>
@@ -1069,12 +1114,13 @@ export default function CreateOrder() {
         <div className="page-title-section">
           <div>
             <h1>Create Shipment</h1>
-            <p>Welcome, {client?.companyName || client?.username}!</p>
+            <p>Welcome, {displayName}!</p>
           </div>
           <div className="stats-badges">
             <div className="badge">⚡ Charged: {chargedWeight} Kg</div>
             <div className="badge red">💰 Value: ₹{totalInvoiceValue.toLocaleString()}</div>
-            {clientPolicy && <div className="badge custom-rate-badge">⭐ Custom Rate Applied</div>}
+            {userRole === "client" && clientPolicy && <div className="badge custom-rate-badge">⭐ Custom Rate Applied</div>}
+            {userRole === "admin" && <div className="badge admin-badge">👑 Admin Mode</div>}
           </div>
         </div>
 
@@ -1220,14 +1266,15 @@ export default function CreateOrder() {
                 <InvoiceUpload onUpload={(files) => console.log("Uploaded:", files)} uploadedFiles={uploadedFiles} setUploadedFiles={setUploadedFiles} />
                 {needsEwayBill && (<div className="eway-alert"><div className="eway-header"><AlertCircle size={16} /> E-WAY BILL REQUIRED</div><input className="eway-input-field" value={ewayBill} onChange={e => setEwayBill(e.target.value.toUpperCase())} placeholder="12 DIGIT E-WAY BILL NO." maxLength={12} /></div>)}
                 
-                {/* Client-Specific Freight Calculator */}
-                <ClientFreightCalculator 
+                {/* Freight Calculator */}
+                <FreightCalculator 
                   weight={chargedWeight} 
                   origin={pickup.pincode} 
                   destination={delivery.pincode} 
                   bookingMode={bookingMode}
                   clientPolicy={clientPolicy}
                   clientRates={clientRates}
+                  userRole={userRole}
                   onCalculate={setFreightData} 
                 />
                 
@@ -1261,7 +1308,8 @@ export default function CreateOrder() {
               freightData={freightData} 
               status={shipmentStatus} 
               uploadedInvoices={uploadedFiles}
-              clientId={client?.clientId}
+              clientId={userRole === "client" ? user?.clientId : null}
+              userRole={userRole}
             />
           </div>
           <div className="modal-buttons">
