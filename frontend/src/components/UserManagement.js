@@ -550,37 +550,37 @@ function UserManagement() {
         </div>
         <div className="um-modal-body">
           <div className="rate-matrix-section">
-            <h4>📊 Zone Rate Matrix (₹ per kg)</h4>
-            <div className="table-wrapper">
-              <table className="rate-matrix-table">
-                <thead>
-                  <tr>
-                    <th>From ↓ / To →</th>
-                    {zones.map(z => <th key={z}>{z}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {zones.map(from => (
-                    <tr key={from}>
-                      <td className="zone-cell">{from}</td>
-                      {zones.map(to => (
-                        <td key={to}>
-                          <input
-                            type="number"
-                            step="0.5"
-                            value={clientRates[from]?.[to] || ""}
-                            onChange={(e) => handleRateChange(from, to, e.target.value)}
-                            placeholder={masterRates[from]?.[to] || "0"}
-                            className="rate-input"
-                          />
-                        </td>
-                      ))}
-                    </table>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+  <h4>📊 Zone Rate Matrix (₹ per kg)</h4>
+  <div className="table-wrapper">
+    <table className="rate-matrix-table">
+      <thead>
+        <tr>
+          <th>From ↓ / To →</th>
+          {zones.map(z => <th key={z}>{z}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {zones.map(from => (
+          <tr key={from}>
+            <td className="zone-cell">{from}</td>
+            {zones.map(to => (
+              <td key={to}>
+                <input
+                  type="number"
+                  step="0.5"
+                  value={clientRates[from]?.[to] || ""}
+                  onChange={(e) => handleRateChange(from, to, e.target.value)}
+                  placeholder={masterRates[from]?.[to] || "0"}
+                  className="rate-input"
+                />
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
         </div>
         <div className="um-modal-footer">
           <button className="um-btn-secondary" onClick={() => setShowRateModal(false)}>Cancel</button>
