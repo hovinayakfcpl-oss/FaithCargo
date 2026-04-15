@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  Eye, EyeOff, User, Lock, LogIn, ArrowLeft, AlertCircle, 
-  CheckCircle, Shield, Zap, Briefcase, Building, Users, 
+  Eye, EyeOff, Lock, LogIn, ArrowLeft, AlertCircle, 
+  CheckCircle, Shield, Zap, Building, 
   Truck, Package, DollarSign, Clock, MapPin, Phone, Mail,
-  UserCircle, Store, Building2, CreditCard, FileText,
-  Info
+  Building2, CreditCard, FileText, Info, User, ArrowRight,
+  Star, Award, Users, Headphones, Globe, Wallet, Box
 } from "lucide-react";
 import "./UserLogin.css";
 import logo from "../assets/logo.png";
@@ -14,7 +14,7 @@ function UserLogin() {
   const navigate = useNavigate();
 
   // ========== LOGIN TYPE STATE ==========
-  const [loginType, setLoginType] = useState("staff"); // "staff" or "client"
+  const [loginType, setLoginType] = useState("client"); // Default to client
   
   const [username, setUsername] = useState("");
   const [clientId, setClientId] = useState("");
@@ -36,7 +36,7 @@ function UserLogin() {
         setRememberMe(true);
         setLoginType("client");
       }
-    } else {
+    } else if (savedLoginType === "staff") {
       const savedUsername = localStorage.getItem("rememberedUsername");
       const savedRemember = localStorage.getItem("rememberMe") === "true";
       if (savedUsername && savedRemember) {
@@ -49,135 +49,127 @@ function UserLogin() {
 
   // ========== STAFF LOGIN ==========
   const handleStaffLogin = async () => {
-    const res = await fetch("https://faithcargo.onrender.com/api/user/login/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: username.trim(),
-        password: password.trim(),
-      }),
-    });
+    try {
+      const res = await fetch("https://faithcargo.onrender.com/api/user/login/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password.trim(),
+        }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (res.status === 200 && data.status === "success") {
-      // Clear old data
-      localStorage.clear();
+      if (res.status === 200 && data.status === "success") {
+        localStorage.clear();
 
-      // Store authentication data
-      localStorage.setItem("token", "user-login-token");
-      localStorage.setItem("is_superuser", "false");
-      localStorage.setItem("username", data.username);
-      localStorage.setItem("userId", data.id || "1");
-      localStorage.setItem("userRole", "staff");
-      localStorage.setItem("loginType", "staff");
-      
-      // Store user modules
-      const modules = data.modules || {};
-      localStorage.setItem("userModules", JSON.stringify(modules));
-      
-      // Store user details
-      if (data.email) localStorage.setItem("userEmail", data.email);
-      if (data.company) localStorage.setItem("userCompany", data.company);
-      if (data.phone) localStorage.setItem("userPhone", data.phone);
-      if (data.address) localStorage.setItem("userAddress", data.address);
-      if (data.gstin) localStorage.setItem("userGstin", data.gstin);
-      
-      // Handle remember me
-      if (rememberMe) {
-        localStorage.setItem("rememberedUsername", username.trim());
-        localStorage.setItem("rememberMe", "true");
-        localStorage.setItem("savedLoginType", "staff");
+        localStorage.setItem("token", "user-login-token");
+        localStorage.setItem("is_superuser", data.is_superuser || "false");
+        localStorage.setItem("username", data.username);
+        localStorage.setItem("userId", data.user_id || "1");
+        localStorage.setItem("userRole", data.role === "admin" ? "admin" : "staff");
+        localStorage.setItem("loginType", "staff");
+        
+        const modules = data.modules || {};
+        localStorage.setItem("userModules", JSON.stringify(modules));
+        
+        if (data.email) localStorage.setItem("userEmail", data.email);
+        if (data.company) localStorage.setItem("userCompany", data.company);
+        if (data.phone) localStorage.setItem("userPhone", data.phone);
+        
+        if (rememberMe) {
+          localStorage.setItem("rememberedUsername", username.trim());
+          localStorage.setItem("rememberMe", "true");
+          localStorage.setItem("savedLoginType", "staff");
+        } else {
+          localStorage.removeItem("rememberedUsername");
+          localStorage.removeItem("rememberMe");
+        }
+
+        setSuccess(`Welcome ${data.username}! Redirecting... 🚀`);
+        
+        setTimeout(() => {
+          if (data.role === "admin") {
+            navigate("/admin-dashboard");
+          } else {
+            navigate("/user-dashboard");
+          }
+          window.location.reload();
+        }, 1500);
       } else {
-        localStorage.removeItem("rememberedUsername");
-        localStorage.removeItem("rememberMe");
+        setError(data.error || "Invalid staff credentials ❌");
       }
-
-      const enabledModules = Object.keys(modules).filter(key => modules[key] === true);
-      setSuccess(`Welcome ${data.username}! Redirecting to Staff Dashboard... 🚀`);
-      
-      console.log("=== Staff Login Successful ===");
-      console.log("Username:", data.username);
-      console.log("Modules:", enabledModules);
-      
-      setTimeout(() => {
-        navigate("/user-dashboard");
-        window.location.reload();
-      }, 1500);
-    } else {
-      setError(data.error || "Invalid staff credentials ❌");
+    } catch (err) {
+      setError("Server error ❌. Please try again.");
     }
   };
 
   // ========== CLIENT LOGIN ==========
   const handleClientLogin = async () => {
-    const res = await fetch("https://faithcargo.onrender.com/api/auth/client-login/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clientId: clientId.trim().toUpperCase(),
-        password: password.trim(),
-      }),
-    });
+    try {
+      const res = await fetch("https://faithcargo.onrender.com/api/auth/client-login/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: clientId.trim().toUpperCase(),
+          password: password.trim(),
+        }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (data.success) {
-      // Clear old data
-      localStorage.clear();
+      if (data.success) {
+        localStorage.clear();
 
-      // Store client authentication data
-      localStorage.setItem("clientToken", data.token);
-      localStorage.setItem("clientId", clientId.trim().toUpperCase());
-      localStorage.setItem("userRole", "client");
-      localStorage.setItem("loginType", "client");
-      
-      // Store client details
-      if (data.user) {
-        localStorage.setItem("clientName", data.user.companyName || data.user.username);
-        localStorage.setItem("clientEmail", data.user.email || "");
-        localStorage.setItem("clientPhone", data.user.phone || "");
-        localStorage.setItem("clientCompany", data.user.companyName || "");
-        localStorage.setItem("clientGstin", data.user.gstin || "");
-      }
-      
-      // Store client-specific modules/permissions
-      const clientModules = {
-        ba_b2b: true,
-        create_order: true,
-        shipment_details: true,
-        fcpl_rate: false,
-        pickup: false,
-        vendor_manage: false,
-        vendor_rates: false,
-        rate_update: false,
-        pincode: false,
-        user_management: false
-      };
-      localStorage.setItem("userModules", JSON.stringify(clientModules));
-      
-      // Handle remember me
-      if (rememberMe) {
-        localStorage.setItem("rememberedClientId", clientId.trim().toUpperCase());
-        localStorage.setItem("rememberClient", "true");
-        localStorage.setItem("savedLoginType", "client");
+        localStorage.setItem("clientToken", data.token);
+        localStorage.setItem("clientId", clientId.trim().toUpperCase());
+        localStorage.setItem("userRole", "client");
+        localStorage.setItem("loginType", "client");
+        
+        if (data.user) {
+          localStorage.setItem("clientName", data.user.companyName || data.user.username);
+          localStorage.setItem("clientEmail", data.user.email || "");
+          localStorage.setItem("clientPhone", data.user.phone || "");
+          localStorage.setItem("clientCompany", data.user.companyName || "");
+          localStorage.setItem("clientGstin", data.user.gstin || "");
+          localStorage.setItem("clientAddress", data.user.address || "");
+        }
+        
+        const clientModules = {
+          ba_b2b: true,
+          create_order: true,
+          shipment_details: true,
+          fcpl_rate: false,
+          pickup: false,
+          vendor_manage: false,
+          vendor_rates: false,
+          rate_update: false,
+          pincode: false,
+          user_management: false
+        };
+        localStorage.setItem("userModules", JSON.stringify(clientModules));
+        
+        if (rememberMe) {
+          localStorage.setItem("rememberedClientId", clientId.trim().toUpperCase());
+          localStorage.setItem("rememberClient", "true");
+          localStorage.setItem("savedLoginType", "client");
+        } else {
+          localStorage.removeItem("rememberedClientId");
+          localStorage.removeItem("rememberClient");
+        }
+
+        setSuccess(`Welcome ${data.user?.companyName || clientId}! Redirecting... 🚀`);
+        
+        setTimeout(() => {
+          navigate("/ba-b2b-rate-calculator");
+          window.location.reload();
+        }, 1500);
       } else {
-        localStorage.removeItem("rememberedClientId");
-        localStorage.removeItem("rememberClient");
+        setError(data.error || "Invalid Client ID or Password ❌");
       }
-
-      setSuccess(`Welcome ${data.user?.companyName || clientId}! Redirecting to Rate Calculator... 🚀`);
-      
-      console.log("=== Client Login Successful ===");
-      console.log("Client ID:", clientId);
-      console.log("Client Name:", data.user?.companyName);
-      
-      setTimeout(() => {
-        navigate("/ba-b2b-rate-calculator");
-        window.location.reload();
-      }, 1500);
-    } else {
-      setError(data.error || "Invalid client credentials ❌\nPlease check your Client ID and Password");
+    } catch (err) {
+      setError("Server error ❌. Please try again.");
     }
   };
 
@@ -191,73 +183,55 @@ function UserLogin() {
         setError("Please enter username & password");
         return;
       }
+      setLoading(true);
+      await handleStaffLogin();
+      setLoading(false);
     } else {
       if (!clientId || !password) {
         setError("Please enter Client ID & password");
         return;
       }
-    }
-
-    setLoading(true);
-
-    try {
-      if (loginType === "staff") {
-        await handleStaffLogin();
-      } else {
-        await handleClientLogin();
-      }
-    } catch (err) {
-      console.error("Login Error:", err);
-      setError("Server error ❌. Please check your internet connection.");
-    } finally {
+      setLoading(true);
+      await handleClientLogin();
       setLoading(false);
     }
   };
 
   return (
     <div className="user-login-container">
-      {/* LEFT DECORATION - Enhanced */}
+      {/* LEFT DECORATION */}
       <div className="user-login-left">
         <div className="animated-bg"></div>
         <div className="overlay-content">
           <div className="trust-badge">
-            <Shield size={32} />
+            <Award size={28} />
             <span>ISO 9001:2015 Certified</span>
           </div>
           <h2>Faith Cargo Logistics</h2>
           <p className="tagline">Your Trusted Logistics Partner</p>
           <div className="features-list">
-            <div className="feature-item">
-              <Zap size={18} />
-              <span>Real-time Shipment Tracking</span>
-            </div>
-            <div className="feature-item">
-              <Zap size={18} />
-              <span>Instant Rate Calculator</span>
-            </div>
-            <div className="feature-item">
-              <Zap size={18} />
-              <span>Digital Documentation</span>
-            </div>
-            <div className="feature-item">
-              <Zap size={18} />
-              <span>24/7 Customer Support</span>
-            </div>
+            <div className="feature-item"><Zap size={18} /><span>Real-time Tracking</span></div>
+            <div className="feature-item"><Calculator size={18} /><span>Instant Rate Calculator</span></div>
+            <div className="feature-item"><FileText size={18} /><span>Digital Documentation</span></div>
+            <div className="feature-item"><Headphones size={18} /><span>24/7 Support</span></div>
+            <div className="feature-item"><Shield size={18} /><span>Secure Shipping</span></div>
+            <div className="feature-item"><Globe size={18} /><span>Pan India Service</span></div>
           </div>
           <div className="support-info">
-            <p>Need help? Call us: <strong>+91 9311801079</strong></p>
+            <Phone size={16} />
+            <span>Need help? Call us: <strong>+91 9818641504</strong></span>
           </div>
         </div>
       </div>
 
-      {/* RIGHT LOGIN FORM - Enhanced with Login Type Toggle */}
+      {/* RIGHT LOGIN FORM */}
       <div className="user-login-right">
         <div className="login-form-wrapper">
           <div className="logo-container">
-            <img src={logo} alt="Faith Cargo Logo" className="login-logo" />
+            <img src={logo} alt="Faith Cargo" className="login-logo" />
             <div className="online-status"></div>
           </div>
-          
+
           {/* Login Type Toggle */}
           <div className="login-type-toggle">
             <button 
@@ -284,14 +258,13 @@ function UserLogin() {
             </button>
           </div>
 
-          <h2>{loginType === 'staff' ? 'Staff Portal Login' : 'Client Portal Login'}</h2>
+          <h2>{loginType === 'staff' ? 'Staff Portal' : 'Client Portal'}</h2>
           <p className="subtitle">
             {loginType === 'staff' 
               ? 'Enter your credentials to access staff dashboard' 
-              : 'Enter your Client ID and password to access rate calculator'}
+              : 'Login to access rate calculator & create orders'}
           </p>
 
-          {/* Error Alert */}
           {error && (
             <div className="alert alert-error">
               <AlertCircle size={18} />
@@ -299,7 +272,6 @@ function UserLogin() {
             </div>
           )}
 
-          {/* Success Alert */}
           {success && (
             <div className="alert alert-success">
               <CheckCircle size={18} />
@@ -318,7 +290,6 @@ function UserLogin() {
                     placeholder="Enter your username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    autoComplete="username"
                     disabled={loading}
                   />
                 </div>
@@ -330,16 +301,15 @@ function UserLogin() {
                   <Building2 size={18} className="input-icon" />
                   <input
                     type="text"
-                    placeholder="Enter your Client ID (e.g., CLIENT001)"
+                    placeholder="Enter your Client ID"
                     value={clientId}
                     onChange={(e) => setClientId(e.target.value.toUpperCase())}
-                    autoComplete="off"
                     disabled={loading}
                   />
                 </div>
                 <div className="input-hint">
-                  <Package size={12} />
-                  <span>Enter the Client ID provided by admin</span>
+                  <Info size={12} />
+                  <span>Enter the Client ID provided by your account manager</span>
                 </div>
               </div>
             )}
@@ -353,7 +323,6 @@ function UserLogin() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
                   disabled={loading}
                 />
                 <button
@@ -382,13 +351,11 @@ function UserLogin() {
 
             <button type="submit" className="login-btn" disabled={loading}>
               {loading ? (
-                <span>
-                  <i className="fas fa-spinner fa-spin"></i> Verifying...
-                </span>
+                <span>Verifying...</span>
               ) : (
                 <>
                   <LogIn size={18} />
-                  {loginType === 'staff' ? 'Login to Staff Dashboard' : 'Access Rate Calculator'}
+                  {loginType === 'staff' ? 'Login to Staff Dashboard' : 'Access Client Portal'}
                 </>
               )}
             </button>
@@ -402,7 +369,7 @@ function UserLogin() {
             </div>
             <button className="back-link" onClick={() => navigate("/")}>
               <ArrowLeft size={16} />
-              Back to Admin Login
+              Back to Home
             </button>
           </div>
 
@@ -413,6 +380,10 @@ function UserLogin() {
                 <span>New to Faith Cargo?</span>
               </div>
               <p>Contact your account manager to get your Client ID and credentials.</p>
+              <div className="contact-details">
+                <Phone size={12} /> <span>+91 9818641504</span>
+                <Mail size={12} /> <span>care@faithcargo.com</span>
+              </div>
             </div>
           )}
 

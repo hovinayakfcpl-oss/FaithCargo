@@ -1,8 +1,9 @@
 /* ============================================
-   USER LOGIN - ULTIMATE PREMIUM DESIGN v5.0
-   WITH STAFF & CLIENT LOGIN TOGGLE
-   FAITH CARGO LOGISTICS
+   CLIENT LOGIN - PREMIUM DESIGN v6.0
+   FAITH CARGO LOGISTICS - CLIENT PORTAL ONLY
    ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&display=swap');
 
 /* --------------------------------------------
    1. CSS VARIABLES & RESET
@@ -15,12 +16,14 @@
   --primary-blue: #2563eb;
   --primary-blue-dark: #1d4ed8;
   --primary-blue-light: #dbeafe;
-  --primary-purple: #667eea;
-  --primary-purple-dark: #764ba2;
+  --primary-purple: #8b5cf6;
+  --primary-purple-dark: #7c3aed;
   --primary-purple-light: #ede9fe;
   --primary-green: #10b981;
   --primary-green-dark: #059669;
+  --primary-green-light: #d1fae5;
   --dark-bg: #0f172a;
+  --dark-bg-light: #1e293b;
   --text-dark: #0f172a;
   --text-gray: #64748b;
   --text-light: #94a3b8;
@@ -42,7 +45,7 @@
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
   --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
   --shadow-glow-red: 0 0 20px rgba(211, 47, 47, 0.3);
-  --shadow-glow-purple: 0 0 20px rgba(102, 126, 234, 0.3);
+  --shadow-glow-purple: 0 0 20px rgba(139, 92, 246, 0.3);
   --shadow-glow-green: 0 0 20px rgba(16, 185, 129, 0.3);
   --radius-xs: 4px;
   --radius-sm: 8px;
@@ -50,6 +53,7 @@
   --radius-lg: 16px;
   --radius-xl: 20px;
   --radius-2xl: 24px;
+  --radius-3xl: 32px;
   --radius-full: 9999px;
   --transition-fast: all 0.15s ease;
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -100,7 +104,7 @@ body {
 /* --------------------------------------------
    3. MAIN CONTAINER
    -------------------------------------------- */
-.user-login-container {
+.client-login-container {
   display: flex;
   min-height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #eef2f7 100%);
@@ -111,7 +115,7 @@ body {
 /* --------------------------------------------
    4. LEFT SECTION - PREMIUM GRADIENT
    -------------------------------------------- */
-.user-login-left {
+.client-login-left {
   flex: 1;
   background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-purple) 100%);
   position: relative;
@@ -262,6 +266,10 @@ body {
   padding-top: 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .support-info strong {
@@ -272,7 +280,7 @@ body {
 /* --------------------------------------------
    5. RIGHT SECTION - LOGIN FORM
    -------------------------------------------- */
-.user-login-right {
+.client-login-right {
   flex: 1;
   display: flex;
   align-items: center;
@@ -356,47 +364,6 @@ body {
   }
 }
 
-/* ============================================
-   LOGIN TYPE TOGGLE - NEW
-   ============================================ */
-.login-type-toggle {
-  display: flex;
-  gap: 12px;
-  background: var(--bg-gray);
-  padding: 6px;
-  border-radius: var(--radius-full);
-  margin-bottom: 28px;
-  border: 1px solid var(--border-color);
-}
-
-.toggle-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 20px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-full);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition);
-  color: var(--text-gray);
-}
-
-.toggle-btn:hover {
-  background: rgba(211, 47, 47, 0.1);
-  color: var(--primary-red);
-}
-
-.toggle-btn.active {
-  background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
-  color: white;
-  box-shadow: var(--shadow-sm);
-}
-
 /* Heading */
 .login-form-wrapper h2 {
   font-size: 32px;
@@ -450,7 +417,7 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-/* Input Hint - NEW */
+/* Input Hint */
 .input-hint {
   display: flex;
   align-items: center;
@@ -462,30 +429,6 @@ body {
 
 .input-hint svg {
   opacity: 0.7;
-}
-
-/* Client Info Note - NEW */
-.client-info-note {
-  margin-top: 24px;
-  padding: 16px;
-  background: linear-gradient(135deg, var(--primary-purple-light), white);
-  border-radius: var(--radius-lg);
-  border-left: 3px solid var(--primary-purple);
-}
-
-.note-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  color: var(--primary-purple);
-  margin-bottom: 8px;
-  font-size: 13px;
-}
-
-.client-info-note p {
-  font-size: 11px;
-  color: var(--text-gray);
 }
 
 /* Form Styles */
@@ -706,6 +649,47 @@ body {
   color: var(--primary-red);
 }
 
+/* Client Info Note */
+.client-info-note {
+  margin-top: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, var(--primary-purple-light), white);
+  border-radius: var(--radius-lg);
+  border-left: 3px solid var(--primary-purple);
+}
+
+.note-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--primary-purple);
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.client-info-note p {
+  font-size: 12px;
+  color: var(--text-gray);
+  margin-bottom: 12px;
+}
+
+.contact-details {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 11px;
+  color: var(--text-gray);
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.contact-details span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 /* Security Note */
 .security-note {
   display: flex;
@@ -746,11 +730,11 @@ body {
 }
 
 @media (max-width: 968px) {
-  .user-login-left {
+  .client-login-left {
     display: none;
   }
   
-  .user-login-right {
+  .client-login-right {
     flex: none;
     width: 100%;
     padding: 30px 20px;
@@ -791,19 +775,10 @@ body {
     padding: 12px 16px;
     font-size: 12px;
   }
-  
-  .login-type-toggle {
-    margin-bottom: 24px;
-  }
-  
-  .toggle-btn {
-    padding: 10px 16px;
-    font-size: 13px;
-  }
 }
 
 @media (max-width: 480px) {
-  .user-login-right {
+  .client-login-right {
     padding: 20px 16px;
   }
   
@@ -841,17 +816,14 @@ body {
     font-size: 11px;
   }
   
-  .toggle-btn {
-    padding: 8px 12px;
-    font-size: 12px;
-  }
-  
-  .login-type-toggle {
-    gap: 8px;
-  }
-  
   .client-info-note {
     padding: 12px;
+  }
+  
+  .contact-details {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
   }
 }
 
@@ -867,14 +839,6 @@ body {
   .checkbox-label,
   .forgot-link {
     font-size: 12px;
-  }
-  
-  .toggle-btn span {
-    display: none;
-  }
-  
-  .toggle-btn svg {
-    margin: 0;
   }
 }
 
@@ -930,14 +894,14 @@ body {
 
 /* Print Styles */
 @media print {
-  .user-login-left,
+  .client-login-left,
   .security-note,
   .back-link,
   .client-info-note {
     display: none !important;
   }
   
-  .user-login-right {
+  .client-login-right {
     width: 100%;
     padding: 0;
   }
