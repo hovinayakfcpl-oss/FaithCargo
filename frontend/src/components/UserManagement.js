@@ -277,24 +277,48 @@ function UserManagement() {
     }));
   };
 
-  // Fetch client orders from shipments API
+  // ✅ FIXED: Fetch client orders from shipments API
   const fetchClientOrders = async (clientId) => {
     try {
+      console.log("Fetching orders for client:", clientId);
       const response = await axios.get(`${SHIPMENTS_API_URL}/client/${clientId}/orders/`);
-      return response.data;
+      console.log("Orders response:", response.data);
+      
+      // Return array even if empty
+      if (response.data && Array.isArray(response.data)) {
+        return response.data;
+      }
+      return [];
     } catch (error) {
       console.error("Error fetching client orders:", error);
       return [];
     }
   };
 
-  // Generate client report
+  // ✅ FIXED: Generate client report with proper data mapping
   const generateClientReport = async (client) => {
     setLoading(true);
     try {
+      console.log("Generating report for client:", client);
+      
       const orders = await fetchClientOrders(client.clientId);
+      console.log("Raw orders data:", orders);
+      
       const totalFreight = orders.reduce((sum, o) => sum + (o.value || 0), 0);
       const totalOrders = orders.length;
+      
+      // Map orders to display format
+      const mappedOrders = orders.map((o, index) => ({
+        id: index,
+        order_number: o.lr || o.lr_number || `ORDER${index + 1}`,
+        created_at: o.date || new Date().toISOString(),
+        origin_pincode: o.route ? o.route.split(' → ')[0] : 'N/A',
+        destination_pincode: o.route ? o.route.split(' → ')[1] : 'N/A',
+        weight: o.weight || 0,
+        total_value: o.value || 0,
+        freight_amount: o.value || 0,
+        status: o.status || 'booked'
+      }));
       
       setReportData({
         username: client.companyName || client.username,
@@ -303,22 +327,12 @@ function UserManagement() {
         totalShipments: totalOrders,
         totalFreight: totalFreight,
         totalValue: totalFreight,
-        orders: orders.map(o => ({
-          id: o.id,
-          order_number: o.lr,
-          created_at: o.date,
-          origin_pincode: o.route?.split(' → ')[0],
-          destination_pincode: o.route?.split(' → ')[1],
-          weight: o.weight,
-          total_value: o.value,
-          freight_amount: o.value,
-          status: o.status
-        }))
+        orders: mappedOrders
       });
       setShowReportModal(true);
     } catch (error) {
       console.error("Error generating report:", error);
-      alert("Error generating report");
+      alert("Error generating report: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -342,15 +356,18 @@ function UserManagement() {
     URL.revokeObjectURL(url);
   };
 
-  // Fetch all clients
+  // ✅ FIXED: Fetch all clients with order counts
   const fetchClients = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${API_BASE_URL}/clients/`, config);
+      console.log("Clients API response:", res.data);
+      
       const clientsWithOrders = await Promise.all(
         res.data.map(async (client) => {
           const orders = await fetchClientOrders(client.clientId);
           const totalFreight = orders.reduce((sum, o) => sum + (o.value || 0), 0);
+          console.log(`Client ${client.clientId}: ${orders.length} orders, ₹${totalFreight}`);
           return { 
             ...client, 
             orderCount: orders.length,
@@ -416,9 +433,8 @@ function UserManagement() {
     }
   };
 
-  // ✅ FIXED: Create new client with proper payload
+  // Create new client
   const createClient = async () => {
-    // Validation
     if (!newClient.clientId || !newClient.companyName || !newClient.email || !newClient.password) {
       alert("Please fill all required fields: Client ID, Company Name, Email, Password");
       return;
@@ -426,7 +442,6 @@ function UserManagement() {
 
     setLoading(true);
     try {
-      // Make sure data is sent in correct format
       const payload = {
         clientId: newClient.clientId.toUpperCase(),
         companyName: newClient.companyName,
@@ -437,11 +452,9 @@ function UserManagement() {
         gstin: newClient.gstin || ""
       };
       
-      console.log("Sending payload:", payload); // Debug log
+      console.log("Creating client:", payload);
       
       const response = await axios.post(`${API_BASE_URL}/client/create/`, payload, config);
-      
-      console.log("Response:", response.data); // Debug log
       
       alert(`✅ Client ${newClient.clientId} created successfully!`);
       setNewClient({
@@ -562,7 +575,7 @@ function UserManagement() {
                           />
                         </td>
                       ))}
-                    </tr>
+                    </table>
                   ))}
                 </tbody>
               </table>
@@ -602,12 +615,12 @@ function UserManagement() {
           <div className="report-table">
             <h4>📦 Order History</h4>
             <div className="table-container">
-              <table>
+              <table className="data-table">
                 <thead>
                   <tr>
                     <th>Order ID</th>
                     <th>Date</th>
-                    <th>Route</th>
+                    <th>Origin → Dest</th>
                     <th>Weight</th>
                     <th>Value</th>
                     <th>Status</th>
@@ -615,11 +628,13 @@ function UserManagement() {
                 </thead>
                 <tbody>
                   {(reportData?.orders || []).length === 0 ? (
-                    <tr><td colSpan="6" className="no-data">No orders found</td></tr>
+                    <tr>
+                      <td colSpan="6" className="no-data">No orders found</td>
+                    </tr>
                   ) : (
                     (reportData?.orders || []).map(order => (
                       <tr key={order.id}>
-                        <td>{order.order_number}</td>
+                        <td><strong>{order.order_number}</strong></td>
                         <td>{new Date(order.created_at).toLocaleDateString()}</td>
                         <td>{order.origin_pincode} → {order.destination_pincode}</td>
                         <td>{order.weight} kg</td>
@@ -1065,7 +1080,7 @@ function UserManagement() {
               <div className="um-orders-table">
                 <h4>Orders Created by {selectedUser.username}</h4>
                 <div className="table-container">
-                  <table>
+                  <table className="data-table">
                     <thead>
                       <tr>
                         <th>Order ID</th>
@@ -1078,7 +1093,7 @@ function UserManagement() {
                     </thead>
                     <tbody>
                       {(selectedUser.orders || []).length === 0 ? (
-                        <td><td colSpan="6" className="no-data">No orders found</td></td>
+                        <tr><td colSpan="6" className="no-data">No orders found</td></tr>
                       ) : (
                         (selectedUser.orders || []).map(order => (
                           <tr key={order.id}>
