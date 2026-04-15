@@ -5,7 +5,8 @@ import {
   CheckCircle, Shield, Zap, Building, 
   Truck, Package, DollarSign, Clock, MapPin, Phone, Mail,
   Building2, CreditCard, FileText, Info, User, ArrowRight,
-  Star, Award, Users, Headphones, Globe, Wallet, Box
+  Star, Award, Users, Headphones, Globe, Wallet, Box,
+  Calculator
 } from "lucide-react";
 import "./UserLogin.css";
 import logo from "../assets/logo.png";
