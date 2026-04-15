@@ -193,7 +193,7 @@ def user_list(request):
     return Response(list(users))
 
 
-# ✅ GET ALL CLIENTS - NEW
+# ✅ GET ALL CLIENTS
 @api_view(['GET'])
 def client_list(request):
     clients = CustomUser.objects.filter(role='Client')
@@ -304,71 +304,83 @@ def delete_user(request, id):
 # 🆕 CLIENT MANAGEMENT APIs
 # ============================================
 
-# ✅ CREATE CLIENT - NEW
+# ✅ CREATE CLIENT
 @api_view(['POST'])
 def create_client(request):
-    data = request.data
-    
-    client_id = data.get("clientId", "").upper()
-    company_name = data.get("companyName", "")
-    email = data.get("email", "")
-    password = data.get("password", "")
-    phone = data.get("phone", "")
-    address = data.get("address", "")
-    gstin = data.get("gstin", "")
-    
-    if not client_id or not company_name or not email or not password:
-        return Response({"error": "Client ID, Company Name, Email, and Password are required"}, status=400)
-    
-    if CustomUser.objects.filter(client_id=client_id).exists():
-        return Response({"error": f"Client ID '{client_id}' already exists"}, status=400)
-    
-    if CustomUser.objects.filter(email=email).exists():
-        return Response({"error": f"Email '{email}' already exists"}, status=400)
-    
-    # Create client user
-    user = CustomUser.objects.create(
-        username=client_id.lower(),
-        password=make_password(password),
-        email=email,
-        phone=phone,
-        company=company_name,
-        address=address,
-        gstin=gstin.upper() if gstin else "",
-        role='Client',
-        client_id=client_id,
-        is_client_active=True,
-        is_active=True,
-        # Default client permissions
-        ba_b2b=True,
-        create_order=True,
-        shipment_details=True,
-        fcpl_rate=False,
-        pickup=False,
-        vendor_manage=False,
-        vendor_rates=False,
-        rate_update=False,
-        pincode=False,
-        user_management=False,
-    )
-    
-    # Create client profile
-    ClientProfile.objects.create(client=user)
-    
-    # Create default rate policy
-    ClientRatePolicy.objects.create(client=user, is_custom=False)
-    
-    return Response({
-        "success": True,
-        "message": f"Client {client_id} created successfully",
-        "client": {
-            "id": user.id,
-            "clientId": user.client_id,
-            "companyName": user.company,
-            "email": user.email,
-            "phone": user.phone
-        }
-    }, status=201)
+    """Create a new client"""
+    try:
+        data = request.data
+        print("Received client data:", data)
+        
+        client_id = data.get("clientId", "").upper()
+        company_name = data.get("companyName", "")
+        email = data.get("email", "")
+        password = data.get("password", "")
+        phone = data.get("phone", "")
+        address = data.get("address", "")
+        gstin = data.get("gstin", "")
+        
+        if not client_id:
+            return Response({"error": "Client ID is required"}, status=400)
+        if not company_name:
+            return Response({"error": "Company Name is required"}, status=400)
+        if not email:
+            return Response({"error": "Email is required"}, status=400)
+        if not password:
+            return Response({"error": "Password is required"}, status=400)
+        
+        if CustomUser.objects.filter(client_id=client_id).exists():
+            return Response({"error": f"Client ID '{client_id}' already exists"}, status=400)
+        
+        if CustomUser.objects.filter(email=email).exists():
+            return Response({"error": f"Email '{email}' already exists"}, status=400)
+        
+        username = client_id.lower()
+        if CustomUser.objects.filter(username=username).exists():
+            return Response({"error": f"Username '{username}' already exists"}, status=400)
+        
+        user = CustomUser.objects.create(
+            username=username,
+            password=make_password(password),
+            email=email,
+            phone=phone,
+            company=company_name,
+            address=address,
+            gstin=gstin.upper() if gstin else "",
+            role='Client',
+            client_id=client_id,
+            is_client_active=True,
+            is_active=True,
+            ba_b2b=True,
+            create_order=True,
+            shipment_details=True,
+            fcpl_rate=False,
+            pickup=False,
+            vendor_manage=False,
+            vendor_rates=False,
+            rate_update=False,
+            pincode=False,
+            user_management=False,
+        )
+        
+        ClientProfile.objects.get_or_create(client=user)
+        ClientRatePolicy.objects.get_or_create(client=user, defaults={'is_custom': False})
+        
+        return Response({
+            "success": True,
+            "message": f"Client {client_id} created successfully",
+            "client": {
+                "id": user.id,
+                "clientId": user.client_id,
+                "companyName": user.company,
+                "email": user.email,
+                "phone": user.phone
+            }
+        }, status=201)
+        
+    except Exception as e:
+        print(f"Error creating client: {str(e)}")
+        return Response({"error": str(e)}, status=500)
 
 
 # ✅ UPDATE CLIENT STATUS
@@ -398,7 +410,6 @@ def delete_client(request, client_id):
     except CustomUser.DoesNotExist:
         return Response({"error": "Client not found"}, status=404)
     
-    # Soft delete
     user.is_active = False
     user.is_client_active = False
     user.save()
@@ -419,7 +430,6 @@ def get_client_order_summary(request, client_id):
     
     profile = ClientProfile.objects.filter(client=user).first()
     
-    # Get shipments if available
     shipments_data = []
     if SHIPMENT_MODELS_AVAILABLE:
         shipments = Shipment.objects.filter(client_id=client_id)
@@ -457,7 +467,6 @@ def get_client_rates(request, client_id):
     except CustomUser.DoesNotExist:
         return Response({"error": "Client not found"}, status=404)
     
-    # Get zone rates
     zone_rates = ClientRateMatrix.objects.filter(client=user, is_active=True)
     zone_rates_data = []
     for rate in zone_rates:
@@ -471,7 +480,6 @@ def get_client_rates(request, client_id):
             "air_rate": float(rate.air_rate) if rate.air_rate else None
         })
     
-    # Get rate policy
     rate_policy = ClientRatePolicy.objects.filter(client=user).first()
     policy_data = rate_policy.to_dict() if rate_policy else None
     
@@ -492,12 +500,9 @@ def update_client_rates(request, client_id):
     
     data = request.data
     
-    # Update zone rates
     if 'zone_rates' in data:
-        # Delete existing rates
         ClientRateMatrix.objects.filter(client=user).delete()
         
-        # Create new rates
         for rate in data['zone_rates']:
             ClientRateMatrix.objects.create(
                 client=user,
@@ -509,7 +514,6 @@ def update_client_rates(request, client_id):
                 air_rate=rate.get('air_rate')
             )
     
-    # Update policy
     if 'policy' in data:
         policy, created = ClientRatePolicy.objects.get_or_create(client=user)
         policy.is_custom = True
@@ -528,102 +532,187 @@ def update_client_rates(request, client_id):
 
 
 # ============================================
-# 📊 USER STATISTICS & SHIPMENTS
+# 📊 USER STATISTICS & SHIPMENTS (UPDATED)
 # ============================================
 
 @api_view(['GET'])
 def user_orders(request, user_id):
-    if SHIPMENT_MODELS_AVAILABLE:
-        shipments = Shipment.objects.filter(client_id=user_id) if user_id else []
-        return Response([{
-            "id": s.id,
-            "order_number": s.lr_number,
-            "lr_number": s.lr_number,
-            "created_at": s.created_at,
-            "status": s.status,
-            "total_value": float(s.total_value),
-            "weight": float(s.weight),
-            "origin_pincode": s.pickup_pincode,
-            "destination_pincode": s.delivery_pincode
-        } for s in shipments])
-    
-    return Response([
-        {
-            "id": 1,
-            "order_number": f"ORD{1000 + int(user_id) if user_id else 1000}",
-            "lr_number": f"FCPL{2000 + int(user_id) if user_id else 2000}",
-            "created_at": datetime.now().isoformat(),
-            "status": "delivered",
-            "total_value": 50000,
-            "weight": 25.5,
-            "origin_pincode": "110001",
-            "destination_pincode": "400001"
-        }
-    ])
+    """Get real orders for a user from database with freight amount"""
+    try:
+        from django.db import connection
+        user = CustomUser.objects.get(id=user_id)
+        
+        cursor = connection.cursor()
+        
+        if user.role == 'Client' and user.client_id:
+            cursor.execute("""
+                SELECT lr_number, awb_number, pickup_pincode, delivery_pincode, 
+                       weight, total_value, status, created_at, freight_amount
+                FROM orders 
+                WHERE client_id = %s 
+                ORDER BY created_at DESC
+            """, [user.client_id])
+        else:
+            if user.is_superuser:
+                cursor.execute("""
+                    SELECT lr_number, awb_number, pickup_pincode, delivery_pincode, 
+                           weight, total_value, status, created_at, freight_amount
+                    FROM orders 
+                    ORDER BY created_at DESC
+                    LIMIT 100
+                """)
+            else:
+                return Response([], status=200)
+        
+        rows = cursor.fetchall()
+        orders = []
+        for row in rows:
+            orders.append({
+                "id": row[0],
+                "order_number": f"FCPL{row[0]}",
+                "lr_number": row[0],
+                "created_at": row[7],
+                "status": row[6],
+                "total_value": float(row[5]) if row[5] else 0,
+                "weight": float(row[4]) if row[4] else 0,
+                "origin_pincode": row[2],
+                "destination_pincode": row[3],
+                "freight_amount": float(row[8]) if row[8] else 0
+            })
+        
+        return Response(orders, status=200)
+        
+    except CustomUser.DoesNotExist:
+        return Response({"error": "User not found"}, status=404)
+    except Exception as e:
+        print(f"Error in user_orders: {e}")
+        return Response([], status=200)
 
 
 @api_view(['GET'])
 def user_shipments(request, user_id):
-    if SHIPMENT_MODELS_AVAILABLE:
-        shipments = Shipment.objects.filter(client_id=user_id) if user_id else []
-        return Response([{
-            "id": s.id,
-            "lr_number": s.lr_number,
-            "awb_number": s.awb_number,
-            "created_at": s.created_at,
-            "origin_pincode": s.pickup_pincode,
-            "destination_pincode": s.delivery_pincode,
-            "weight": float(s.weight),
-            "freight_amount": float(s.freight_amount),
-            "total_amount": float(s.total_amount),
-            "status": s.status,
-            "material": s.material
-        } for s in shipments])
-    
-    return Response([
-        {
-            "id": 1,
-            "lr_number": f"FCPL{2000 + int(user_id) if user_id else 2000}",
-            "awb_number": f"AWB{3000 + int(user_id) if user_id else 3000}",
-            "created_at": datetime.now().isoformat(),
-            "origin_pincode": "110001",
-            "destination_pincode": "400001",
-            "weight": 25.5,
-            "freight_amount": 1250,
-            "total_amount": 1475,
-            "status": "delivered",
-            "material": "Electronics"
-        }
-    ])
+    """Get real shipments for a user from database with freight amount"""
+    try:
+        from django.db import connection
+        user = CustomUser.objects.get(id=user_id)
+        
+        cursor = connection.cursor()
+        
+        if user.role == 'Client' and user.client_id:
+            cursor.execute("""
+                SELECT lr_number, awb_number, pickup_pincode, delivery_pincode, 
+                       weight, total_value, status, created_at, freight_amount,
+                       pickup_name, delivery_name, material
+                FROM orders 
+                WHERE client_id = %s 
+                ORDER BY created_at DESC
+            """, [user.client_id])
+        else:
+            if user.is_superuser:
+                cursor.execute("""
+                    SELECT lr_number, awb_number, pickup_pincode, delivery_pincode, 
+                           weight, total_value, status, created_at, freight_amount,
+                           pickup_name, delivery_name, material
+                    FROM orders 
+                    ORDER BY created_at DESC
+                    LIMIT 100
+                """)
+            else:
+                return Response([], status=200)
+        
+        rows = cursor.fetchall()
+        shipments = []
+        for row in rows:
+            shipments.append({
+                "id": row[0],
+                "lr_number": f"FCPL{row[0]}",
+                "awb_number": row[1],
+                "created_at": row[7],
+                "origin_pincode": row[2],
+                "destination_pincode": row[3],
+                "weight": float(row[4]) if row[4] else 0,
+                "freight_amount": float(row[8]) if row[8] else 0,
+                "total_amount": float(row[5]) if row[5] else 0,
+                "status": row[6],
+                "material": row[11] if len(row) > 11 else "General Cargo",
+                "pickup_name": row[9] if len(row) > 9 else "",
+                "delivery_name": row[10] if len(row) > 10 else ""
+            })
+        
+        return Response(shipments, status=200)
+        
+    except CustomUser.DoesNotExist:
+        return Response({"error": "User not found"}, status=404)
+    except Exception as e:
+        print(f"Error in user_shipments: {e}")
+        return Response([], status=200)
 
 
 @api_view(['GET'])
 def user_stats(request, user_id):
-    if SHIPMENT_MODELS_AVAILABLE:
-        shipments = Shipment.objects.filter(client_id=user_id) if user_id else []
-        total_freight = sum(float(s.freight_amount) for s in shipments)
-        total_value = sum(float(s.total_value) for s in shipments)
-        total_weight = sum(float(s.weight) for s in shipments)
+    """Get user statistics with freight amount"""
+    try:
+        from django.db import connection
+        user = CustomUser.objects.get(id=user_id)
+        
+        cursor = connection.cursor()
+        
+        if user.role == 'Client' and user.client_id:
+            cursor.execute("""
+                SELECT COUNT(*), 
+                       COALESCE(SUM(total_value), 0),
+                       COALESCE(SUM(weight), 0),
+                       COALESCE(SUM(freight_amount), 0),
+                       MAX(created_at)
+                FROM orders 
+                WHERE client_id = %s
+            """, [user.client_id])
+        else:
+            if user.is_superuser:
+                cursor.execute("""
+                    SELECT COUNT(*), 
+                           COALESCE(SUM(total_value), 0),
+                           COALESCE(SUM(weight), 0),
+                           COALESCE(SUM(freight_amount), 0),
+                           MAX(created_at)
+                    FROM orders
+                """)
+            else:
+                return Response({
+                    "order_count": 0,
+                    "shipment_count": 0,
+                    "total_freight": 0,
+                    "total_gst": 0,
+                    "total_value": 0,
+                    "total_weight": 0,
+                    "last_order_date": None
+                }, status=200)
+        
+        row = cursor.fetchone()
         
         return Response({
-            "order_count": len(shipments),
-            "shipment_count": len(shipments),
-            "total_freight": total_freight,
-            "total_gst": total_freight * 0.18,
-            "total_value": total_value,
-            "total_weight": total_weight,
-            "last_order_date": shipments[0].created_at if shipments else None
-        })
-    
-    return Response({
-        "order_count": 5,
-        "shipment_count": 8,
-        "total_freight": 12500,
-        "total_gst": 2250,
-        "total_value": 14750,
-        "total_weight": 250.5,
-        "last_order_date": datetime.now().isoformat(),
-    })
+            "order_count": row[0] or 0,
+            "shipment_count": row[0] or 0,
+            "total_freight": float(row[3]) if row[3] else 0,
+            "total_gst": float(row[3]) * 0.18 if row[3] else 0,
+            "total_value": float(row[1]) if row[1] else 0,
+            "total_weight": float(row[2]) if row[2] else 0,
+            "last_order_date": row[4] if row[4] else None
+        }, status=200)
+        
+    except CustomUser.DoesNotExist:
+        return Response({"error": "User not found"}, status=404)
+    except Exception as e:
+        print(f"Error in user_stats: {e}")
+        return Response({
+            "order_count": 0,
+            "shipment_count": 0,
+            "total_freight": 0,
+            "total_gst": 0,
+            "total_value": 0,
+            "total_weight": 0,
+            "last_order_date": None
+        }, status=200)
 
 
 @api_view(['GET'])
@@ -639,6 +728,7 @@ def all_shipments(request):
             "delivery_name": s.delivery_name,
             "weight": float(s.weight),
             "total_amount": float(s.total_amount),
+            "freight_amount": float(s.freight_amount) if hasattr(s, 'freight_amount') else 0,
             "status": s.status,
             "created_at": s.created_at
         } for s in shipments])
@@ -690,6 +780,7 @@ def track_shipment(request, tracking_id):
                 "weight": float(shipment.weight),
                 "material": shipment.material,
                 "totalValue": float(shipment.total_value),
+                "freightAmount": float(shipment.freight_amount) if hasattr(shipment, 'freight_amount') else 0,
                 "updatedAt": shipment.updated_at,
                 "trackingHistory": [{
                     "status": t.status,
@@ -730,91 +821,3 @@ def dashboard_stats(request):
         "recent_shipments": min(10, total_shipments),
         "recent_revenue": float(total_freight) * 0.1,
     })
-
-# usermanagement/views.py - Update create_client function
-
-@api_view(['POST'])
-def create_client(request):
-    """Create a new client"""
-    try:
-        data = request.data
-        print("Received client data:", data)  # Debug log
-        
-        client_id = data.get("clientId", "").upper()
-        company_name = data.get("companyName", "")
-        email = data.get("email", "")
-        password = data.get("password", "")
-        phone = data.get("phone", "")
-        address = data.get("address", "")
-        gstin = data.get("gstin", "")
-        
-        # Validation
-        if not client_id:
-            return Response({"error": "Client ID is required"}, status=400)
-        if not company_name:
-            return Response({"error": "Company Name is required"}, status=400)
-        if not email:
-            return Response({"error": "Email is required"}, status=400)
-        if not password:
-            return Response({"error": "Password is required"}, status=400)
-        
-        # Check if client_id already exists
-        if CustomUser.objects.filter(client_id=client_id).exists():
-            return Response({"error": f"Client ID '{client_id}' already exists"}, status=400)
-        
-        # Check if email already exists
-        if CustomUser.objects.filter(email=email).exists():
-            return Response({"error": f"Email '{email}' already exists"}, status=400)
-        
-        # Check if username already exists
-        username = client_id.lower()
-        if CustomUser.objects.filter(username=username).exists():
-            return Response({"error": f"Username '{username}' already exists"}, status=400)
-        
-        # Create client user
-        user = CustomUser.objects.create(
-            username=username,
-            password=make_password(password),
-            email=email,
-            phone=phone,
-            company=company_name,
-            address=address,
-            gstin=gstin.upper() if gstin else "",
-            role='Client',
-            client_id=client_id,
-            is_client_active=True,
-            is_active=True,
-            # Default client permissions
-            ba_b2b=True,
-            create_order=True,
-            shipment_details=True,
-            fcpl_rate=False,
-            pickup=False,
-            vendor_manage=False,
-            vendor_rates=False,
-            rate_update=False,
-            pincode=False,
-            user_management=False,
-        )
-        
-        # Create client profile
-        ClientProfile.objects.get_or_create(client=user)
-        
-        # Create default rate policy
-        ClientRatePolicy.objects.get_or_create(client=user, defaults={'is_custom': False})
-        
-        return Response({
-            "success": True,
-            "message": f"Client {client_id} created successfully",
-            "client": {
-                "id": user.id,
-                "clientId": user.client_id,
-                "companyName": user.company,
-                "email": user.email,
-                "phone": user.phone
-            }
-        }, status=201)
-        
-    except Exception as e:
-        print(f"Error creating client: {str(e)}")
-        return Response({"error": str(e)}, status=500)

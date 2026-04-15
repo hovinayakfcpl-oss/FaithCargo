@@ -1,6 +1,6 @@
 /* ============================================
-   SHIPMENT DETAILS PAGE - ADVANCED v5.0
-   With Status Update, Edit, Print, Label, Invoice Download
+   SHIPMENT DETAILS PAGE - ADVANCED v6.0
+   With Role-Based Access, Status Update, Edit, Print, Label, Invoice Download
    Fixed Status Text Colors
    ============================================ */
 
@@ -11,8 +11,9 @@
   --primary-red: #d32f2f;
   --primary-red-dark: #b71c1c;
   --primary-red-light: #ffebed;
-  --primary-purple: #667eea;
-  --primary-purple-dark: #764ba2;
+  --primary-purple: #8b5cf6;
+  --primary-purple-dark: #7c3aed;
+  --primary-purple-light: #ede9fe;
   --dark-bg: #0f172a;
   --dark-bg-light: #1e293b;
   --text-dark: #0f172a;
@@ -33,6 +34,7 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 20px;
+  --radius-2xl: 24px;
   --transition: all 0.3s ease;
   
   /* Status Colors */
@@ -64,7 +66,79 @@
 }
 
 /* --------------------------------------------
-   3. PAGE HEADER
+   3. USER INFO BAR - NEW
+   -------------------------------------------- */
+.user-info-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 12px 24px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+}
+
+.user-details {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, var(--bg-gray), white);
+  padding: 8px 20px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+}
+
+.user-details span {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.role-badge {
+  background: linear-gradient(135deg, var(--primary-purple), var(--primary-purple-dark));
+  color: white !important;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.client-id-badge {
+  background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
+  color: white !important;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  background: var(--bg-gray);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--text-dark);
+}
+
+.logout-btn:hover {
+  background: var(--error);
+  border-color: var(--error);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* --------------------------------------------
+   4. PAGE HEADER
    -------------------------------------------- */
 .page-header-shipment {
   display: flex;
@@ -132,7 +206,7 @@
 }
 
 /* --------------------------------------------
-   4. SHIPMENT TABLE CONTAINER
+   5. SHIPMENT TABLE CONTAINER
    -------------------------------------------- */
 .shipment-table-container {
   background: white;
@@ -167,7 +241,7 @@
   margin-bottom: 12px;
 }
 
-/* Filter Buttons - Fixed Black Text */
+/* Filter Buttons */
 .filter-buttons {
   display: flex;
   gap: 8px;
@@ -295,7 +369,7 @@
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, var(--primary-purple), var(--primary-purple-dark));
   border: none;
   border-radius: 20px;
   color: white;
@@ -307,7 +381,7 @@
 
 .invoice-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 3px 10px rgba(139, 92, 246, 0.3);
 }
 
 .no-invoice {
@@ -315,7 +389,7 @@
   font-size: 12px;
 }
 
-/* Status Select Dropdown - Fixed Colors */
+/* Status Select Dropdown */
 .status-select {
   padding: 6px 12px;
   border-radius: 30px;
@@ -431,7 +505,7 @@
 }
 
 .action-icon.print:hover {
-  background: #ede9fe;
+  background: var(--primary-purple-light);
   transform: scale(1.1);
 }
 
@@ -454,7 +528,7 @@
 }
 
 /* --------------------------------------------
-   5. MODAL STYLES
+   6. MODAL STYLES
    -------------------------------------------- */
 .modal-overlay {
   position: fixed;
@@ -796,7 +870,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, var(--primary-purple), var(--primary-purple-dark));
   border: none;
   border-radius: var(--radius-md);
   color: white;
@@ -808,7 +882,7 @@
 
 .view-invoices-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 3px 10px rgba(139, 92, 246, 0.3);
 }
 
 .tracking-modal-footer {
@@ -865,7 +939,7 @@
 }
 
 /* --------------------------------------------
-   6. JERVICE AI STYLES
+   7. JERVICE AI STYLES
    -------------------------------------------- */
 .jervice-container {
   position: fixed;
@@ -886,7 +960,7 @@
   gap: 12px;
   font-weight: bold;
   font-size: 14px;
-  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
   backdrop-filter: blur(10px);
@@ -894,7 +968,7 @@
 
 .jervice-trigger:hover {
   transform: scale(1.05);
-  box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+  box-shadow: 0 15px 40px rgba(139, 92, 246, 0.6);
 }
 
 .pulse-ring {
@@ -903,7 +977,7 @@
   left: 50%;
   width: 100%;
   height: 100%;
-  background: rgba(102, 126, 234, 0.4);
+  background: rgba(139, 92, 246, 0.4);
   border-radius: 60px;
   animation: pulseRing 2s infinite;
   transform: translate(-50%, -50%);
@@ -1201,7 +1275,7 @@
 
 .send-btn:hover {
   transform: scale(1.05);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.5);
+  box-shadow: 0 5px 15px rgba(139, 92, 246, 0.5);
 }
 
 .send-btn:disabled {
@@ -1249,7 +1323,7 @@
 }
 
 /* --------------------------------------------
-   7. ANIMATIONS
+   8. ANIMATIONS
    -------------------------------------------- */
 @keyframes fadeInUp {
   from {
@@ -1279,7 +1353,7 @@
 }
 
 /* --------------------------------------------
-   8. RESPONSIVE DESIGN
+   9. RESPONSIVE DESIGN
    -------------------------------------------- */
 @media (max-width: 1024px) {
   .shipment-details-page {
@@ -1294,6 +1368,12 @@
   
   .header-stats {
     justify-content: center;
+  }
+  
+  .user-info-bar {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
   }
 }
 
@@ -1373,6 +1453,11 @@
   .invoice-icon {
     margin: 0 auto;
   }
+  
+  .user-details {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1421,13 +1506,22 @@
   .invoice-name {
     font-size: 12px;
   }
+  
+  .tracking-lr {
+    font-size: 18px;
+  }
+  
+  .status-text {
+    font-size: 14px;
+  }
 }
 
 /* --------------------------------------------
-   9. PRINT STYLES
+   10. PRINT STYLES
    -------------------------------------------- */
 @media print {
   .page-header-shipment,
+  .user-info-bar,
   .search-box,
   .filter-buttons,
   .action-buttons,

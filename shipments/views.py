@@ -149,7 +149,8 @@ def get_shipment_by_lr(lr_number):
             SELECT id, lr_number, awb_number, pickup_pincode, delivery_pincode, 
                    pickup_name, delivery_name, weight, status, 
                    pickup_address, delivery_address, material, total_value,
-                   created_at, booking_mode, pickup_gstin, delivery_gstin, client_id
+                   created_at, booking_mode, pickup_gstin, delivery_gstin, client_id,
+                   freight_amount
             FROM orders 
             WHERE lr_number = %s OR awb_number = %s
         """, [clean_lr, clean_lr])
@@ -262,7 +263,8 @@ def get_all_shipments_summary(client_id=None):
                 SELECT COUNT(*), 
                        SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END),
                        SUM(CASE WHEN status = 'in_transit' THEN 1 ELSE 0 END),
-                       SUM(CASE WHEN status = 'booked' THEN 1 ELSE 0 END)
+                       SUM(CASE WHEN status = 'booked' THEN 1 ELSE 0 END),
+                       COALESCE(SUM(freight_amount), 0)
                 FROM orders WHERE client_id = %s
             """, [client_id])
         else:
@@ -270,7 +272,8 @@ def get_all_shipments_summary(client_id=None):
                 SELECT COUNT(*), 
                        SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END),
                        SUM(CASE WHEN status = 'in_transit' THEN 1 ELSE 0 END),
-                       SUM(CASE WHEN status = 'booked' THEN 1 ELSE 0 END)
+                       SUM(CASE WHEN status = 'booked' THEN 1 ELSE 0 END),
+                       COALESCE(SUM(freight_amount), 0)
                 FROM orders
             """)
         row = cursor.fetchone()
@@ -278,10 +281,11 @@ def get_all_shipments_summary(client_id=None):
             'total': row[0] or 0,
             'delivered': row[1] or 0,
             'in_transit': row[2] or 0,
-            'booked': row[3] or 0
+            'booked': row[3] or 0,
+            'total_freight': float(row[4]) if row[4] else 0
         }
     except Exception as e:
-        return {'total': 0, 'delivered': 0, 'in_transit': 0, 'booked': 0}
+        return {'total': 0, 'delivered': 0, 'in_transit': 0, 'booked': 0, 'total_freight': 0}
 
 @csrf_exempt
 def jervice_intelligent_chat(request):
@@ -343,6 +347,7 @@ Sir, docket {docket_number} ka status update karne ke liye batao:
 📋 **Docket:** FCPL{shipment['lr_number']}
 🔢 **AWB:** {shipment.get('awb_number', 'N/A')}
 📊 **Status:** {status_text}
+💰 **Freight:** ₹{shipment.get('freight_amount', 0):,.2f}
 
 📍 **Route:**
 • From: {shipment['pickup_pincode']} - {shipment.get('pickup_name', 'N/A')}
@@ -398,7 +403,8 @@ Sir, total {stats['total']} orders hain:
 
 ✅ Delivered: {stats['delivered']}
 🚚 In Transit: {stats['in_transit']}
-📝 Booked: {stats['booked']}"""
+📝 Booked: {stats['booked']}
+💰 Total Freight: ₹{stats['total_freight']:,.2f}"""
         
         elif any(word in user_query for word in ['help', 'madad', 'sahayata', 'kya kar sakte ho']):
             reply = """🎤 **JERVICE AI - COMPLETE FEATURES!**
@@ -435,7 +441,7 @@ Mujhse puchiye:
 
 
 # =====================================================
-# 📦 CREATE ORDER (With client_id support)
+# 📦 CREATE ORDER (With client_id and freight_amount support)
 # =====================================================
 @csrf_exempt
 def create_order(request):
@@ -451,11 +457,14 @@ def create_order(request):
                 # Get client_id if provided (for client-specific orders)
                 client_id = data.get("clientId")
                 
-                # Get GSTIN values (with None default if not provided)
+                # ✅ NEW: Get freight_amount from request
+                freight_amount = data.get("freight_amount", 0)
+                
+                # Get GSTIN values
                 pickup_gstin = data.get("pickupGstin")
                 delivery_gstin = data.get("deliveryGstin")
                 
-                # ✅ Ensure client_id column exists (run once)
+                # ✅ Ensure columns exist
                 try:
                     cursor.execute("""
                         SELECT column_name FROM information_schema.columns 
@@ -464,19 +473,26 @@ def create_order(request):
                     if not cursor.fetchone():
                         cursor.execute("ALTER TABLE orders ADD COLUMN client_id VARCHAR(50)")
                         cursor.execute("CREATE INDEX IF NOT EXISTS idx_orders_client_id ON orders(client_id)")
+                    
+                    cursor.execute("""
+                        SELECT column_name FROM information_schema.columns 
+                        WHERE table_name='orders' AND column_name='freight_amount'
+                    """)
+                    if not cursor.fetchone():
+                        cursor.execute("ALTER TABLE orders ADD COLUMN freight_amount DECIMAL(15,2) DEFAULT 0")
                 except:
                     pass
                 
                 cursor.execute("""
                     INSERT INTO orders (
-                        lr_number, awb_number, client_id,
+                        lr_number, awb_number, client_id, freight_amount,
                         pickup_name, pickup_address, pickup_pincode, pickup_contact, pickup_gstin,
                         delivery_name, delivery_address, delivery_pincode, delivery_contact, delivery_gstin,
                         material, hsn_code, boxes, weight, actual_weight, volumetric_weight, 
                         total_value, eway_bill, status, booking_mode, created_at, updated_at
-                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
+                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
                 """, [
-                    lr_raw, formatted_awb, client_id,
+                    lr_raw, formatted_awb, client_id, freight_amount,
                     data.get("pickupName"), data.get("pickupAddress"), data.get("pickupPincode"), 
                     data.get("pickupContact"), pickup_gstin,
                     data.get("deliveryName"), data.get("deliveryAddress"), data.get("deliveryPincode"), 
@@ -500,6 +516,7 @@ def create_order(request):
                     "success": True, 
                     "lr_number": formatted_lr, 
                     "awb": formatted_awb,
+                    "freight_amount": freight_amount,
                     "message": "Order created successfully!"
                 })
         except Exception as e:
@@ -508,7 +525,7 @@ def create_order(request):
 
 
 # =====================================================
-# 📋 SHIPMENT LIST (with client filter)
+# 📋 SHIPMENT LIST (with client filter and freight amount)
 # =====================================================
 def shipment_list(request):
     cursor = connection.cursor()
@@ -519,13 +536,13 @@ def shipment_list(request):
     if client_id:
         cursor.execute("""
             SELECT lr_number, awb_number, pickup_pincode, delivery_pincode, 
-                   total_value, status, weight, created_at
+                   total_value, status, weight, created_at, freight_amount
             FROM orders WHERE client_id = %s ORDER BY id DESC
         """, [client_id])
     else:
         cursor.execute("""
             SELECT lr_number, awb_number, pickup_pincode, delivery_pincode, 
-                   total_value, status, weight, created_at
+                   total_value, status, weight, created_at, freight_amount
             FROM orders ORDER BY id DESC
         """)
     
@@ -538,7 +555,8 @@ def shipment_list(request):
         "value": float(r[4]) if r[4] else 0,
         "status": r[5],
         "weight": float(r[6]) if r[6] else 0,
-        "date": r[7].strftime("%Y-%m-%d %H:%M") if r[7] else "N/A"
+        "date": r[7].strftime("%Y-%m-%d %H:%M") if r[7] else "N/A",
+        "freight": float(r[8]) if r[8] else 0  # ✅ NEW: Freight amount
     } for r in rows]
     
     return JsonResponse(data, safe=False)
@@ -567,6 +585,7 @@ def shipment_detail(request, lr):
         "lr": format_lr(order_data['lr_number']),
         "awb": order_data.get('awb_number'),
         "clientId": order_data.get('client_id'),
+        "freightAmount": float(order_data.get('freight_amount', 0)),  # ✅ NEW
         "pickupName": order_data.get('pickup_name'),
         "pickupAddress": order_data.get('pickup_address'),
         "pickupPincode": order_data.get('pickup_pincode'),
@@ -713,14 +732,16 @@ def dashboard_stats(request):
 
 
 # =====================================================
-# 📋 CLIENT ORDERS (Get all orders for a specific client)
+# 📋 CLIENT ORDERS (Get all orders for a specific client with freight)
 # =====================================================
 def client_orders(request, client_id):
     cursor = connection.cursor()
     cursor.execute("""
         SELECT lr_number, awb_number, pickup_pincode, delivery_pincode, 
-               total_value, status, weight, created_at
-        FROM orders WHERE client_id = %s ORDER BY id DESC
+               total_value, status, weight, created_at, freight_amount
+        FROM orders 
+        WHERE client_id = %s 
+        ORDER BY id DESC
     """, [client_id])
     
     rows = cursor.fetchall()
@@ -732,7 +753,8 @@ def client_orders(request, client_id):
         "value": float(r[4]) if r[4] else 0,
         "status": r[5],
         "weight": float(r[6]) if r[6] else 0,
-        "date": r[7].strftime("%Y-%m-%d %H:%M") if r[7] else "N/A"
+        "date": r[7].strftime("%Y-%m-%d %H:%M") if r[7] else "N/A",
+        "freight": float(r[8]) if r[8] else 0  # ✅ NEW: Freight amount
     } for r in rows]
     
     return JsonResponse(data, safe=False)

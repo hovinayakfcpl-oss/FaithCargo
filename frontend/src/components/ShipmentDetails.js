@@ -5,12 +5,20 @@ import {
   Volume2, VolumeX, Mic, RefreshCw, FileText, Eye, Trash2,
   Download, Printer, Search, Navigation, Edit3, Save, 
   PlusCircle, Filter, TrendingUp, Award, Crown, Settings,
-  CheckSquare, Square, Printer as PrinterIcon, Barcode,
-  Image as ImageIcon, File as FileIcon
+  CheckSquare, Square, PrinterIcon, Barcode,
+  Image as ImageIcon, File as FileIcon, User, LogOut, Building2
 } from "lucide-react";
 import "./ShipmentDetail.css";
 
 function ShipmentDetails() {
+  // ============================================
+  // 🔐 USER AUTHENTICATION STATE
+  // ============================================
+  const [userRole, setUserRole] = useState(null);
+  const [clientId, setClientId] = useState(null);
+  const [userName, setUserName] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   // State Management
   const [isJerviceOpen, setIsJerviceOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -35,7 +43,7 @@ function ShipmentDetails() {
   const recognitionRef = useRef(null);
   const printRef = useRef(null);
 
-  // Available statuses for manual update - with black text by default
+  // Available statuses for manual update
   const statusOptions = [
     { value: "booked", label: "📝 Booked", color: "#f59e0b", bgColor: "#fef3c7", icon: "📝" },
     { value: "picked", label: "🚚 Picked Up", color: "#3b82f6", bgColor: "#dbeafe", icon: "🚚" },
@@ -47,22 +55,45 @@ function ShipmentDetails() {
     { value: "hold", label: "⏸️ On Hold", color: "#6b7280", bgColor: "#f1f5f9", icon: "⏸️" }
   ];
 
-  // Load shipments on mount
+  // ============================================
+  // 🔐 CHECK AUTHENTICATION ON MOUNT
+  // ============================================
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    const clientToken = localStorage.getItem("clientToken");
+    const role = localStorage.getItem("userRole");
+    const storedClientId = localStorage.getItem("clientId");
+    const username = localStorage.getItem("username") || localStorage.getItem("clientName");
+    
+    // Check if authenticated
+    if (!token && !clientToken) {
+      window.location.href = "/";
+      return;
+    }
+    
+    setUserRole(role);
+    setClientId(storedClientId);
+    setUserName(username);
+    setIsAuthenticated(true);
+    
     fetchShipments();
   }, []);
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
   // ============================================
-  // 🚚 FETCH ALL SHIPMENTS FROM BACKEND
+  // 🚚 FETCH SHIPMENTS (WITH ROLE-BASED FILTERING)
   // ============================================
   const fetchShipments = async () => {
     try {
-      const response = await fetch("https://faithcargo.onrender.com/api/shipments/");
+      let url = "https://faithcargo.onrender.com/api/shipments/";
+      
+      // ✅ If client, fetch only their orders
+      if (userRole === "client" && clientId) {
+        url = `https://faithcargo.onrender.com/api/shipments/client/${clientId}/orders/`;
+      }
+      
+      const response = await fetch(url);
       const data = await response.json();
+      
       // Load uploaded invoices from localStorage
       const enhancedData = data.map(shipment => {
         const savedInvoices = localStorage.getItem(`invoices_${shipment.lr}`);
@@ -71,13 +102,27 @@ function ShipmentDetails() {
         }
         return shipment;
       });
+      
       setShipments(enhancedData);
       localStorage.setItem('allShipments', JSON.stringify(enhancedData));
     } catch (error) {
       console.error("Error fetching shipments:", error);
       const localShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
-      setShipments(localShipments);
+      
+      // ✅ Filter local shipments for client
+      if (userRole === "client" && clientId) {
+        const filteredLocal = localShipments.filter(s => s.clientId === clientId);
+        setShipments(filteredLocal);
+      } else {
+        setShipments(localShipments);
+      }
     }
+  };
+
+  // Logout function
+  const logout = () => {
+    localStorage.clear();
+    window.location.href = "/";
   };
 
   // ============================================
@@ -103,7 +148,6 @@ function ShipmentDetails() {
       link.download = invoice.name;
       link.click();
     } else if (invoice.file) {
-      // If file object is stored
       const url = URL.createObjectURL(invoice.file);
       const link = document.createElement('a');
       link.href = url;
@@ -124,7 +168,6 @@ function ShipmentDetails() {
       const response = await fetch(`https://faithcargo.onrender.com/api/shipments/shipment/${docketNumber}`);
       if (response.ok) {
         const data = await response.json();
-        // Load uploaded invoices for this shipment
         const savedInvoices = localStorage.getItem(`invoices_${data.lr}`);
         if (savedInvoices) {
           data.uploadedInvoices = JSON.parse(savedInvoices);
@@ -368,22 +411,16 @@ function ShipmentDetails() {
   // ============================================
   const speak = (text) => {
     if (!isVoiceEnabled) return;
-    
     window.speechSynthesis.cancel();
     const cleanText = text.replace(/[🎤💰📦✅⚠️🔍🚚📍]/g, '');
-    
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'hi-IN';
     utterance.rate = 0.92;
     utterance.pitch = 0.88;
     utterance.volume = 1;
-    
     const voices = window.speechSynthesis.getVoices();
-    const indianVoice = voices.find(voice => 
-      voice.lang === 'hi-IN' && (voice.name.includes('Female') || voice.name.includes('Google'))
-    );
+    const indianVoice = voices.find(voice => voice.lang === 'hi-IN' && (voice.name.includes('Female') || voice.name.includes('Google')));
     if (indianVoice) utterance.voice = indianVoice;
-    
     window.speechSynthesis.speak(utterance);
   };
 
@@ -395,25 +432,21 @@ function ShipmentDetails() {
       speak("Sir, aapka browser voice command support nahi karta.");
       return false;
     }
-    
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognitionRef.current = new SpeechRecognition();
     recognitionRef.current.lang = 'hi-IN';
     recognitionRef.current.continuous = false;
     recognitionRef.current.interimResults = false;
-    
     recognitionRef.current.onresult = (event) => {
       const voiceInput = event.results[0][0].transcript;
       setUserInput(voiceInput);
       handleJerviceChat(voiceInput);
       setIsListening(false);
     };
-    
     recognitionRef.current.onerror = () => {
       setIsListening(false);
       speak("Sir, awaaz nahi sunai di.");
     };
-    
     return true;
   };
 
@@ -437,7 +470,6 @@ function ShipmentDetails() {
     setIsLoading(true);
 
     const lowerInput = input.toLowerCase();
-    
     const docketMatch = input.match(/\b(FCPL|FCL|LR)?\s*(\d{4,12})\b/i);
     const docketNumber = docketMatch ? docketMatch[2] : null;
     
@@ -448,8 +480,7 @@ function ShipmentDetails() {
       
       let newStatus = null;
       for (let status of statusOptions) {
-        if (lowerInput.includes(status.value.replace('_', ' ')) || 
-            lowerInput.includes(status.label.toLowerCase())) {
+        if (lowerInput.includes(status.value.replace('_', ' ')) || lowerInput.includes(status.label.toLowerCase())) {
           newStatus = status.value;
           break;
         }
@@ -576,13 +607,28 @@ function ShipmentDetails() {
   };
 
   // ============================================
-  // 📊 RENDER SHIPMENT TABLE
+  // 📊 RENDER SHIPMENT TABLE WITH USER INFO
   // ============================================
   const renderShipmentTable = () => (
     <div className="shipment-table-container">
+      {/* User Info Bar */}
+      <div className="user-info-bar">
+        <div className="user-details">
+          <User size={18} />
+          <span>{userName || (userRole === "client" ? "Client" : "Admin")}</span>
+          <span className="role-badge">{userRole === "client" ? "Client" : "Admin"}</span>
+          {userRole === "client" && clientId && (
+            <span className="client-id-badge">ID: {clientId}</span>
+          )}
+        </div>
+        <button className="logout-btn" onClick={logout}>
+          <LogOut size={16} /> Logout
+        </button>
+      </div>
+
       <div className="table-header">
         <div className="header-left">
-          <h3><Package size={20} /> All Shipments</h3>
+          <h3><Package size={20} /> {userRole === "client" ? "My Shipments" : "All Shipments"}</h3>
           <div className="filter-buttons">
             <button 
               className={`filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
@@ -908,7 +954,7 @@ function ShipmentDetails() {
       <div className="page-header-shipment">
         <div className="header-title">
           <h1>📦 Shipment Management</h1>
-          <p>Track, manage and monitor all your shipments in real-time</p>
+          <p>{userRole === "client" ? "View and track your shipments" : "Track, manage and monitor all your shipments in real-time"}</p>
         </div>
         <div className="header-stats">
           <div className="stat-card">
@@ -957,18 +1003,10 @@ function ShipmentDetails() {
                 <span className="ai-title">🎤 BIGG BOSS MODE | ADVANCED AI</span>
               </div>
               <div className="header-controls">
-                <button 
-                  className="voice-toggle" 
-                  onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-                  title={isVoiceEnabled ? "Voice ON" : "Voice OFF"}
-                >
+                <button className="voice-toggle" onClick={() => setIsVoiceEnabled(!isVoiceEnabled)} title={isVoiceEnabled ? "Voice ON" : "Voice OFF"}>
                   {isVoiceEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
                 </button>
-                <button 
-                  className="mic-btn" 
-                  onClick={startVoiceInput}
-                  disabled={isListening}
-                >
+                <button className="mic-btn" onClick={startVoiceInput} disabled={isListening}>
                   <Mic size={16} className={isListening ? 'pulse-mic' : ''} />
                 </button>
                 <X className="close-icon" onClick={() => setIsJerviceOpen(false)} />
