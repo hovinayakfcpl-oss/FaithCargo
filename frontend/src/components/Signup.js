@@ -3,15 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { 
   Eye, EyeOff, User, Lock, LogIn, ArrowRight, 
   AlertCircle, CheckCircle, Shield, Zap, Users,
-  Crown, Building, Phone, Mail
+  Crown, Building, Phone, Mail, Building2, UserCircle
 } from "lucide-react";
 import "./Login.css";
 import logo from "../assets/logo.png";
 
 function Login() {
   const navigate = useNavigate();
-  const [isAdminLogin, setIsAdminLogin] = useState(true); // Toggle between Admin and User login
+  const [loginType, setLoginType] = useState("admin"); // "admin", "staff", "client"
   const [username, setUsername] = useState("");
+  const [clientId, setClientId] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -21,152 +22,216 @@ function Login() {
 
   // Load saved credentials
   React.useEffect(() => {
-    const savedUsername = localStorage.getItem("rememberedAdminUsername");
-    const savedRemember = localStorage.getItem("rememberAdmin") === "true";
-    if (savedUsername && savedRemember) {
-      setUsername(savedUsername);
-      setRememberMe(true);
+    const savedLoginType = localStorage.getItem("savedLoginType");
+    
+    if (savedLoginType === "admin") {
+      const savedUsername = localStorage.getItem("rememberedAdminUsername");
+      const savedRemember = localStorage.getItem("rememberAdmin") === "true";
+      if (savedUsername && savedRemember) {
+        setUsername(savedUsername);
+        setRememberMe(true);
+        setLoginType("admin");
+      }
+    } else if (savedLoginType === "staff") {
+      const savedUsername = localStorage.getItem("rememberedStaffUsername");
+      const savedRemember = localStorage.getItem("rememberStaff") === "true";
+      if (savedUsername && savedRemember) {
+        setUsername(savedUsername);
+        setRememberMe(true);
+        setLoginType("staff");
+      }
+    } else if (savedLoginType === "client") {
+      const savedClientId = localStorage.getItem("rememberedClientId");
+      const savedRemember = localStorage.getItem("rememberClient") === "true";
+      if (savedClientId && savedRemember) {
+        setClientId(savedClientId);
+        setRememberMe(true);
+        setLoginType("client");
+      }
     }
   }, []);
 
-  const handleAdminLogin = async (e) => {
+  // ========== ADMIN LOGIN ==========
+  const handleAdminLogin = async () => {
+    const response = await fetch("https://faithcargo.onrender.com/api/admin-login/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: username.trim(),
+        password: password.trim(),
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.status === 200 && data.status === "success") {
+      localStorage.clear();
+      
+      localStorage.setItem("token", "admin-token");
+      localStorage.setItem("userRole", "admin");
+      localStorage.setItem("is_superuser", "true");
+      localStorage.setItem("username", data.username);
+      localStorage.setItem("userId", data.id || "1");
+      localStorage.setItem("loginType", "admin");
+      
+      const allModules = {
+        fcpl_rate: true, pickup: true, vendor_manage: true, vendor_rates: true,
+        rate_update: true, pincode: true, user_management: true,
+        ba_b2b: true, create_order: true, shipment_details: true,
+      };
+      localStorage.setItem("userModules", JSON.stringify(allModules));
+      
+      if (rememberMe) {
+        localStorage.setItem("rememberedAdminUsername", username.trim());
+        localStorage.setItem("rememberAdmin", "true");
+        localStorage.setItem("savedLoginType", "admin");
+      }
+      
+      setSuccess(`Welcome Admin ${data.username}! Redirecting...`);
+      
+      setTimeout(() => {
+        navigate("/admin-dashboard");
+        window.location.reload();
+      }, 1500);
+    } else {
+      setError(data.error || "Invalid admin credentials");
+    }
+  };
+
+  // ========== STAFF LOGIN ==========
+  const handleStaffLogin = async () => {
+    const response = await fetch("https://faithcargo.onrender.com/api/user/login/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: username.trim(),
+        password: password.trim(),
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.status === 200 && data.status === "success") {
+      localStorage.clear();
+      
+      localStorage.setItem("token", "user-token");
+      localStorage.setItem("userRole", "staff");
+      localStorage.setItem("is_superuser", "false");
+      localStorage.setItem("username", data.username);
+      localStorage.setItem("userId", data.id || "1");
+      localStorage.setItem("loginType", "staff");
+      
+      if (data.email) localStorage.setItem("userEmail", data.email);
+      if (data.company) localStorage.setItem("userCompany", data.company);
+      if (data.phone) localStorage.setItem("userPhone", data.phone);
+      
+      const modules = data.modules || {};
+      localStorage.setItem("userModules", JSON.stringify(modules));
+      
+      if (rememberMe) {
+        localStorage.setItem("rememberedStaffUsername", username.trim());
+        localStorage.setItem("rememberStaff", "true");
+        localStorage.setItem("savedLoginType", "staff");
+      }
+      
+      setSuccess(`Welcome ${data.username}! Redirecting...`);
+      
+      setTimeout(() => {
+        navigate("/user-dashboard");
+        window.location.reload();
+      }, 1500);
+    } else {
+      setError(data.error || "Invalid staff credentials");
+    }
+  };
+
+  // ========== CLIENT LOGIN ==========
+  const handleClientLogin = async () => {
+    const response = await fetch("https://faithcargo.onrender.com/api/auth/client-login/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientId: clientId.trim().toUpperCase(),
+        password: password.trim(),
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      localStorage.clear();
+      
+      localStorage.setItem("clientToken", data.token);
+      localStorage.setItem("clientId", clientId.trim().toUpperCase());
+      localStorage.setItem("userRole", "client");
+      localStorage.setItem("loginType", "client");
+      
+      if (data.user) {
+        localStorage.setItem("clientName", data.user.companyName || data.user.username);
+        localStorage.setItem("clientEmail", data.user.email || "");
+        localStorage.setItem("clientPhone", data.user.phone || "");
+        localStorage.setItem("clientCompany", data.user.companyName || "");
+      }
+      
+      const clientModules = {
+        ba_b2b: true, create_order: true, shipment_details: true,
+        fcpl_rate: false, pickup: false, vendor_manage: false,
+        vendor_rates: false, rate_update: false, pincode: false, user_management: false
+      };
+      localStorage.setItem("userModules", JSON.stringify(clientModules));
+      
+      if (rememberMe) {
+        localStorage.setItem("rememberedClientId", clientId.trim().toUpperCase());
+        localStorage.setItem("rememberClient", "true");
+        localStorage.setItem("savedLoginType", "client");
+      }
+      
+      setSuccess(`Welcome ${data.user?.companyName || clientId}! Redirecting...`);
+      
+      setTimeout(() => {
+        navigate("/ba-b2b-rate-calculator");
+        window.location.reload();
+      }, 1500);
+    } else {
+      setError(data.error || "Invalid Client ID or Password");
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-
-    if (!username || !password) {
-      setError("Please enter username & password");
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const response = await fetch("https://faithcargo.onrender.com/api/admin-login/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: username.trim(),
-          password: password.trim(),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.status === 200 && data.status === "success") {
-        localStorage.clear();
-        
-        localStorage.setItem("token", "admin-token");
-        localStorage.setItem("userRole", "admin");
-        localStorage.setItem("is_superuser", "true");
-        localStorage.setItem("username", data.username);
-        localStorage.setItem("userId", data.id || "1");
-        
-        // Admin has all modules access
-        const allModules = {
-          fcpl_rate: true,
-          pickup: true,
-          vendor_manage: true,
-          vendor_rates: true,
-          rate_update: true,
-          pincode: true,
-          user_management: true,
-          ba_b2b: true,
-          create_order: true,
-          shipment_details: true,
-        };
-        localStorage.setItem("userModules", JSON.stringify(allModules));
-        
-        if (rememberMe) {
-          localStorage.setItem("rememberedAdminUsername", username.trim());
-          localStorage.setItem("rememberAdmin", "true");
-        } else {
-          localStorage.removeItem("rememberedAdminUsername");
-          localStorage.removeItem("rememberAdmin");
+      if (loginType === "admin") {
+        if (!username || !password) {
+          setError("Please enter username & password");
+          setLoading(false);
+          return;
         }
-
-        setSuccess(`Welcome Admin ${data.username}! Redirecting...`);
-        
-        setTimeout(() => {
-          navigate("/admin-dashboard");
-        }, 1500);
-      } else {
-        setError(data.error || "Invalid admin credentials");
+        await handleAdminLogin();
+      } else if (loginType === "staff") {
+        if (!username || !password) {
+          setError("Please enter username & password");
+          setLoading(false);
+          return;
+        }
+        await handleStaffLogin();
+      } else if (loginType === "client") {
+        if (!clientId || !password) {
+          setError("Please enter Client ID & password");
+          setLoading(false);
+          return;
+        }
+        await handleClientLogin();
       }
     } catch (err) {
-      console.error("Login Error:", err);
       setError("Server error. Please try again.");
     } finally {
       setLoading(false);
     }
   };
-
-  const handleUserLogin = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    if (!username || !password) {
-      setError("Please enter username & password");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch("https://faithcargo.onrender.com/api/user/login/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: username.trim(),
-          password: password.trim(),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.status === 200 && data.status === "success") {
-        localStorage.clear();
-        
-        localStorage.setItem("token", "user-token");
-        localStorage.setItem("userRole", "user");
-        localStorage.setItem("is_superuser", "false");
-        localStorage.setItem("username", data.username);
-        localStorage.setItem("userId", data.id || "1");
-        
-        if (data.email) localStorage.setItem("userEmail", data.email);
-        if (data.company) localStorage.setItem("userCompany", data.company);
-        if (data.phone) localStorage.setItem("userPhone", data.phone);
-        
-        const modules = data.modules || {};
-        localStorage.setItem("userModules", JSON.stringify(modules));
-        
-        if (rememberMe) {
-          localStorage.setItem("rememberedUserUsername", username.trim());
-          localStorage.setItem("rememberUser", "true");
-        } else {
-          localStorage.removeItem("rememberedUserUsername");
-          localStorage.removeItem("rememberUser");
-        }
-
-        const enabledModules = Object.keys(modules).filter(key => modules[key] === true);
-        setSuccess(`Welcome ${data.username}! You have access to ${enabledModules.length} modules. Redirecting...`);
-        
-        setTimeout(() => {
-          navigate("/user-dashboard");
-        }, 1500);
-      } else {
-        setError(data.error || "Invalid user credentials");
-      }
-    } catch (err) {
-      console.error("Login Error:", err);
-      setError("Server error. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = isAdminLogin ? handleAdminLogin : handleUserLogin;
 
   return (
     <div className="login-container">
@@ -182,37 +247,16 @@ function Login() {
           <p className="tagline">Your Trusted Logistics Partner</p>
           
           <div className="features">
-            <div className="feature">
-              <Zap size={20} />
-              <span>Real-time Shipment Tracking</span>
-            </div>
-            <div className="feature">
-              <Building size={20} />
-              <span>Warehouse Management</span>
-            </div>
-            <div className="feature">
-              <Phone size={20} />
-              <span>24/7 Customer Support</span>
-            </div>
-            <div className="feature">
-              <Mail size={20} />
-              <span>Instant Rate Calculator</span>
-            </div>
+            <div className="feature"><Zap size={20} /><span>Real-time Tracking</span></div>
+            <div className="feature"><Building size={20} /><span>Warehouse Management</span></div>
+            <div className="feature"><Phone size={20} /><span>24/7 Support</span></div>
+            <div className="feature"><Mail size={20} /><span>Instant Rate Calculator</span></div>
           </div>
           
           <div className="stats">
-            <div className="stat">
-              <strong>10K+</strong>
-              <span>Shipments</span>
-            </div>
-            <div className="stat">
-              <strong>500+</strong>
-              <span>Clients</span>
-            </div>
-            <div className="stat">
-              <strong>98%</strong>
-              <span>On-Time Delivery</span>
-            </div>
+            <div className="stat"><strong>10K+</strong><span>Shipments</span></div>
+            <div className="stat"><strong>500+</strong><span>Clients</span></div>
+            <div className="stat"><strong>98%</strong><span>On-Time Delivery</span></div>
           </div>
         </div>
       </div>
@@ -225,42 +269,60 @@ function Login() {
             <div className="online-status"></div>
           </div>
           
-          {/* Login Type Toggle */}
-          <div className="login-tabs">
+          {/* Login Type Toggle - Three Options */}
+          <div className="login-tabs three-tabs">
             <button 
-              className={`tab-btn ${isAdminLogin ? 'active' : ''}`}
+              className={`tab-btn ${loginType === 'admin' ? 'active' : ''}`}
               onClick={() => {
-                setIsAdminLogin(true);
+                setLoginType('admin');
                 setError("");
                 setUsername("");
+                setClientId("");
                 setPassword("");
               }}
             >
-              <Crown size={18} />
-              Admin Login
+              <Crown size={16} />
+              Admin
             </button>
             <button 
-              className={`tab-btn ${!isAdminLogin ? 'active' : ''}`}
+              className={`tab-btn ${loginType === 'staff' ? 'active' : ''}`}
               onClick={() => {
-                setIsAdminLogin(false);
+                setLoginType('staff');
                 setError("");
                 setUsername("");
+                setClientId("");
                 setPassword("");
               }}
             >
-              <Users size={18} />
-              User Login
+              <Users size={16} />
+              Staff
+            </button>
+            <button 
+              className={`tab-btn ${loginType === 'client' ? 'active' : ''}`}
+              onClick={() => {
+                setLoginType('client');
+                setError("");
+                setUsername("");
+                setClientId("");
+                setPassword("");
+              }}
+            >
+              <Building2 size={16} />
+              Client
             </button>
           </div>
           
-          <h2>{isAdminLogin ? "Admin Portal" : "Staff Portal"}</h2>
+          <h2>
+            {loginType === 'admin' && "Admin Portal"}
+            {loginType === 'staff' && "Staff Portal"}
+            {loginType === 'client' && "Client Portal"}
+          </h2>
           <p className="subtitle">
-            {isAdminLogin 
-              ? "Enter your superuser credentials to access admin dashboard" 
-              : "Enter your credentials to access your assigned modules"}
+            {loginType === 'admin' && "Enter your superuser credentials to access admin dashboard"}
+            {loginType === 'staff' && "Enter your credentials to access your assigned modules"}
+            {loginType === 'client' && "Enter your Client ID and password to access rate calculator"}
           </p>
           
-          {/* Error Alert */}
           {error && (
             <div className="alert alert-error">
               <AlertCircle size={18} />
@@ -268,7 +330,6 @@ function Login() {
             </div>
           )}
           
-          {/* Success Alert */}
           {success && (
             <div className="alert alert-success">
               <CheckCircle size={18} />
@@ -277,20 +338,39 @@ function Login() {
           )}
           
           <form onSubmit={handleSubmit} className="login-form">
-            <div className="input-group">
-              <label>Username</label>
-              <div className="input-field">
-                <User size={18} className="input-icon" />
-                <input
-                  type="text"
-                  placeholder="Enter your username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  autoComplete="username"
-                  disabled={loading}
-                />
+            {loginType === 'client' ? (
+              <div className="input-group">
+                <label>Client ID</label>
+                <div className="input-field">
+                  <Building2 size={18} className="input-icon" />
+                  <input
+                    type="text"
+                    placeholder="Enter your Client ID (e.g., FCPL001, CLIENT002)"
+                    value={clientId}
+                    onChange={(e) => setClientId(e.target.value.toUpperCase())}
+                    disabled={loading}
+                  />
+                </div>
+                <div className="input-hint">
+                  <UserCircle size={12} />
+                  <span>Enter the Client ID provided by your account manager</span>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="input-group">
+                <label>Username</label>
+                <div className="input-field">
+                  <User size={18} className="input-icon" />
+                  <input
+                    type="text"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="input-group">
               <label>Password</label>
@@ -301,7 +381,6 @@ function Login() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
                   disabled={loading}
                 />
                 <button
@@ -330,13 +409,13 @@ function Login() {
 
             <button type="submit" className="login-btn" disabled={loading}>
               {loading ? (
-                <span>
-                  <i className="fas fa-spinner fa-spin"></i> Verifying...
-                </span>
+                <span>Verifying...</span>
               ) : (
                 <>
                   <LogIn size={18} />
-                  {isAdminLogin ? "Login as Admin" : "Login to Dashboard"}
+                  {loginType === 'admin' && "Login as Admin"}
+                  {loginType === 'staff' && "Login to Staff Dashboard"}
+                  {loginType === 'client' && "Access Client Portal"}
                 </>
               )}
             </button>
