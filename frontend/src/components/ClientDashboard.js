@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { 
   Calculator, Package, Truck, LogOut, User, 
   TrendingUp, Clock, CheckCircle, AlertCircle,
@@ -36,7 +36,6 @@ function ClientDashboard() {
     onTimeRate: 98
   });
 
-  // 🔥 DIRECTLY GET FROM localStorage - NO API CALL
   const clientName = localStorage.getItem("clientName") || localStorage.getItem("username") || "Client";
   const clientId = localStorage.getItem("clientId");
   const clientEmail = localStorage.getItem("clientEmail") || "client@faithcargo.com";
@@ -125,7 +124,12 @@ function ClientDashboard() {
 
   const handleLogout = () => {
     localStorage.clear();
-    navigate("/");
+    window.location.href = "/";
+  };
+
+  // 🔥 FIXED: Navigation handler using window.location for reliability
+  const handleNavigation = (path) => {
+    window.location.href = path;
   };
 
   const modules = [
@@ -214,20 +218,21 @@ function ClientDashboard() {
           </div>
         </div>
 
+        {/* 🔥 FIXED: Sidebar Navigation using window.location */}
         <nav className="sidebar-nav">
-          <button className="nav-item active" onClick={() => navigate("/client-dashboard")}>
+          <button className="nav-item active" onClick={() => handleNavigation("/client-dashboard")}>
             <Home size={20} /> Dashboard
           </button>
-          <button className="nav-item" onClick={() => navigate("/ba-b2b-rate-calculator")}>
+          <button className="nav-item" onClick={() => handleNavigation("/ba-b2b-rate-calculator")}>
             <Calculator size={20} /> Rate Calculator
           </button>
-          <button className="nav-item" onClick={() => navigate("/create-order")}>
+          <button className="nav-item" onClick={() => handleNavigation("/create-order")}>
             <Package size={20} /> Create Order
           </button>
-          <button className="nav-item" onClick={() => navigate("/shipment-details")}>
+          <button className="nav-item" onClick={() => handleNavigation("/shipment-details")}>
             <Truck size={20} /> Shipment Details
           </button>
-          <button className="nav-item" onClick={() => navigate("/tracking")}>
+          <button className="nav-item" onClick={() => handleNavigation("/tracking")}>
             <Navigation size={20} /> Track Shipment
           </button>
         </nav>
@@ -338,7 +343,7 @@ function ClientDashboard() {
           </div>
         </div>
 
-        {/* Quick Actions */}
+        {/* 🔥 FIXED: Quick Actions using window.location */}
         <div className="quick-actions-section">
           <div className="section-header">
             <h2><Zap size={22} /> Quick Actions</h2>
@@ -349,7 +354,7 @@ function ClientDashboard() {
               <button 
                 key={idx}
                 className="quick-action-btn"
-                onClick={() => navigate(action.path)}
+                onClick={() => handleNavigation(action.path)}
                 style={{ borderColor: action.color }}
               >
                 <span className="action-icon" style={{ color: action.color }}>{action.icon}</span>
@@ -420,7 +425,7 @@ function ClientDashboard() {
                 </div>
               </div>
               <div className="tracking-actions">
-                <button className="action-btn" onClick={() => navigate("/shipment-details")}>
+                <button className="action-btn" onClick={() => handleNavigation("/shipment-details")}>
                   <Eye size={16} /> Full Details
                 </button>
                 <button className="action-btn">
@@ -441,7 +446,7 @@ function ClientDashboard() {
               <h2><Star size={22} /> Your Services</h2>
               <p>Access all your logistics tools and features</p>
             </div>
-            <button className="view-all" onClick={() => navigate("/shipment-details")}>
+            <button className="view-all" onClick={() => handleNavigation("/shipment-details")}>
               View All Services <ChevronRight size={16} />
             </button>
           </div>
@@ -450,7 +455,7 @@ function ClientDashboard() {
               <div 
                 key={module.id}
                 className="module-card premium"
-                onClick={() => navigate(module.path)}
+                onClick={() => handleNavigation(module.path)}
                 style={{ borderTopColor: module.color }}
               >
                 <div className="module-icon premium" style={{ background: module.bgColor, color: module.color }}>
@@ -478,7 +483,7 @@ function ClientDashboard() {
               <h2><Clock size={22} /> Recent Shipments</h2>
               <p>Your latest 5 shipments</p>
             </div>
-            <button className="view-all" onClick={() => navigate("/shipment-details")}>
+            <button className="view-all" onClick={() => handleNavigation("/shipment-details")}>
               View All <ChevronRight size={16} />
             </button>
           </div>
@@ -499,7 +504,7 @@ function ClientDashboard() {
                       <td>{getStatusBadge(shipment.status)}</td>
                       <td>{new Date(shipment.date).toLocaleDateString()}</td>
                       <td className="action-cell">
-                        <button className="action-icon" onClick={() => navigate("/shipment-details")} title="View Details">
+                        <button className="action-icon" onClick={() => handleNavigation("/shipment-details")} title="View Details">
                           <Eye size={16} />
                         </button>
                         <button className="action-icon" title="Download Invoice">
