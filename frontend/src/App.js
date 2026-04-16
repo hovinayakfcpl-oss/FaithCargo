@@ -6,6 +6,7 @@ import Login from "./components/Login";
 import UserLogin from "./components/UserLogin";
 import AdminDashboard from "./components/AdminDashboard";
 import UserDashboard from "./components/UserDashboard";
+import ClientDashboard from "./components/ClientDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // 🔹 Feature Modules
@@ -109,6 +110,7 @@ const NotFoundPage = () => {
 function App() {
   const [userModules, setUserModules] = useState({});
   const [userRole, setUserRole] = useState(null);
+  const [loginType, setLoginType] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -117,15 +119,16 @@ function App() {
     const token = localStorage.getItem("token");
     const clientToken = localStorage.getItem("clientToken");
     const role = localStorage.getItem("userRole");
-    const loginType = localStorage.getItem("loginType");
+    const type = localStorage.getItem("loginType");
     const modules = localStorage.getItem("userModules");
     
     // Check if authenticated via staff token or client token
-    const hasToken = (token && token !== "undefined" && token !== "null") || 
-                     (clientToken && clientToken !== "undefined" && clientToken !== "null");
+    const hasToken = (token && token !== "undefined" && token !== "null" && token !== "") || 
+                     (clientToken && clientToken !== "undefined" && clientToken !== "null" && clientToken !== "");
     
     setIsAuthenticated(hasToken);
     setUserRole(role);
+    setLoginType(type);
     
     if (modules) {
       try {
@@ -155,11 +158,11 @@ function App() {
     { path: "/shipment-details", component: ShipmentDetails, module: "shipment_details", title: "Shipment Details", icon: "📦" },
   ];
 
-  // Filter routes based on user permissions (for debugging)
-  const availableRoutes = routeConfig.filter(route => {
-    const hasAccess = userModules[route.module] === true || userRole === "admin";
-    return hasAccess;
-  });
+  // 🔥 Client specific routes
+  const clientRoutes = [
+    { path: "/client-dashboard", component: ClientDashboard, title: "Client Dashboard", icon: "🏠" },
+    { path: "/tracking", component: ShipmentDetails, title: "Track Shipment", icon: "🔍" },
+  ];
 
   if (loading) {
     return (
@@ -214,12 +217,22 @@ function App() {
           }
         />
 
-        {/* 🔹 USER DASHBOARD */}
+        {/* 🔹 USER DASHBOARD (Staff) */}
         <Route
           path="/user-dashboard"
           element={
             <ProtectedRoute>
               <UserDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 🔥 CLIENT DASHBOARD - New */}
+        <Route
+          path="/client-dashboard"
+          element={
+            <ProtectedRoute>
+              <ClientDashboard />
             </ProtectedRoute>
           }
         />
@@ -237,12 +250,27 @@ function App() {
           />
         ))}
 
+        {/* 🔥 CLIENT SPECIFIC ROUTES */}
+        {clientRoutes.map((route) => (
+          <Route
+            key={route.path}
+            path={route.path}
+            element={
+              <ProtectedRoute>
+                {React.createElement(route.component)}
+              </ProtectedRoute>
+            }
+          />
+        ))}
+
         {/* 🔹 Redirect based on authentication and role */}
         <Route
           path="/dashboard"
           element={
             <Navigate 
-              to={userRole === "admin" ? "/admin-dashboard" : "/user-dashboard"} 
+              to={loginType === "client" 
+                ? "/client-dashboard" 
+                : (userRole === "admin" ? "/admin-dashboard" : "/user-dashboard")} 
               replace 
             />
           }

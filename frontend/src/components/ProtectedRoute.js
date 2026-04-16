@@ -62,21 +62,27 @@ function ProtectedRoute({ children, requiredModule }) {
     "/create-order": "create_order",
     "/shipment-details": "shipment_details",
     "/shipments": "shipment_details",
+    "/client-dashboard": "shipment_details",  // 🔥 Client Dashboard access
+    "/tracking": "shipment_details",          // 🔥 Tracking access
   };
 
   const currentPath = location.pathname;
 
-  // Public routes (accessible to all authenticated users)
+  // Public routes for clients (accessible to all authenticated users)
   const publicRoutes = [
     "/user-dashboard", 
     "/admin-dashboard", 
     "/dashboard",
     "/ba-b2b-rate-calculator",
-    "/shipment-details",  // 🔥 Add this for clients
-    "/shipments"
+    "/shipment-details",
+    "/shipments",
+    "/client-dashboard",    // 🔥 Client Dashboard
+    "/tracking",            // 🔥 Tracking page
   ];
   
+  // 🔥 Client specific routes - Allow all clients to access
   if (publicRoutes.includes(currentPath)) {
+    console.log(`✅ Access granted for client to: ${currentPath}`);
     return children;
   }
 
@@ -93,7 +99,7 @@ function ProtectedRoute({ children, requiredModule }) {
   if (!hasPermission) {
     console.log(`Access Denied: Missing "${requiredPermission}" permission`);
     if (loginType === "client") {
-      return <Navigate to="/ba-b2b-rate-calculator" replace />;
+      return <Navigate to="/client-dashboard" replace />;
     }
     return <Navigate to="/user-dashboard" replace />;
   }
