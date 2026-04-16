@@ -31,15 +31,16 @@ class StaffLoginSerializer(serializers.Serializer):
         if not user:
             raise serializers.ValidationError("Invalid username or password")
         
+        # 🔥 FIX: Client cannot login via Staff login
         if user.role == 'Client':
-            raise serializers.ValidationError("Please use client login portal")
+            raise serializers.ValidationError("❌ This is a Client account. Please use Client Login portal.")
         
         attrs['user'] = user
         return attrs
 
 
 # ============================================
-# CLIENT LOGIN SERIALIZER - NEW
+# CLIENT LOGIN SERIALIZER - UPDATED
 # ============================================
 class ClientLoginSerializer(serializers.Serializer):
     client_id = serializers.CharField()
@@ -49,11 +50,19 @@ class ClientLoginSerializer(serializers.Serializer):
         client_id = attrs.get('client_id')
         password = attrs.get('password')
         
-        # Find user by client_id
+        # 🔥 FIX: Case-insensitive search for client_id
         try:
-            user = CustomUser.objects.get(client_id__iexact=client_id, role='Client')
+            user = CustomUser.objects.get(client_id__iexact=client_id)
         except CustomUser.DoesNotExist:
-            raise serializers.ValidationError("Invalid Client ID or Password")
+            # Try by username as fallback
+            try:
+                user = CustomUser.objects.get(username__iexact=client_id, role='Client')
+            except CustomUser.DoesNotExist:
+                raise serializers.ValidationError("Invalid Client ID or Password")
+        
+        # 🔥 CRITICAL: Ensure user is Client
+        if user.role != 'Client':
+            raise serializers.ValidationError("This account is not a Client account. Please use Staff Login.")
         
         # Check if client is active
         if not user.is_client_active:
@@ -164,13 +173,13 @@ class CreateUserSerializer(serializers.Serializer):
 
 
 # ============================================
-# CREATE CLIENT SERIALIZER - NEW
+# CREATE CLIENT SERIALIZER - UPDATED
 # ============================================
 class CreateClientSerializer(serializers.Serializer):
     client_id = serializers.CharField()
     company_name = serializers.CharField()
     email = serializers.EmailField()
-    password = serializers.CharField()
+    password = serializers.CharField(write_only=True)
     phone = serializers.CharField()
     gstin = serializers.CharField(required=False, allow_blank=True)
     address = serializers.CharField(required=False, allow_blank=True)
@@ -179,6 +188,9 @@ class CreateClientSerializer(serializers.Serializer):
         value = value.upper()
         if CustomUser.objects.filter(client_id=value).exists():
             raise serializers.ValidationError("Client ID already exists")
+        # Also check username doesn't conflict
+        if CustomUser.objects.filter(username=value.lower()).exists():
+            raise serializers.ValidationError("Username with this ID already exists")
         return value
     
     def validate_email(self, value):
@@ -186,18 +198,27 @@ class CreateClientSerializer(serializers.Serializer):
             raise serializers.ValidationError("Email already exists")
         return value
     
+    def validate_phone(self, value):
+        if CustomUser.objects.filter(phone=value).exists():
+            raise serializers.ValidationError("Phone number already exists")
+        return value
+    
     def create(self, validated_data):
+        # 🔥 Generate unique username from client_id
+        username = validated_data['client_id'].lower()
+        
         user = CustomUser.objects.create_user(
-            username=validated_data['client_id'].lower(),
+            username=username,
             password=validated_data['password'],
             email=validated_data['email'],
             phone=validated_data['phone'],
             company=validated_data['company_name'],
             address=validated_data.get('address', ''),
             gstin=validated_data.get('gstin', ''),
-            role='Client',
+            role='Client',  # 🔥 CRITICAL: Set role to Client
             client_id=validated_data['client_id'].upper(),
             is_client_active=True,
+            is_active=True,  # 🔥 Ensure account is active
             # Default module permissions for clients
             ba_b2b=True,
             create_order=True,
@@ -212,16 +233,16 @@ class CreateClientSerializer(serializers.Serializer):
         )
         
         # Create default client profile
-        ClientProfile.objects.create(client=user)
+        ClientProfile.objects.get_or_create(client=user)
         
         # Create default client rate policy
-        ClientRatePolicy.objects.create(client=user, is_custom=False)
+        ClientRatePolicy.objects.get_or_create(client=user, defaults={'is_custom': False})
         
         return user
 
 
 # ============================================
-# CLIENT PROFILE SERIALIZER - NEW
+# CLIENT PROFILE SERIALIZER
 # ============================================
 class ClientProfileSerializer(serializers.ModelSerializer):
     client_id = serializers.CharField(source='client.client_id', read_only=True)
@@ -244,7 +265,7 @@ class ClientProfileSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# CLIENT RATE MATRIX SERIALIZER - NEW
+# CLIENT RATE MATRIX SERIALIZER
 # ============================================
 class ClientRateMatrixSerializer(serializers.ModelSerializer):
     class Meta:
@@ -254,7 +275,7 @@ class ClientRateMatrixSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# CLIENT RATE POLICY SERIALIZER - NEW
+# CLIENT RATE POLICY SERIALIZER
 # ============================================
 class ClientRatePolicySerializer(serializers.ModelSerializer):
     class Meta:
@@ -269,7 +290,7 @@ class ClientRatePolicySerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# CLIENT DETAILS SERIALIZER (Combined) - NEW
+# CLIENT DETAILS SERIALIZER (Combined)
 # ============================================
 class ClientDetailsSerializer(serializers.ModelSerializer):
     profile = ClientProfileSerializer(source='client_profile', read_only=True)
@@ -284,7 +305,7 @@ class ClientDetailsSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# CLIENT RATES RESPONSE SERIALIZER - NEW
+# CLIENT RATES RESPONSE SERIALIZER
 # ============================================
 class ClientRatesResponseSerializer(serializers.Serializer):
     zone_rates = ClientRateMatrixSerializer(many=True)
@@ -302,7 +323,7 @@ class ClientRatesResponseSerializer(serializers.Serializer):
 
 
 # ============================================
-# CLIENT ORDER SUMMARY SERIALIZER - NEW
+# CLIENT ORDER SUMMARY SERIALIZER
 # ============================================
 class ClientOrderSummarySerializer(serializers.ModelSerializer):
     class Meta:
@@ -311,7 +332,7 @@ class ClientOrderSummarySerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# UPDATE CLIENT RATES SERIALIZER - NEW
+# UPDATE CLIENT RATES SERIALIZER
 # ============================================
 class UpdateClientRatesSerializer(serializers.Serializer):
     zone_rates = serializers.ListField(child=serializers.DictField(), required=False)
@@ -325,7 +346,7 @@ class UpdateClientRatesSerializer(serializers.Serializer):
 
 
 # ============================================
-# CLIENT SESSION SERIALIZER - NEW
+# CLIENT SESSION SERIALIZER
 # ============================================
 class ClientSessionSerializer(serializers.ModelSerializer):
     class Meta:

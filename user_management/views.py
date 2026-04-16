@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 # Try to import Shipment models
 try:
-    from shipments.models import Shipment, ShipmentTracking
+    from shipments.models import Order
     SHIPMENT_MODELS_AVAILABLE = True
 except ImportError:
     SHIPMENT_MODELS_AVAILABLE = False
@@ -93,7 +93,7 @@ def admin_login(request):
         return Response({"error": str(e)}, status=500)
 
 
-# ✅ USER LOGIN API
+# ✅ USER LOGIN API - UPDATED with role check
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def user_login(request):
@@ -108,6 +108,13 @@ def user_login(request):
         
         if not check_password(password, user.password):
             return Response({"error": "Invalid username or password"}, status=400)
+        
+        # 🔥 CRITICAL FIX: Client cannot login via user login
+        if user.role == 'Client':
+            return Response({
+                "error": "❌ This is a Client account. Please use Client Login portal.",
+                "use_client_login": True
+            }, status=403)
 
         return Response({
             "status": "success",
@@ -118,6 +125,7 @@ def user_login(request):
             "company": getattr(user, 'company', ''),
             "address": getattr(user, 'address', ''),
             "gstin": getattr(user, 'gstin', ''),
+            "role": user.role,
             "modules": {
                 "fcpl_rate": getattr(user, 'fcpl_rate', False),
                 "pickup": getattr(user, 'pickup', False),
@@ -301,10 +309,10 @@ def delete_user(request, id):
 
 
 # ============================================
-# 🆕 CLIENT MANAGEMENT APIs
+# 🆕 CLIENT MANAGEMENT APIs - UPDATED
 # ============================================
 
-# ✅ CREATE CLIENT
+# ✅ CREATE CLIENT - UPDATED
 @api_view(['POST'])
 def create_client(request):
     """Create a new client"""
@@ -320,6 +328,7 @@ def create_client(request):
         address = data.get("address", "")
         gstin = data.get("gstin", "")
         
+        # Validation
         if not client_id:
             return Response({"error": "Client ID is required"}, status=400)
         if not company_name:
@@ -328,17 +337,24 @@ def create_client(request):
             return Response({"error": "Email is required"}, status=400)
         if not password:
             return Response({"error": "Password is required"}, status=400)
+        if len(password) < 6:
+            return Response({"error": "Password must be at least 6 characters"}, status=400)
         
+        # Check duplicates
         if CustomUser.objects.filter(client_id=client_id).exists():
             return Response({"error": f"Client ID '{client_id}' already exists"}, status=400)
         
         if CustomUser.objects.filter(email=email).exists():
             return Response({"error": f"Email '{email}' already exists"}, status=400)
         
+        if CustomUser.objects.filter(phone=phone).exists():
+            return Response({"error": f"Phone number '{phone}' already exists"}, status=400)
+        
         username = client_id.lower()
         if CustomUser.objects.filter(username=username).exists():
             return Response({"error": f"Username '{username}' already exists"}, status=400)
         
+        # 🔥 CRITICAL: Create client with proper role
         user = CustomUser.objects.create(
             username=username,
             password=make_password(password),
@@ -347,10 +363,11 @@ def create_client(request):
             company=company_name,
             address=address,
             gstin=gstin.upper() if gstin else "",
-            role='Client',
+            role='Client',  # 🔥 Force role to Client
             client_id=client_id,
             is_client_active=True,
-            is_active=True,
+            is_active=True,  # 🔥 Ensure account is active
+            # Default module permissions for clients
             ba_b2b=True,
             create_order=True,
             shipment_details=True,
@@ -363,8 +380,13 @@ def create_client(request):
             user_management=False,
         )
         
+        # Create default client profile
         ClientProfile.objects.get_or_create(client=user)
+        
+        # Create default client rate policy
         ClientRatePolicy.objects.get_or_create(client=user, defaults={'is_custom': False})
+        
+        print(f"✅ Client created successfully: {client_id} (User ID: {user.id}, Role: {user.role})")
         
         return Response({
             "success": True,
@@ -374,7 +396,9 @@ def create_client(request):
                 "clientId": user.client_id,
                 "companyName": user.company,
                 "email": user.email,
-                "phone": user.phone
+                "phone": user.phone,
+                "username": user.username,
+                "password": password  # Only for first-time display
             }
         }, status=201)
         
@@ -420,7 +444,7 @@ def delete_client(request, client_id):
     }, status=200)
 
 
-# ✅ GET CLIENT ORDER SUMMARY
+# ✅ GET CLIENT ORDER SUMMARY - UPDATED
 @api_view(['GET'])
 def get_client_order_summary(request, client_id):
     try:
@@ -432,16 +456,29 @@ def get_client_order_summary(request, client_id):
     
     shipments_data = []
     if SHIPMENT_MODELS_AVAILABLE:
-        shipments = Shipment.objects.filter(client_id=client_id)
-        for shipment in shipments:
-            shipments_data.append({
-                "id": shipment.id,
-                "lr_number": shipment.lr_number,
-                "created_at": shipment.created_at,
-                "weight": float(shipment.weight),
-                "freight_amount": float(shipment.freight_amount),
-                "status": shipment.status
-            })
+        try:
+            # Use Order model directly
+            from django.db import connection
+            cursor = connection.cursor()
+            cursor.execute("""
+                SELECT id, lr_number, created_at, weight, freight_amount, status
+                FROM orders 
+                WHERE client_id = %s 
+                ORDER BY created_at DESC
+                LIMIT 50
+            """, [client_id])
+            rows = cursor.fetchall()
+            for row in rows:
+                shipments_data.append({
+                    "id": row[0],
+                    "lr_number": row[1],
+                    "created_at": row[2],
+                    "weight": float(row[3]) if row[3] else 0,
+                    "freight_amount": float(row[4]) if row[4] else 0,
+                    "status": row[5] if row[5] else "booked"
+                })
+        except Exception as e:
+            logger.warning(f"Could not fetch shipments: {e}")
     
     return Response({
         "success": True,
@@ -718,20 +755,35 @@ def user_stats(request, user_id):
 @api_view(['GET'])
 def all_shipments(request):
     if SHIPMENT_MODELS_AVAILABLE:
-        shipments = Shipment.objects.all()[:100]
-        return Response([{
-            "id": s.id,
-            "lr_number": s.lr_number,
-            "awb_number": s.awb_number,
-            "client_id": s.client_id,
-            "pickup_name": s.pickup_name,
-            "delivery_name": s.delivery_name,
-            "weight": float(s.weight),
-            "total_amount": float(s.total_amount),
-            "freight_amount": float(s.freight_amount) if hasattr(s, 'freight_amount') else 0,
-            "status": s.status,
-            "created_at": s.created_at
-        } for s in shipments])
+        try:
+            from django.db import connection
+            cursor = connection.cursor()
+            cursor.execute("""
+                SELECT id, lr_number, awb_number, client_id, pickup_name, delivery_name,
+                       weight, total_value, freight_amount, status, created_at
+                FROM orders 
+                ORDER BY created_at DESC 
+                LIMIT 100
+            """)
+            rows = cursor.fetchall()
+            shipments = []
+            for row in rows:
+                shipments.append({
+                    "id": row[0],
+                    "lr_number": row[1],
+                    "awb_number": row[2],
+                    "client_id": row[3],
+                    "pickup_name": row[4],
+                    "delivery_name": row[5],
+                    "weight": float(row[6]) if row[6] else 0,
+                    "total_amount": float(row[7]) if row[7] else 0,
+                    "freight_amount": float(row[8]) if row[8] else 0,
+                    "status": row[9] if row[9] else "booked",
+                    "created_at": row[10]
+                })
+            return Response(shipments)
+        except Exception as e:
+            logger.warning(f"Could not fetch shipments: {e}")
     
     return Response([])
 
@@ -764,39 +816,42 @@ def get_pincode_zone(request, pincode):
 
 @api_view(['GET'])
 def track_shipment(request, tracking_id):
-    if SHIPMENT_MODELS_AVAILABLE:
-        try:
-            shipment = Shipment.objects.get(lr_number=tracking_id)
-            tracking_history = ShipmentTracking.objects.filter(shipment=shipment).order_by('-created_at')
-            
+    try:
+        from django.db import connection
+        cursor = connection.cursor()
+        cursor.execute("""
+            SELECT lr_number, awb_number, pickup_name, pickup_pincode, 
+                   delivery_name, delivery_pincode, status, weight, 
+                   material, total_value, freight_amount, updated_at
+            FROM orders 
+            WHERE lr_number = %s OR awb_number = %s
+        """, [tracking_id, tracking_id])
+        
+        row = cursor.fetchone()
+        if row:
             return Response({
-                "lr": shipment.lr_number,
-                "awb": shipment.awb_number,
-                "pickupName": shipment.pickup_name,
-                "pickupPincode": shipment.pickup_pincode,
-                "deliveryName": shipment.delivery_name,
-                "deliveryPincode": shipment.delivery_pincode,
-                "status": shipment.status,
-                "weight": float(shipment.weight),
-                "material": shipment.material,
-                "totalValue": float(shipment.total_value),
-                "freightAmount": float(shipment.freight_amount) if hasattr(shipment, 'freight_amount') else 0,
-                "updatedAt": shipment.updated_at,
-                "trackingHistory": [{
-                    "status": t.status,
-                    "location": t.location,
-                    "remarks": t.remarks,
-                    "createdAt": t.created_at
-                } for t in tracking_history]
+                "lr": row[0],
+                "awb": row[1],
+                "pickupName": row[2],
+                "pickupPincode": row[3],
+                "deliveryName": row[4],
+                "deliveryPincode": row[5],
+                "status": row[6],
+                "weight": float(row[7]) if row[7] else 0,
+                "material": row[8] or "General Cargo",
+                "totalValue": float(row[9]) if row[9] else 0,
+                "freightAmount": float(row[10]) if row[10] else 0,
+                "updatedAt": row[11]
             })
-        except Shipment.DoesNotExist:
+        else:
             return Response({"error": "Shipment not found"}, status=404)
-    
-    return Response({
-        "status": "in_transit",
-        "lr_number": tracking_id,
-        "updated_at": datetime.now().isoformat()
-    })
+    except Exception as e:
+        logger.warning(f"Track shipment error: {e}")
+        return Response({
+            "status": "in_transit",
+            "lr_number": tracking_id,
+            "updated_at": datetime.now().isoformat()
+        })
 
 
 @api_view(['GET'])
@@ -807,9 +862,16 @@ def dashboard_stats(request):
     total_shipments = 0
     total_freight = 0
     
-    if SHIPMENT_MODELS_AVAILABLE:
-        total_shipments = Shipment.objects.count()
-        total_freight = Shipment.objects.aggregate(total=Sum('freight_amount'))['total'] or 0
+    try:
+        from django.db import connection
+        cursor = connection.cursor()
+        cursor.execute("SELECT COUNT(*), COALESCE(SUM(freight_amount), 0) FROM orders")
+        row = cursor.fetchone()
+        if row:
+            total_shipments = row[0] or 0
+            total_freight = float(row[1]) if row[1] else 0
+    except Exception as e:
+        logger.warning(f"Could not fetch stats: {e}")
     
     return Response({
         "total_users": total_users,

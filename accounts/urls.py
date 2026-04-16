@@ -15,12 +15,10 @@ urlpatterns = [
     path("me/", views.get_current_user, name="get_current_user"),
     
     # =====================================================
-    # 🆕 CLIENT AUTHENTICATION APIs
+    # 🆕 CLIENT AUTHENTICATION APIs - FIXED PATH
     # =====================================================
-    path("auth/client-login/", views.client_login, name="client_login"),
-    path("auth/client/<str:client_id>/", views.get_client_details, name="get_client_details"),
-    path("auth/logout/", views.logout, name="logout"),
-    path("auth/me/", views.get_current_user, name="get_current_user"),
+    path("client-login/", views.client_login, name="client_login"),  # 🔥 FIXED: removed auth/
+    path("client/<str:client_id>/", views.get_client_details, name="get_client_details"),
     
     # =====================================================
     # 🆕 CLIENT RATES APIs
