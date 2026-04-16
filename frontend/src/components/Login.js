@@ -153,7 +153,7 @@ function Login() {
   // ========== CLIENT LOGIN - FIXED API ENDPOINT ==========
   const handleClientLogin = async () => {
     // 🔥 FIXED: Correct API endpoint
-    const response = await fetch("https://faithcargo.onrender.com/api/accounts/client-login/", {
+    const response = await fetch("https://faithcargo.onrender.com/api/accounts/auth/client-login/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

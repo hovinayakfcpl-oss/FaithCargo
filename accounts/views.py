@@ -627,3 +627,27 @@ def get_all_clients_public(request):
     except Exception as e:
         print(f"Error in get_all_clients_public: {str(e)}")
         return Response({"error": str(e)}, status=500)
+    
+# =====================================================
+# 🧪 TEST CLIENT LOGIN ENDPOINT (Debugging)
+# =====================================================
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def test_client_login(request):
+    """Debug endpoint to test if accounts URLs are working"""
+    print("=== TEST ENDPOINT HIT ===")
+    print("Method:", request.method)
+    print("Data:", request.data if request.method == 'POST' else 'GET request')
+    
+    return Response({
+        "success": True,
+        "message": "Test endpoint is working! Accounts URLs are properly configured.",
+        "method": request.method,
+        "available_endpoints": [
+            "/api/accounts/client-login/",
+            "/api/accounts/login/",
+            "/api/accounts/signup/",
+            "/api/user/admin-login/",
+            "/api/user/login/"
+        ]
+    }, status=200)
