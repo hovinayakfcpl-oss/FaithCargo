@@ -31,6 +31,7 @@ function ProtectedRoute({ children, requiredModule }) {
     const modulesStr = localStorage.getItem("userModules");
     if (modulesStr) {
       userModules = JSON.parse(modulesStr);
+      console.log("User Modules loaded:", userModules);
     }
   } catch (error) {
     console.error("Error parsing userModules:", error);
@@ -38,6 +39,7 @@ function ProtectedRoute({ children, requiredModule }) {
 
   // Not authenticated - redirect
   if (!isAuthenticated) {
+    console.log("Not authenticated, redirecting to login");
     localStorage.clear();
     return <Navigate to="/" replace />;
   }
@@ -48,7 +50,37 @@ function ProtectedRoute({ children, requiredModule }) {
     return children;
   }
 
-  // Route to module mapping
+  const currentPath = location.pathname;
+  
+  // 🔥 COMPLETE LIST OF PUBLIC ROUTES - All routes clients can access
+  const publicRoutes = [
+    "/",
+    "/user-dashboard", 
+    "/admin-dashboard", 
+    "/dashboard",
+    "/ba-b2b-rate-calculator",
+    "/shipment-details",
+    "/shipments",
+    "/client-dashboard",
+    "/tracking",
+    "/create-order",           // ✅ Create Order
+    "/ba-b2b-rate",            // ✅ Rate Calculator
+    "/fcpl-rate",              // ✅ FCPL Rate
+    "/pickup",                 // ✅ Pickup
+    "/vendor-manage",          // ✅ Vendor Manage
+    "/vendor-rate",            // ✅ Vendor Rate
+    "/rate-update",            // ✅ Rate Update
+    "/pincode",                // ✅ Pincode
+    "/user-management",        // ✅ User Management
+  ];
+  
+  // 🔥 Check if current path is in public routes
+  if (publicRoutes.includes(currentPath)) {
+    console.log(`✅ Access granted for ${loginType} to: ${currentPath}`);
+    return children;
+  }
+
+  // Route to module mapping for permission-based routes
   const routePermissions = {
     "/fcpl-rate": "fcpl_rate",
     "/pickup": "pickup",
@@ -66,28 +98,7 @@ function ProtectedRoute({ children, requiredModule }) {
     "/tracking": "shipment_details",
   };
 
-  const currentPath = location.pathname;
-
-  // 🔥 PUBLIC ROUTES - Accessible to ALL authenticated users (including clients)
-  const publicRoutes = [
-    "/user-dashboard", 
-    "/admin-dashboard", 
-    "/dashboard",
-    "/ba-b2b-rate-calculator",
-    "/shipment-details",
-    "/shipments",
-    "/client-dashboard",
-    "/tracking",
-    "/create-order",      // 🔥 ADDED - Client can access create order
-  ];
-  
-  // Client specific routes - Allow all clients to access these pages
-  if (publicRoutes.includes(currentPath)) {
-    console.log(`✅ Access granted for client to: ${currentPath}`);
-    return children;
-  }
-
-  // For routes that require specific module permissions
+  // Check permission for non-public routes
   let requiredPermission = requiredModule || routePermissions[currentPath];
 
   if (!requiredPermission) {
@@ -96,6 +107,7 @@ function ProtectedRoute({ children, requiredModule }) {
   }
 
   const hasPermission = userModules[requiredPermission] === true;
+  console.log(`Required permission: ${requiredPermission}, Has permission: ${hasPermission}`);
 
   if (!hasPermission) {
     console.log(`Access Denied: Missing "${requiredPermission}" permission for path: ${currentPath}`);
