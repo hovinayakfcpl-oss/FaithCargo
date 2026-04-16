@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { 
   Eye, EyeOff, User, Lock, LogIn, ArrowRight, 
   AlertCircle, CheckCircle, Shield, Zap, Users,
-  Crown, Building, Phone, Mail, Building2, UserCircle
+  Crown, Building, Phone, Mail, Building2, UserCircle,
+  Code, Heart, Star
 } from "lucide-react";
 import "./Login.css";
 import logo from "../assets/logo.png";
@@ -272,6 +273,13 @@ function Login() {
             <div className="stat"><strong>98%</strong><span>On-Time Delivery</span></div>
           </div>
         </div>
+        
+        {/* Developer Credit */}
+        <div className="developer-credit">
+          <Code size={14} />
+          <span>Developed by <strong>Devora</strong> | Logistics Software Solutions</span>
+          <Heart size={12} className="heart-icon" />
+        </div>
       </div>
 
       {/* Right Side - Login Form */}
@@ -449,6 +457,12 @@ function Login() {
           <div className="security-note">
             <Shield size={14} />
             <span>Secure login with 256-bit encryption</span>
+          </div>
+          
+          {/* Developer Credit inside form */}
+          <div className="dev-credit-inline">
+            <Star size={12} />
+            <span>Built with <span style={{color: '#ef4444'}}>❤️</span> by <strong>Devora Technologies</strong></span>
           </div>
         </div>
       </div>

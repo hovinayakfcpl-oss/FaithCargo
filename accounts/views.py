@@ -17,7 +17,9 @@ from .serializers import (
 )
 from .models import CustomUser, ClientRateMatrix, ClientRatePolicy, ClientProfile, ClientSession
 import uuid
+import logging
 
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
@@ -65,7 +67,7 @@ def login(request):
     username = request.data.get("username")
     password = request.data.get("password")
 
-    print("LOGIN DATA:", request.data)
+    print("STAFF LOGIN - Username:", username)
 
     if not username or not password:
         return Response({
@@ -76,27 +78,27 @@ def login(request):
     user = authenticate(username=username, password=password)
 
     if user is not None:
-        # Check if user is client (they should use client login)
+        # 🔥 CRITICAL: Block clients from staff login
         if hasattr(user, 'role') and user.role == 'Client':
             return Response({
                 "status": "error",
-                "message": "Please use client login portal"
-            }, status=400)
+                "message": "❌ This is a CLIENT account. Please use 'Client Login' tab.",
+                "use_client_login": True
+            }, status=403)
 
         refresh = RefreshToken.for_user(user)
 
-        # Get user modules
         modules = {
-            'fcpl_rate': user.fcpl_rate,
-            'pickup': user.pickup,
-            'vendor_manage': user.vendor_manage,
-            'vendor_rates': user.vendor_rates,
-            'rate_update': user.rate_update,
-            'pincode': user.pincode,
-            'user_management': user.user_management,
-            'ba_b2b': user.ba_b2b,
-            'create_order': user.create_order,
-            'shipment_details': user.shipment_details,
+            'fcpl_rate': getattr(user, 'fcpl_rate', False),
+            'pickup': getattr(user, 'pickup', False),
+            'vendor_manage': getattr(user, 'vendor_manage', False),
+            'vendor_rates': getattr(user, 'vendor_rates', False),
+            'rate_update': getattr(user, 'rate_update', False),
+            'pincode': getattr(user, 'pincode', False),
+            'user_management': getattr(user, 'user_management', False),
+            'ba_b2b': getattr(user, 'ba_b2b', False),
+            'create_order': getattr(user, 'create_order', False),
+            'shipment_details': getattr(user, 'shipment_details', False),
         }
 
         return Response({
@@ -105,11 +107,11 @@ def login(request):
             "refresh": str(refresh),
             "username": user.username,
             "user_id": user.id,
-            "email": user.email,
-            "phone": user.phone,
-            "company": user.company,
-            "address": user.address,
-            "gstin": user.gstin,
+            "email": user.email or "",
+            "phone": getattr(user, 'phone', ''),
+            "company": getattr(user, 'company', ''),
+            "address": getattr(user, 'address', ''),
+            "gstin": getattr(user, 'gstin', ''),
             "is_superuser": user.is_superuser,
             "is_staff": user.is_staff,
             "role": getattr(user, 'role', 'User'),
@@ -123,57 +125,96 @@ def login(request):
 
 
 # =====================================================
-# 🆕 CLIENT LOGIN - NEW
+# 🆕 CLIENT LOGIN - FIXED
 # =====================================================
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def client_login(request):
-    serializer = ClientLoginSerializer(data=request.data)
+    print("=== CLIENT LOGIN REQUEST ===")
+    print("Request data:", request.data)
     
-    if not serializer.is_valid():
+    client_id = request.data.get("clientId")
+    password = request.data.get("password")
+    
+    if not client_id or not password:
         return Response({
             "success": False,
-            "error": serializer.errors.get('non_field_errors', ['Invalid credentials'])[0]
+            "error": "Client ID and password required"
         }, status=400)
     
-    user = serializer.validated_data['user']
-    
-    # Create or update session
-    token = str(uuid.uuid4())
-    ClientSession.objects.create(
-        client=user,
-        token=token,
-        ip_address=request.META.get('REMOTE_ADDR'),
-        user_agent=request.META.get('HTTP_USER_AGENT', '')
-    )
-    
-    # Get client rates
-    rate_policy = ClientRatePolicy.objects.filter(client=user).first()
-    zone_rates = ClientRateMatrix.objects.filter(client=user, is_active=True)
-    
-    return Response({
-        "success": True,
-        "token": token,
-        "user": {
-            "clientId": user.client_id,
-            "username": user.username,
-            "companyName": user.company,
-            "email": user.email,
-            "phone": user.phone,
-            "address": user.address,
-            "gstin": user.gstin,
-            "hasCustomRates": rate_policy.is_custom if rate_policy else False
-        },
-        "modules": {
-            "ba_b2b": user.ba_b2b,
-            "create_order": user.create_order,
-            "shipment_details": user.shipment_details
-        }
-    }, status=200)
+    try:
+        # Find client by client_id (case insensitive)
+        user = CustomUser.objects.get(client_id__iexact=client_id)
+        
+        print(f"Found user: {user.username}, Role: {user.role}")
+        
+        # 🔥 CRITICAL: Check if user is actually a client
+        if user.role != 'Client':
+            return Response({
+                "success": False,
+                "error": "This account is not a client account. Please use Staff Login."
+            }, status=403)
+        
+        # Check password
+        if not user.check_password(password):
+            return Response({
+                "success": False,
+                "error": "Invalid Client ID or Password"
+            }, status=400)
+        
+        # Check if active
+        if not user.is_active or not user.is_client_active:
+            return Response({
+                "success": False,
+                "error": "Your account is inactive. Please contact admin."
+            }, status=403)
+        
+        # Create session token
+        token = str(uuid.uuid4())
+        ClientSession.objects.create(
+            client=user,
+            token=token,
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')
+        )
+        
+        print(f"✅ Client login successful: {client_id}")
+        
+        return Response({
+            "success": True,
+            "token": token,
+            "user": {
+                "clientId": user.client_id,
+                "username": user.username,
+                "companyName": user.company or user.username,
+                "email": user.email or "",
+                "phone": user.phone or "",
+                "address": user.address or "",
+                "gstin": user.gstin or ""
+            },
+            "modules": {
+                "ba_b2b": getattr(user, 'ba_b2b', True),
+                "create_order": getattr(user, 'create_order', True),
+                "shipment_details": getattr(user, 'shipment_details', True)
+            }
+        }, status=200)
+        
+    except CustomUser.DoesNotExist:
+        print(f"❌ Client not found: {client_id}")
+        return Response({
+            "success": False,
+            "error": f"Client ID '{client_id}' not found"
+        }, status=404)
+    except Exception as e:
+        print(f"❌ Client login error: {str(e)}")
+        return Response({
+            "success": False,
+            "error": f"Login error: {str(e)}"
+        }, status=500)
 
 
 # =====================================================
-# 🆕 GET CLIENT DETAILS - NEW
+# 🆕 GET CLIENT DETAILS
 # =====================================================
 @api_view(['GET'])
 def get_client_details(request, client_id):
@@ -194,7 +235,7 @@ def get_client_details(request, client_id):
 
 
 # =====================================================
-# 🆕 GET CLIENT RATES - NEW (for Rate Calculator)
+# 🆕 GET CLIENT RATES
 # =====================================================
 @api_view(['GET'])
 def get_client_rates(request, client_id):
@@ -206,11 +247,9 @@ def get_client_rates(request, client_id):
             "error": "Client not found"
         }, status=404)
     
-    # Get zone rates
     zone_rates = ClientRateMatrix.objects.filter(client=user, is_active=True)
     zone_rates_serializer = ClientRateMatrixSerializer(zone_rates, many=True)
     
-    # Get rate policy
     rate_policy = ClientRatePolicy.objects.filter(client=user).first()
     policy_serializer = ClientRatePolicySerializer(rate_policy) if rate_policy else None
     
@@ -222,11 +261,10 @@ def get_client_rates(request, client_id):
 
 
 # =====================================================
-# 🆕 UPDATE CLIENT RATES - NEW (Admin only)
+# 🆕 UPDATE CLIENT RATES
 # =====================================================
 @api_view(['PUT', 'POST'])
 def update_client_rates(request, client_id):
-    # Check if user is admin
     if not request.user.is_superuser and not request.user.user_management:
         return Response({
             "success": False,
@@ -251,12 +289,9 @@ def update_client_rates(request, client_id):
     
     data = serializer.validated_data
     
-    # Update zone rates
     if 'zone_rates' in data:
-        # Delete existing rates
         ClientRateMatrix.objects.filter(client=user).delete()
         
-        # Create new rates
         for rate in data['zone_rates']:
             ClientRateMatrix.objects.create(
                 client=user,
@@ -266,7 +301,6 @@ def update_client_rates(request, client_id):
                 updated_by=request.user
             )
     
-    # Update policy
     if 'policy' in data:
         policy, created = ClientRatePolicy.objects.get_or_create(client=user)
         policy.is_custom = True
@@ -285,11 +319,10 @@ def update_client_rates(request, client_id):
 
 
 # =====================================================
-# 🆕 GET ALL CLIENTS - NEW (Admin only)
+# 🆕 GET ALL CLIENTS
 # =====================================================
 @api_view(['GET'])
 def get_all_clients(request):
-    # Check if user is admin
     if not request.user.is_superuser and not request.user.user_management:
         return Response({
             "success": False,
@@ -298,7 +331,6 @@ def get_all_clients(request):
     
     clients = CustomUser.objects.filter(role='Client')
     
-    # Get order counts and freight totals for each client
     client_data = []
     for client in clients:
         rate_policy = ClientRatePolicy.objects.filter(client=client).first()
@@ -323,11 +355,10 @@ def get_all_clients(request):
 
 
 # =====================================================
-# 🆕 CREATE CLIENT - NEW (Admin only)
+# 🆕 CREATE CLIENT
 # =====================================================
 @api_view(['POST'])
 def create_client(request):
-    # Check if user is admin
     if not request.user.is_superuser and not request.user.user_management:
         return Response({
             "success": False,
@@ -357,11 +388,10 @@ def create_client(request):
 
 
 # =====================================================
-# 🆕 UPDATE CLIENT STATUS - NEW (Admin only)
+# 🆕 UPDATE CLIENT STATUS
 # =====================================================
 @api_view(['PUT'])
 def update_client_status(request, client_id):
-    # Check if user is admin
     if not request.user.is_superuser and not request.user.user_management:
         return Response({
             "success": False,
@@ -388,11 +418,10 @@ def update_client_status(request, client_id):
 
 
 # =====================================================
-# 🆕 DELETE CLIENT - NEW (Admin only)
+# 🆕 DELETE CLIENT
 # =====================================================
 @api_view(['DELETE'])
 def delete_client(request, client_id):
-    # Check if user is admin
     if not request.user.is_superuser and not request.user.user_management:
         return Response({
             "success": False,
@@ -407,7 +436,6 @@ def delete_client(request, client_id):
             "error": "Client not found"
         }, status=404)
     
-    # Soft delete - just deactivate
     user.is_active = False
     user.is_client_active = False
     user.save()
@@ -419,7 +447,7 @@ def delete_client(request, client_id):
 
 
 # =====================================================
-# 🆕 GET CLIENT ORDER SUMMARY - NEW
+# 🆕 GET CLIENT ORDER SUMMARY
 # =====================================================
 @api_view(['GET'])
 def get_client_order_summary(request, client_id):
@@ -509,7 +537,7 @@ def reset_password(request, uid, token):
 
 
 # =====================================================
-# 🔹 CHANGE PASSWORD (Authenticated)
+# 🔹 CHANGE PASSWORD
 # =====================================================
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -531,20 +559,17 @@ def change_password(request):
 
 
 # =====================================================
-# 🔹 LOGOUT (Clear session)
+# 🔹 LOGOUT
 # =====================================================
 @api_view(['POST'])
 def logout(request):
     token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    
-    # Deactivate session
     ClientSession.objects.filter(token=token).update(is_active=False)
-    
     return Response({"message": "Logged out successfully"}, status=200)
 
 
 # =====================================================
-# 🔹 GET CURRENT USER (Authenticated)
+# 🔹 GET CURRENT USER
 # =====================================================
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -552,37 +577,38 @@ def get_current_user(request):
     user = request.user
     
     modules = {
-        'fcpl_rate': user.fcpl_rate,
-        'pickup': user.pickup,
-        'vendor_manage': user.vendor_manage,
-        'vendor_rates': user.vendor_rates,
-        'rate_update': user.rate_update,
-        'pincode': user.pincode,
-        'user_management': user.user_management,
-        'ba_b2b': user.ba_b2b,
-        'create_order': user.create_order,
-        'shipment_details': user.shipment_details,
+        'fcpl_rate': getattr(user, 'fcpl_rate', False),
+        'pickup': getattr(user, 'pickup', False),
+        'vendor_manage': getattr(user, 'vendor_manage', False),
+        'vendor_rates': getattr(user, 'vendor_rates', False),
+        'rate_update': getattr(user, 'rate_update', False),
+        'pincode': getattr(user, 'pincode', False),
+        'user_management': getattr(user, 'user_management', False),
+        'ba_b2b': getattr(user, 'ba_b2b', False),
+        'create_order': getattr(user, 'create_order', False),
+        'shipment_details': getattr(user, 'shipment_details', False),
     }
     
     return Response({
         "id": user.id,
         "username": user.username,
         "email": user.email,
-        "phone": user.phone,
-        "company": user.company,
-        "address": user.address,
-        "gstin": user.gstin,
+        "phone": getattr(user, 'phone', ''),
+        "company": getattr(user, 'company', ''),
+        "address": getattr(user, 'address', ''),
+        "gstin": getattr(user, 'gstin', ''),
         "role": getattr(user, 'role', 'User'),
         "client_id": getattr(user, 'client_id', None),
         "modules": modules
     }, status=200)
 
-# accounts/views.py - Add this function at the end of file, before the last closing bracket
 
+# =====================================================
+# 🔹 GET ALL CLIENTS PUBLIC
+# =====================================================
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_all_clients_public(request):
-    """Public endpoint to get all clients for RateUpdate dropdown"""
     try:
         clients = CustomUser.objects.filter(role='Client', is_client_active=True, is_active=True)
         

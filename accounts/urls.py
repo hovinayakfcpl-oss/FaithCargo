@@ -15,9 +15,10 @@ urlpatterns = [
     path("me/", views.get_current_user, name="get_current_user"),
     
     # =====================================================
-    # 🆕 CLIENT AUTHENTICATION APIs - FIXED PATH
+    # 🆕 CLIENT AUTHENTICATION APIs
     # =====================================================
-    path("client-login/", views.client_login, name="client_login"),  # 🔥 FIXED: removed auth/
+    # 🔥 Frontend calls: /api/accounts/client-login/
+    path("client-login/", views.client_login, name="client_login"),
     path("client/<str:client_id>/", views.get_client_details, name="get_client_details"),
     
     # =====================================================

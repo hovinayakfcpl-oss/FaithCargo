@@ -90,6 +90,7 @@ def admin_login(request):
     except CustomUser.DoesNotExist:
         return Response({"error": f"User '{username}' not found"}, status=404)
     except Exception as e:
+        print(f"Admin login error: {str(e)}")
         return Response({"error": str(e)}, status=500)
 
 
@@ -312,12 +313,13 @@ def delete_user(request, id):
 # 🆕 CLIENT MANAGEMENT APIs - UPDATED
 # ============================================
 
-# ✅ CREATE CLIENT - UPDATED
+# ✅ CREATE CLIENT - UPDATED (Working)
 @api_view(['POST'])
 def create_client(request):
     """Create a new client"""
     try:
         data = request.data
+        print("=== CREATE CLIENT ===")
         print("Received client data:", data)
         
         client_id = data.get("clientId", "").upper()
@@ -347,7 +349,7 @@ def create_client(request):
         if CustomUser.objects.filter(email=email).exists():
             return Response({"error": f"Email '{email}' already exists"}, status=400)
         
-        if CustomUser.objects.filter(phone=phone).exists():
+        if phone and CustomUser.objects.filter(phone=phone).exists():
             return Response({"error": f"Phone number '{phone}' already exists"}, status=400)
         
         username = client_id.lower()
@@ -386,7 +388,8 @@ def create_client(request):
         # Create default client rate policy
         ClientRatePolicy.objects.get_or_create(client=user, defaults={'is_custom': False})
         
-        print(f"✅ Client created successfully: {client_id} (User ID: {user.id}, Role: {user.role})")
+        print(f"✅ Client created successfully: {client_id}")
+        print(f"   User ID: {user.id}, Role: {user.role}, Active: {user.is_active}")
         
         return Response({
             "success": True,
@@ -397,13 +400,12 @@ def create_client(request):
                 "companyName": user.company,
                 "email": user.email,
                 "phone": user.phone,
-                "username": user.username,
-                "password": password  # Only for first-time display
+                "username": user.username
             }
         }, status=201)
         
     except Exception as e:
-        print(f"Error creating client: {str(e)}")
+        print(f"❌ Error creating client: {str(e)}")
         return Response({"error": str(e)}, status=500)
 
 
@@ -457,7 +459,6 @@ def get_client_order_summary(request, client_id):
     shipments_data = []
     if SHIPMENT_MODELS_AVAILABLE:
         try:
-            # Use Order model directly
             from django.db import connection
             cursor = connection.cursor()
             cursor.execute("""
@@ -569,7 +570,7 @@ def update_client_rates(request, client_id):
 
 
 # ============================================
-# 📊 USER STATISTICS & SHIPMENTS (UPDATED)
+# 📊 USER STATISTICS & SHIPMENTS
 # ============================================
 
 @api_view(['GET'])

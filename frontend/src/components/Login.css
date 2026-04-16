@@ -1,7 +1,8 @@
 /* ============================================
-   LOGIN PAGE - PREMIUM DESIGN v3.0
+   LOGIN PAGE - PREMIUM DESIGN v4.0
    FAITH CARGO LOGISTICS
-   WITH CLIENT LOGIN SUPPORT
+   DEVELOPED BY DEVORA TECHNOLOGIES
+   WITH CLIENT LOGIN SUPPORT & DARK MODE
    ============================================ */
 
 :root {
@@ -13,8 +14,9 @@
   --primary-green: #10b981;
   --primary-purple: #667eea;
   --dark-bg: #0f172a;
-  --text-dark: #0f172a;
+  --text-dark: #1e293b;
   --text-gray: #64748b;
+  --text-light: #94a3b8;
   --border-color: #e2e8f0;
   --bg-gray: #f8fafc;
   --success: #10b981;
@@ -23,6 +25,9 @@
   --error-light: #fee2e2;
   --client-bg: #fef3c7;
   --client-border: #f59e0b;
+  --client-hover: #fde68a;
+  --devora-gold: #ffd700;
+  --devora-gold-dark: #f59e0b;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
@@ -46,6 +51,7 @@
   min-height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #eef2f7 100%);
   overflow: hidden;
+  position: relative;
 }
 
 /* Left Section */
@@ -54,6 +60,7 @@
   background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-red-dark) 100%);
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   overflow: hidden;
@@ -167,6 +174,43 @@
 .stat span {
   font-size: 12px;
   opacity: 0.8;
+}
+
+/* Developer Credit in Left Section */
+.developer-credit {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 8px 16px;
+  border-radius: 20px;
+  width: fit-content;
+  margin: 0 auto;
+  backdrop-filter: blur(5px);
+  z-index: 10;
+}
+
+.developer-credit strong {
+  color: var(--devora-gold);
+  font-weight: 600;
+}
+
+.developer-credit .heart-icon {
+  color: #ff6b6b;
+  animation: heartbeat 1.5s ease infinite;
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
 }
 
 /* Right Section */
@@ -295,16 +339,6 @@
   text-align: center;
 }
 
-/* Client portal specific subtitle */
-.client-portal-subtitle {
-  color: var(--client-border);
-  background: #fef3c7;
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-}
-
 /* Alert Styles */
 .alert {
   display: flex;
@@ -379,6 +413,13 @@
   font-size: 14px;
   transition: var(--transition);
   background: var(--bg-gray);
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+.input-field input::placeholder {
+  color: var(--text-light);
+  font-weight: 400;
 }
 
 .input-field input:focus {
@@ -386,12 +427,7 @@
   border-color: var(--primary-red);
   background: white;
   box-shadow: 0 0 0 4px var(--primary-red-glow);
-}
-
-/* Client input focus style */
-.login-tabs.three-tabs .tab-btn:last-child.active ~ form .input-field input:focus {
-  border-color: var(--client-border);
-  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+  color: var(--text-dark);
 }
 
 /* Input Hint */
@@ -417,6 +453,7 @@
   color: var(--text-gray);
   padding: 5px;
   border-radius: var(--radius-sm);
+  transition: var(--transition);
 }
 
 .password-toggle:hover {
@@ -444,6 +481,15 @@
   width: 16px;
   height: 16px;
   accent-color: var(--primary-red);
+  cursor: pointer;
+}
+
+.checkbox-label span {
+  cursor: pointer;
+}
+
+.checkbox-label:hover {
+  color: var(--primary-red);
 }
 
 .forgot-link {
@@ -457,6 +503,7 @@
 
 .forgot-link:hover {
   text-decoration: underline;
+  color: var(--primary-red-dark);
 }
 
 /* Login Button */
@@ -475,25 +522,40 @@
   justify-content: center;
   gap: 10px;
   transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.login-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.login-btn:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
 .login-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 5px 20px rgba(211,47,47,0.3);
+  box-shadow: 0 5px 20px rgba(211,47,47,0.4);
+}
+
+.login-btn:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .login-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
-}
-
-/* Client login button style */
-.client-active .login-btn {
-  background: linear-gradient(135deg, var(--client-border), #d97706);
-}
-
-.login-btn.client-login-btn:hover:not(:disabled) {
-  box-shadow: 0 5px 20px rgba(245, 158, 11, 0.3);
 }
 
 /* Form Footer */
@@ -541,6 +603,7 @@
   border-color: var(--primary-red);
   background: var(--primary-red-light);
   color: var(--primary-red);
+  transform: translateY(-1px);
 }
 
 /* Security Note */
@@ -556,6 +619,28 @@
   color: var(--text-gray);
 }
 
+/* Developer Credit Inline */
+.dev-credit-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 15px;
+  font-size: 11px;
+  color: var(--text-gray);
+  border-top: 1px solid var(--border-color);
+}
+
+.dev-credit-inline svg {
+  opacity: 0.7;
+}
+
+.dev-credit-inline strong {
+  color: var(--devora-gold-dark);
+  font-weight: 600;
+}
+
 /* Loading Spinner */
 @keyframes spin {
   from { transform: rotate(0deg); }
@@ -564,16 +649,6 @@
 
 .fa-spinner {
   animation: spin 1s linear infinite;
-}
-
-/* Client Badge Animation */
-@keyframes clientPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
-.client-badge {
-  animation: clientPulse 2s ease-in-out infinite;
 }
 
 /* Responsive Design */
@@ -646,6 +721,11 @@
   .brand-content h1 {
     font-size: 36px;
   }
+  
+  .developer-credit {
+    font-size: 9px;
+    padding: 6px 12px;
+  }
 }
 
 @media (max-width: 380px) {
@@ -678,8 +758,13 @@
     color: #f1f5f9;
   }
   
+  .input-field input::placeholder {
+    color: #94a3b8;
+  }
+  
   .input-field input:focus {
     background: #1e293b;
+    color: #f1f5f9;
   }
   
   .tab-btn:not(.active) {
@@ -692,6 +777,7 @@
   
   .security-note {
     border-top-color: #334155;
+    color: #94a3b8;
   }
   
   .signup-link {
@@ -703,6 +789,23 @@
   .signup-link:hover {
     background: var(--primary-red-light);
     color: var(--primary-red);
+  }
+  
+  .dev-credit-inline {
+    border-top-color: #334155;
+    color: #94a3b8;
+  }
+  
+  .input-group label {
+    color: #94a3b8;
+  }
+  
+  .checkbox-label {
+    color: #94a3b8;
+  }
+  
+  .checkbox-label:hover {
+    color: var(--primary-red-light);
   }
 }
 
@@ -718,12 +821,38 @@
   
   .login-right {
     padding: 20px;
+    background: white;
   }
   
   .login-btn,
   .signup-link,
   .password-toggle,
-  .forgot-link {
+  .forgot-link,
+  .developer-credit,
+  .dev-credit-inline {
     display: none;
   }
+  
+  .input-field input {
+    border: 1px solid #ccc;
+    background: white;
+    color: black;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus visible accessibility */
+:focus-visible {
+  outline: 2px solid var(--primary-red);
+  outline-offset: 2px;
+}
+
+/* Selection color */
+::selection {
+  background: var(--primary-red-light);
+  color: var(--primary-red);
 }
