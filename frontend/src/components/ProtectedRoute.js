@@ -62,13 +62,13 @@ function ProtectedRoute({ children, requiredModule }) {
     "/create-order": "create_order",
     "/shipment-details": "shipment_details",
     "/shipments": "shipment_details",
-    "/client-dashboard": "shipment_details",  // 🔥 Client Dashboard access
-    "/tracking": "shipment_details",          // 🔥 Tracking access
+    "/client-dashboard": "shipment_details",
+    "/tracking": "shipment_details",
   };
 
   const currentPath = location.pathname;
 
-  // Public routes for clients (accessible to all authenticated users)
+  // 🔥 PUBLIC ROUTES - Accessible to ALL authenticated users (including clients)
   const publicRoutes = [
     "/user-dashboard", 
     "/admin-dashboard", 
@@ -76,35 +76,36 @@ function ProtectedRoute({ children, requiredModule }) {
     "/ba-b2b-rate-calculator",
     "/shipment-details",
     "/shipments",
-    "/client-dashboard",    // 🔥 Client Dashboard
-    "/tracking",            // 🔥 Tracking page
+    "/client-dashboard",
+    "/tracking",
+    "/create-order",      // 🔥 ADDED - Client can access create order
   ];
   
-  // 🔥 Client specific routes - Allow all clients to access
+  // Client specific routes - Allow all clients to access these pages
   if (publicRoutes.includes(currentPath)) {
     console.log(`✅ Access granted for client to: ${currentPath}`);
     return children;
   }
 
-  // Check permission
+  // For routes that require specific module permissions
   let requiredPermission = requiredModule || routePermissions[currentPath];
 
   if (!requiredPermission) {
-    console.warn(`No permission defined for route: ${currentPath}`);
+    console.warn(`No permission defined for route: ${currentPath} - allowing access`);
     return children;
   }
 
   const hasPermission = userModules[requiredPermission] === true;
 
   if (!hasPermission) {
-    console.log(`Access Denied: Missing "${requiredPermission}" permission`);
+    console.log(`Access Denied: Missing "${requiredPermission}" permission for path: ${currentPath}`);
     if (loginType === "client") {
       return <Navigate to="/client-dashboard" replace />;
     }
     return <Navigate to="/user-dashboard" replace />;
   }
 
-  console.log(`Access Granted for: ${currentPath}`);
+  console.log(`✅ Access Granted for: ${currentPath}`);
   return children;
 }
 
