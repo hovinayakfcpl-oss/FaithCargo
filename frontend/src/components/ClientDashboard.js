@@ -12,7 +12,8 @@ import {
   Gift, Sparkles, Rocket, BadgeCheck, 
   LineChart, PieChart, Activity, Users,
   Headphones, MessageCircle, ThumbsUp,
-  Sun, Moon, Filter, DownloadCloud, RefreshCw
+  Sun, Moon, Filter, DownloadCloud, RefreshCw,
+  Heart  // 🔥 ADD THIS LINE
 } from "lucide-react";
 import "./ClientDashboard.css";
 
