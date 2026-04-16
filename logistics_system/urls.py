@@ -15,14 +15,14 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     
     # =====================================================
-    # 🔥 MAIN APIs
+    # 🔥 MAIN APIs - FIXED
     # =====================================================
-    path("api/", include("accounts.urls")),           # ✅ Accounts (Login, Client Login, etc.)
+    path("api/accounts/", include("accounts.urls")),
+    path("api/user/", include("user_management.urls")),
+    path("api/shipments/", include("shipments.urls")),
     path("api/rates/", include("rates.urls")),
     path("api/vendors/", include("vendors.urls")),
     path("api/pickup/", include("pickup.urls")),
     path("api/pincode/", include("pincode.urls")),
     path("api/signup/", include("signup.urls")),
-    path("api/shipments/", include("shipments.urls")),
-    path('api/user/', include('user_management.urls')),  # ✅ User Management
 ]
