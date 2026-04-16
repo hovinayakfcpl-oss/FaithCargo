@@ -19,7 +19,7 @@ import logo from "../assets/logo.png";
 import "./CreateOrder.css";
 
 // ============================================
-// 🔐 AUTHENTICATION CHECK (Both Admin & Client)
+// 🔐 AUTHENTICATION CHECK (Both Admin & Client) - FIXED
 // ============================================
 const useAuth = () => {
   const [user, setUser] = useState(null);
@@ -36,6 +36,7 @@ const useAuth = () => {
     const username = localStorage.getItem("username");
     const clientId = localStorage.getItem("clientId");
     
+    // Check for admin/staff token
     if (token && token !== "undefined" && token !== "null" && token !== "") {
       setIsAuthenticated(true);
       setUserRole(userRoleStorage === "admin" ? "admin" : "staff");
@@ -48,44 +49,43 @@ const useAuth = () => {
       return;
     }
     
+    // 🔥 FIXED: Client authentication - NO API CALL, just use localStorage
     if (clientToken && clientToken !== "undefined" && clientToken !== "null" && clientId) {
-      fetchClientDetails(clientId, clientToken);
+      console.log("✅ Client authenticated from localStorage:", clientId);
+      
+      // Use data from localStorage directly
+      const clientData = {
+        clientId: clientId,
+        companyName: localStorage.getItem("clientName") || username || "Client",
+        username: localStorage.getItem("username") || clientId.toLowerCase(),
+        email: localStorage.getItem("clientEmail") || "",
+        phone: localStorage.getItem("clientPhone") || ""
+      };
+      
+      setUser(clientData);
+      setUserRole("client");
+      setIsAuthenticated(true);
+      
+      // Try to fetch rates (optional, won't break login if fails)
+      const fetchRates = async () => {
+        try {
+          const ratesRes = await fetch(`https://faithcargo.onrender.com/api/rates/client/${clientId}/`);
+          if (ratesRes.ok) {
+            const ratesData = await ratesRes.json();
+            setClientRates(ratesData.zone_rates || []);
+            setClientPolicy(ratesData.policy || null);
+          }
+        } catch (err) {
+          console.error("Rates fetch error:", err);
+        }
+      };
+      fetchRates();
+      setLoading(false);
       return;
     }
     
     setLoading(false);
   }, []);
-
-  const fetchClientDetails = async (clientId, token) => {
-    try {
-      const response = await fetch(`https://faithcargo.onrender.com/api/auth/client/${clientId}/`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        setUser({
-          ...data.user,
-          clientId: data.user.clientId,
-          companyName: data.user.companyName,
-          username: data.user.username
-        });
-        setUserRole("client");
-        setIsAuthenticated(true);
-        
-        const ratesRes = await fetch(`https://faithcargo.onrender.com/api/rates/client/${clientId}/`);
-        const ratesData = await ratesRes.json();
-        setClientRates(ratesData.zone_rates || []);
-        setClientPolicy(ratesData.policy || null);
-      }
-    } catch (error) {
-      console.error("Auth error:", error);
-      localStorage.removeItem("clientToken");
-      localStorage.removeItem("clientId");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const logout = () => {
     localStorage.removeItem("token");
@@ -93,13 +93,12 @@ const useAuth = () => {
     localStorage.removeItem("clientId");
     localStorage.removeItem("userRole");
     localStorage.removeItem("username");
+    localStorage.removeItem("clientName");
+    localStorage.removeItem("clientEmail");
+    localStorage.removeItem("clientPhone");
     setUser(null);
     setIsAuthenticated(false);
-    if (userRole === "admin") {
-      window.location.href = "/";
-    } else {
-      window.location.href = "/ba-b2b-rate-calculator";
-    }
+    window.location.href = "/";
   };
 
   return { user, isAuthenticated, loading, userRole, clientRates, clientPolicy, logout };
@@ -813,7 +812,7 @@ export default function CreateOrder() {
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      window.location.href = "/user-login";
+      window.location.href = "/";
     }
   }, [authLoading, isAuthenticated]);
 
@@ -839,7 +838,7 @@ export default function CreateOrder() {
   const handleCreateOrder = async () => {
     if (!isAuthenticated) {
       alert("Please login first!");
-      window.location.href = "/user-login";
+      window.location.href = "/";
       return;
     }
     
@@ -860,7 +859,7 @@ export default function CreateOrder() {
 
     const orderData = {
       clientId: userRole === "client" ? user?.clientId : null,
-      freight_amount: calculatedFreight,  // ✅ SEND FREIGHT AMOUNT TO BACKEND
+      freight_amount: calculatedFreight,
       pickupName: pickup.name,
       pickupAddress: pickup.address,
       pickupPincode: pickup.pincode,
@@ -910,7 +909,7 @@ export default function CreateOrder() {
           awb: result.awb,
           route: `${pickup.pincode} → ${delivery.pincode}`, 
           value: totalInvoiceValue,
-          freight: calculatedFreight,  // ✅ STORE FREIGHT IN LOCALSTORAGE
+          freight: calculatedFreight,
           status: 'booked', 
           date: new Date().toISOString(),
           invoices: invoices.filter(inv => inv.no && inv.value),
@@ -1039,38 +1038,6 @@ export default function CreateOrder() {
     }
   };
 
-  const getTrackingTimeline = (currentStatus) => {
-    const steps = [
-      { key: 'booked', label: 'Booked', icon: '📝', desc: 'Order confirmed' },
-      { key: 'picked', label: 'Picked Up', icon: '🚚', desc: 'Shipment collected' },
-      { key: 'in_transit', label: 'In Transit', icon: '🚛', desc: 'On the way' },
-      { key: 'out_for_delivery', label: 'Out for Delivery', icon: '📦', desc: 'Near destination' },
-      { key: 'delivered', label: 'Delivered', icon: '✅', desc: 'Successfully delivered' }
-    ];
-    const currentIndex = steps.findIndex(s => s.key === currentStatus);
-    
-    return (
-      <div className="tracking-timeline-enhanced">
-        {steps.map((step, idx) => {
-          const isCompleted = idx <= currentIndex;
-          const isCurrent = idx === currentIndex;
-          return (
-            <div key={step.key} className={`timeline-step-enhanced ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}`}>
-              <div className="timeline-icon-enhanced">
-                {isCompleted ? <CheckCircle2 size={22} /> : <span className="step-icon-enhanced">{step.icon}</span>}
-              </div>
-              <div className="timeline-content-enhanced">
-                <div className="step-label-enhanced">{step.label}</div>
-                <div className="step-desc-enhanced">{step.desc}</div>
-              </div>
-              {idx < steps.length - 1 && <div className={`timeline-line-enhanced ${isCompleted ? 'completed' : ''}`}></div>}
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
   if (authLoading) {
     return (
       <div className="loading-container">
@@ -1142,7 +1109,39 @@ export default function CreateOrder() {
 
         {showTracking && (
           <div className="tracking-section-enhanced">
-            {/* Tracking content remains same */}
+            <div className="tracking-header-enhanced">
+              <h3><Navigation size={20} /> Live Shipment Tracking</h3>
+              <button className="close-tracking" onClick={() => setShowTracking(false)}><X size={18} /></button>
+            </div>
+            <div className="tracking-input-group">
+              <input type="text" placeholder="Enter LR Number or AWB Number" value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)} />
+              <button onClick={handleTrackShipment} disabled={trackingLoading}>{trackingLoading ? "Tracking..." : "Track Now"}</button>
+            </div>
+            {trackingResult && (
+              <div className="tracking-result-enhanced">
+                <div className="tracking-result-header">
+                  <span className="tracking-lr">{trackingResult.lr}</span>
+                  {getStatusBadge(trackingResult.status)}
+                </div>
+                <div className="tracking-route">
+                  <div className="route-point">
+                    <MapPin size={16} />
+                    <div><strong>From</strong><p>{trackingResult.pickupName}<br/>{trackingResult.pickupPincode}</p></div>
+                  </div>
+                  <ArrowRight size={20} />
+                  <div className="route-point">
+                    <MapPin size={16} />
+                    <div><strong>To</strong><p>{trackingResult.deliveryName}<br/>{trackingResult.deliveryPincode}</p></div>
+                  </div>
+                </div>
+                <div className="tracking-details-grid">
+                  <div><span>Weight</span><strong>{trackingResult.weight} kg</strong></div>
+                  <div><span>Material</span><strong>{trackingResult.material}</strong></div>
+                  <div><span>Total Value</span><strong>₹{trackingResult.totalValue?.toLocaleString()}</strong></div>
+                </div>
+                {getTrackingTimeline(trackingResult.status)}
+              </div>
+            )}
           </div>
         )}
 
