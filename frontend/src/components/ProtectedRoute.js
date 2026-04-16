@@ -22,7 +22,7 @@ function ProtectedRoute({ children, requiredModule }) {
     localStorage.getItem("is_superuser") === "True" ||
     userRole === "admin";
 
-  // ✅ Fix: Check username for admin access (added vinayak)
+  // Admin username check
   const isAdminUser = username === "admin" || username === "vinayak" || username === "superuser" || userRole === "Admin";
 
   // Get user modules
@@ -39,10 +39,10 @@ function ProtectedRoute({ children, requiredModule }) {
   // Not authenticated - redirect
   if (!isAuthenticated) {
     localStorage.clear();
-    return <Navigate to="/user-login" replace />;
+    return <Navigate to="/" replace />;
   }
 
-  // ✅ Admin/Superuser - Allow ALL routes
+  // Admin/Superuser - Allow ALL routes
   if (isSuperuser || isAdminUser) {
     console.log("✅ Admin access granted for:", location.pathname);
     return children;
@@ -61,16 +61,19 @@ function ProtectedRoute({ children, requiredModule }) {
     "/ba-b2b-rate-calculator": "ba_b2b",
     "/create-order": "create_order",
     "/shipment-details": "shipment_details",
+    "/shipments": "shipment_details",
   };
 
   const currentPath = location.pathname;
 
-  // Public routes
+  // Public routes (accessible to all authenticated users)
   const publicRoutes = [
     "/user-dashboard", 
     "/admin-dashboard", 
     "/dashboard",
-    "/ba-b2b-rate-calculator"
+    "/ba-b2b-rate-calculator",
+    "/shipment-details",  // 🔥 Add this for clients
+    "/shipments"
   ];
   
   if (publicRoutes.includes(currentPath)) {

@@ -140,7 +140,6 @@ function Login() {
         navigate("/user-dashboard");
       }, 1500);
     } else {
-      // 🔥 Check if error says it's a client account
       if (data.use_client_login || (data.error && data.error.includes("Client"))) {
         setError("❌ This is a Client account. Please use 'Client' tab to login.");
         setLoginType("client");
@@ -150,64 +149,103 @@ function Login() {
     }
   };
 
-  // ========== CLIENT LOGIN - FIXED API ENDPOINT ==========
+  // ========== CLIENT LOGIN - WITH MULTIPLE ENDPOINTS ==========
   const handleClientLogin = async () => {
-    // 🔥 FIXED: Correct API endpoint
-    const response = await fetch("https://faithcargo.onrender.com/api/accounts/auth/client-login/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clientId: clientId.trim().toUpperCase(),
-        password: password.trim(),
-      }),
-    });
-
-    const data = await response.json();
-
-    if (data.success) {
-      localStorage.clear();
+    const clientIdValue = clientId.trim().toUpperCase();
+    const passwordValue = password.trim();
+    
+    console.log("=== CLIENT LOGIN ATTEMPT ===");
+    console.log("Client ID:", clientIdValue);
+    
+    // List of possible endpoints to try
+    const endpoints = [
+      "https://faithcargo.onrender.com/api/accounts/client-login/",
+      "https://faithcargo.onrender.com/api/accounts/auth/client-login/",
+      "https://faithcargo.onrender.com/accounts/client-login/",
+      "https://faithcargo.onrender.com/api/user/client-login/"
+    ];
+    
+    let lastError = null;
+    
+    for (const endpoint of endpoints) {
+      console.log("Trying endpoint:", endpoint);
       
-      localStorage.setItem("clientToken", data.token);
-      localStorage.setItem("clientId", clientId.trim().toUpperCase());
-      localStorage.setItem("userRole", "client");
-      localStorage.setItem("loginType", "client");
-      
-      if (data.user) {
-        localStorage.setItem("username", data.user.companyName || data.user.username);
-        localStorage.setItem("clientName", data.user.companyName || data.user.username);
-        localStorage.setItem("clientEmail", data.user.email || "");
-        localStorage.setItem("clientPhone", data.user.phone || "");
-        localStorage.setItem("clientCompany", data.user.companyName || "");
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientId: clientIdValue,
+            password: passwordValue,
+          }),
+        });
+        
+        // Check if response is JSON
+        const contentType = response.headers.get("content-type");
+        
+        if (contentType && contentType.includes("application/json")) {
+          const data = await response.json();
+          
+          if (data.success) {
+            // Login successful
+            localStorage.clear();
+            
+            localStorage.setItem("clientToken", data.token);
+            localStorage.setItem("clientId", clientIdValue);
+            localStorage.setItem("userRole", "client");
+            localStorage.setItem("loginType", "client");
+            
+            if (data.user) {
+              localStorage.setItem("username", data.user.companyName || data.user.username);
+              localStorage.setItem("clientName", data.user.companyName || data.user.username);
+              localStorage.setItem("clientEmail", data.user.email || "");
+              localStorage.setItem("clientPhone", data.user.phone || "");
+              localStorage.setItem("clientCompany", data.user.companyName || "");
+            }
+            
+            const clientModules = {
+              ba_b2b: true, 
+              create_order: true, 
+              shipment_details: true,
+              fcpl_rate: false, 
+              pickup: false, 
+              vendor_manage: false,
+              vendor_rates: false, 
+              rate_update: false, 
+              pincode: false, 
+              user_management: false
+            };
+            localStorage.setItem("userModules", JSON.stringify(clientModules));
+            
+            if (rememberMe) {
+              localStorage.setItem("rememberedClientId", clientIdValue);
+              localStorage.setItem("rememberClient", "true");
+              localStorage.setItem("savedLoginType", "client");
+            }
+            
+            setSuccess(`Welcome ${data.user?.companyName || clientIdValue}! Redirecting...`);
+            
+            setTimeout(() => {
+              navigate("/shipment-details");
+            }, 1500);
+            return;
+          } else {
+            setError(data.error || "Invalid Client ID or Password");
+            return;
+          }
+        } else {
+          // Not JSON response - try next endpoint
+          console.log("Non-JSON response from:", endpoint);
+          lastError = "Invalid server response";
+        }
+      } catch (err) {
+        console.log("Error with endpoint:", endpoint, err.message);
+        lastError = err.message;
       }
-      
-      const clientModules = {
-        ba_b2b: true, 
-        create_order: true, 
-        shipment_details: true,
-        fcpl_rate: false, 
-        pickup: false, 
-        vendor_manage: false,
-        vendor_rates: false, 
-        rate_update: false, 
-        pincode: false, 
-        user_management: false
-      };
-      localStorage.setItem("userModules", JSON.stringify(clientModules));
-      
-      if (rememberMe) {
-        localStorage.setItem("rememberedClientId", clientId.trim().toUpperCase());
-        localStorage.setItem("rememberClient", "true");
-        localStorage.setItem("savedLoginType", "client");
-      }
-      
-      setSuccess(`Welcome ${data.user?.companyName || clientId}! Redirecting...`);
-      
-      setTimeout(() => {
-        navigate("/shipment-details");
-      }, 1500);
-    } else {
-      setError(data.error || "Invalid Client ID or Password");
     }
+    
+    // If we get here, all endpoints failed
+    setError(`Cannot connect to server. Please try again later. ${lastError ? `(Error: ${lastError})` : ''}`);
   };
 
   const handleSubmit = async (e) => {
