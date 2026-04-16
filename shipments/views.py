@@ -733,10 +733,27 @@ def dashboard_stats(request):
 
 
 # =====================================================
-# 📋 CLIENT ORDERS (Get all orders for a specific client with freight)
+# 📋 CLIENT ORDERS (Get all orders ONLY for specific client)
+# 🔥 FIXED: Now properly filters by client_id
 # =====================================================
 def client_orders(request, client_id):
+    """
+    Get all orders for a specific client - ONLY their orders
+    This is the main API called by clients to see their shipments
+    """
     cursor = connection.cursor()
+    
+    # First, verify client exists (optional but good for debugging)
+    cursor.execute("SELECT id, username FROM custom_users WHERE client_id = %s", [client_id])
+    client_check = cursor.fetchone()
+    
+    if not client_check:
+        print(f"⚠️ WARNING: Client {client_id} not found in custom_users table")
+        return JsonResponse([], safe=False)
+    
+    print(f"🔍 Fetching orders for client: {client_id} (User ID: {client_check[0]})")
+    
+    # 🔥 CRITICAL: ONLY fetch orders where client_id matches
     cursor.execute("""
         SELECT lr_number, awb_number, pickup_pincode, delivery_pincode, 
                total_value, status, weight, created_at, freight_amount
@@ -747,6 +764,12 @@ def client_orders(request, client_id):
     
     rows = cursor.fetchall()
     
+    print(f"✅ Found {len(rows)} orders for client {client_id}")
+    
+    # Log first few orders for debugging
+    if rows:
+        print(f"   First order: LR={rows[0][0]}, Status={rows[0][5]}")
+    
     data = [{
         "lr": format_lr(r[0]),
         "awb": r[1],
@@ -755,7 +778,8 @@ def client_orders(request, client_id):
         "status": r[5],
         "weight": float(r[6]) if r[6] else 0,
         "date": r[7].strftime("%Y-%m-%d %H:%M") if r[7] else "N/A",
-        "freight": float(r[8]) if r[8] else 0
+        "freight": float(r[8]) if r[8] else 0,
+        "clientId": client_id  # Include client_id in response for verification
     } for r in rows]
     
     return JsonResponse(data, safe=False)
