@@ -52,35 +52,35 @@ function ProtectedRoute({ children, requiredModule }) {
 
   const currentPath = location.pathname;
   
-  // 🔥 COMPLETE LIST OF PUBLIC ROUTES - All routes clients can access
-  const publicRoutes = [
+  // 🔥 COMPLETE LIST OF ALL ROUTES - Allow all these for clients
+  const allowedClientRoutes = [
     "/",
     "/user-dashboard", 
     "/admin-dashboard", 
     "/dashboard",
     "/ba-b2b-rate-calculator",
+    "/ba-b2b-rate",
     "/shipment-details",
     "/shipments",
     "/client-dashboard",
     "/tracking",
     "/create-order",           // ✅ Create Order
-    "/ba-b2b-rate",            // ✅ Rate Calculator
-    "/fcpl-rate",              // ✅ FCPL Rate
-    "/pickup",                 // ✅ Pickup
-    "/vendor-manage",          // ✅ Vendor Manage
-    "/vendor-rate",            // ✅ Vendor Rate
-    "/rate-update",            // ✅ Rate Update
-    "/pincode",                // ✅ Pincode
-    "/user-management",        // ✅ User Management
+    "/fcpl-rate",              
+    "/pickup",                 
+    "/vendor-manage",          
+    "/vendor-rate",            
+    "/rate-update",            
+    "/pincode",                
+    "/user-management",        
   ];
   
-  // 🔥 Check if current path is in public routes
-  if (publicRoutes.includes(currentPath)) {
+  // 🔥 Check if current path is allowed for clients
+  if (allowedClientRoutes.includes(currentPath)) {
     console.log(`✅ Access granted for ${loginType} to: ${currentPath}`);
     return children;
   }
 
-  // Route to module mapping for permission-based routes
+  // For any other route, check module permissions
   const routePermissions = {
     "/fcpl-rate": "fcpl_rate",
     "/pickup": "pickup",
@@ -98,7 +98,6 @@ function ProtectedRoute({ children, requiredModule }) {
     "/tracking": "shipment_details",
   };
 
-  // Check permission for non-public routes
   let requiredPermission = requiredModule || routePermissions[currentPath];
 
   if (!requiredPermission) {
@@ -107,7 +106,6 @@ function ProtectedRoute({ children, requiredModule }) {
   }
 
   const hasPermission = userModules[requiredPermission] === true;
-  console.log(`Required permission: ${requiredPermission}, Has permission: ${hasPermission}`);
 
   if (!hasPermission) {
     console.log(`Access Denied: Missing "${requiredPermission}" permission for path: ${currentPath}`);
