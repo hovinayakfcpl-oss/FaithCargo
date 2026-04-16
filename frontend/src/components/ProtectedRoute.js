@@ -11,16 +11,12 @@ function ProtectedRoute({ children, requiredModule }) {
   const loginType = localStorage.getItem("loginType");
   const username = localStorage.getItem("username") || localStorage.getItem("clientId");
   
-  // 🔥 IMPROVED TOKEN VALIDATION
-  const isValidToken = (tokenValue) => {
-    return tokenValue && tokenValue !== "undefined" && tokenValue !== "null" && tokenValue !== "";
-  };
-  
-  const hasToken = isValidToken(token);
-  const hasClientToken = isValidToken(clientToken);
+  // 🔥 SIMPLE TOKEN VALIDATION
+  const hasToken = token && token !== "undefined" && token !== "null" && token !== "";
+  const hasClientToken = clientToken && clientToken !== "undefined" && clientToken !== "null" && clientToken !== "";
   const isAuthenticated = hasToken || hasClientToken;
   
-  // 🔥 DEBUG LOGS - Check browser console for debugging
+  // 🔥 DEBUG LOGS
   console.log("=== PROTECTED ROUTE DEBUG ===");
   console.log("Path:", location.pathname);
   console.log("hasToken:", hasToken);
@@ -36,97 +32,46 @@ function ProtectedRoute({ children, requiredModule }) {
     return <Navigate to="/" replace />;
   }
 
-  // Admin/Superuser - Allow ALL routes
+  // Check if user is Admin
   const isAdmin = userRole === "admin" || 
                   userRole === "Admin" || 
                   username === "admin" || 
                   username === "vinayak" ||
-                  localStorage.getItem("is_superuser") === "true";
+                  hasToken;
                   
   if (isAdmin) {
     console.log("✅ Admin access granted for:", location.pathname);
     return children;
   }
 
-  const currentPath = location.pathname;
+  // Check if user is Client
+  const isClient = hasClientToken || loginType === "client" || userRole === "client";
   
-  // 🔥 COMPLETE LIST - All routes that clients can access (NO PERMISSION CHECK NEEDED)
-  const clientAllowedRoutes = [
-    "/",
-    "/client-dashboard",
-    "/create-order",
-    "/ba-b2b-rate-calculator",
-    "/ba-b2b-rate",
-    "/shipment-details",
-    "/shipments",
-    "/tracking",
-    "/user-dashboard",
-    "/dashboard",
-    "/fcpl-rate",
-    "/pickup",
-    "/vendor-manage",
-    "/vendor-rate",
-    "/rate-update",
-    "/pincode",
-    "/user-management",
-  ];
-  
-  // 🔥 If client and route is allowed, grant access immediately
-  if ((hasClientToken || loginType === "client" || userRole === "client") && clientAllowedRoutes.includes(currentPath)) {
-    console.log(`✅ Client access granted for: ${currentPath}`);
-    return children;
-  }
-  
-  // 🔥 If client trying to access non-allowed route
-  if (hasClientToken || loginType === "client" || userRole === "client") {
-    console.log(`❌ Client access denied for: ${currentPath}, redirecting to dashboard`);
-    return <Navigate to="/client-dashboard" replace />;
-  }
-
-  // For staff/users with token, check module permissions
-  const routePermissions = {
-    "/fcpl-rate": "fcpl_rate",
-    "/pickup": "pickup",
-    "/vendor-manage": "vendor_manage",
-    "/vendor-rate": "vendor_rates",
-    "/rate-update": "rate_update",
-    "/pincode": "pincode",
-    "/user-management": "user_management",
-    "/ba-b2b-rate": "ba_b2b",
-    "/ba-b2b-rate-calculator": "ba_b2b",
-    "/create-order": "create_order",
-    "/shipment-details": "shipment_details",
-    "/shipments": "shipment_details",
-    "/client-dashboard": "shipment_details",
-    "/tracking": "shipment_details",
-  };
-
-  let requiredPermission = requiredModule || routePermissions[currentPath];
-
-  if (!requiredPermission) {
-    console.warn(`No permission defined for route: ${currentPath} - allowing access`);
-    return children;
-  }
-
-  // Get user modules
-  let userModules = {};
-  try {
-    const modulesStr = localStorage.getItem("userModules");
-    if (modulesStr) {
-      userModules = JSON.parse(modulesStr);
+  if (isClient) {
+    // All routes that clients can access
+    const clientRoutes = [
+      "/",
+      "/client-dashboard",
+      "/create-order",
+      "/ba-b2b-rate-calculator",
+      "/ba-b2b-rate",
+      "/shipment-details",
+      "/shipments",
+      "/tracking",
+    ];
+    
+    // Check if current route is allowed for client
+    if (clientRoutes.includes(location.pathname)) {
+      console.log(`✅ Client access granted for: ${location.pathname}`);
+      return children;
+    } else {
+      console.log(`❌ Client access denied for: ${location.pathname}, redirecting to dashboard`);
+      return <Navigate to="/client-dashboard" replace />;
     }
-  } catch (error) {
-    console.error("Error parsing userModules:", error);
   }
 
-  const hasPermission = userModules[requiredPermission] === true;
-
-  if (!hasPermission) {
-    console.log(`Access Denied: Missing "${requiredPermission}" permission for path: ${currentPath}`);
-    return <Navigate to="/user-dashboard" replace />;
-  }
-
-  console.log(`✅ Access Granted for: ${currentPath}`);
+  // Default - allow access
+  console.log(`✅ Default access granted for: ${location.pathname}`);
   return children;
 }
 

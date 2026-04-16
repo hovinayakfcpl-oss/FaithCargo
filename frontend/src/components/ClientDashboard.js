@@ -13,7 +13,7 @@ import {
   LineChart, PieChart, Activity, Users,
   Headphones, MessageCircle, ThumbsUp,
   Sun, Moon, Filter, DownloadCloud, RefreshCw,
-  Heart  // 🔥 ADD THIS LINE
+  Heart
 } from "lucide-react";
 import "./ClientDashboard.css";
 
@@ -36,6 +36,7 @@ function ClientDashboard() {
     onTimeRate: 98
   });
 
+  // 🔥 DIRECTLY GET FROM localStorage - NO API CALL
   const clientName = localStorage.getItem("clientName") || localStorage.getItem("username") || "Client";
   const clientId = localStorage.getItem("clientId");
   const clientEmail = localStorage.getItem("clientEmail") || "client@faithcargo.com";
@@ -359,7 +360,7 @@ function ClientDashboard() {
           </div>
         </div>
 
-        {/* Tracking Section - Enhanced */}
+        {/* Tracking Section */}
         <div className="tracking-section premium">
           <div className="section-header">
             <div>
@@ -386,30 +387,6 @@ function ClientDashboard() {
               <div className="tracking-header">
                 <h3><BadgeCheck size={18} /> Shipment: {trackingResult.lr}</h3>
                 {getStatusBadge(trackingResult.status)}
-              </div>
-              <div className="tracking-progress">
-                <div className="progress-steps">
-                  <div className={`step ${trackingResult.status === 'booked' || trackingResult.status === 'picked' || trackingResult.status === 'in_transit' || trackingResult.status === 'out_for_delivery' || trackingResult.status === 'delivered' ? 'active' : ''}`}>
-                    <div className="step-icon">📝</div>
-                    <span>Booked</span>
-                  </div>
-                  <div className={`step ${trackingResult.status === 'picked' || trackingResult.status === 'in_transit' || trackingResult.status === 'out_for_delivery' || trackingResult.status === 'delivered' ? 'active' : ''}`}>
-                    <div className="step-icon">🚚</div>
-                    <span>Picked</span>
-                  </div>
-                  <div className={`step ${trackingResult.status === 'in_transit' || trackingResult.status === 'out_for_delivery' || trackingResult.status === 'delivered' ? 'active' : ''}`}>
-                    <div className="step-icon">🔄</div>
-                    <span>Transit</span>
-                  </div>
-                  <div className={`step ${trackingResult.status === 'out_for_delivery' || trackingResult.status === 'delivered' ? 'active' : ''}`}>
-                    <div className="step-icon">🎯</div>
-                    <span>Out for Delivery</span>
-                  </div>
-                  <div className={`step ${trackingResult.status === 'delivered' ? 'active' : ''}`}>
-                    <div className="step-icon">✅</div>
-                    <span>Delivered</span>
-                  </div>
-                </div>
               </div>
               <div className="tracking-details premium">
                 <div className="detail-card">
@@ -457,7 +434,7 @@ function ClientDashboard() {
           )}
         </div>
 
-        {/* Modules Grid - Enhanced */}
+        {/* Modules Grid */}
         <div className="modules-section">
           <div className="section-header">
             <div>
@@ -494,7 +471,7 @@ function ClientDashboard() {
           </div>
         </div>
 
-        {/* Recent Shipments - Enhanced */}
+        {/* Recent Shipments */}
         <div className="recent-section">
           <div className="section-header">
             <div>

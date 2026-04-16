@@ -227,12 +227,22 @@ function App() {
           }
         />
 
-        {/* 🔥 CLIENT DASHBOARD - New */}
+        {/* 🔥 CLIENT DASHBOARD */}
         <Route
           path="/client-dashboard"
           element={
             <ProtectedRoute>
               <ClientDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 🔥 CREATE ORDER - Direct route for clients */}
+        <Route
+          path="/create-order"
+          element={
+            <ProtectedRoute>
+              <CreateOrder />
             </ProtectedRoute>
           }
         />
