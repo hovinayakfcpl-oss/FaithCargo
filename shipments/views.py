@@ -530,7 +530,8 @@ def create_order(request):
 def shipment_list(request):
     cursor = connection.cursor()
     
-    # Check if client_id filter is present
+    # Get logged-in user's client_id from request (assuming you have auth)
+    # For now, using GET parameter
     client_id = request.GET.get('clientId')
     
     if client_id:
@@ -556,7 +557,7 @@ def shipment_list(request):
         "status": r[5],
         "weight": float(r[6]) if r[6] else 0,
         "date": r[7].strftime("%Y-%m-%d %H:%M") if r[7] else "N/A",
-        "freight": float(r[8]) if r[8] else 0  # ✅ NEW: Freight amount
+        "freight": float(r[8]) if r[8] else 0
     } for r in rows]
     
     return JsonResponse(data, safe=False)
@@ -585,7 +586,7 @@ def shipment_detail(request, lr):
         "lr": format_lr(order_data['lr_number']),
         "awb": order_data.get('awb_number'),
         "clientId": order_data.get('client_id'),
-        "freightAmount": float(order_data.get('freight_amount', 0)),  # ✅ NEW
+        "freightAmount": float(order_data.get('freight_amount', 0)),
         "pickupName": order_data.get('pickup_name'),
         "pickupAddress": order_data.get('pickup_address'),
         "pickupPincode": order_data.get('pickup_pincode'),
@@ -754,7 +755,7 @@ def client_orders(request, client_id):
         "status": r[5],
         "weight": float(r[6]) if r[6] else 0,
         "date": r[7].strftime("%Y-%m-%d %H:%M") if r[7] else "N/A",
-        "freight": float(r[8]) if r[8] else 0  # ✅ NEW: Freight amount
+        "freight": float(r[8]) if r[8] else 0
     } for r in rows]
     
     return JsonResponse(data, safe=False)

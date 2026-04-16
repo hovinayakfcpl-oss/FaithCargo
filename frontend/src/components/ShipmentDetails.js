@@ -113,12 +113,21 @@ function ShipmentDetails() {
       
       let url = "https://faithcargo.onrender.com/api/shipments/";
       
-      // If client has token, fetch only their orders
+      // 🔥 IMPORTANT: If client has token, fetch only their orders
       if (isClient && storedClientId) {
         url = `https://faithcargo.onrender.com/api/shipments/client/${storedClientId}/orders/`;
-        console.log("Using client URL:", url);
+        console.log("✅ Using client filtered URL:", url);
+      } else if (isClient && !storedClientId) {
+        // Try to get clientId from other sources
+        const altClientId = localStorage.getItem("client_id") || localStorage.getItem("clientId");
+        if (altClientId) {
+          url = `https://faithcargo.onrender.com/api/shipments/client/${altClientId}/orders/`;
+          console.log("✅ Using alt client URL:", url);
+        } else {
+          console.log("⚠️ Client token but no clientId, using all shipments URL");
+        }
       } else {
-        console.log("Using admin URL:", url);
+        console.log("✅ Admin/Staff - fetching all shipments");
       }
       
       const response = await fetch(url);
@@ -525,19 +534,19 @@ function ShipmentDetails() {
                 `\n\nExample: "Docket ${docketNumber} status update karo delivered"`;
       }
     } else if (docketNumber || lowerInput.includes("track")) {
-      const searchDocket = docketNumber || input.match(/\d+/)?.[0];
-      if (searchDocket) {
-        speak(`Sir, ${searchDocket} track kar raha hoon...`);
-        const trackingData = await trackShipment(searchDocket);
+      const searchDocketNum = docketNumber || input.match(/\d+/)?.[0];
+      if (searchDocketNum) {
+        speak(`Sir, ${searchDocketNum} track kar raha hoon...`);
+        const trackingData = await trackShipment(searchDocketNum);
         if (trackingData) {
           const invoiceCount = trackingData.uploadedInvoices?.length || 0;
-          reply = `🎤 **TRACKING UPDATE!** Docket ${searchDocket.toUpperCase()}\n\n` +
+          reply = `🎤 **TRACKING UPDATE!** Docket ${searchDocketNum.toUpperCase()}\n\n` +
                   `📍 **Current Status:** ${statusOptions.find(s => s.value === trackingData.status)?.label || 'Booked'}\n` +
                   `🚚 **Route:** ${trackingData.pickupPincode || 'N/A'} → ${trackingData.deliveryPincode || 'N/A'}\n` +
                   `📦 **Weight:** ${trackingData.weight || 0} kg\n` +
                   `📎 **Invoices:** ${invoiceCount} invoice(s) uploaded`;
         } else {
-          reply = `⚠️ **NOT FOUND!** Sir, docket ${searchDocket} system mein nahi mila.`;
+          reply = `⚠️ **NOT FOUND!** Sir, docket ${searchDocketNum} system mein nahi mila.`;
         }
       } else {
         reply = "Sir, docket number batao jaise 'FCPL0001 track karo'.";
