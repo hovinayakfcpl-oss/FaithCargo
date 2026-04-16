@@ -11,76 +11,79 @@ function ProtectedRoute({ children, requiredModule }) {
   const loginType = localStorage.getItem("loginType");
   const username = localStorage.getItem("username") || localStorage.getItem("clientId");
   
-  // Check if authenticated
-  const isAuthenticated = 
-    (token && token !== "undefined" && token !== "null" && token !== "") ||
-    (clientToken && clientToken !== "undefined" && clientToken !== "null" && clientToken !== "");
+  // 🔥 IMPROVED TOKEN VALIDATION
+  const isValidToken = (tokenValue) => {
+    return tokenValue && tokenValue !== "undefined" && tokenValue !== "null" && tokenValue !== "";
+  };
   
-  // Superuser check
-  const isSuperuser = 
-    localStorage.getItem("is_superuser") === "true" || 
-    localStorage.getItem("is_superuser") === "True" ||
-    userRole === "admin";
-
-  // Admin username check
-  const isAdminUser = username === "admin" || username === "vinayak" || username === "superuser" || userRole === "Admin";
-
-  // Get user modules
-  let userModules = {};
-  try {
-    const modulesStr = localStorage.getItem("userModules");
-    if (modulesStr) {
-      userModules = JSON.parse(modulesStr);
-      console.log("User Modules loaded:", userModules);
-    }
-  } catch (error) {
-    console.error("Error parsing userModules:", error);
-  }
-
-  // Not authenticated - redirect
+  const hasToken = isValidToken(token);
+  const hasClientToken = isValidToken(clientToken);
+  const isAuthenticated = hasToken || hasClientToken;
+  
+  // 🔥 DEBUG LOGS - Check browser console for debugging
+  console.log("=== PROTECTED ROUTE DEBUG ===");
+  console.log("Path:", location.pathname);
+  console.log("hasToken:", hasToken);
+  console.log("hasClientToken:", hasClientToken);
+  console.log("isAuthenticated:", isAuthenticated);
+  console.log("userRole:", userRole);
+  console.log("loginType:", loginType);
+  
+  // Not authenticated - redirect to login
   if (!isAuthenticated) {
-    console.log("Not authenticated, redirecting to login");
+    console.log("❌ Not authenticated, redirecting to login");
     localStorage.clear();
     return <Navigate to="/" replace />;
   }
 
   // Admin/Superuser - Allow ALL routes
-  if (isSuperuser || isAdminUser) {
+  const isAdmin = userRole === "admin" || 
+                  userRole === "Admin" || 
+                  username === "admin" || 
+                  username === "vinayak" ||
+                  localStorage.getItem("is_superuser") === "true";
+                  
+  if (isAdmin) {
     console.log("✅ Admin access granted for:", location.pathname);
     return children;
   }
 
   const currentPath = location.pathname;
   
-  // 🔥 COMPLETE LIST OF ALL ROUTES - Allow all these for clients
-  const allowedClientRoutes = [
+  // 🔥 COMPLETE LIST - All routes that clients can access (NO PERMISSION CHECK NEEDED)
+  const clientAllowedRoutes = [
     "/",
-    "/user-dashboard", 
-    "/admin-dashboard", 
-    "/dashboard",
+    "/client-dashboard",
+    "/create-order",
     "/ba-b2b-rate-calculator",
     "/ba-b2b-rate",
     "/shipment-details",
     "/shipments",
-    "/client-dashboard",
     "/tracking",
-    "/create-order",           // ✅ Create Order
-    "/fcpl-rate",              
-    "/pickup",                 
-    "/vendor-manage",          
-    "/vendor-rate",            
-    "/rate-update",            
-    "/pincode",                
-    "/user-management",        
+    "/user-dashboard",
+    "/dashboard",
+    "/fcpl-rate",
+    "/pickup",
+    "/vendor-manage",
+    "/vendor-rate",
+    "/rate-update",
+    "/pincode",
+    "/user-management",
   ];
   
-  // 🔥 Check if current path is allowed for clients
-  if (allowedClientRoutes.includes(currentPath)) {
-    console.log(`✅ Access granted for ${loginType} to: ${currentPath}`);
+  // 🔥 If client and route is allowed, grant access immediately
+  if ((hasClientToken || loginType === "client" || userRole === "client") && clientAllowedRoutes.includes(currentPath)) {
+    console.log(`✅ Client access granted for: ${currentPath}`);
     return children;
   }
+  
+  // 🔥 If client trying to access non-allowed route
+  if (hasClientToken || loginType === "client" || userRole === "client") {
+    console.log(`❌ Client access denied for: ${currentPath}, redirecting to dashboard`);
+    return <Navigate to="/client-dashboard" replace />;
+  }
 
-  // For any other route, check module permissions
+  // For staff/users with token, check module permissions
   const routePermissions = {
     "/fcpl-rate": "fcpl_rate",
     "/pickup": "pickup",
@@ -105,13 +108,21 @@ function ProtectedRoute({ children, requiredModule }) {
     return children;
   }
 
+  // Get user modules
+  let userModules = {};
+  try {
+    const modulesStr = localStorage.getItem("userModules");
+    if (modulesStr) {
+      userModules = JSON.parse(modulesStr);
+    }
+  } catch (error) {
+    console.error("Error parsing userModules:", error);
+  }
+
   const hasPermission = userModules[requiredPermission] === true;
 
   if (!hasPermission) {
     console.log(`Access Denied: Missing "${requiredPermission}" permission for path: ${currentPath}`);
-    if (loginType === "client") {
-      return <Navigate to="/client-dashboard" replace />;
-    }
     return <Navigate to="/user-dashboard" replace />;
   }
 
