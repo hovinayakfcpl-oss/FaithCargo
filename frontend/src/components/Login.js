@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Eye, EyeOff, User, Lock, LogIn, ArrowRight, 
   AlertCircle, CheckCircle, Shield, Zap, Users,
   Crown, Building, Phone, Mail, Building2, UserCircle,
-  Code, Heart, Star
+  Code, Heart, Star, Globe, Clock, TrendingUp,
+  Award, Target, Headphones, Truck, Package, Calculator
 } from "lucide-react";
 import "./Login.css";
 import logo from "../assets/logo.png";
@@ -20,9 +21,21 @@ function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [currentTime, setCurrentTime] = useState("");
+
+  // Current time for header
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load saved credentials
-  React.useEffect(() => {
+  useEffect(() => {
     const savedLoginType = localStorage.getItem("savedLoginType");
     
     if (savedLoginType === "admin") {
@@ -54,234 +67,235 @@ function Login() {
 
   // ========== ADMIN LOGIN ==========
   const handleAdminLogin = async () => {
-    const response = await fetch("https://faithcargo.onrender.com/api/user/admin-login/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: username.trim(),
-        password: password.trim(),
-      }),
-    });
+    setLoading(true);
+    try {
+      const response = await fetch("https://faithcargo.onrender.com/api/user/admin-login/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password.trim(),
+        }),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (response.status === 200 && data.status === "success") {
-      localStorage.clear();
-      
-      localStorage.setItem("token", "admin-token");
-      localStorage.setItem("userRole", "admin");
-      localStorage.setItem("is_superuser", "true");
-      localStorage.setItem("username", data.username);
-      localStorage.setItem("userId", data.id || "1");
-      localStorage.setItem("loginType", "admin");
-      
-      const allModules = {
-        fcpl_rate: true, pickup: true, vendor_manage: true, vendor_rates: true,
-        rate_update: true, pincode: true, user_management: true,
-        ba_b2b: true, create_order: true, shipment_details: true,
-      };
-      localStorage.setItem("userModules", JSON.stringify(allModules));
-      
-      if (rememberMe) {
-        localStorage.setItem("rememberedAdminUsername", username.trim());
-        localStorage.setItem("rememberAdmin", "true");
-        localStorage.setItem("savedLoginType", "admin");
+      if (response.status === 200 && data.status === "success") {
+        localStorage.clear();
+        
+        localStorage.setItem("token", "admin-token");
+        localStorage.setItem("userRole", "admin");
+        localStorage.setItem("is_superuser", "true");
+        localStorage.setItem("username", data.username);
+        localStorage.setItem("userId", data.id || "1");
+        localStorage.setItem("loginType", "admin");
+        
+        const allModules = {
+          fcpl_rate: true, pickup: true, vendor_manage: true, vendor_rates: true,
+          rate_update: true, pincode: true, user_management: true,
+          ba_b2b: true, create_order: true, shipment_details: true,
+        };
+        localStorage.setItem("userModules", JSON.stringify(allModules));
+        
+        if (rememberMe) {
+          localStorage.setItem("rememberedAdminUsername", username.trim());
+          localStorage.setItem("rememberAdmin", "true");
+          localStorage.setItem("savedLoginType", "admin");
+        }
+        
+        setSuccess(`Welcome Admin ${data.username}! Redirecting...`);
+        
+        setTimeout(() => {
+          navigate("/admin-dashboard");
+        }, 1500);
+      } else {
+        setError(data.error || "Invalid admin credentials");
       }
-      
-      setSuccess(`Welcome Admin ${data.username}! Redirecting...`);
-      
-      setTimeout(() => {
-        navigate("/admin-dashboard");
-      }, 1500);
-    } else {
-      setError(data.error || "Invalid admin credentials");
+    } catch (err) {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   // ========== STAFF LOGIN ==========
   const handleStaffLogin = async () => {
-    const response = await fetch("https://faithcargo.onrender.com/api/user/login/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: username.trim(),
-        password: password.trim(),
-      }),
-    });
+    setLoading(true);
+    try {
+      const response = await fetch("https://faithcargo.onrender.com/api/user/login/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password.trim(),
+        }),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (response.status === 200 && data.status === "success") {
-      localStorage.clear();
-      
-      localStorage.setItem("token", "user-token");
-      localStorage.setItem("userRole", "staff");
-      localStorage.setItem("is_superuser", "false");
-      localStorage.setItem("username", data.username);
-      localStorage.setItem("userId", data.id || "1");
-      localStorage.setItem("loginType", "staff");
-      
-      if (data.email) localStorage.setItem("userEmail", data.email);
-      if (data.company) localStorage.setItem("userCompany", data.company);
-      if (data.phone) localStorage.setItem("userPhone", data.phone);
-      
-      const modules = data.modules || {};
-      localStorage.setItem("userModules", JSON.stringify(modules));
-      
-      if (rememberMe) {
-        localStorage.setItem("rememberedStaffUsername", username.trim());
-        localStorage.setItem("rememberStaff", "true");
-        localStorage.setItem("savedLoginType", "staff");
-      }
-      
-      setSuccess(`Welcome ${data.username}! Redirecting...`);
-      
-      setTimeout(() => {
-        navigate("/user-dashboard");
-      }, 1500);
-    } else {
-      if (data.use_client_login || (data.error && data.error.includes("Client"))) {
-        setError("❌ This is a Client account. Please use 'Client' tab to login.");
-        setLoginType("client");
+      if (response.status === 200 && data.status === "success") {
+        localStorage.clear();
+        
+        localStorage.setItem("token", "user-token");
+        localStorage.setItem("userRole", "staff");
+        localStorage.setItem("is_superuser", "false");
+        localStorage.setItem("username", data.username);
+        localStorage.setItem("userId", data.id || "1");
+        localStorage.setItem("loginType", "staff");
+        
+        if (data.email) localStorage.setItem("userEmail", data.email);
+        if (data.company) localStorage.setItem("userCompany", data.company);
+        if (data.phone) localStorage.setItem("userPhone", data.phone);
+        
+        const modules = data.modules || {};
+        localStorage.setItem("userModules", JSON.stringify(modules));
+        
+        if (rememberMe) {
+          localStorage.setItem("rememberedStaffUsername", username.trim());
+          localStorage.setItem("rememberStaff", "true");
+          localStorage.setItem("savedLoginType", "staff");
+        }
+        
+        setSuccess(`Welcome ${data.username}! Redirecting...`);
+        
+        setTimeout(() => {
+          navigate("/user-dashboard");
+        }, 1500);
       } else {
-        setError(data.error || "Invalid staff credentials");
+        if (data.use_client_login || (data.error && data.error.includes("Client"))) {
+          setError("❌ This is a Client account. Please use 'Client' tab to login.");
+          setLoginType("client");
+        } else {
+          setError(data.error || "Invalid staff credentials");
+        }
       }
+    } catch (err) {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // ========== CLIENT LOGIN - WITH MULTIPLE ENDPOINTS ==========
+  // ========== CLIENT LOGIN - PROFESSIONAL VERSION ==========
   const handleClientLogin = async () => {
     const clientIdValue = clientId.trim().toUpperCase();
     const passwordValue = password.trim();
     
-    console.log("=== CLIENT LOGIN ATTEMPT ===");
-    console.log("Client ID:", clientIdValue);
-    
-    // List of possible endpoints to try
-    const endpoints = [
-      "https://faithcargo.onrender.com/api/accounts/client-login/",
-      "https://faithcargo.onrender.com/api/accounts/auth/client-login/",
-      "https://faithcargo.onrender.com/accounts/client-login/",
-      "https://faithcargo.onrender.com/api/user/client-login/"
-    ];
-    
-    let lastError = null;
-    
-    for (const endpoint of endpoints) {
-      console.log("Trying endpoint:", endpoint);
-      
-      try {
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            clientId: clientIdValue,
-            password: passwordValue,
-          }),
-        });
-        
-        // Check if response is JSON
-        const contentType = response.headers.get("content-type");
-        
-        if (contentType && contentType.includes("application/json")) {
-          const data = await response.json();
-          
-          if (data.success) {
-            // Login successful
-            localStorage.clear();
-            
-            localStorage.setItem("clientToken", data.token);
-            localStorage.setItem("clientId", clientIdValue);
-            localStorage.setItem("userRole", "client");
-            localStorage.setItem("loginType", "client");
-            
-            if (data.user) {
-              localStorage.setItem("username", data.user.companyName || data.user.username);
-              localStorage.setItem("clientName", data.user.companyName || data.user.username);
-              localStorage.setItem("clientEmail", data.user.email || "");
-              localStorage.setItem("clientPhone", data.user.phone || "");
-              localStorage.setItem("clientCompany", data.user.companyName || "");
-            }
-            
-            const clientModules = {
-              ba_b2b: true, 
-              create_order: true, 
-              shipment_details: true,
-              fcpl_rate: false, 
-              pickup: false, 
-              vendor_manage: false,
-              vendor_rates: false, 
-              rate_update: false, 
-              pincode: false, 
-              user_management: false
-            };
-            localStorage.setItem("userModules", JSON.stringify(clientModules));
-            
-            if (rememberMe) {
-              localStorage.setItem("rememberedClientId", clientIdValue);
-              localStorage.setItem("rememberClient", "true");
-              localStorage.setItem("savedLoginType", "client");
-            }
-            
-            setSuccess(`Welcome ${data.user?.companyName || clientIdValue}! Redirecting...`);
-            
-            setTimeout(() => {
-              navigate("/shipment-details");
-            }, 1500);
-            return;
-          } else {
-            setError(data.error || "Invalid Client ID or Password");
-            return;
-          }
-        } else {
-          // Not JSON response - try next endpoint
-          console.log("Non-JSON response from:", endpoint);
-          lastError = "Invalid server response";
-        }
-      } catch (err) {
-        console.log("Error with endpoint:", endpoint, err.message);
-        lastError = err.message;
-      }
+    if (!clientIdValue || !passwordValue) {
+      setError("Please enter Client ID and Password");
+      setLoading(false);
+      return;
     }
     
-    // If we get here, all endpoints failed
-    setError(`Cannot connect to server. Please try again later. ${lastError ? `(Error: ${lastError})` : ''}`);
+    setLoading(true);
+    
+    // Primary endpoint
+    const primaryEndpoint = "https://faithcargo.onrender.com/api/accounts/client-login/";
+    
+    try {
+      const response = await fetch(primaryEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: clientIdValue,
+          password: passwordValue,
+        }),
+      });
+      
+      const contentType = response.headers.get("content-type");
+      
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
+        
+        if (data.success) {
+          // Successful login
+          localStorage.clear();
+          
+          localStorage.setItem("clientToken", data.token);
+          localStorage.setItem("clientId", clientIdValue);
+          localStorage.setItem("userRole", "client");
+          localStorage.setItem("loginType", "client");
+          
+          if (data.user) {
+            localStorage.setItem("username", data.user.companyName || data.user.username);
+            localStorage.setItem("clientName", data.user.companyName || data.user.username);
+            localStorage.setItem("clientEmail", data.user.email || "");
+            localStorage.setItem("clientPhone", data.user.phone || "");
+            localStorage.setItem("clientCompany", data.user.companyName || "");
+          }
+          
+          const clientModules = {
+            ba_b2b: true, 
+            create_order: true, 
+            shipment_details: true,
+            fcpl_rate: false, 
+            pickup: false, 
+            vendor_manage: false,
+            vendor_rates: false, 
+            rate_update: false, 
+            pincode: false, 
+            user_management: false
+          };
+          localStorage.setItem("userModules", JSON.stringify(clientModules));
+          
+          if (rememberMe) {
+            localStorage.setItem("rememberedClientId", clientIdValue);
+            localStorage.setItem("rememberClient", "true");
+            localStorage.setItem("savedLoginType", "client");
+          }
+          
+          setSuccess(`Welcome ${data.user?.companyName || clientIdValue}! Redirecting to Dashboard...`);
+          
+          setTimeout(() => {
+            navigate("/client-dashboard");
+          }, 1500);
+          return;
+        } else {
+          setError(data.error || "Invalid Client ID or Password");
+        }
+      } else {
+        setError("Server error. Please contact support.");
+      }
+    } catch (err) {
+      console.error("Client login error:", err);
+      setError("Unable to connect to server. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-    setLoading(true);
 
-    try {
-      if (loginType === "admin") {
-        if (!username || !password) {
-          setError("Please enter username & password");
-          setLoading(false);
-          return;
-        }
-        await handleAdminLogin();
-      } else if (loginType === "staff") {
-        if (!username || !password) {
-          setError("Please enter username & password");
-          setLoading(false);
-          return;
-        }
-        await handleStaffLogin();
-      } else if (loginType === "client") {
-        if (!clientId || !password) {
-          setError("Please enter Client ID & password");
-          setLoading(false);
-          return;
-        }
-        await handleClientLogin();
+    if (loginType === "admin") {
+      if (!username || !password) {
+        setError("Please enter username & password");
+        return;
       }
-    } catch (err) {
-      console.error("Login error:", err);
-      setError("Server error. Please try again.");
-    } finally {
-      setLoading(false);
+      await handleAdminLogin();
+    } else if (loginType === "staff") {
+      if (!username || !password) {
+        setError("Please enter username & password");
+        return;
+      }
+      await handleStaffLogin();
+    } else if (loginType === "client") {
+      if (!clientId || !password) {
+        setError("Please enter Client ID & password");
+        return;
+      }
+      await handleClientLogin();
+    }
+  };
+
+  const getLoginTypeIcon = () => {
+    switch(loginType) {
+      case 'admin': return <Crown size={24} />;
+      case 'staff': return <Users size={24} />;
+      case 'client': return <Building2 size={24} />;
+      default: return <User size={24} />;
     }
   };
 
@@ -296,19 +310,52 @@ function Login() {
             <span>ISO 9001:2015 Certified</span>
           </div>
           <h1>Faith Cargo</h1>
-          <p className="tagline">Your Trusted Logistics Partner</p>
+          <p className="tagline">Legacy of Trust Delivery</p>
           
-          <div className="features">
-            <div className="feature"><Zap size={20} /><span>Real-time Tracking</span></div>
-            <div className="feature"><Building size={20} /><span>Warehouse Management</span></div>
-            <div className="feature"><Phone size={20} /><span>24/7 Support</span></div>
-            <div className="feature"><Mail size={20} /><span>Instant Rate Calculator</span></div>
+          <div className="features-grid">
+            <div className="feature-item">
+              <div className="feature-icon"><Truck size={20} /></div>
+              <div className="feature-text">
+                <h4>Real-time Tracking</h4>
+                <p>Track your shipment live</p>
+              </div>
+            </div>
+            <div className="feature-item">
+              <div className="feature-icon"><Calculator size={20} /></div>
+              <div className="feature-text">
+                <h4>Rate Calculator</h4>
+                <p>Instant freight calculation</p>
+              </div>
+            </div>
+            <div className="feature-item">
+              <div className="feature-icon"><Package size={20} /></div>
+              <div className="feature-text">
+                <h4>Easy Booking</h4>
+                <p>Create orders in minutes</p>
+              </div>
+            </div>
+            <div className="feature-item">
+              <div className="feature-icon"><Headphones size={20} /></div>
+              <div className="feature-text">
+                <h4>24/7 Support</h4>
+                <p>Dedicated customer care</p>
+              </div>
+            </div>
           </div>
           
-          <div className="stats">
-            <div className="stat"><strong>10K+</strong><span>Shipments</span></div>
-            <div className="stat"><strong>500+</strong><span>Clients</span></div>
-            <div className="stat"><strong>98%</strong><span>On-Time Delivery</span></div>
+          <div className="stats-container">
+            <div className="stat-item">
+              <strong>10K+</strong>
+              <span>Shipments</span>
+            </div>
+            <div className="stat-item">
+              <strong>500+</strong>
+              <span>Clients</span>
+            </div>
+            <div className="stat-item">
+              <strong>98%</strong>
+              <span>On-Time Delivery</span>
+            </div>
           </div>
         </div>
         
@@ -328,7 +375,7 @@ function Login() {
             <div className="online-status"></div>
           </div>
           
-          {/* Login Type Toggle - Three Options */}
+          {/* Login Type Toggle */}
           <div className="login-tabs three-tabs">
             <button 
               className={`tab-btn ${loginType === 'admin' ? 'active' : ''}`}
@@ -341,7 +388,7 @@ function Login() {
               }}
             >
               <Crown size={16} />
-              Admin
+              <span>Admin</span>
             </button>
             <button 
               className={`tab-btn ${loginType === 'staff' ? 'active' : ''}`}
@@ -354,7 +401,7 @@ function Login() {
               }}
             >
               <Users size={16} />
-              Staff
+              <span>Staff</span>
             </button>
             <button 
               className={`tab-btn ${loginType === 'client' ? 'active' : ''}`}
@@ -367,19 +414,23 @@ function Login() {
               }}
             >
               <Building2 size={16} />
-              Client
+              <span>Client</span>
             </button>
           </div>
           
-          <h2>
-            {loginType === 'admin' && "Admin Portal"}
-            {loginType === 'staff' && "Staff Portal"}
-            {loginType === 'client' && "Client Portal"}
-          </h2>
+          <div className="login-header">
+            {getLoginTypeIcon()}
+            <h2>
+              {loginType === 'admin' && "Admin Portal"}
+              {loginType === 'staff' && "Staff Portal"}
+              {loginType === 'client' && "Client Portal"}
+            </h2>
+          </div>
+          
           <p className="subtitle">
             {loginType === 'admin' && "Enter your superuser credentials to access admin dashboard"}
             {loginType === 'staff' && "Enter your credentials to access your assigned modules"}
-            {loginType === 'client' && "Enter your Client ID and password to view your shipments"}
+            {loginType === 'client' && "Enter your Client ID and password to access your dashboard"}
           </p>
           
           {error && (
@@ -404,15 +455,16 @@ function Login() {
                   <Building2 size={18} className="input-icon" />
                   <input
                     type="text"
-                    placeholder="Enter your Client ID (e.g., FCPL001, CLIENT002)"
+                    placeholder="Enter your Client ID"
                     value={clientId}
                     onChange={(e) => setClientId(e.target.value.toUpperCase())}
                     disabled={loading}
+                    autoComplete="off"
                   />
                 </div>
                 <div className="input-hint">
                   <UserCircle size={12} />
-                  <span>Enter the Client ID provided by your account manager</span>
+                  <span>Example: FCPL001, CLIENT002, 002</span>
                 </div>
               </div>
             ) : (
@@ -426,6 +478,7 @@ function Login() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     disabled={loading}
+                    autoComplete="username"
                   />
                 </div>
               </div>
@@ -441,6 +494,7 @@ function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -468,7 +522,10 @@ function Login() {
 
             <button type="submit" className="login-btn" disabled={loading}>
               {loading ? (
-                <span>Verifying...</span>
+                <span className="loading-spinner">
+                  <div className="spinner"></div>
+                  Verifying...
+                </span>
               ) : (
                 <>
                   <LogIn size={18} />
@@ -495,9 +552,10 @@ function Login() {
           <div className="security-note">
             <Shield size={14} />
             <span>Secure login with 256-bit encryption</span>
+            <Clock size={12} />
+            <span>{currentTime}</span>
           </div>
           
-          {/* Developer Credit inside form */}
           <div className="dev-credit-inline">
             <Star size={12} />
             <span>Built with <span style={{color: '#ef4444'}}>❤️</span> by <strong>Devora Technologies</strong></span>
