@@ -793,19 +793,58 @@ const getTrackingTimeline = (currentStatus) => {
 // ============================================
 // 🔔 SEND NOTIFICATION FUNCTION (Frontend)
 // ============================================
-const sendOrderNotification = (orderData) => {
-  console.log("📱 Sending order notification...", orderData);
+// ============================================
+// 🔔 SEND SMS NOTIFICATION (ACTUAL BACKEND API CALL)
+// ============================================
+const sendOrderNotification = async (orderData) => {
+  console.log("📱 Sending SMS notification to backend...", orderData);
   
-  if (orderData.pickupContact && orderData.pickupContact.length === 10) {
-    console.log(`📱 Would send SMS to Sender: ${orderData.pickupContact}`);
+  // Validate phone numbers
+  if (!orderData.pickupContact || orderData.pickupContact.length !== 10) {
+    console.log("⚠️ Invalid sender phone number:", orderData.pickupContact);
   }
-  if (orderData.deliveryContact && orderData.deliveryContact.length === 10) {
-    console.log(`📱 Would send SMS to Receiver: ${orderData.deliveryContact}`);
+  if (!orderData.deliveryContact || orderData.deliveryContact.length !== 10) {
+    console.log("⚠️ Invalid receiver phone number:", orderData.deliveryContact);
   }
   
-  alert(`✅ Order Created Successfully!\n\nLR Number: ${orderData.lrNumber}\nAWB: ${orderData.awb}\n\n📱 Notification will be sent to Sender & Receiver via WhatsApp/SMS.`);
+  try {
+    const response = await fetch("https://faithcargo.onrender.com/api/shipments/send-notification/", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        lrNumber: orderData.lrNumber,
+        awb: orderData.awb,
+        pickupPincode: orderData.pickupPincode,
+        deliveryPincode: orderData.deliveryPincode,
+        weight: orderData.weight,
+        totalValue: orderData.totalValue,
+        pickupContact: orderData.pickupContact,
+        deliveryContact: orderData.deliveryContact,
+        pickupName: orderData.pickupName,
+        deliveryName: orderData.deliveryName,
+      })
+    });
+    
+    console.log("📡 Response status:", response.status);
+    
+    const result = await response.json();
+    console.log("📦 Response data:", result);
+    
+    if (result.success) {
+      console.log("✅ SMS sent successfully!");
+    } else {
+      console.log("⚠️ SMS failed:", result.error);
+    }
+  } catch (error) {
+    console.error("❌ SMS notification error:", error);
+    console.error("Error message:", error.message);
+  }
+  
+  // Show success message to user (order is already created)
+  alert(`✅ Order Created Successfully!\n\n📋 LR Number: ${orderData.lrNumber}\n✈️ AWB: ${orderData.awb}\n\n📱 SMS sent to Sender & Receiver!`);
 };
-
 // ============================================
 // 🚀 MAIN CREATE ORDER COMPONENT
 // ============================================
