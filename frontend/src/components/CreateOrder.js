@@ -13,13 +13,13 @@ import {
   Stamp, Circle, Star, HelpCircle, Search, Filter,
   RefreshCw, Activity, CheckCircle2, XCircle, Timer, Map, PhoneCall,
   Bookmark, SaveAll, Copy, Edit, Trash, Check, ChevronDown, ChevronUp, 
-  FolderOpen, LogOut, UserCircle, Bell, MessageCircle
+  FolderOpen, LogOut, UserCircle
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import "./CreateOrder.css";
 
 // ============================================
-// 🔐 AUTHENTICATION CHECK (Both Admin & Client) - FIXED
+// 🔐 AUTHENTICATION CHECK (Both Admin & Client)
 // ============================================
 const useAuth = () => {
   const [user, setUser] = useState(null);
@@ -36,7 +36,6 @@ const useAuth = () => {
     const username = localStorage.getItem("username");
     const clientId = localStorage.getItem("clientId");
     
-    // Check for admin/staff token
     if (token && token !== "undefined" && token !== "null" && token !== "") {
       setIsAuthenticated(true);
       setUserRole(userRoleStorage === "admin" ? "admin" : "staff");
@@ -49,11 +48,9 @@ const useAuth = () => {
       return;
     }
     
-    // 🔥 FIXED: Client authentication - NO API CALL, just use localStorage
     if (clientToken && clientToken !== "undefined" && clientToken !== "null" && clientId) {
       console.log("✅ Client authenticated from localStorage:", clientId);
       
-      // Use data from localStorage directly
       const clientData = {
         clientId: clientId,
         companyName: localStorage.getItem("clientName") || username || "Client",
@@ -66,7 +63,6 @@ const useAuth = () => {
       setUserRole("client");
       setIsAuthenticated(true);
       
-      // Try to fetch rates (optional, won't break login if fails)
       const fetchRates = async () => {
         try {
           const ratesRes = await fetch(`https://faithcargo.onrender.com/api/rates/client/${clientId}/`);
@@ -800,8 +796,6 @@ const getTrackingTimeline = (currentStatus) => {
 const sendOrderNotification = (orderData) => {
   console.log("📱 Sending order notification...", orderData);
   
-  // This would call backend API to send WhatsApp/SMS
-  // For now, we'll just log and show alert
   if (orderData.pickupContact && orderData.pickupContact.length === 10) {
     console.log(`📱 Would send SMS to Sender: ${orderData.pickupContact}`);
   }
@@ -809,7 +803,6 @@ const sendOrderNotification = (orderData) => {
     console.log(`📱 Would send SMS to Receiver: ${orderData.deliveryContact}`);
   }
   
-  // Show success message to user
   alert(`✅ Order Created Successfully!\n\nLR Number: ${orderData.lrNumber}\nAWB: ${orderData.awb}\n\n📱 Notification will be sent to Sender & Receiver via WhatsApp/SMS.`);
 };
 
@@ -888,7 +881,6 @@ export default function CreateOrder() {
     setPickup(address);
   };
 
-  // ✅ MAIN FUNCTION - WITH NOTIFICATION
   const handleCreateOrder = async () => {
     if (!isAuthenticated) {
       alert("Please login first!");
@@ -904,7 +896,6 @@ export default function CreateOrder() {
     setLoading(true);
     setApiError("");
 
-    // ✅ Get calculated freight amount from freightData
     const calculatedFreight = freightData?.total || 0;
     
     console.log("=== Creating Order ===");
@@ -973,7 +964,6 @@ export default function CreateOrder() {
         });
         localStorage.setItem(storageKey, JSON.stringify(allShipments.slice(0, 50)));
         
-        // 🔥 SEND NOTIFICATION TO SENDER & RECEIVER
         const notificationData = {
           lrNumber: result.lr_number,
           awb: result.awb,
