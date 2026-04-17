@@ -5,7 +5,7 @@ import {
   Plus, Trash2, ChevronDown, ChevronUp, CheckCircle,
   Zap, Award, Star, Users, Phone, Mail, Calculator,
   ArrowRight, Building, FileText, User, LogOut,
-  AlertCircle  // 🔥 ADD THIS LINE
+  AlertCircle
 } from "lucide-react";
 import "./B2BRateCalculator.css";
 
@@ -41,9 +41,91 @@ function BaB2bRateCalculator() {
   const [loading, setLoading] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [activeTab, setActiveTab] = useState("surface");
-  const [zones, setZones] = useState(["N1","N2","N3","C1","W1","W2","S1","S2","E1","NE1","NE2"]);
   const [zoneMapping, setZoneMapping] = useState({});
   const [odaMessage, setOdaMessage] = useState("");
+  const [isLoadingRates, setIsLoadingRates] = useState(false);
+
+  // ========== FETCH DEFAULT RATE MATRIX FROM DATABASE ==========
+  const fetchDefaultRateMatrix = async () => {
+    try {
+      const response = await fetch(`https://faithcargo.onrender.com/api/rates/matrix/`);
+      if (response.ok) {
+        const rates = await response.json();
+        console.log("✅ Default Rate Matrix from DB:", rates);
+        
+        const mapping = {};
+        rates.forEach(rate => {
+          if (!mapping[rate.from_zone]) mapping[rate.from_zone] = {};
+          mapping[rate.from_zone][rate.to_zone] = rate.rate;
+        });
+        return mapping;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching default rate matrix:", error);
+      return null;
+    }
+  };
+
+  // ========== FETCH CLIENT-SPECIFIC RATES ==========
+  const fetchClientSpecificRates = async (clientId) => {
+    setIsLoadingRates(true);
+    try {
+      // First, get default rate matrix from database
+      let finalMapping = await fetchDefaultRateMatrix();
+      
+      // If no default matrix found, use fallback
+      if (!finalMapping) {
+        finalMapping = getFallbackRateMatrix();
+      }
+      
+      // If client is logged in, fetch and override client-specific rates
+      if (clientId) {
+        const response = await fetch(`https://faithcargo.onrender.com/api/rates/client/${clientId}/`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log("✅ Client Rates from DB:", data.zone_rates);
+          
+          setClientRates(data.zone_rates || []);
+          setClientPolicy(data.policy || null);
+          
+          // Override default rates with client-specific rates
+          if (data.zone_rates && data.zone_rates.length > 0) {
+            data.zone_rates.forEach(rate => {
+              if (!finalMapping[rate.from_zone]) finalMapping[rate.from_zone] = {};
+              finalMapping[rate.from_zone][rate.to_zone] = rate.rate;
+              console.log(`✅ Client Rate Applied: ${rate.from_zone} → ${rate.to_zone} = ₹${rate.rate}`);
+            });
+          }
+        }
+      }
+      
+      console.log("🎯 Final Rate Matrix:", finalMapping);
+      setZoneMapping(finalMapping);
+    } catch (error) {
+      console.error("Error fetching rates:", error);
+      setZoneMapping(getFallbackRateMatrix());
+    } finally {
+      setIsLoadingRates(false);
+    }
+  };
+
+  // ========== FALLBACK RATE MATRIX (if API fails) ==========
+  const getFallbackRateMatrix = () => {
+    return {
+      'N1': { 'N1': 18, 'N2': 20, 'N3': 22, 'C1': 19, 'W1': 21, 'W2': 23, 'S1': 24, 'S2': 26, 'E1': 25, 'NE1': 30, 'NE2': 32 },
+      'N2': { 'N1': 20, 'N2': 18, 'N3': 20, 'C1': 21, 'W1': 23, 'W2': 25, 'S1': 26, 'S2': 28, 'E1': 27, 'NE1': 32, 'NE2': 34 },
+      'N3': { 'N1': 22, 'N2': 20, 'N3': 18, 'C1': 23, 'W1': 25, 'W2': 27, 'S1': 28, 'S2': 30, 'E1': 29, 'NE1': 34, 'NE2': 36 },
+      'C1': { 'N1': 19, 'N2': 21, 'N3': 23, 'C1': 18, 'W1': 20, 'W2': 22, 'S1': 23, 'S2': 25, 'E1': 24, 'NE1': 30, 'NE2': 32 },
+      'W1': { 'N1': 21, 'N2': 23, 'N3': 25, 'C1': 20, 'W1': 18, 'W2': 20, 'S1': 22, 'S2': 24, 'E1': 23, 'NE1': 32, 'NE2': 34 },
+      'W2': { 'N1': 23, 'N2': 25, 'N3': 27, 'C1': 22, 'W1': 20, 'W2': 18, 'S1': 24, 'S2': 26, 'E1': 25, 'NE1': 34, 'NE2': 36 },
+      'S1': { 'N1': 24, 'N2': 26, 'N3': 28, 'C1': 23, 'W1': 22, 'W2': 24, 'S1': 18, 'S2': 20, 'E1': 22, 'NE1': 35, 'NE2': 37 },
+      'S2': { 'N1': 26, 'N2': 28, 'N3': 30, 'C1': 25, 'W1': 24, 'W2': 26, 'S1': 20, 'S2': 18, 'E1': 24, 'NE1': 37, 'NE2': 39 },
+      'E1': { 'N1': 25, 'N2': 27, 'N3': 29, 'C1': 24, 'W1': 23, 'W2': 25, 'S1': 22, 'S2': 24, 'E1': 18, 'NE1': 32, 'NE2': 34 },
+      'NE1': { 'N1': 30, 'N2': 32, 'N3': 34, 'C1': 30, 'W1': 32, 'W2': 34, 'S1': 35, 'S2': 37, 'E1': 32, 'NE1': 25, 'NE2': 28 },
+      'NE2': { 'N1': 32, 'N2': 34, 'N3': 36, 'C1': 32, 'W1': 34, 'W2': 36, 'S1': 37, 'S2': 39, 'E1': 34, 'NE1': 28, 'NE2': 25 }
+    };
+  };
 
   // ========== CLIENT LOGIN FUNCTIONS ==========
   const handleClientLogin = async () => {
@@ -68,7 +150,7 @@ function BaB2bRateCalculator() {
         setShowLoginModal(false);
         setLoginCredentials({ clientId: "", password: "" });
         
-        // Fetch client-specific rates
+        // Fetch rates (default + client-specific)
         await fetchClientSpecificRates(loginCredentials.clientId);
       } else {
         setLoginError(data.error || "Invalid credentials");
@@ -79,27 +161,6 @@ function BaB2bRateCalculator() {
     }
   };
 
-  const fetchClientSpecificRates = async (clientId) => {
-    try {
-      const response = await fetch(`https://faithcargo.onrender.com/api/rates/client/${clientId}/`);
-      const data = await response.json();
-      setClientRates(data.zone_rates || []);
-      setClientPolicy(data.policy || null);
-      
-      // Build zone mapping for rate lookup
-      const mapping = {};
-      if (data.zone_rates) {
-        data.zone_rates.forEach(rate => {
-          if (!mapping[rate.from_zone]) mapping[rate.from_zone] = {};
-          mapping[rate.from_zone][rate.to_zone] = rate.rate;
-        });
-      }
-      setZoneMapping(mapping);
-    } catch (error) {
-      console.error("Error fetching client rates:", error);
-    }
-  };
-
   const handleLogout = () => {
     localStorage.removeItem("clientToken");
     localStorage.removeItem("clientId");
@@ -107,17 +168,18 @@ function BaB2bRateCalculator() {
     setIsClientLoggedIn(false);
     setClientRates(null);
     setClientPolicy(null);
-    setZoneMapping({});
+    // Reset to default rate matrix
+    fetchClientSpecificRates(null);
     resetForm();
   };
 
   // Check for existing session on load
   useEffect(() => {
     const savedClientId = localStorage.getItem("clientId");
+    fetchClientSpecificRates(savedClientId);
+    
     if (savedClientId) {
       setIsClientLoggedIn(true);
-      fetchClientSpecificRates(savedClientId);
-      // Fetch user details
       fetch(`https://faithcargo.onrender.com/api/accounts/client/${savedClientId}/`)
         .then(res => res.json())
         .then(data => {
@@ -140,7 +202,6 @@ function BaB2bRateCalculator() {
           state: data.state 
         };
       }
-      // Fallback to local zone detection
       const firstDigit = pincode.charAt(0);
       const zoneMap = {
         '1': 'N1', '2': 'N2', '3': 'N3',
@@ -164,7 +225,6 @@ function BaB2bRateCalculator() {
   const fetchPincodeDetails = async (pincode, type) => {
     if (pincode && pincode.length === 6) {
       try {
-        // Fetch from postal API for city/state
         const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
         const data = await response.json();
         
@@ -175,7 +235,6 @@ function BaB2bRateCalculator() {
           state = postOffice.State;
         }
         
-        // Fetch ODA status from our backend
         const odaData = await checkPincodeODA(pincode);
         
         const details = {
@@ -191,7 +250,6 @@ function BaB2bRateCalculator() {
           setDestinationDetails(details);
         }
         
-        // Show ODA warning if applicable
         if (odaData.isODA) {
           setOdaMessage(`⚠️ ${type === "origin" ? "Origin" : "Destination"} pincode ${pincode} is an ODA area. Extra charges will apply.`);
           setTimeout(() => setOdaMessage(""), 5000);
@@ -214,11 +272,20 @@ function BaB2bRateCalculator() {
     return zoneMap[firstDigit] || 'NE2';
   };
 
-  // Get rate from client-specific rates or use default
-  const getRateFromZones = (originZone, destZone, defaultRate) => {
+  // 🔥 FIXED: Get rate from zone mapping
+  const getRateFromZones = (originZone, destZone) => {
     if (zoneMapping[originZone] && zoneMapping[originZone][destZone]) {
-      return zoneMapping[originZone][destZone];
+      const rate = zoneMapping[originZone][destZone];
+      console.log(`✅ Rate found: ${originZone} → ${destZone} = ₹${rate}/kg`);
+      return rate;
     }
+    
+    // Fallback default rate
+    let defaultRate = 18;
+    if (activeTab === 'express') defaultRate = 25;
+    if (activeTab === 'air') defaultRate = 45;
+    
+    console.log(`⚠️ Rate not found for ${originZone}→${destZone}, using default: ₹${defaultRate}/kg`);
     return defaultRate;
   };
 
@@ -277,20 +344,6 @@ function BaB2bRateCalculator() {
     return volumetric;
   };
 
-  // Get client-specific rate per kg
-  const getClientRatePerKg = () => {
-    if (!clientPolicy) {
-      // Default rates
-      return activeTab === 'air' ? 45 : (activeTab === 'express' ? 25 : 18);
-    }
-    
-    switch(activeTab) {
-      case 'air': return clientPolicy.air_rate_per_kg || 45;
-      case 'express': return clientPolicy.express_rate_per_kg || 25;
-      default: return clientPolicy.surface_rate_per_kg || 18;
-    }
-  };
-
   // Get client-specific charges
   const getClientCharges = () => {
     if (!clientPolicy) {
@@ -331,7 +384,7 @@ function BaB2bRateCalculator() {
     return 0;
   };
 
-  // CALCULATE RATE LOGIC with ODA Charges
+  // CALCULATE RATE LOGIC with Zone Matrix
   const calculateRate = async () => {
     if (!form.origin || !form.destination || !form.weight) {
       alert("Please enter Origin, Destination, and Weight!");
@@ -346,7 +399,7 @@ function BaB2bRateCalculator() {
     const chargeableWeight = Math.max(actualWeight, volumetric);
     const totalQty = dimensions.reduce((sum, b) => sum + (parseInt(b.qty) || 0), 0);
     
-    // 🔥 CHECK ODA STATUS FOR ORIGIN AND DESTINATION
+    // CHECK ODA STATUS
     let odaCharge = 0;
     let isODAArea = false;
     
@@ -361,20 +414,17 @@ function BaB2bRateCalculator() {
       if (isODAArea) {
         const weightBasedODA = chargeableWeight * 3;
         odaCharge = Math.max(650, weightBasedODA);
-        console.log(`ODA Charge calculated: ₹${odaCharge.toFixed(2)} (Weight: ${chargeableWeight}kg)`);
       }
     } catch (error) {
       console.error("ODA check error:", error);
     }
     
-    // Get client-specific rates
-    const ratePerKg = getClientRatePerKg();
     const charges = getClientCharges();
     
-    // Get zone-based rate if available
+    // 🔥 GET ZONE-BASED RATE FROM MATRIX
     const originZone = getZoneFromPincode(form.origin);
     const destZone = getZoneFromPincode(form.destination);
-    const zoneRate = getRateFromZones(originZone, destZone, ratePerKg);
+    const zoneRate = getRateFromZones(originZone, destZone);
     
     const freight = chargeableWeight * zoneRate;
     const gst = freight * (charges.gstPercent / 100);
@@ -507,7 +557,6 @@ function BaB2bRateCalculator() {
 
   return (
     <div className="b2b-container">
-      {/* ODA Warning Message */}
       {odaMessage && (
         <div className="oda-warning-message">
           <AlertCircle size={18} />
@@ -515,7 +564,6 @@ function BaB2bRateCalculator() {
         </div>
       )}
 
-      {/* Header Section */}
       <div className="b2b-header">
         <div className="header-content">
           <div className="logo-area">
@@ -537,7 +585,6 @@ function BaB2bRateCalculator() {
         </div>
       </div>
 
-      {/* Client Login/Profile Bar */}
       <div className="client-bar">
         {isClientLoggedIn && currentUser ? (
           <div className="client-profile">
@@ -565,38 +612,22 @@ function BaB2bRateCalculator() {
         )}
       </div>
 
-      {/* Login Modal */}
       {showLoginModal && <LoginModal />}
 
-      {/* Tabs */}
       <div className="b2b-tabs">
-        <button 
-          className={`tab-btn ${activeTab === 'surface' ? 'active' : ''}`}
-          onClick={() => setActiveTab('surface')}
-        >
-          <Truck size={18} />
-          Surface Transport
+        <button className={`tab-btn ${activeTab === 'surface' ? 'active' : ''}`} onClick={() => setActiveTab('surface')}>
+          <Truck size={18} /> Surface Transport
         </button>
-        <button 
-          className={`tab-btn ${activeTab === 'express' ? 'active' : ''}`}
-          onClick={() => setActiveTab('express')}
-        >
-          <Zap size={18} />
-          Express Delivery
+        <button className={`tab-btn ${activeTab === 'express' ? 'active' : ''}`} onClick={() => setActiveTab('express')}>
+          <Zap size={18} /> Express Delivery
         </button>
-        <button 
-          className={`tab-btn ${activeTab === 'air' ? 'active' : ''}`}
-          onClick={() => setActiveTab('air')}
-        >
-          <TrendingUp size={18} />
-          Air Cargo
+        <button className={`tab-btn ${activeTab === 'air' ? 'active' : ''}`} onClick={() => setActiveTab('air')}>
+          <TrendingUp size={18} /> Air Cargo
         </button>
       </div>
 
-      {/* Main Calculator Card */}
       <div className="calculator-main-card">
         <div className="calculator-grid">
-          {/* Left Side - Input Form */}
           <div className="input-section">
             <div className="section-title">
               <Calculator size={20} />
@@ -606,18 +637,10 @@ function BaB2bRateCalculator() {
               </button>
             </div>
 
-            {/* Route Section */}
             <div className="form-row-2">
               <div className="form-group">
                 <label><MapPin size={16} /> Origin Pincode *</label>
-                <input 
-                  type="text" 
-                  name="origin" 
-                  placeholder="Enter 6-digit pincode" 
-                  value={form.origin}
-                  onChange={(e) => handlePincodeChange(e, "origin")}
-                  maxLength="6"
-                />
+                <input type="text" name="origin" placeholder="Enter 6-digit pincode" value={form.origin} onChange={(e) => handlePincodeChange(e, "origin")} maxLength="6" />
                 {originDetails.city && (
                   <div className="location-detail">
                     <Building size={14} />
@@ -629,14 +652,7 @@ function BaB2bRateCalculator() {
 
               <div className="form-group">
                 <label><MapPin size={16} /> Destination Pincode *</label>
-                <input 
-                  type="text" 
-                  name="destination" 
-                  placeholder="Enter 6-digit pincode" 
-                  value={form.destination}
-                  onChange={(e) => handlePincodeChange(e, "destination")}
-                  maxLength="6"
-                />
+                <input type="text" name="destination" placeholder="Enter 6-digit pincode" value={form.destination} onChange={(e) => handlePincodeChange(e, "destination")} maxLength="6" />
                 {destinationDetails.city && (
                   <div className="location-detail">
                     <Building size={14} />
@@ -647,7 +663,6 @@ function BaB2bRateCalculator() {
               </div>
             </div>
 
-            {/* Payment, Weight & Invoice Value */}
             <div className="form-row-3">
               <div className="form-group">
                 <label><CreditCard size={16} /> Payment Mode</label>
@@ -660,105 +675,37 @@ function BaB2bRateCalculator() {
               </div>
               <div className="form-group">
                 <label><Weight size={16} /> Weight (Kg) *</label>
-                <input 
-                  type="number" 
-                  name="weight" 
-                  placeholder="Enter weight" 
-                  value={form.weight}
-                  onChange={handleChange}
-                  step="0.1"
-                />
+                <input type="number" name="weight" placeholder="Enter weight" value={form.weight} onChange={handleChange} step="0.1" />
               </div>
               <div className="form-group half-width">
                 <label><FileText size={16} /> Invoice Value (₹)</label>
-                <input 
-                  type="number" 
-                  name="invoiceValue" 
-                  placeholder="Value" 
-                  value={form.invoiceValue}
-                  onChange={handleChange}
-                />
+                <input type="number" name="invoiceValue" placeholder="Value" value={form.invoiceValue} onChange={handleChange} />
               </div>
             </div>
 
             {(form.paymentMode === "COD" || form.paymentMode === "ToPay") && (
               <div className="form-group">
                 <label><DollarSign size={16} /> COD Amount (₹)</label>
-                <input 
-                  type="number" 
-                  name="codAmount" 
-                  placeholder="Enter COD amount" 
-                  value={form.codAmount}
-                  onChange={handleChange}
-                />
+                <input type="number" name="codAmount" placeholder="Enter COD amount" value={form.codAmount} onChange={handleChange} />
               </div>
             )}
 
-            {/* Dimensions Section */}
             <div className="dimensions-section">
               <div className="dimensions-header">
                 <label><Package size={16} /> Package Dimensions</label>
-                <button className="add-dim-btn" onClick={addBox}>
-                  <Plus size={14} /> Add Package
-                </button>
+                <button className="add-dim-btn" onClick={addBox}><Plus size={14} /> Add Package</button>
               </div>
-              
               {dimensions.map((d, i) => (
                 <div key={i} className="dimension-row">
-                  <div className="dim-input">
-                    <span className="dim-label">Qty</span>
-                    <input 
-                      type="number" 
-                      name="qty" 
-                      value={d.qty} 
-                      onChange={(e) => handleDimChange(i, e)} 
-                      placeholder="Qty"
-                      min="1"
-                    />
-                  </div>
-                  <div className="dim-input">
-                    <span className="dim-label">L (cm)</span>
-                    <input 
-                      type="number" 
-                      name="length" 
-                      value={d.length} 
-                      onChange={(e) => handleDimChange(i, e)} 
-                      placeholder="Length"
-                      step="0.1"
-                    />
-                  </div>
-                  <div className="dim-input">
-                    <span className="dim-label">W (cm)</span>
-                    <input 
-                      type="number" 
-                      name="width" 
-                      value={d.width} 
-                      onChange={(e) => handleDimChange(i, e)} 
-                      placeholder="Width"
-                      step="0.1"
-                    />
-                  </div>
-                  <div className="dim-input">
-                    <span className="dim-label">H (cm)</span>
-                    <input 
-                      type="number" 
-                      name="height" 
-                      value={d.height} 
-                      onChange={(e) => handleDimChange(i, e)} 
-                      placeholder="Height"
-                      step="0.1"
-                    />
-                  </div>
-                  {dimensions.length > 1 && (
-                    <button className="remove-dim-btn" onClick={() => removeBox(i)}>
-                      <Trash2 size={14} />
-                    </button>
-                  )}
+                  <div className="dim-input"><span className="dim-label">Qty</span><input type="number" name="qty" value={d.qty} onChange={(e) => handleDimChange(i, e)} placeholder="Qty" min="1" /></div>
+                  <div className="dim-input"><span className="dim-label">L (cm)</span><input type="number" name="length" value={d.length} onChange={(e) => handleDimChange(i, e)} placeholder="Length" step="0.1" /></div>
+                  <div className="dim-input"><span className="dim-label">W (cm)</span><input type="number" name="width" value={d.width} onChange={(e) => handleDimChange(i, e)} placeholder="Width" step="0.1" /></div>
+                  <div className="dim-input"><span className="dim-label">H (cm)</span><input type="number" name="height" value={d.height} onChange={(e) => handleDimChange(i, e)} placeholder="Height" step="0.1" /></div>
+                  {dimensions.length > 1 && <button className="remove-dim-btn" onClick={() => removeBox(i)}><Trash2 size={14} /></button>}
                 </div>
               ))}
             </div>
 
-            {/* Services */}
             <div className="services-section">
               <label><Shield size={16} /> Value Added Services</label>
               <div className="checkbox-group">
@@ -769,16 +716,12 @@ function BaB2bRateCalculator() {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="action-buttons">
-              <button className="btn-calculate" onClick={calculateRate} disabled={loading}>
-                {loading ? "Calculating..." : "Get Live Quote"}
-              </button>
+              <button className="btn-calculate" onClick={calculateRate} disabled={loading}>{loading ? "Calculating..." : "Get Live Quote"}</button>
               <button className="btn-reset" onClick={resetForm}>Reset</button>
             </div>
           </div>
 
-          {/* Right Side - Results */}
           <div className="result-section">
             {result ? (
               <div className="result-content">
@@ -799,24 +742,15 @@ function BaB2bRateCalculator() {
                 <div className="route-info">
                   <div className="route-point">
                     <div className="point-icon"><MapPin size={16} /></div>
-                    <div className="point-details">
-                      <strong>Origin</strong>
-                      <p>{result.originCity || form.origin}</p>
-                      <small>{result.originState}</small>
-                    </div>
+                    <div className="point-details"><strong>Origin</strong><p>{result.originCity || form.origin}</p><small>{result.originState}</small></div>
                   </div>
                   <div className="route-arrow">→</div>
                   <div className="route-point">
                     <div className="point-icon"><Truck size={16} /></div>
-                    <div className="point-details">
-                      <strong>Destination</strong>
-                      <p>{result.destCity || form.destination}</p>
-                      <small>{result.destState}</small>
-                    </div>
+                    <div className="point-details"><strong>Destination</strong><p>{result.destCity || form.destination}</p><small>{result.destState}</small></div>
                   </div>
                 </div>
 
-                {/* Zone Info */}
                 {result.originZone && result.destZone && (
                   <div className="zone-info">
                     <span>Zone: {result.originZone} → {result.destZone}</span>
@@ -824,31 +758,15 @@ function BaB2bRateCalculator() {
                   </div>
                 )}
 
-                {/* Weight Summary */}
                 <div className="weight-summary">
-                  <div className="weight-item dark-text">
-                    <span>Actual Weight:</span>
-                    <strong>{result.actualWeight} Kg</strong>
-                  </div>
-                  <div className="weight-item dark-text">
-                    <span>Volumetric Weight:</span>
-                    <strong>{result.volumetric} Kg</strong>
-                  </div>
-                  <div className="weight-item dark-text">
-                    <span>Chargeable Weight:</span>
-                    <strong>{result.chargeable} Kg</strong>
-                  </div>
+                  <div className="weight-item dark-text"><span>Actual Weight:</span><strong>{result.actualWeight} Kg</strong></div>
+                  <div className="weight-item dark-text"><span>Volumetric Weight:</span><strong>{result.volumetric} Kg</strong></div>
+                  <div className="weight-item dark-text"><span>Chargeable Weight:</span><strong>{result.chargeable} Kg</strong></div>
                 </div>
 
                 <div className="rate-transit-row">
-                  <div className="rate-item">
-                    <span>Rate per Kg:</span>
-                    <strong>₹{result.ratePerKg}</strong>
-                  </div>
-                  <div className="transit-item">
-                    <span>Transit Time:</span>
-                    <strong>{result.transitTime}</strong>
-                  </div>
+                  <div className="rate-item"><span>Rate per Kg:</span><strong>₹{result.ratePerKg}</strong></div>
+                  <div className="transit-item"><span>Transit Time:</span><strong>{result.transitTime}</strong></div>
                 </div>
 
                 <div className="breakdown-toggle" onClick={() => setShowBreakdown(!showBreakdown)}>
@@ -862,12 +780,7 @@ function BaB2bRateCalculator() {
                     <div className="breakdown-item"><span>Fuel Surcharge</span><span>₹{result.fuel}</span></div>
                     <div className="breakdown-item"><span>Docket / Waybill Charge</span><span>₹100</span></div>
                     <div className="breakdown-item"><span>FOV Charges</span><span>₹75</span></div>
-                    {parseFloat(result.odaCharge) > 0 && (
-                      <div className="breakdown-item oda">
-                        <span>ODA Charges (₹650 or ₹3/kg)</span>
-                        <span>₹{result.odaCharge}</span>
-                      </div>
-                    )}
+                    {parseFloat(result.odaCharge) > 0 && <div className="breakdown-item oda"><span>ODA Charges (₹650 or ₹3/kg)</span><span>₹{result.odaCharge}</span></div>}
                     {parseFloat(result.cod) > 0 && <div className="breakdown-item"><span>COD/ToPay Fee</span><span>₹{result.cod}</span></div>}
                     {parseFloat(result.handling) > 0 && <div className="breakdown-item"><span>Special Handling</span><span>₹{result.handling}</span></div>}
                     {parseFloat(result.fragileCharge) > 0 && <div className="breakdown-item"><span>Fragile Handling</span><span>₹{result.fragileCharge}</span></div>}
@@ -880,13 +793,8 @@ function BaB2bRateCalculator() {
                 )}
 
                 <div className="result-footer">
-                  <div className="footer-note">
-                    <CheckCircle size={14} />
-                    <span>All taxes included. No hidden charges.</span>
-                  </div>
-                  <button className="btn-proceed" onClick={() => window.location.href = '/create-order'}>
-                    Proceed to Booking <ArrowRight size={14} />
-                  </button>
+                  <div className="footer-note"><CheckCircle size={14} /><span>All taxes included. No hidden charges.</span></div>
+                  <button className="btn-proceed" onClick={() => window.location.href = '/create-order'}>Proceed to Booking <ArrowRight size={14} /></button>
                 </div>
               </div>
             ) : (
@@ -900,35 +808,20 @@ function BaB2bRateCalculator() {
                   <span>✓ No hidden charges</span>
                   <span>✓ ODA charges included</span>
                 </div>
-                <button className="example-btn" onClick={quickFillExample}>
-                  <Zap size={14} /> Try Example
-                </button>
+                <button className="example-btn" onClick={quickFillExample}><Zap size={14} /> Try Example</button>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Footer */}
       <div className="b2b-footer">
         <div className="footer-content">
-          <div className="footer-logo">
-            <div className="logo-icon-small">FC</div>
-            <span>Faith Cargo Logistics Pvt. Ltd.</span>
-          </div>
-          <div className="footer-links">
-            <a href="#">Terms & Conditions</a>
-            <a href="#">Privacy Policy</a>
-            <a href="#">Contact Support</a>
-          </div>
-          <div className="footer-contact">
-            <Phone size={14} /><span>+91 9818641504</span>
-            <Mail size={14} /><span>care@faithcargo.com</span>
-          </div>
+          <div className="footer-logo"><div className="logo-icon-small">FC</div><span>Faith Cargo Logistics Pvt. Ltd.</span></div>
+          <div className="footer-links"><a href="#">Terms & Conditions</a><a href="#">Privacy Policy</a><a href="#">Contact Support</a></div>
+          <div className="footer-contact"><Phone size={14} /><span>+91 9818641504</span><Mail size={14} /><span>care@faithcargo.com</span></div>
         </div>
-        <div className="footer-copyright">
-          <p>&copy; 2024 Faith Cargo Logistics Pvt. Ltd. All rights reserved.</p>
-        </div>
+        <div className="footer-copyright"><p>&copy; 2024 Faith Cargo Logistics Pvt. Ltd. All rights reserved.</p></div>
       </div>
     </div>
   );
