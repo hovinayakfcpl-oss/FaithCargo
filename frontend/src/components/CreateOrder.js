@@ -760,6 +760,41 @@ const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
 };
 
 // ============================================
+// 📍 TRACKING TIMELINE COMPONENT - ADDED
+// ============================================
+const getTrackingTimeline = (currentStatus) => {
+  const steps = [
+    { key: 'booked', label: 'Booked', icon: '📝', desc: 'Order confirmed' },
+    { key: 'picked', label: 'Picked Up', icon: '🚚', desc: 'Shipment collected' },
+    { key: 'in_transit', label: 'In Transit', icon: '🚛', desc: 'On the way' },
+    { key: 'out_for_delivery', label: 'Out for Delivery', icon: '📦', desc: 'Near destination' },
+    { key: 'delivered', label: 'Delivered', icon: '✅', desc: 'Successfully delivered' }
+  ];
+  const currentIndex = steps.findIndex(s => s.key === currentStatus);
+  
+  return (
+    <div className="tracking-timeline-enhanced">
+      {steps.map((step, idx) => {
+        const isCompleted = idx <= currentIndex;
+        const isCurrent = idx === currentIndex;
+        return (
+          <div key={step.key} className={`timeline-step-enhanced ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}`}>
+            <div className="timeline-icon-enhanced">
+              {isCompleted ? <CheckCircle2 size={22} /> : <span className="step-icon-enhanced">{step.icon}</span>}
+            </div>
+            <div className="timeline-content-enhanced">
+              <div className="step-label-enhanced">{step.label}</div>
+              <div className="step-desc-enhanced">{step.desc}</div>
+            </div>
+            {idx < steps.length - 1 && <div className={`timeline-line-enhanced ${isCompleted ? 'completed' : ''}`}></div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// ============================================
 // 🚀 MAIN CREATE ORDER COMPONENT
 // ============================================
 export default function CreateOrder() {
