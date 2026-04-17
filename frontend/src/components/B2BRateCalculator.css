@@ -1,7 +1,8 @@
 /* ============================================
-   B2B RATE CALCULATOR - COMPLETE v4.0
+   B2B RATE CALCULATOR - COMPLETE v5.0
    FAITH CARGO LOGISTICS
-   WITH CLIENT LOGIN & CUSTOM RATES
+   WITH CLIENT LOGIN & CUSTOM RATES & ODA CHARGES
+   DEVELOPED BY DEVORA TECHNOLOGIES
    ============================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&display=swap');
@@ -23,6 +24,8 @@
   --primary-orange-light: #fef3c7;
   --primary-purple: #8b5cf6;
   --primary-purple-light: #ede9fe;
+  --oda-color: #f59e0b;
+  --oda-bg: #fef3c7;
   
   /* Dark Theme Colors */
   --dark-bg: #0f172a;
@@ -113,6 +116,99 @@ body {
 ::selection {
   background: var(--primary-red);
   color: white;
+}
+
+/* ============================================
+   ODA WARNING MESSAGE - NEW
+   ============================================ */
+.oda-warning-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  background: linear-gradient(135deg, var(--oda-bg), #ffe4b5);
+  color: var(--oda-color);
+  padding: 12px 20px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  border-left: 4px solid var(--oda-color);
+  animation: slideInRight 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ODA Badge in Location Details */
+.location-detail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, var(--primary-green-light), white);
+  border-left: 3px solid var(--primary-green);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--primary-green-dark);
+  font-weight: 600;
+  animation: slideIn 0.3s ease;
+}
+
+.oda-badge {
+  background: var(--oda-bg);
+  color: var(--oda-color);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 9px;
+  font-weight: 700;
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.oda-badge::before {
+  content: '⚠️';
+  font-size: 8px;
+}
+
+/* ODA Badge in Result */
+.oda-badge-result {
+  background: var(--oda-bg);
+  color: var(--oda-color);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 9px;
+  font-weight: 700;
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.oda-badge-result::before {
+  content: '⚠️';
+  font-size: 8px;
+}
+
+/* ODA Breakdown Item */
+.breakdown-item.oda {
+  color: var(--oda-color);
+  font-weight: 700;
 }
 
 /* ============================================
@@ -211,7 +307,7 @@ body {
   letter-spacing: 0.5px;
 }
 
-/* Header Badges - Black Text */
+/* Header Badges */
 .header-badges {
   display: flex;
   gap: 12px;
@@ -270,7 +366,7 @@ body {
 }
 
 /* ============================================
-   CLIENT BAR - NEW
+   CLIENT BAR
    ============================================ */
 .client-bar {
   max-width: 1400px;
@@ -375,7 +471,7 @@ body {
 }
 
 /* ============================================
-   LOGIN MODAL - NEW
+   LOGIN MODAL
    ============================================ */
 .login-modal-overlay {
   position: fixed;
@@ -700,6 +796,7 @@ body {
   background: var(--bg-gray);
   font-family: inherit;
   font-weight: 500;
+  color: var(--text-dark);
 }
 
 .form-group input:hover,
@@ -713,21 +810,6 @@ body {
   border-color: var(--primary-red);
   background: white;
   box-shadow: 0 0 0 3px var(--primary-red-glow);
-}
-
-.location-detail {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-  padding: 6px 12px;
-  background: linear-gradient(135deg, var(--primary-green-light), white);
-  border-left: 3px solid var(--primary-green);
-  border-radius: var(--radius-sm);
-  font-size: 11px;
-  color: var(--primary-green-dark);
-  font-weight: 600;
-  animation: slideIn 0.3s ease;
 }
 
 @keyframes slideIn {
@@ -848,6 +930,7 @@ body {
   transition: var(--transition);
   font-weight: 500;
   width: 100%;
+  color: var(--text-dark);
 }
 
 .dimension-row input:focus {
@@ -1149,7 +1232,7 @@ body {
   font-weight: 300;
 }
 
-/* Zone Info - NEW */
+/* Zone Info */
 .zone-info {
   display: flex;
   justify-content: space-between;
@@ -1300,7 +1383,8 @@ body {
 }
 
 .breakdown-item.oda {
-  color: var(--warning);
+  color: var(--oda-color);
+  font-weight: 700;
 }
 
 .breakdown-item.gst {
@@ -1661,6 +1745,14 @@ body {
   .client-bar {
     padding: 0 16px;
   }
+  
+  .oda-warning-message {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    font-size: 11px;
+    padding: 10px 16px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1750,7 +1842,8 @@ body {
   .add-dim-btn,
   .remove-dim-btn,
   .client-bar,
-  .btn-proceed {
+  .btn-proceed,
+  .oda-warning-message {
     display: none;
   }
   
@@ -1805,4 +1898,19 @@ body {
     background: #f0f0f0;
     color: black;
   }
+}
+
+/* Additional Animation for ODA */
+@keyframes odaPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.oda-badge,
+.oda-badge-result {
+  animation: odaPulse 2s ease-in-out infinite;
 }

@@ -31,8 +31,8 @@ function BaB2bRateCalculator() {
     express: false
   });
 
-  const [originDetails, setOriginDetails] = useState({ city: "", state: "" });
-  const [destinationDetails, setDestinationDetails] = useState({ city: "", state: "" });
+  const [originDetails, setOriginDetails] = useState({ city: "", state: "", zone: "", isODA: false });
+  const [destinationDetails, setDestinationDetails] = useState({ city: "", state: "", zone: "", isODA: false });
   const [dimensions, setDimensions] = useState([
     { qty: 1, length: "", width: "", height: "" }
   ]);
@@ -42,12 +42,13 @@ function BaB2bRateCalculator() {
   const [activeTab, setActiveTab] = useState("surface");
   const [zones, setZones] = useState(["N1","N2","N3","C1","W1","W2","S1","S2","E1","NE1","NE2"]);
   const [zoneMapping, setZoneMapping] = useState({});
+  const [odaMessage, setOdaMessage] = useState("");
 
   // ========== CLIENT LOGIN FUNCTIONS ==========
   const handleClientLogin = async () => {
     setLoginError("");
     try {
-      const response = await fetch("https://faithcargo.onrender.com/api/auth/client-login/", {
+      const response = await fetch("https://faithcargo.onrender.com/api/accounts/client-login/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -116,7 +117,7 @@ function BaB2bRateCalculator() {
       setIsClientLoggedIn(true);
       fetchClientSpecificRates(savedClientId);
       // Fetch user details
-      fetch(`https://faithcargo.onrender.com/api/auth/client/${savedClientId}/`)
+      fetch(`https://faithcargo.onrender.com/api/accounts/client/${savedClientId}/`)
         .then(res => res.json())
         .then(data => {
           if (data.success) setCurrentUser(data.user);
@@ -125,24 +126,74 @@ function BaB2bRateCalculator() {
     }
   }, []);
 
-  // Fetch pincode details
+  // ========== CHECK ODA STATUS FROM PINCODE API ==========
+  const checkPincodeODA = async (pincode) => {
+    try {
+      const response = await fetch(`https://faithcargo.onrender.com/api/pincode/zone/${pincode}/`);
+      if (response.ok) {
+        const data = await response.json();
+        return { 
+          isODA: data.oda || false, 
+          zone: data.zone, 
+          city: data.city, 
+          state: data.state 
+        };
+      }
+      // Fallback to local zone detection
+      const firstDigit = pincode.charAt(0);
+      const zoneMap = {
+        '1': 'N1', '2': 'N2', '3': 'N3',
+        '4': 'C1', '5': 'W1', '6': 'W2',
+        '7': 'S1', '8': 'S2', '9': 'E1',
+        '0': 'NE1'
+      };
+      return { 
+        isODA: false, 
+        zone: zoneMap[firstDigit] || 'NE2', 
+        city: "", 
+        state: "" 
+      };
+    } catch (error) {
+      console.error("Error checking ODA:", error);
+      return { isODA: false, zone: null, city: null, state: null };
+    }
+  };
+
+  // Fetch pincode details with ODA status
   const fetchPincodeDetails = async (pincode, type) => {
     if (pincode && pincode.length === 6) {
       try {
+        // Fetch from postal API for city/state
         const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
         const data = await response.json();
+        
+        let city = "", state = "";
         if (data[0]?.Status === "Success") {
           const postOffice = data[0].PostOffice[0];
-          const details = {
-            city: postOffice.District,
-            state: postOffice.State,
-            name: postOffice.Name
-          };
-          if (type === "origin") {
-            setOriginDetails(details);
-          } else {
-            setDestinationDetails(details);
-          }
+          city = postOffice.District;
+          state = postOffice.State;
+        }
+        
+        // Fetch ODA status from our backend
+        const odaData = await checkPincodeODA(pincode);
+        
+        const details = {
+          city: city,
+          state: state,
+          zone: odaData.zone,
+          isODA: odaData.isODA
+        };
+        
+        if (type === "origin") {
+          setOriginDetails(details);
+        } else {
+          setDestinationDetails(details);
+        }
+        
+        // Show ODA warning if applicable
+        if (odaData.isODA) {
+          setOdaMessage(`⚠️ ${type === "origin" ? "Origin" : "Destination"} pincode ${pincode} is an ODA area. Extra charges will apply.`);
+          setTimeout(() => setOdaMessage(""), 5000);
         }
       } catch (error) {
         console.error("Error fetching pincode:", error);
@@ -150,7 +201,7 @@ function BaB2bRateCalculator() {
     }
   };
 
-  // Get zone from pincode (simplified - in production, use actual zone mapping)
+  // Get zone from pincode
   const getZoneFromPincode = (pincode) => {
     const firstDigit = pincode.charAt(0);
     const zoneMap = {
@@ -178,9 +229,9 @@ function BaB2bRateCalculator() {
       fetchPincodeDetails(value, type);
     } else {
       if (type === "origin") {
-        setOriginDetails({ city: "", state: "" });
+        setOriginDetails({ city: "", state: "", zone: "", isODA: false });
       } else {
-        setDestinationDetails({ city: "", state: "" });
+        setDestinationDetails({ city: "", state: "", zone: "", isODA: false });
       }
     }
   };
@@ -270,7 +321,16 @@ function BaB2bRateCalculator() {
     };
   };
 
-  // CALCULATE RATE LOGIC with Client-Specific Rates
+  // CALCULATE ODA CHARGE
+  const calculateODACharge = (weight, isOriginODA, isDestODA) => {
+    if (isOriginODA || isDestODA) {
+      const weightBasedODA = weight * 3;
+      return Math.max(650, weightBasedODA);
+    }
+    return 0;
+  };
+
+  // CALCULATE RATE LOGIC with ODA Charges
   const calculateRate = async () => {
     if (!form.origin || !form.destination || !form.weight) {
       alert("Please enter Origin, Destination, and Weight!");
@@ -284,6 +344,27 @@ function BaB2bRateCalculator() {
     const actualWeight = parseFloat(form.weight) || 0;
     const chargeableWeight = Math.max(actualWeight, volumetric);
     const totalQty = dimensions.reduce((sum, b) => sum + (parseInt(b.qty) || 0), 0);
+    
+    // 🔥 CHECK ODA STATUS FOR ORIGIN AND DESTINATION
+    let odaCharge = 0;
+    let isODAArea = false;
+    
+    try {
+      const [originODA, destODA] = await Promise.all([
+        checkPincodeODA(form.origin),
+        checkPincodeODA(form.destination)
+      ]);
+      
+      isODAArea = originODA.isODA || destODA.isODA;
+      
+      if (isODAArea) {
+        const weightBasedODA = chargeableWeight * 3;
+        odaCharge = Math.max(650, weightBasedODA);
+        console.log(`ODA Charge calculated: ₹${odaCharge.toFixed(2)} (Weight: ${chargeableWeight}kg)`);
+      }
+    } catch (error) {
+      console.error("ODA check error:", error);
+    }
     
     // Get client-specific rates
     const ratePerKg = getClientRatePerKg();
@@ -299,7 +380,6 @@ function BaB2bRateCalculator() {
     const fuel = freight * (charges.fuelPercent / 100);
     const docket = charges.docketCharge;
     const fov = charges.fovCharge;
-    const odaCharge = 0; // Will be fetched from API if needed
     
     let cod = (form.paymentMode === "COD" || form.paymentMode === "ToPay") ? charges.codCharge : 0;
     let handling = (totalQty === 1 && chargeableWeight > 70) ? 750 : 0;
@@ -316,20 +396,21 @@ function BaB2bRateCalculator() {
     const transitTime = activeTab === 'air' ? '1-2 days' : (activeTab === 'express' ? '1-3 days' : '2-5 days');
 
     setResult({
-      actualWeight,
+      actualWeight: actualWeight.toFixed(2),
       volumetric: volumetric.toFixed(2),
       chargeable: chargeableWeight.toFixed(2),
       ratePerKg: zoneRate.toFixed(2),
       freight: freight.toFixed(2),
       fuel: fuel.toFixed(2),
       gst: gst.toFixed(2),
-      odaCharge,
-      cod,
-      handling,
-      fragileCharge,
-      expressCharge,
+      odaCharge: odaCharge.toFixed(2),
+      isODAArea: isODAArea,
+      cod: cod.toFixed(2),
+      handling: handling.toFixed(2),
+      fragileCharge: fragileCharge.toFixed(2),
+      expressCharge: expressCharge.toFixed(2),
       insurance: insuranceVal.toFixed(2),
-      appointment: appointmentVal,
+      appointment: appointmentVal.toFixed(2),
       total: total.toFixed(2),
       totalQty,
       paymentMode: form.paymentMode,
@@ -360,10 +441,11 @@ function BaB2bRateCalculator() {
       fragile: false,
       express: false
     });
-    setOriginDetails({ city: "", state: "" });
-    setDestinationDetails({ city: "", state: "" });
+    setOriginDetails({ city: "", state: "", zone: "", isODA: false });
+    setDestinationDetails({ city: "", state: "", zone: "", isODA: false });
     setDimensions([{ qty: 1, length: "", width: "", height: "" }]);
     setResult(null);
+    setOdaMessage("");
   };
 
   const quickFillExample = () => {
@@ -424,6 +506,14 @@ function BaB2bRateCalculator() {
 
   return (
     <div className="b2b-container">
+      {/* ODA Warning Message */}
+      {odaMessage && (
+        <div className="oda-warning-message">
+          <AlertCircle size={18} />
+          <span>{odaMessage}</span>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="b2b-header">
         <div className="header-content">
@@ -531,6 +621,7 @@ function BaB2bRateCalculator() {
                   <div className="location-detail">
                     <Building size={14} />
                     <span>{originDetails.city}, {originDetails.state}</span>
+                    {originDetails.isODA && <span className="oda-badge">ODA Area</span>}
                   </div>
                 )}
               </div>
@@ -549,6 +640,7 @@ function BaB2bRateCalculator() {
                   <div className="location-detail">
                     <Building size={14} />
                     <span>{destinationDetails.city}, {destinationDetails.state}</span>
+                    {destinationDetails.isODA && <span className="oda-badge">ODA Area</span>}
                   </div>
                 )}
               </div>
@@ -694,6 +786,7 @@ function BaB2bRateCalculator() {
                     <Zap size={18} />
                     <span>{result.transportType}</span>
                     {isClientLoggedIn && <span className="custom-rate-badge">Custom Rate</span>}
+                    {result.isODAArea && <span className="oda-badge-result">⚠️ ODA Applied</span>}
                   </div>
                   <div className="total-amount">
                     <small>Total Amount</small>
@@ -722,11 +815,11 @@ function BaB2bRateCalculator() {
                   </div>
                 </div>
 
-                {/* Zone Info if available */}
+                {/* Zone Info */}
                 {result.originZone && result.destZone && (
                   <div className="zone-info">
                     <span>Zone: {result.originZone} → {result.destZone}</span>
-                    <span>Rate: ₹{result.zoneRate}/kg</span>
+                    <span>Rate: ₹{result.ratePerKg}/kg</span>
                   </div>
                 )}
 
@@ -768,11 +861,16 @@ function BaB2bRateCalculator() {
                     <div className="breakdown-item"><span>Fuel Surcharge</span><span>₹{result.fuel}</span></div>
                     <div className="breakdown-item"><span>Docket / Waybill Charge</span><span>₹100</span></div>
                     <div className="breakdown-item"><span>FOV Charges</span><span>₹75</span></div>
-                    {result.odaCharge > 0 && <div className="breakdown-item oda"><span>ODA Charges</span><span>₹{result.odaCharge}</span></div>}
-                    {result.cod > 0 && <div className="breakdown-item"><span>COD/ToPay Fee</span><span>₹{result.cod}</span></div>}
-                    {result.handling > 0 && <div className="breakdown-item"><span>Special Handling</span><span>₹{result.handling}</span></div>}
-                    {result.fragileCharge > 0 && <div className="breakdown-item"><span>Fragile Handling</span><span>₹{result.fragileCharge}</span></div>}
-                    {result.expressCharge > 0 && <div className="breakdown-item"><span>Express Priority</span><span>₹{result.expressCharge}</span></div>}
+                    {parseFloat(result.odaCharge) > 0 && (
+                      <div className="breakdown-item oda">
+                        <span>ODA Charges (₹650 or ₹3/kg)</span>
+                        <span>₹{result.odaCharge}</span>
+                      </div>
+                    )}
+                    {parseFloat(result.cod) > 0 && <div className="breakdown-item"><span>COD/ToPay Fee</span><span>₹{result.cod}</span></div>}
+                    {parseFloat(result.handling) > 0 && <div className="breakdown-item"><span>Special Handling</span><span>₹{result.handling}</span></div>}
+                    {parseFloat(result.fragileCharge) > 0 && <div className="breakdown-item"><span>Fragile Handling</span><span>₹{result.fragileCharge}</span></div>}
+                    {parseFloat(result.expressCharge) > 0 && <div className="breakdown-item"><span>Express Priority</span><span>₹{result.expressCharge}</span></div>}
                     {form.insurance && <div className="breakdown-item"><span>Insurance</span><span>₹{result.insurance}</span></div>}
                     {form.appointment && <div className="breakdown-item"><span>Appointment Delivery</span><span>₹{result.appointment}</span></div>}
                     <div className="breakdown-item gst"><span>GST</span><span>₹{result.gst}</span></div>
@@ -799,6 +897,7 @@ function BaB2bRateCalculator() {
                   <span>✓ Real-time rates</span>
                   <span>✓ Transparent pricing</span>
                   <span>✓ No hidden charges</span>
+                  <span>✓ ODA charges included</span>
                 </div>
                 <button className="example-btn" onClick={quickFillExample}>
                   <Zap size={14} /> Try Example
