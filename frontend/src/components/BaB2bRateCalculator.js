@@ -4,7 +4,8 @@ import {
   Shield, Clock, TrendingUp, DollarSign,
   Plus, Trash2, ChevronDown, ChevronUp, CheckCircle,
   Zap, Award, Star, Users, Phone, Mail, Calculator,
-  ArrowRight, Building, FileText, User, LogOut
+  ArrowRight, Building, FileText, User, LogOut,
+  AlertCircle  // 🔥 ADD THIS LINE
 } from "lucide-react";
 import "./B2BRateCalculator.css";
 
