@@ -97,43 +97,69 @@ function ShipmentDetails() {
   }, []);
 
   // ============================================
-  // 🚚 FETCH SHIPMENTS (WITH ROLE-BASED FILTERING)
+  // 🚚 FETCH SHIPMENTS (WITH ROLE-BASED FILTERING) - FIXED
   // ============================================
   const fetchShipments = async () => {
     setIsLoadingShipments(true);
     try {
       // Get fresh values directly from localStorage
       const clientToken = localStorage.getItem("clientToken");
-      const storedClientId = localStorage.getItem("clientId");
+      let storedClientId = localStorage.getItem("clientId");
       const isClient = !!clientToken;
       
       console.log("=== FETCHING SHIPMENTS ===");
       console.log("Is Client:", isClient);
-      console.log("Client ID:", storedClientId);
+      console.log("Raw Client ID:", storedClientId);
       
       let url = "https://faithcargo.onrender.com/api/shipments/";
       
-      // 🔥 IMPORTANT: If client has token, fetch only their orders
+      // 🔥 FIXED: Client ke liye sahi URL with trimmed clientId
       if (isClient && storedClientId) {
-        url = `https://faithcargo.onrender.com/api/shipments/client/${storedClientId}/orders/`;
+        // Clean the client ID (remove spaces)
+        const cleanClientId = storedClientId.trim();
+        url = `https://faithcargo.onrender.com/api/shipments/client/${cleanClientId}/orders/`;
         console.log("✅ Using client filtered URL:", url);
       } else if (isClient && !storedClientId) {
-        // Try to get clientId from other sources
-        const altClientId = localStorage.getItem("client_id") || localStorage.getItem("clientId");
+        console.log("⚠️ Client token but no clientId, checking alternative...");
+        const altClientId = localStorage.getItem("client_id");
         if (altClientId) {
           url = `https://faithcargo.onrender.com/api/shipments/client/${altClientId}/orders/`;
           console.log("✅ Using alt client URL:", url);
-        } else {
-          console.log("⚠️ Client token but no clientId, using all shipments URL");
         }
       } else {
         console.log("✅ Admin/Staff - fetching all shipments");
       }
       
       const response = await fetch(url);
+      
+      if (!response.ok) {
+        console.error("API response not OK:", response.status);
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
       const data = await response.json();
       
       console.log(`✅ Received ${data.length} shipments`);
+      
+      // Log first few shipments to verify
+      if (data.length > 0) {
+        console.log("First shipment sample:", data[0]);
+      } else {
+        console.log("⚠️ No shipments found for this client");
+        // Try alternate API endpoint as fallback
+        if (isClient && storedClientId) {
+          const fallbackUrl = `https://faithcargo.onrender.com/api/shipments/client/${storedClientId.trim()}/`;
+          console.log("Trying fallback URL:", fallbackUrl);
+          const fallbackRes = await fetch(fallbackUrl);
+          if (fallbackRes.ok) {
+            const fallbackData = await fallbackRes.json();
+            console.log(`Fallback received: ${fallbackData.length} shipments`);
+            setShipments(fallbackData);
+            setIsLoadingShipments(false);
+            return;
+          }
+        }
+      }
       
       // Load uploaded invoices from localStorage
       const enhancedData = data.map(shipment => {
@@ -155,7 +181,7 @@ function ShipmentDetails() {
       const isClient = !!clientToken;
       
       if (isClient && storedClientId) {
-        const filteredLocal = localShipments.filter(s => s.clientId === storedClientId);
+        const filteredLocal = localShipments.filter(s => s.clientId === storedClientId || s.client_id === storedClientId);
         console.log(`✅ Local fallback: ${filteredLocal.length} client shipments`);
         setShipments(filteredLocal);
       } else {
@@ -656,7 +682,7 @@ function ShipmentDetails() {
                         <select className="status-select" value={shipment.status || 'booked'} onChange={(e) => updateShipmentStatus(shipment.lr, e.target.value)} style={{ backgroundColor: statusOpt.bgColor, color: statusOpt.color }}>
                           {statusOptions.map(opt => (<option key={opt.value} value={opt.value} style={{ backgroundColor: opt.bgColor, color: opt.color }}>{opt.label}</option>))}
                         </select>
-                      </td>
+                       </td>
                       <td>{invoiceCount > 0 ? (<button className="invoice-btn" onClick={() => viewInvoices(shipment)}><FileText size={16} /> {invoiceCount}</button>) : (<span className="no-invoice">—</span>)}</td>
                       <td className="action-buttons">
                         <button onClick={() => trackShipment(shipment.lr)} className="action-icon view" title="Track"><Eye size={16} /></button>
