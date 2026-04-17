@@ -7,6 +7,7 @@ import requests
 from decimal import Decimal
 from django.db import connection, transaction
 from pincode.models import Pincode 
+from utils.notifications import send_order_notification
 from datetime import datetime
 
 # =====================================================

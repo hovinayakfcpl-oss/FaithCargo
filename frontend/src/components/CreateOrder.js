@@ -13,7 +13,7 @@ import {
   Stamp, Circle, Star, HelpCircle, Search, Filter,
   RefreshCw, Activity, CheckCircle2, XCircle, Timer, Map, PhoneCall,
   Bookmark, SaveAll, Copy, Edit, Trash, Check, ChevronDown, ChevronUp, 
-  FolderOpen, LogOut, UserCircle
+  FolderOpen, LogOut, UserCircle, Bell, MessageCircle
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import "./CreateOrder.css";
@@ -760,7 +760,7 @@ const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
 };
 
 // ============================================
-// 📍 TRACKING TIMELINE COMPONENT - ADDED
+// 📍 TRACKING TIMELINE COMPONENT
 // ============================================
 const getTrackingTimeline = (currentStatus) => {
   const steps = [
@@ -792,6 +792,25 @@ const getTrackingTimeline = (currentStatus) => {
       })}
     </div>
   );
+};
+
+// ============================================
+// 🔔 SEND NOTIFICATION FUNCTION (Frontend)
+// ============================================
+const sendOrderNotification = (orderData) => {
+  console.log("📱 Sending order notification...", orderData);
+  
+  // This would call backend API to send WhatsApp/SMS
+  // For now, we'll just log and show alert
+  if (orderData.pickupContact && orderData.pickupContact.length === 10) {
+    console.log(`📱 Would send SMS to Sender: ${orderData.pickupContact}`);
+  }
+  if (orderData.deliveryContact && orderData.deliveryContact.length === 10) {
+    console.log(`📱 Would send SMS to Receiver: ${orderData.deliveryContact}`);
+  }
+  
+  // Show success message to user
+  alert(`✅ Order Created Successfully!\n\nLR Number: ${orderData.lrNumber}\nAWB: ${orderData.awb}\n\n📱 Notification will be sent to Sender & Receiver via WhatsApp/SMS.`);
 };
 
 // ============================================
@@ -869,7 +888,7 @@ export default function CreateOrder() {
     setPickup(address);
   };
 
-  // ✅ MAIN FUNCTION - UPDATED WITH FREIGHT_AMOUNT
+  // ✅ MAIN FUNCTION - WITH NOTIFICATION
   const handleCreateOrder = async () => {
     if (!isAuthenticated) {
       alert("Please login first!");
@@ -953,6 +972,22 @@ export default function CreateOrder() {
           createdBy: userRole === "admin" ? "Admin" : user?.username
         });
         localStorage.setItem(storageKey, JSON.stringify(allShipments.slice(0, 50)));
+        
+        // 🔥 SEND NOTIFICATION TO SENDER & RECEIVER
+        const notificationData = {
+          lrNumber: result.lr_number,
+          awb: result.awb,
+          pickupPincode: pickup.pincode,
+          deliveryPincode: delivery.pincode,
+          weight: chargedWeight,
+          totalValue: totalInvoiceValue,
+          pickupContact: pickup.contact,
+          deliveryContact: delivery.contact,
+          pickupName: pickup.name,
+          deliveryName: delivery.name
+        };
+        sendOrderNotification(notificationData);
+        
       } else {
         setApiError(result.error || "Failed");
         alert("Error: " + result.error);

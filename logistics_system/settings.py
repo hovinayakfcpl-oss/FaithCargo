@@ -136,3 +136,16 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # DEFAULT PRIMARY KEY
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ============================================
+# 📱 NOTIFICATION API KEYS (Free)
+# ============================================
+
+# Meta WhatsApp Cloud API (Free - 1000 conversations/month)
+META_WHATSAPP_TOKEN = os.environ.get('META_WHATSAPP_TOKEN', '')
+META_PHONE_NUMBER_ID = os.environ.get('META_PHONE_NUMBER_ID', '')
+META_BUSINESS_ACCOUNT_ID = os.environ.get('META_BUSINESS_ACCOUNT_ID', '')
+
+# Fast2SMS API (Free credits available)
+FAST2SMS_API_KEY = os.environ.get('FAST2SMS_API_KEY', '')
+FAST2SMS_SENDER_ID = os.environ.get('FAST2SMS_SENDER_ID', 'FTHCRG')

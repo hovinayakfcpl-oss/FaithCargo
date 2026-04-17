@@ -1,13 +1,32 @@
+# ============================================
+# FAITH CARGO LOGISTICS - REQUIREMENTS
+# Developed by Devora Technologies
+# ============================================
+
+# Django Core
 Django>=4.2
 gunicorn
 whitenoise
-requests==2.31.0
-djangorestframework
-dj-database-url
-python-dotenv
 django-cors-headers
+
+# REST Framework
+djangorestframework
+djangorestframework-simplejwt
+
+# Database
+dj-database-url
+psycopg2-binary
+
+# HTTP & Requests
+requests==2.31.0
+
+# Environment & Config
+python-dotenv
+
+# Excel/Data Processing
 django-import-export
 pandas
 openpyxl
-djangorestframework-simplejwt
-psycopg2-binary
+
+# Notifications (SMS/WhatsApp)
+twilio>=8.0.0
