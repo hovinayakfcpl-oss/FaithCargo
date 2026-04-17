@@ -457,14 +457,14 @@ def create_order(request):
                 # Get client_id if provided (for client-specific orders)
                 client_id = data.get("clientId")
                 
-                # ✅ NEW: Get freight_amount from request
+                # Get freight_amount from request
                 freight_amount = data.get("freight_amount", 0)
                 
                 # Get GSTIN values
                 pickup_gstin = data.get("pickupGstin")
                 delivery_gstin = data.get("deliveryGstin")
                 
-                # ✅ Ensure columns exist
+                # Ensure columns exist
                 try:
                     cursor.execute("""
                         SELECT column_name FROM information_schema.columns 
@@ -517,9 +517,11 @@ def create_order(request):
                     "lr_number": formatted_lr, 
                     "awb": formatted_awb,
                     "freight_amount": freight_amount,
+                    "client_id": client_id,
                     "message": "Order created successfully!"
                 })
         except Exception as e:
+            print(f"Create order error: {str(e)}")
             return JsonResponse({"success": False, "error": f"Database Error: {str(e)}"}, status=500)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
@@ -733,53 +735,62 @@ def dashboard_stats(request):
 
 
 # =====================================================
-# 📋 CLIENT ORDERS (Get all orders ONLY for specific client)
-# 🔥 FIXED: Now properly filters by client_id
+# 📋 CLIENT ORDERS - FULLY FIXED
 # =====================================================
 def client_orders(request, client_id):
     """
     Get all orders for a specific client - ONLY their orders
     This is the main API called by clients to see their shipments
     """
+    from django.db import connection
+    from django.http import JsonResponse
+    
     cursor = connection.cursor()
     
-    # First, verify client exists (optional but good for debugging)
-    cursor.execute("SELECT id, username FROM custom_users WHERE client_id = %s", [client_id])
-    client_check = cursor.fetchone()
+    print(f"🔍 === CLIENT ORDERS DEBUG ===")
+    print(f"Client ID requested: '{client_id}'")
+    print(f"Client ID type: {type(client_id)}")
     
-    if not client_check:
-        print(f"⚠️ WARNING: Client {client_id} not found in custom_users table")
-        return JsonResponse([], safe=False)
-    
-    print(f"🔍 Fetching orders for client: {client_id} (User ID: {client_check[0]})")
-    
-    # 🔥 CRITICAL: ONLY fetch orders where client_id matches
-    cursor.execute("""
-        SELECT lr_number, awb_number, pickup_pincode, delivery_pincode, 
-               total_value, status, weight, created_at, freight_amount
-        FROM orders 
-        WHERE client_id = %s 
-        ORDER BY id DESC
-    """, [client_id])
-    
-    rows = cursor.fetchall()
-    
-    print(f"✅ Found {len(rows)} orders for client {client_id}")
-    
-    # Log first few orders for debugging
-    if rows:
-        print(f"   First order: LR={rows[0][0]}, Status={rows[0][5]}")
-    
-    data = [{
-        "lr": format_lr(r[0]),
-        "awb": r[1],
-        "route": f"{r[2]} → {r[3]}",
-        "value": float(r[4]) if r[4] else 0,
-        "status": r[5],
-        "weight": float(r[6]) if r[6] else 0,
-        "date": r[7].strftime("%Y-%m-%d %H:%M") if r[7] else "N/A",
-        "freight": float(r[8]) if r[8] else 0,
-        "clientId": client_id  # Include client_id in response for verification
-    } for r in rows]
-    
-    return JsonResponse(data, safe=False)
+    # 🔥 FIXED: Simple direct query
+    try:
+        cursor.execute("""
+            SELECT lr_number, awb_number, pickup_pincode, delivery_pincode, 
+                   total_value, status, weight, created_at, freight_amount
+            FROM orders 
+            WHERE client_id = %s 
+            ORDER BY id DESC
+        """, [client_id])
+        
+        rows = cursor.fetchall()
+        
+        print(f"✅ Found {len(rows)} orders for client '{client_id}'")
+        
+        # Log first few orders for debugging
+        if rows:
+            for i, row in enumerate(rows[:3]):
+                print(f"   Order {i+1}: LR={row[0]}, Status={row[5]}")
+        
+        data = []
+        for r in rows:
+            data.append({
+                "lr": format_lr(r[0]),
+                "awb": r[1] if r[1] else "N/A",
+                "pickupPincode": r[2] if r[2] else "N/A",
+                "deliveryPincode": r[3] if r[3] else "N/A",
+                "route": f"{r[2] or 'N/A'} → {r[3] or 'N/A'}",
+                "total_value": float(r[4]) if r[4] else 0,
+                "value": float(r[4]) if r[4] else 0,
+                "status": r[5] if r[5] else "booked",
+                "weight": float(r[6]) if r[6] else 0,
+                "created_at": r[7].strftime("%Y-%m-%d %H:%M") if r[7] else "N/A",
+                "date": r[7].strftime("%Y-%m-%d %H:%M") if r[7] else "N/A",
+                "freight_amount": float(r[8]) if r[8] else 0,
+                "freight": float(r[8]) if r[8] else 0,
+                "clientId": client_id
+            })
+        
+        return JsonResponse(data, safe=False)
+        
+    except Exception as e:
+        print(f"❌ Database error: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)
