@@ -5,6 +5,10 @@ Django settings for logistics_system project.
 from pathlib import Path
 import os
 import dj_database_url
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -68,6 +72,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 CSRF_TRUSTED_ORIGINS = [
     "https://faith-cargo.vercel.app",
+    "https://faithcargo.onrender.com",
 ]
 
 # URL CONFIG
@@ -92,31 +97,40 @@ TEMPLATES = [
 # WSGI
 WSGI_APPLICATION = 'logistics_system.wsgi.application'
 
+# ============================================
 # ✅ DATABASE (POSTGRESQL - RENDER)
-
-import os
+# ============================================
 
 DATABASES = {
     'default': dj_database_url.parse(
-        "postgresql://faithcargo_db_user:BBpJl41XxxrQ43mnodSSeQfiJrxuDzbi@dpg-d6voftfkijhs73cvfrfg-a.oregon-postgres.render.com/faithcargo_db",
+        os.getenv("DATABASE_URL", "postgresql://faithcargo_db_user:BBpJl41XxxrQ43mnodSSeQfiJrxuDzbi@dpg-d6voftfkijhs73cvfrfg-a.oregon-postgres.render.com/faithcargo_db"),
         conn_max_age=600,
         ssl_require=True
     )
 }
 
-print("DATABASE_URL:", os.environ.get("DATABASE_URL"))
-import sys
+# ============================================
+# 📱 NOTIFICATION API KEYS (Free)
+# ============================================
 
-if 'runserver' not in sys.argv:
-    import django
-    django.setup()
-    from django.core.management import call_command
+# Meta WhatsApp Cloud API (Free - 1000 conversations/month)
+META_WHATSAPP_TOKEN = os.environ.get('META_WHATSAPP_TOKEN', '')
+META_PHONE_NUMBER_ID = os.environ.get('META_PHONE_NUMBER_ID', '')
+META_BUSINESS_ACCOUNT_ID = os.environ.get('META_BUSINESS_ACCOUNT_ID', '')
 
-    try:
-        call_command('migrate')
-    except Exception as e:
-        print("Migration error:", e)
+# Fast2SMS API (Free credits available)
+FAST2SMS_API_KEY = os.environ.get('FAST2SMS_API_KEY', '')
+FAST2SMS_SENDER_ID = os.environ.get('FAST2SMS_SENDER_ID', 'FTHCRG')
+
+# Twilio API (Alternative)
+TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
+TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
+TWILIO_WHATSAPP_NUMBER = os.environ.get('TWILIO_WHATSAPP_NUMBER', 'whatsapp:+14155238886')
+
+# ============================================
 # PASSWORD VALIDATION
+# ============================================
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -138,14 +152,25 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ============================================
-# 📱 NOTIFICATION API KEYS (Free)
+# LOGGING CONFIGURATION
 # ============================================
-
-# Meta WhatsApp Cloud API (Free - 1000 conversations/month)
-META_WHATSAPP_TOKEN = os.environ.get('META_WHATSAPP_TOKEN', '')
-META_PHONE_NUMBER_ID = os.environ.get('META_PHONE_NUMBER_ID', '')
-META_BUSINESS_ACCOUNT_ID = os.environ.get('META_BUSINESS_ACCOUNT_ID', '')
-
-# Fast2SMS API (Free credits available)
-FAST2SMS_API_KEY = os.environ.get('FAST2SMS_API_KEY', '')
-FAST2SMS_SENDER_ID = os.environ.get('FAST2SMS_SENDER_ID', 'FTHCRG')
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'utils.notifications': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}

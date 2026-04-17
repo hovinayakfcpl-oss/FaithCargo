@@ -1,5 +1,4 @@
-# shipments/urls.py - Add this new endpoint
-
+# shipments/urls.py
 from django.urls import path
 from . import views
 
@@ -61,6 +60,14 @@ urlpatterns = [
     # Get dashboard statistics (with optional client filter)
     # GET /api/shipments/dashboard-stats/?clientId=FCPL001
     path("dashboard-stats/", views.dashboard_stats, name="dashboard_stats"),
+    
+    # =====================================================
+    # 📱 Notification API (NEW)
+    # =====================================================
+    
+    # Send SMS/WhatsApp notification
+    # POST /api/shipments/send-notification/
+    path("send-notification/", views.send_notification_api, name="send_notification"),
 ]
 
 # =====================================================
@@ -78,11 +85,13 @@ COMPLETE API ENDPOINTS LIST:
 │ PUT    │ /api/shipments/update/<lr>/           │ Update full shipment │
 │ POST   │ /api/shipments/update-status/         │ Update only status │
 │ DELETE │ /api/shipments/delete/<lr>/           │ Delete shipment │
+│ GET    │ /api/shipments/client/<client_id>/orders/ │ Get client-specific orders │
 │ POST   │ /api/shipments/calculate-freight/     │ Calculate freight with charges │
 │ POST   │ /api/shipments/add-location/          │ Add/update pincode location │
 │ GET    │ /api/shipments/get-locations/         │ Get all locations │
 │ POST   │ /api/shipments/jervice-chat/          │ Jervice AI assistant │
 │ GET    │ /api/shipments/dashboard-stats/       │ Dashboard statistics │
+│ POST   │ /api/shipments/send-notification/     │ Send SMS/WhatsApp notification │
 └─────────────────────────────────────────────────────────────────┘
 
 📝 REQUEST/REPONSE EXAMPLES:
@@ -114,4 +123,19 @@ COMPLETE API ENDPOINTS LIST:
 5. GET DASHBOARD STATS
    GET /api/shipments/dashboard-stats/
    Response: {"total": 100, "delivered": 75, "in_transit": 15, "booked": 10}
+
+6. SEND NOTIFICATION (NEW)
+   POST /api/shipments/send-notification/
+   Body: {
+     "lrNumber": "FCPL0001",
+     "awb": "AWB123456",
+     "pickupPincode": "110001",
+     "deliveryPincode": "400001",
+     "weight": 50,
+     "totalValue": 50000,
+     "pickupContact": "9876543210",
+     "deliveryContact": "9876543211",
+     "pickupName": "ABC Company",
+     "deliveryName": "XYZ Customer"
+   }
 """

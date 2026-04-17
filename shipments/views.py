@@ -455,13 +455,8 @@ def create_order(request):
                 formatted_lr = format_lr(lr_raw)
                 formatted_awb = format_awb(awb_raw)
 
-                # Get client_id if provided (for client-specific orders)
                 client_id = data.get("clientId")
-                
-                # Get freight_amount from request
                 freight_amount = data.get("freight_amount", 0)
-                
-                # Get GSTIN values
                 pickup_gstin = data.get("pickupGstin")
                 delivery_gstin = data.get("deliveryGstin")
                 
@@ -513,6 +508,25 @@ def create_order(request):
                             VALUES (%s,%s,%s)
                         """, [order_id, inv["invoice_no"], inv.get("invoice_value", 0)])
 
+                # 🔥 SEND SMS/WHATSAPP NOTIFICATION AFTER ORDER CREATION
+                try:
+                    notification_data = {
+                        'lr_number': formatted_lr,
+                        'awb': formatted_awb,
+                        'pickup_pincode': data.get("pickupPincode"),
+                        'delivery_pincode': data.get("deliveryPincode"),
+                        'weight': data.get("weight", 0),
+                        'total_value': data.get("total_value", 0),
+                        'pickup_contact': data.get("pickupContact"),
+                        'delivery_contact': data.get("deliveryContact"),
+                        'pickup_name': data.get("pickupName"),
+                        'delivery_name': data.get("deliveryName"),
+                    }
+                    send_order_notification(notification_data)
+                    print(f"✅ Notification sent for order: {formatted_lr}")
+                except Exception as e:
+                    print(f"⚠️ Notification error (order still created): {e}")
+
                 return JsonResponse({
                     "success": True, 
                     "lr_number": formatted_lr, 
@@ -533,8 +547,6 @@ def create_order(request):
 def shipment_list(request):
     cursor = connection.cursor()
     
-    # Get logged-in user's client_id from request (assuming you have auth)
-    # For now, using GET parameter
     client_id = request.GET.get('clientId')
     
     if client_id:
@@ -741,7 +753,6 @@ def dashboard_stats(request):
 def client_orders(request, client_id):
     """
     Get all orders for a specific client - ONLY their orders
-    This is the main API called by clients to see their shipments
     """
     from django.db import connection
     from django.http import JsonResponse
@@ -750,9 +761,7 @@ def client_orders(request, client_id):
     
     print(f"🔍 === CLIENT ORDERS DEBUG ===")
     print(f"Client ID requested: '{client_id}'")
-    print(f"Client ID type: {type(client_id)}")
     
-    # 🔥 FIXED: Simple direct query
     try:
         cursor.execute("""
             SELECT lr_number, awb_number, pickup_pincode, delivery_pincode, 
@@ -765,11 +774,6 @@ def client_orders(request, client_id):
         rows = cursor.fetchall()
         
         print(f"✅ Found {len(rows)} orders for client '{client_id}'")
-        
-        # Log first few orders for debugging
-        if rows:
-            for i, row in enumerate(rows[:3]):
-                print(f"   Order {i+1}: LR={row[0]}, Status={row[5]}")
         
         data = []
         for r in rows:
@@ -795,3 +799,32 @@ def client_orders(request, client_id):
     except Exception as e:
         print(f"❌ Database error: {str(e)}")
         return JsonResponse({"error": str(e)}, status=500)
+
+
+# =====================================================
+# 📱 SEND NOTIFICATION API (For frontend to call)
+# =====================================================
+@csrf_exempt
+def send_notification_api(request):
+    """API endpoint to send SMS/WhatsApp notifications"""
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            notification_data = {
+                'lr_number': data.get('lrNumber'),
+                'awb': data.get('awb'),
+                'pickup_pincode': data.get('pickupPincode'),
+                'delivery_pincode': data.get('deliveryPincode'),
+                'weight': data.get('weight'),
+                'total_value': data.get('totalValue'),
+                'pickup_contact': data.get('pickupContact'),
+                'delivery_contact': data.get('deliveryContact'),
+                'pickup_name': data.get('pickupName'),
+                'delivery_name': data.get('deliveryName'),
+            }
+            result = send_order_notification(notification_data)
+            return JsonResponse({"success": True, "message": "Notification sent", "result": result})
+        except Exception as e:
+            print(f"Notification API error: {e}")
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+    return JsonResponse({"error": "Method not allowed"}, status=405)
