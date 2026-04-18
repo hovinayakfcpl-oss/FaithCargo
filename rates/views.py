@@ -263,7 +263,7 @@ def b2b_rate_calculate(request):
 
 
 # =====================================================
-# 🆕 GET RATE MATRIX (MASTER) - FIXED
+# 🆕 GET RATE MATRIX (MASTER) - FIXED (No min_weight)
 # =====================================================
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -273,7 +273,7 @@ def get_rate_matrix(request):
     This is the endpoint that RateUpdate and Calculator use
     """
     try:
-        matrix = RateMatrix.objects.all()
+        matrix = RateMatrix.objects.filter(is_active=True)
         data = []
         
         for r in matrix:
@@ -282,8 +282,6 @@ def get_rate_matrix(request):
                 "from_zone": r.from_zone,
                 "to_zone": r.to_zone,
                 "rate": float(r.rate),
-                "min_weight": float(r.min_weight) if r.min_weight else 0,
-                "max_weight": float(r.max_weight) if r.max_weight else None,
                 "is_active": r.is_active
             })
         

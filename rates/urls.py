@@ -18,8 +18,8 @@ urlpatterns = [
     # =====================================================
     # RATE MATRIX APIs
     # =====================================================
-    path("matrix/", views.get_matrix, name="get_matrix"),
-    path("matrix/update/", views.update_matrix, name="update_matrix"),
+    path("matrix/", views.get_rate_matrix, name="get_rate_matrix"),
+    path("matrix/update/", views.update_rate_matrix, name="update_rate_matrix"),
     path("matrix/upload/", views.upload_matrix_excel, name="upload_matrix_excel"),
     
     # =====================================================
@@ -27,4 +27,10 @@ urlpatterns = [
     # =====================================================
     path("client/<str:client_id>/", views.get_client_rates, name="get_client_rates"),
     path("client/<str:client_id>/update/", views.update_client_rates, name="update_client_rates"),
+    
+    # =====================================================
+    # 🆕 RATE POLICY APIs
+    # =====================================================
+    path("policy/", views.get_rate_policy, name="get_rate_policy"),
+    path("policy/update/", views.update_rate_policy, name="update_rate_policy"),
 ]
