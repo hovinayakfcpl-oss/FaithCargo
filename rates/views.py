@@ -263,6 +263,67 @@ def b2b_rate_calculate(request):
 
 
 # =====================================================
+# 🆕 GET RATE MATRIX (MASTER) - FIXED
+# =====================================================
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_rate_matrix(request):
+    """
+    Get all zone rates from master RateMatrix
+    This is the endpoint that RateUpdate and Calculator use
+    """
+    try:
+        matrix = RateMatrix.objects.all()
+        data = []
+        
+        for r in matrix:
+            data.append({
+                "id": r.id,
+                "from_zone": r.from_zone,
+                "to_zone": r.to_zone,
+                "rate": float(r.rate),
+                "min_weight": float(r.min_weight) if r.min_weight else 0,
+                "max_weight": float(r.max_weight) if r.max_weight else None,
+                "is_active": r.is_active
+            })
+        
+        print(f"✅ Rate Matrix API called - returning {len(data)} records")
+        return JsonResponse(data, safe=False)
+        
+    except Exception as e:
+        print(f"❌ Error in get_rate_matrix: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+# =====================================================
+# 🆕 UPDATE RATE MATRIX (MASTER)
+# =====================================================
+@csrf_exempt
+def update_rate_matrix(request):
+    """
+    Update master rate matrix
+    """
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            print(f"📊 Updating rate matrix with {len(data)} records")
+            
+            for item in data:
+                RateMatrix.objects.update_or_create(
+                    from_zone=item["from_zone"],
+                    to_zone=item["to_zone"],
+                    defaults={"rate": Decimal(str(item["rate"]))}
+                )
+            
+            return JsonResponse({"status": "success", "message": "Rates updated successfully"})
+        except Exception as e:
+            print(f"❌ Error updating rate matrix: {str(e)}")
+            return JsonResponse({"error": str(e)}, status=500)
+    
+    return JsonResponse({"error": "Invalid request"}, status=400)
+
+
+# =====================================================
 # 🆕 CLIENT RATE CALCULATOR (Dedicated for Clients)
 # =====================================================
 @api_view(['POST'])
@@ -531,40 +592,18 @@ def vendor_rate_calculate(request):
 
 
 # =====================================================
-# MATRIX GET
+# MATRIX GET (Legacy - use get_rate_matrix instead)
 # =====================================================
 def get_matrix(request):
-    matrix = RateMatrix.objects.all()
-    data = []
-
-    for r in matrix:
-        data.append({
-            "from_zone": r.from_zone,
-            "to_zone": r.to_zone,
-            "rate": float(r.rate)
-        })
-
-    return JsonResponse(data, safe=False)
+    return get_rate_matrix(request)
 
 
 # =====================================================
-# MATRIX UPDATE
+# MATRIX UPDATE (Legacy - use update_rate_matrix instead)
 # =====================================================
 @csrf_exempt
 def update_matrix(request):
-    if request.method == "POST":
-        data = json.loads(request.body)
-
-        for item in data:
-            RateMatrix.objects.update_or_create(
-                from_zone=item["from_zone"],
-                to_zone=item["to_zone"],
-                defaults={"rate": Decimal(str(item["rate"]))}
-            )
-
-        return JsonResponse({"status": "Rates updated successfully"})
-
-    return JsonResponse({"error": "Invalid request"})
+    return update_rate_matrix(request)
 
 
 # =====================================================
@@ -579,3 +618,105 @@ def upload_matrix_excel(request):
         upload_rate_excel(file)
 
         return JsonResponse({"message": "Excel Uploaded Successfully"})
+
+
+# =====================================================
+# 🆕 GET RATE POLICY (Master)
+# =====================================================
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_rate_policy(request):
+    """
+    Get master rate policy
+    """
+    try:
+        policy = MasterRatePolicy.objects.first()
+        if policy:
+            return Response({
+                "success": True,
+                "policy": {
+                    "surface_rate_per_kg": float(policy.surface_rate_per_kg),
+                    "express_rate_per_kg": float(policy.express_rate_per_kg),
+                    "air_rate_per_kg": float(policy.air_rate_per_kg),
+                    "rail_rate_per_kg": float(policy.rail_rate_per_kg),
+                    "minFreight": float(policy.min_freight),
+                    "docketCharge": float(policy.docket_charge),
+                    "fuelPercent": float(policy.fuel_percent),
+                    "fovCharge": float(policy.fov_charge),
+                    "odaCharge": float(policy.oda_charge),
+                    "codCharge": float(policy.cod_charge),
+                    "codPercent": float(policy.cod_percent),
+                    "fragileCharge": float(policy.fragile_charge),
+                    "appointmentCharge": float(policy.appointment_charge),
+                    "handlingCharge": float(policy.handling_charge),
+                    "insurancePercent": float(policy.insurance_percent),
+                    "expressExtra": float(policy.express_extra),
+                    "gstPercent": float(policy.gst_percent),
+                    "cft": float(policy.cft)
+                }
+            })
+        else:
+            return Response({
+                "success": True,
+                "policy": {
+                    "surface_rate_per_kg": 18,
+                    "express_rate_per_kg": 25,
+                    "air_rate_per_kg": 45,
+                    "rail_rate_per_kg": 15,
+                    "minFreight": 650,
+                    "docketCharge": 100,
+                    "fuelPercent": 10,
+                    "fovCharge": 75,
+                    "odaCharge": 3,
+                    "codCharge": 150,
+                    "codPercent": 2.5,
+                    "fragileCharge": 250,
+                    "appointmentCharge": 1500,
+                    "handlingCharge": 2,
+                    "insurancePercent": 2,
+                    "expressExtra": 5,
+                    "gstPercent": 18,
+                    "cft": 4500
+                }
+            })
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+
+# =====================================================
+# 🆕 UPDATE RATE POLICY (Master)
+# =====================================================
+@api_view(['POST'])
+def update_rate_policy(request):
+    """
+    Update master rate policy (Admin only)
+    """
+    try:
+        data = request.data
+        policy, created = MasterRatePolicy.objects.get_or_create(id=1)
+        
+        policy.surface_rate_per_kg = Decimal(str(data.get('surface_rate_per_kg', 18)))
+        policy.express_rate_per_kg = Decimal(str(data.get('express_rate_per_kg', 25)))
+        policy.air_rate_per_kg = Decimal(str(data.get('air_rate_per_kg', 45)))
+        policy.rail_rate_per_kg = Decimal(str(data.get('rail_rate_per_kg', 15)))
+        policy.min_freight = Decimal(str(data.get('minFreight', 650)))
+        policy.docket_charge = Decimal(str(data.get('docketCharge', 100)))
+        policy.fuel_percent = Decimal(str(data.get('fuelPercent', 10)))
+        policy.fov_charge = Decimal(str(data.get('fovCharge', 75)))
+        policy.oda_charge = Decimal(str(data.get('odaCharge', 3)))
+        policy.cod_charge = Decimal(str(data.get('codCharge', 150)))
+        policy.cod_percent = Decimal(str(data.get('codPercent', 2.5)))
+        policy.fragile_charge = Decimal(str(data.get('fragileCharge', 250)))
+        policy.appointment_charge = Decimal(str(data.get('appointmentCharge', 1500)))
+        policy.handling_charge = Decimal(str(data.get('handlingCharge', 2)))
+        policy.insurance_percent = Decimal(str(data.get('insurancePercent', 2)))
+        policy.express_extra = Decimal(str(data.get('expressExtra', 5)))
+        policy.gst_percent = Decimal(str(data.get('gstPercent', 18)))
+        policy.cft = Decimal(str(data.get('cft', 4500)))
+        
+        policy.save()
+        
+        return Response({"success": True, "message": "Rate policy updated successfully"})
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)

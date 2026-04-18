@@ -48,22 +48,28 @@ function BaB2bRateCalculator() {
   // ========== FETCH DEFAULT RATE MATRIX FROM DATABASE ==========
   const fetchDefaultRateMatrix = async () => {
     try {
+      console.log("📊 Fetching default rate matrix from API...");
       const response = await fetch(`https://faithcargo.onrender.com/api/rates/matrix/`);
+      
       if (response.ok) {
         const rates = await response.json();
         console.log("✅ Default Rate Matrix from DB:", rates);
         
         const mapping = {};
-        rates.forEach(rate => {
-          if (!mapping[rate.from_zone]) mapping[rate.from_zone] = {};
-          mapping[rate.from_zone][rate.to_zone] = rate.rate;
-        });
+        if (Array.isArray(rates)) {
+          rates.forEach(rate => {
+            if (!mapping[rate.from_zone]) mapping[rate.from_zone] = {};
+            mapping[rate.from_zone][rate.to_zone] = rate.rate;
+          });
+        }
         return mapping;
+      } else {
+        console.log("⚠️ Rate matrix API returned status:", response.status);
+        return getFallbackRateMatrix();
       }
-      return null;
     } catch (error) {
       console.error("Error fetching default rate matrix:", error);
-      return null;
+      return getFallbackRateMatrix();
     }
   };
 
@@ -71,13 +77,10 @@ function BaB2bRateCalculator() {
   const fetchClientSpecificRates = async (clientId) => {
     setIsLoadingRates(true);
     try {
+      console.log("📊 Fetching rates for client:", clientId || "MASTER");
+      
       // First, get default rate matrix from database
       let finalMapping = await fetchDefaultRateMatrix();
-      
-      // If no default matrix found, use fallback
-      if (!finalMapping) {
-        finalMapping = getFallbackRateMatrix();
-      }
       
       // If client is logged in, fetch and override client-specific rates
       if (clientId) {
@@ -97,10 +100,12 @@ function BaB2bRateCalculator() {
               console.log(`✅ Client Rate Applied: ${rate.from_zone} → ${rate.to_zone} = ₹${rate.rate}`);
             });
           }
+        } else {
+          console.log("⚠️ Client rates API failed, using master rates");
         }
       }
       
-      console.log("🎯 Final Rate Matrix:", finalMapping);
+      console.log("🎯 Final Rate Matrix Ready");
       setZoneMapping(finalMapping);
     } catch (error) {
       console.error("Error fetching rates:", error);
@@ -272,9 +277,11 @@ function BaB2bRateCalculator() {
     return zoneMap[firstDigit] || 'NE2';
   };
 
-  // 🔥 FIXED: Get rate from zone mapping
+  // 🔥 FIXED: Get rate from zone mapping with better logging
   const getRateFromZones = (originZone, destZone) => {
-    if (zoneMapping[originZone] && zoneMapping[originZone][destZone]) {
+    console.log(`🔍 Looking for rate: ${originZone} → ${destZone}`);
+    
+    if (zoneMapping && zoneMapping[originZone] && zoneMapping[originZone][destZone]) {
       const rate = zoneMapping[originZone][destZone];
       console.log(`✅ Rate found: ${originZone} → ${destZone} = ₹${rate}/kg`);
       return rate;
@@ -375,15 +382,6 @@ function BaB2bRateCalculator() {
     };
   };
 
-  // CALCULATE ODA CHARGE
-  const calculateODACharge = (weight, isOriginODA, isDestODA) => {
-    if (isOriginODA || isDestODA) {
-      const weightBasedODA = weight * 3;
-      return Math.max(650, weightBasedODA);
-    }
-    return 0;
-  };
-
   // CALCULATE RATE LOGIC with Zone Matrix
   const calculateRate = async () => {
     if (!form.origin || !form.destination || !form.weight) {
@@ -414,6 +412,7 @@ function BaB2bRateCalculator() {
       if (isODAArea) {
         const weightBasedODA = chargeableWeight * 3;
         odaCharge = Math.max(650, weightBasedODA);
+        console.log(`ODA Charge: ₹${odaCharge} (${chargeableWeight}kg × 3 = ₹${weightBasedODA}, min ₹650)`);
       }
     } catch (error) {
       console.error("ODA check error:", error);
@@ -476,6 +475,7 @@ function BaB2bRateCalculator() {
       zoneRate: zoneRate
     });
 
+    console.log("✅ Calculation complete:", { originZone, destZone, zoneRate, freight, total });
     setLoading(false);
   };
 
@@ -807,6 +807,7 @@ function BaB2bRateCalculator() {
                   <span>✓ Transparent pricing</span>
                   <span>✓ No hidden charges</span>
                   <span>✓ ODA charges included</span>
+                  <span>✓ Zone-based rates</span>
                 </div>
                 <button className="example-btn" onClick={quickFillExample}><Zap size={14} /> Try Example</button>
               </div>
