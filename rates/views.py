@@ -263,14 +263,13 @@ def b2b_rate_calculate(request):
 
 
 # =====================================================
-# 🆕 GET RATE MATRIX (MASTER) - FIXED (No min_weight)
+# 🆕 GET RATE MATRIX (MASTER)
 # =====================================================
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_rate_matrix(request):
     """
     Get all zone rates from master RateMatrix
-    This is the endpoint that RateUpdate and Calculator use
     """
     try:
         matrix = RateMatrix.objects.filter(is_active=True)
@@ -322,14 +321,11 @@ def update_rate_matrix(request):
 
 
 # =====================================================
-# 🆕 CLIENT RATE CALCULATOR (Dedicated for Clients)
+# 🆕 CLIENT RATE CALCULATOR
 # =====================================================
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def client_rate_calculate(request):
-    """
-    Calculate freight for specific client with their custom rates
-    """
     try:
         client_id = request.data.get('clientId')
         origin = str(request.data.get('origin')).replace(",", "").strip()
@@ -342,13 +338,11 @@ def client_rate_calculate(request):
         booking_mode = request.data.get('booking_mode', 'surface')
         payment_mode = request.data.get('paymentMode', 'Prepaid')
 
-        # Get client
         try:
             client_user = User.objects.get(client_id=client_id, role='Client')
         except User.DoesNotExist:
             return Response({"error": "Client not found"}, status=404)
 
-        # Get pincode details
         origin_obj = Pincode.objects.filter(pincode=origin).first()
         dest_obj = Pincode.objects.filter(pincode=destination).first()
 
@@ -358,12 +352,10 @@ def client_rate_calculate(request):
         from_zone = origin_obj.zone
         to_zone = dest_obj.zone
 
-        # ODA check
         is_oda = False
         if origin_obj.is_oda or dest_obj.is_oda:
             is_oda = True
 
-        # Weight calculation
         volumetric_weight = Decimal("0")
         for dim in dimensions:
             l = Decimal(str(dim.get("length", 0)))
@@ -374,10 +366,8 @@ def client_rate_calculate(request):
 
         chargeable_weight = max(weight, volumetric_weight)
 
-        # Get client policy
         policy = ClientRatePolicy.objects.filter(client=client_user).first()
         
-        # Get base rate
         if booking_mode == 'air':
             base_rate = policy.air_rate_per_kg if policy else Decimal("45")
         elif booking_mode == 'express':
@@ -385,7 +375,6 @@ def client_rate_calculate(request):
         else:
             base_rate = policy.surface_rate_per_kg if policy else Decimal("18")
 
-        # Check client-specific zone rate
         client_rate = ClientRateMatrix.objects.filter(
             client=client_user, from_zone=from_zone, to_zone=to_zone, is_active=True
         ).first()
@@ -402,7 +391,6 @@ def client_rate_calculate(request):
 
         freight = chargeable_weight * rate_per_kg
 
-        # Get policy values
         if policy and policy.is_custom:
             docket = policy.docket_charge
             fuel = freight * (policy.fuel_percent / Decimal("100"))
@@ -424,26 +412,21 @@ def client_rate_calculate(request):
             insurance_percent = Decimal("2")
             express_extra = Decimal("5")
 
-        # ODA charge
         oda_charge = Decimal("0")
         if is_oda:
             per_kg_charge = chargeable_weight * Decimal("3")
             oda_charge = max(Decimal("650"), per_kg_charge)
 
-        # Insurance
         insurance_charge = Decimal("0")
         if insurance and invoice_value > 0:
             insurance_charge = invoice_value * (insurance_percent / Decimal("100"))
 
-        # Express extra
         express_charge = Decimal("0")
         if booking_mode == 'express':
             express_charge = chargeable_weight * express_extra
 
-        # COD charge
         cod_charge_applied = cod_charge
 
-        # Total
         total = freight + docket + fuel + oda_charge + insurance_charge + appointment_charge + express_charge + cod_charge_applied
         
         if total < min_freight:
@@ -481,15 +464,11 @@ def client_rate_calculate(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_client_rates(request, client_id):
-    """
-    Get all rates for a specific client
-    """
     try:
         client_user = User.objects.get(client_id=client_id, role='Client')
     except User.DoesNotExist:
         return Response({"error": "Client not found"}, status=404)
 
-    # Get zone rates
     zone_rates = ClientRateMatrix.objects.filter(client=client_user, is_active=True)
     zone_rates_data = []
     for rate in zone_rates:
@@ -503,7 +482,6 @@ def get_client_rates(request, client_id):
             "air_rate": float(rate.air_rate) if rate.air_rate else None
         })
 
-    # Get policy
     policy = ClientRatePolicy.objects.filter(client=client_user).first()
     policy_data = policy.to_dict() if policy else None
 
@@ -515,53 +493,115 @@ def get_client_rates(request, client_id):
 
 
 # =====================================================
-# 🆕 UPDATE CLIENT RATES API (Admin only)
+# 🆕 UPDATE CLIENT RATES API - FULLY FIXED
 # =====================================================
 @api_view(['POST', 'PUT'])
 def update_client_rates(request, client_id):
     """
     Update client-specific rates (Admin only)
     """
+    import traceback
+    from django.db import IntegrityError
+    
+    print("=" * 60)
+    print("🔔 UPDATE CLIENT RATES API CALLED")
+    print(f"Client ID: {client_id}")
+    print(f"Method: {request.method}")
+    print("=" * 60)
+    
     try:
-        client_user = User.objects.get(client_id=client_id, role='Client')
-    except User.DoesNotExist:
-        return Response({"error": "Client not found"}, status=404)
-
-    data = request.data
-
-    # Update zone rates
-    if 'zone_rates' in data:
-        # Delete existing
-        ClientRateMatrix.objects.filter(client=client_user).delete()
+        # Find client
+        try:
+            client_user = User.objects.get(client_id=client_id, role='Client')
+            print(f"✅ Client found: {client_user.username} (ID: {client_user.id})")
+        except User.DoesNotExist:
+            print(f"❌ Client not found: {client_id}")
+            return Response({
+                "success": False,
+                "error": f"Client '{client_id}' not found"
+            }, status=404)
         
-        # Create new
-        for rate in data['zone_rates']:
-            ClientRateMatrix.objects.create(
-                client=client_user,
-                from_zone=rate.get('from_zone'),
-                to_zone=rate.get('to_zone'),
-                rate=Decimal(str(rate.get('rate', 0))),
-                surface_rate=Decimal(str(rate.get('surface_rate', 0))) if rate.get('surface_rate') else None,
-                express_rate=Decimal(str(rate.get('express_rate', 0))) if rate.get('express_rate') else None,
-                air_rate=Decimal(str(rate.get('air_rate', 0))) if rate.get('air_rate') else None
-            )
-
-    # Update policy
-    if 'policy' in data:
-        policy, created = ClientRatePolicy.objects.get_or_create(client=client_user)
-        policy.is_custom = True
+        data = request.data
+        print(f"📦 Request data keys: {list(data.keys()) if data else 'None'}")
         
-        policy_data = data['policy']
-        for key, value in policy_data.items():
-            if hasattr(policy, key):
-                setattr(policy, key, Decimal(str(value)))
+        # Update zone rates
+        if 'zone_rates' in data and data['zone_rates']:
+            print(f"📊 Updating {len(data['zone_rates'])} zone rates")
+            
+            # Delete existing rates for this client
+            deleted_count = ClientRateMatrix.objects.filter(client=client_user).delete()
+            print(f"🗑️ Deleted {deleted_count[0]} existing rates")
+            
+            # Create new rates
+            created_count = 0
+            error_count = 0
+            
+            for rate in data['zone_rates']:
+                # Skip if rate is None or empty
+                if rate.get('rate') is None or rate.get('rate') == '':
+                    continue
+                
+                from_zone = rate.get('from_zone')
+                to_zone = rate.get('to_zone')
+                rate_value = rate.get('rate')
+                
+                if not from_zone or not to_zone:
+                    continue
+                
+                try:
+                    ClientRateMatrix.objects.create(
+                        client=client_user,
+                        from_zone=from_zone,
+                        to_zone=to_zone,
+                        rate=Decimal(str(rate_value)),
+                        surface_rate=None,
+                        express_rate=None,
+                        air_rate=None,
+                        is_active=True
+                    )
+                    created_count += 1
+                    print(f"   ✅ Created: {from_zone} → {to_zone} = {rate_value}")
+                except IntegrityError as e:
+                    print(f"   ⚠️ Integrity error for {from_zone}→{to_zone}: {str(e)}")
+                    error_count += 1
+                except Exception as e:
+                    print(f"   ❌ Error for {from_zone}→{to_zone}: {str(e)}")
+                    error_count += 1
+            
+            print(f"📊 Summary: {created_count} created, {error_count} errors")
         
-        policy.save()
-
-    return Response({
-        "success": True,
-        "message": f"Rates updated for {client_user.client_id}"
-    }, status=200)
+        # Update policy
+        if 'policy' in data and data['policy']:
+            print(f"📊 Updating policy for client: {client_id}")
+            
+            policy, created = ClientRatePolicy.objects.get_or_create(client=client_user)
+            policy.is_custom = True
+            
+            policy_data = data['policy']
+            for key, value in policy_data.items():
+                if hasattr(policy, key):
+                    try:
+                        if value is not None:
+                            setattr(policy, key, Decimal(str(value)))
+                            print(f"   ✅ {key} = {value}")
+                    except:
+                        setattr(policy, key, value)
+            
+            policy.save()
+            print(f"✅ Policy updated")
+        
+        return Response({
+            "success": True,
+            "message": f"Rates updated successfully for {client_user.client_id}"
+        }, status=200)
+        
+    except Exception as e:
+        print(f"❌ Error updating client rates: {str(e)}")
+        traceback.print_exc()
+        return Response({
+            "success": False,
+            "error": str(e)
+        }, status=500)
 
 
 # =====================================================
@@ -590,23 +630,17 @@ def vendor_rate_calculate(request):
 
 
 # =====================================================
-# MATRIX GET (Legacy - use get_rate_matrix instead)
+# LEGACY APIs
 # =====================================================
 def get_matrix(request):
     return get_rate_matrix(request)
 
 
-# =====================================================
-# MATRIX UPDATE (Legacy - use update_rate_matrix instead)
-# =====================================================
 @csrf_exempt
 def update_matrix(request):
     return update_rate_matrix(request)
 
 
-# =====================================================
-# EXCEL UPLOAD
-# =====================================================
 @csrf_exempt
 def upload_matrix_excel(request):
     if request.method == "POST":
@@ -619,14 +653,11 @@ def upload_matrix_excel(request):
 
 
 # =====================================================
-# 🆕 GET RATE POLICY (Master)
+# RATE POLICY APIs
 # =====================================================
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_rate_policy(request):
-    """
-    Get master rate policy
-    """
     try:
         policy = MasterRatePolicy.objects.first()
         if policy:
@@ -681,14 +712,8 @@ def get_rate_policy(request):
         return Response({"error": str(e)}, status=500)
 
 
-# =====================================================
-# 🆕 UPDATE RATE POLICY (Master)
-# =====================================================
 @api_view(['POST'])
 def update_rate_policy(request):
-    """
-    Update master rate policy (Admin only)
-    """
     try:
         data = request.data
         policy, created = MasterRatePolicy.objects.get_or_create(id=1)
