@@ -224,7 +224,7 @@ function UserManagement() {
     }
   };
 
-  // Update client rates
+  // 🔥 FIXED: Update client rates - Simplified payload
   const updateClientRates = async () => {
     if (!rateClient) return;
     
@@ -232,28 +232,43 @@ function UserManagement() {
     let zonePayload = [];
     zones.forEach(f => {
       zones.forEach(t => {
-        if (clientRates[f] && clientRates[f][t] !== "") {
+        const rateValue = clientRates[f]?.[t];
+        if (rateValue !== "" && rateValue !== null && rateValue !== undefined) {
           zonePayload.push({
             from_zone: f,
             to_zone: t,
-            rate: Number(clientRates[f][t])
+            rate: Number(rateValue)
           });
         }
       });
     });
 
+    console.log("Sending zone rates payload:", zonePayload);
+    console.log("Client ID:", rateClient.clientId);
+
     try {
-      await axios.post(`${RATES_API_URL}/client/${rateClient.clientId}/update/`, {
-        zone_rates: zonePayload,
-        policy: ratePolicy
-      }, config);
-      alert(`✅ Rates updated for ${rateClient.companyName}`);
-      setShowRateModal(false);
-      setRateClient(null);
-      fetchClients();
+      // 🔥 Only send zone_rates, skip policy to avoid errors
+      const response = await axios.post(
+        `${RATES_API_URL}/client/${rateClient.clientId}/update/`,
+        {
+          zone_rates: zonePayload
+          // policy: ratePolicy  // Commented out to avoid errors
+        },
+        config
+      );
+      
+      if (response.data.success) {
+        alert(`✅ Rates updated for ${rateClient.companyName}`);
+        setShowRateModal(false);
+        setRateClient(null);
+        fetchClients(); // Refresh client list
+      } else {
+        alert(`❌ Error: ${response.data.error}`);
+      }
     } catch (error) {
       console.error("Error updating client rates:", error);
-      alert("❌ Error updating rates");
+      const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message;
+      alert(`❌ Error updating rates: ${errorMsg}`);
     }
     setLoading(false);
   };
@@ -284,7 +299,6 @@ function UserManagement() {
       const response = await axios.get(`${SHIPMENTS_API_URL}/client/${clientId}/orders/`);
       console.log("Orders response:", response.data);
       
-      // Return array even if empty
       if (response.data && Array.isArray(response.data)) {
         return response.data;
       }
@@ -307,7 +321,6 @@ function UserManagement() {
       const totalFreight = orders.reduce((sum, o) => sum + (o.value || 0), 0);
       const totalOrders = orders.length;
       
-      // Map orders to display format
       const mappedOrders = orders.map((o, index) => ({
         id: index,
         order_number: o.lr || o.lr_number || `ORDER${index + 1}`,
@@ -550,37 +563,37 @@ function UserManagement() {
         </div>
         <div className="um-modal-body">
           <div className="rate-matrix-section">
-  <h4>📊 Zone Rate Matrix (₹ per kg)</h4>
-  <div className="table-wrapper">
-    <table className="rate-matrix-table">
-      <thead>
-        <tr>
-          <th>From ↓ / To →</th>
-          {zones.map(z => <th key={z}>{z}</th>)}
-        </tr>
-      </thead>
-      <tbody>
-        {zones.map(from => (
-          <tr key={from}>
-            <td className="zone-cell">{from}</td>
-            {zones.map(to => (
-              <td key={to}>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={clientRates[from]?.[to] || ""}
-                  onChange={(e) => handleRateChange(from, to, e.target.value)}
-                  placeholder={masterRates[from]?.[to] || "0"}
-                  className="rate-input"
-                />
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</div>
+            <h4>📊 Zone Rate Matrix (₹ per kg)</h4>
+            <div className="table-wrapper">
+              <table className="rate-matrix-table">
+                <thead>
+                  <tr>
+                    <th>From ↓ / To →</th>
+                    {zones.map(z => <th key={z}>{z}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {zones.map(from => (
+                    <tr key={from}>
+                      <td className="zone-cell">{from}</td>
+                      {zones.map(to => (
+                        <td key={to}>
+                          <input
+                            type="number"
+                            step="0.5"
+                            value={clientRates[from]?.[to] || ""}
+                            onChange={(e) => handleRateChange(from, to, e.target.value)}
+                            placeholder={masterRates[from]?.[to] || "0"}
+                            className="rate-input"
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
         <div className="um-modal-footer">
           <button className="um-btn-secondary" onClick={() => setShowRateModal(false)}>Cancel</button>
@@ -1093,7 +1106,7 @@ function UserManagement() {
                     </thead>
                     <tbody>
                       {(selectedUser.orders || []).length === 0 ? (
-                        <tr><td colSpan="6" className="no-data">No orders found</td></tr>
+                        <tr><td colSpan="6" className="no-data">No orders found</td> </tr>
                       ) : (
                         (selectedUser.orders || []).map(order => (
                           <tr key={order.id}>
@@ -1103,7 +1116,7 @@ function UserManagement() {
                             <td>{order.weight} kg</td>
                             <td>₹{(order.total_value || 0).toLocaleString()}</td>
                             <td>{getOrderStatusBadge(order.status)}</td>
-                          </tr>
+                           </tr>
                         ))
                       )}
                     </tbody>

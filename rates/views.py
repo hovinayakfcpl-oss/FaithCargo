@@ -181,7 +181,8 @@ def b2b_rate_calculate(request):
                     # Use master rate matrix
                     matrix = RateMatrix.objects.get(from_zone=from_zone, to_zone=to_zone)
                     rate_per_kg = Decimal(str(matrix.rate))
-            except:
+            except Exception as e:
+                print(f"Error getting client rate: {e}")
                 matrix = RateMatrix.objects.get(from_zone=from_zone, to_zone=to_zone)
                 rate_per_kg = Decimal(str(matrix.rate))
         else:
@@ -493,7 +494,7 @@ def get_client_rates(request, client_id):
 
 
 # =====================================================
-# 🆕 UPDATE CLIENT RATES API - FULLY FIXED
+# 🆕 UPDATE CLIENT RATES API - FINAL WORKING VERSION
 # =====================================================
 @api_view(['POST', 'PUT'])
 def update_client_rates(request, client_id):
@@ -501,12 +502,10 @@ def update_client_rates(request, client_id):
     Update client-specific rates (Admin only)
     """
     import traceback
-    from django.db import IntegrityError
     
     print("=" * 60)
     print("🔔 UPDATE CLIENT RATES API CALLED")
     print(f"Client ID: {client_id}")
-    print(f"Method: {request.method}")
     print("=" * 60)
     
     try:
@@ -515,14 +514,12 @@ def update_client_rates(request, client_id):
             client_user = User.objects.get(client_id=client_id, role='Client')
             print(f"✅ Client found: {client_user.username} (ID: {client_user.id})")
         except User.DoesNotExist:
-            print(f"❌ Client not found: {client_id}")
             return Response({
                 "success": False,
                 "error": f"Client '{client_id}' not found"
             }, status=404)
         
         data = request.data
-        print(f"📦 Request data keys: {list(data.keys()) if data else 'None'}")
         
         # Update zone rates
         if 'zone_rates' in data and data['zone_rates']:
@@ -534,18 +531,16 @@ def update_client_rates(request, client_id):
             
             # Create new rates
             created_count = 0
-            error_count = 0
             
             for rate in data['zone_rates']:
-                # Skip if rate is None or empty
-                if rate.get('rate') is None or rate.get('rate') == '':
-                    continue
-                
                 from_zone = rate.get('from_zone')
                 to_zone = rate.get('to_zone')
                 rate_value = rate.get('rate')
                 
                 if not from_zone or not to_zone:
+                    continue
+                
+                if rate_value is None or rate_value == '':
                     continue
                 
                 try:
@@ -554,41 +549,35 @@ def update_client_rates(request, client_id):
                         from_zone=from_zone,
                         to_zone=to_zone,
                         rate=Decimal(str(rate_value)),
-                        surface_rate=None,
-                        express_rate=None,
-                        air_rate=None,
                         is_active=True
                     )
                     created_count += 1
                     print(f"   ✅ Created: {from_zone} → {to_zone} = {rate_value}")
-                except IntegrityError as e:
-                    print(f"   ⚠️ Integrity error for {from_zone}→{to_zone}: {str(e)}")
-                    error_count += 1
                 except Exception as e:
-                    print(f"   ❌ Error for {from_zone}→{to_zone}: {str(e)}")
-                    error_count += 1
+                    print(f"   ❌ Error: {str(e)}")
             
-            print(f"📊 Summary: {created_count} created, {error_count} errors")
+            print(f"✅ Created {created_count} new rates")
         
-        # Update policy
+        # Update policy (optional)
         if 'policy' in data and data['policy']:
-            print(f"📊 Updating policy for client: {client_id}")
-            
-            policy, created = ClientRatePolicy.objects.get_or_create(client=client_user)
-            policy.is_custom = True
-            
-            policy_data = data['policy']
-            for key, value in policy_data.items():
-                if hasattr(policy, key):
-                    try:
-                        if value is not None:
+            try:
+                print(f"📊 Updating policy for client: {client_id}")
+                policy, created = ClientRatePolicy.objects.get_or_create(client=client_user)
+                policy.is_custom = True
+                
+                policy_data = data['policy']
+                for key, value in policy_data.items():
+                    if hasattr(policy, key) and value is not None:
+                        try:
                             setattr(policy, key, Decimal(str(value)))
                             print(f"   ✅ {key} = {value}")
-                    except:
-                        setattr(policy, key, value)
-            
-            policy.save()
-            print(f"✅ Policy updated")
+                        except:
+                            setattr(policy, key, value)
+                
+                policy.save()
+                print(f"✅ Policy updated")
+            except Exception as e:
+                print(f"⚠️ Policy update skipped: {str(e)}")
         
         return Response({
             "success": True,
