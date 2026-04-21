@@ -1,7 +1,7 @@
 /* ============================================
-   SHIPMENT DETAILS PAGE - ADVANCED v6.0
+   SHIPMENT DETAILS PAGE - ADVANCED v7.0
    With Role-Based Access, Status Update, Edit, Print, Label, Invoice Download
-   Fixed Status Text Colors
+   Professional Docket & Label Print Styles
    ============================================ */
 
 /* --------------------------------------------
@@ -23,9 +23,13 @@
   --bg-gray: #f8fafc;
   --bg-light: #f1f5f9;
   --success: #10b981;
+  --success-dark: #059669;
   --warning: #f59e0b;
+  --warning-dark: #d97706;
   --info: #3b82f6;
+  --info-dark: #2563eb;
   --error: #ef4444;
+  --error-dark: #dc2626;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
@@ -35,6 +39,7 @@
   --radius-lg: 16px;
   --radius-xl: 20px;
   --radius-2xl: 24px;
+  --radius-full: 9999px;
   --transition: all 0.3s ease;
   
   /* Status Colors */
@@ -66,7 +71,7 @@
 }
 
 /* --------------------------------------------
-   3. USER INFO BAR - NEW
+   3. USER INFO BAR
    -------------------------------------------- */
 .user-info-bar {
   display: flex;
@@ -78,6 +83,8 @@
   margin-bottom: 24px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
 .user-details {
@@ -88,6 +95,7 @@
   padding: 8px 20px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-color);
+  flex-wrap: wrap;
 }
 
 .user-details span {
@@ -150,6 +158,8 @@
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
   animation: fadeInUp 0.5s ease;
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
 .header-title h1 {
@@ -170,6 +180,7 @@
 .header-stats {
   display: flex;
   gap: 15px;
+  flex-wrap: wrap;
 }
 
 .stat-card {
@@ -353,7 +364,6 @@
 
 .shipment-row:hover {
   background: var(--bg-gray);
-  transform: scale(1.01);
 }
 
 .lr-cell {
@@ -578,6 +588,7 @@
   border-radius: var(--radius-md);
   transition: var(--transition);
   border: 1px solid var(--border-color);
+  flex-wrap: wrap;
 }
 
 .invoice-item:hover {
@@ -620,7 +631,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: linear-gradient(135deg, var(--success), #059669);
+  background: linear-gradient(135deg, var(--success), var(--success-dark));
   border: none;
   border-radius: var(--radius-md);
   color: white;
@@ -649,6 +660,7 @@
   padding: 20px 24px;
   border-bottom: 2px solid var(--border-color);
   background: linear-gradient(135deg, var(--bg-gray) 0%, white 100%);
+  border-radius: 24px 24px 0 0;
 }
 
 .modal-header h3 {
@@ -667,10 +679,17 @@
   cursor: pointer;
   color: var(--text-gray);
   transition: var(--transition);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
 }
 
 .close-modal:hover {
-  color: var(--error);
+  background: var(--error);
+  color: white;
   transform: rotate(90deg);
 }
 
@@ -694,7 +713,8 @@
 }
 
 .form-group input,
-.form-group select {
+.form-group select,
+.form-group textarea {
   width: 100%;
   padding: 12px 14px;
   border: 2px solid var(--border-color);
@@ -703,10 +723,12 @@
   transition: var(--transition);
   background: var(--bg-gray);
   color: var(--text-dark);
+  font-family: inherit;
 }
 
 .form-group input:focus,
-.form-group select:focus {
+.form-group select:focus,
+.form-group textarea:focus {
   outline: none;
   border-color: var(--primary-red);
   background: white;
@@ -733,6 +755,7 @@
   gap: 12px;
   background: var(--bg-gray);
   border-radius: 0 0 24px 24px;
+  flex-wrap: wrap;
 }
 
 .cancel-btn {
@@ -797,21 +820,6 @@
   justify-content: center;
 }
 
-.status-icon.status-delivered { 
-  background: var(--status-delivered-bg); 
-  color: var(--status-delivered); 
-}
-
-.status-icon.status-in_transit { 
-  background: var(--status-in_transit-bg); 
-  color: var(--status-in_transit); 
-}
-
-.status-icon.status-booked { 
-  background: var(--status-booked-bg); 
-  color: var(--status-booked); 
-}
-
 .status-text {
   font-size: 18px;
   font-weight: 800;
@@ -858,6 +866,7 @@
   margin-top: 4px;
   font-size: 13px;
   color: var(--text-dark);
+  word-break: break-word;
 }
 
 .tracking-invoices {
@@ -924,7 +933,7 @@
 }
 
 .label-btn:hover {
-  background: #059669;
+  background: var(--success-dark);
   transform: translateY(-2px);
 }
 
@@ -1080,6 +1089,11 @@
   padding: 6px;
   border-radius: 8px;
   transition: var(--transition);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .voice-toggle:hover, .mic-btn:hover {
@@ -1101,9 +1115,16 @@
   cursor: pointer;
   transition: var(--transition);
   color: rgba(255, 255, 255, 0.7);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
 }
 
 .close-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
   transform: rotate(90deg);
   color: var(--error);
 }
@@ -1138,6 +1159,7 @@
   font-size: 13px;
   line-height: 1.5;
   animation: messageSlide 0.3s ease;
+  word-break: break-word;
 }
 
 @keyframes messageSlide {
@@ -1375,6 +1397,10 @@
     gap: 12px;
     text-align: center;
   }
+  
+  .user-details {
+    justify-content: center;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1458,6 +1484,23 @@
     flex-wrap: wrap;
     justify-content: center;
   }
+  
+  .tracking-lr {
+    font-size: 20px;
+  }
+  
+  .status-text {
+    font-size: 14px;
+  }
+  
+  .detail-item {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .detail-item svg {
+    margin: 0 auto;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1512,7 +1555,35 @@
   }
   
   .status-text {
-    font-size: 14px;
+    font-size: 12px;
+  }
+  
+  .jervice-trigger {
+    padding: 10px 18px;
+  }
+  
+  .jervice-label {
+    font-size: 12px;
+  }
+  
+  .shipment-table th,
+  .shipment-table td {
+    padding: 10px 8px;
+    font-size: 11px;
+  }
+  
+  .lr-cell {
+    font-size: 12px;
+  }
+  
+  .action-icon {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .action-icon svg {
+    width: 14px;
+    height: 14px;
   }
 }
 
@@ -1554,4 +1625,85 @@
     transform: none;
     background: transparent;
   }
+  
+  body {
+    background: white;
+    padding: 0;
+    margin: 0;
+  }
+}
+
+/* --------------------------------------------
+   11. LOADING STATE
+   -------------------------------------------- */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #eef2f7 100%);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--primary-red);
+}
+
+/* --------------------------------------------
+   12. NO DATA STATE
+   -------------------------------------------- */
+.no-data {
+  text-align: center;
+  padding: 50px !important;
+  color: var(--text-gray);
+  font-size: 14px;
+}
+
+/* --------------------------------------------
+   13. STATUS BADGE STYLES (for tracking)
+   -------------------------------------------- */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-badge.booked {
+  background: var(--status-booked-bg);
+  color: var(--status-booked);
+}
+
+.status-badge.picked {
+  background: var(--status-picked-bg);
+  color: var(--status-picked);
+}
+
+.status-badge.in_transit {
+  background: var(--status-in_transit-bg);
+  color: var(--status-in_transit);
+}
+
+.status-badge.out_for_delivery {
+  background: var(--status-out_for_delivery-bg);
+  color: var(--status-out_for_delivery);
+}
+
+.status-badge.delivered {
+  background: var(--status-delivered-bg);
+  color: var(--status-delivered);
+}
+
+.status-badge.cancelled {
+  background: var(--status-cancelled-bg);
+  color: var(--status-cancelled);
+}
+
+.status-badge.dispatched {
+  background: var(--status-dispatched-bg);
+  color: var(--status-dispatched);
+}
+
+.status-badge.hold {
+  background: var(--status-hold-bg);
+  color: var(--status-hold);
 }

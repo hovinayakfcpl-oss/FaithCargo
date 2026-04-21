@@ -63,19 +63,11 @@ function ShipmentDetails() {
     const storedClientId = localStorage.getItem("clientId");
     const username = localStorage.getItem("username") || localStorage.getItem("clientName");
     
-    console.log("=== Auth Debug ===");
-    console.log("Token exists:", !!token);
-    console.log("ClientToken exists:", !!clientToken);
-    console.log("Role from storage:", role);
-    console.log("Client ID:", storedClientId);
-    
-    // Check if authenticated
     if (!token && !clientToken) {
       window.location.href = "/";
       return;
     }
     
-    // Set role based on clientToken (most reliable)
     let finalRole = "staff";
     if (clientToken) {
       finalRole = "client";
@@ -90,78 +82,34 @@ function ShipmentDetails() {
     setUserName(username || (finalRole === "client" ? "Client" : "Admin"));
     setIsAuthenticated(true);
     
-    console.log("Final Role:", finalRole);
-    
-    // Fetch shipments after setting role
     fetchShipments();
   }, []);
 
   // ============================================
-  // 🚚 FETCH SHIPMENTS (WITH ROLE-BASED FILTERING) - FIXED
+  // 🚚 FETCH SHIPMENTS
   // ============================================
   const fetchShipments = async () => {
     setIsLoadingShipments(true);
     try {
-      // Get fresh values directly from localStorage
       const clientToken = localStorage.getItem("clientToken");
       let storedClientId = localStorage.getItem("clientId");
       const isClient = !!clientToken;
       
-      console.log("=== FETCHING SHIPMENTS ===");
-      console.log("Is Client:", isClient);
-      console.log("Raw Client ID:", storedClientId);
-      
       let url = "https://faithcargo.onrender.com/api/shipments/";
       
-      // 🔥 FIXED: Client ke liye sahi URL with trimmed clientId
       if (isClient && storedClientId) {
-        // Clean the client ID (remove spaces)
         const cleanClientId = storedClientId.trim();
         url = `https://faithcargo.onrender.com/api/shipments/client/${cleanClientId}/orders/`;
-        console.log("✅ Using client filtered URL:", url);
-      } else if (isClient && !storedClientId) {
-        console.log("⚠️ Client token but no clientId, checking alternative...");
-        const altClientId = localStorage.getItem("client_id");
-        if (altClientId) {
-          url = `https://faithcargo.onrender.com/api/shipments/client/${altClientId}/orders/`;
-          console.log("✅ Using alt client URL:", url);
-        }
-      } else {
-        console.log("✅ Admin/Staff - fetching all shipments");
       }
       
       const response = await fetch(url);
       
       if (!response.ok) {
-        console.error("API response not OK:", response.status);
         throw new Error(`HTTP ${response.status}`);
       }
       
       const data = await response.json();
       
-      console.log(`✅ Received ${data.length} shipments`);
-      
-      // Log first few shipments to verify
-      if (data.length > 0) {
-        console.log("First shipment sample:", data[0]);
-      } else {
-        console.log("⚠️ No shipments found for this client");
-        // Try alternate API endpoint as fallback
-        if (isClient && storedClientId) {
-          const fallbackUrl = `https://faithcargo.onrender.com/api/shipments/client/${storedClientId.trim()}/`;
-          console.log("Trying fallback URL:", fallbackUrl);
-          const fallbackRes = await fetch(fallbackUrl);
-          if (fallbackRes.ok) {
-            const fallbackData = await fallbackRes.json();
-            console.log(`Fallback received: ${fallbackData.length} shipments`);
-            setShipments(fallbackData);
-            setIsLoadingShipments(false);
-            return;
-          }
-        }
-      }
-      
-      // Load uploaded invoices from localStorage
       const enhancedData = data.map(shipment => {
         const savedInvoices = localStorage.getItem(`invoices_${shipment.lr}`);
         if (savedInvoices) {
@@ -173,21 +121,8 @@ function ShipmentDetails() {
       setShipments(enhancedData);
     } catch (error) {
       console.error("Error fetching shipments:", error);
-      
-      // Fallback to localStorage
       const localShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
-      const clientToken = localStorage.getItem("clientToken");
-      const storedClientId = localStorage.getItem("clientId");
-      const isClient = !!clientToken;
-      
-      if (isClient && storedClientId) {
-        const filteredLocal = localShipments.filter(s => s.clientId === storedClientId || s.client_id === storedClientId);
-        console.log(`✅ Local fallback: ${filteredLocal.length} client shipments`);
-        setShipments(filteredLocal);
-      } else {
-        console.log(`✅ Local fallback: ${localShipments.length} total shipments`);
-        setShipments(localShipments);
-      }
+      setShipments(localShipments);
     } finally {
       setIsLoadingShipments(false);
     }
@@ -359,68 +294,276 @@ function ShipmentDetails() {
   };
 
   // ============================================
-  // 🖨️ PRINT DOCKET
+  // 🖨️ PROFESSIONAL DOCKET PRINT - BEST DESIGN
   // ============================================
   const printDocket = (shipment) => {
+    const statusOpt = statusOptions.find(s => s.value === shipment.status) || statusOptions[0];
+    const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${shipment.lr}&code=Code128&dpi=120`;
+    const currentDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
+      <!DOCTYPE html>
       <html>
-        <head>
-          <title>Faith Cargo - Docket ${shipment.lr}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: Arial, sans-serif; padding: 20px; background: white; }
-            .docket { width: 190mm; min-height: 270mm; margin: 0 auto; border: 2px solid #d32f2f; padding: 15px; position: relative; }
-            .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 60px; font-weight: bold; color: rgba(0,0,0,0.03); white-space: nowrap; pointer-events: none; }
-            .header { text-align: center; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; margin-bottom: 15px; }
-            .header h1 { color: #d32f2f; margin-bottom: 5px; font-size: 18px; }
-            .lr-number { font-size: 20px; font-weight: bold; text-align: center; margin: 10px 0; color: #d32f2f; }
-            .barcode { text-align: center; margin: 10px 0; }
-            .parties { display: flex; gap: 15px; margin-bottom: 15px; }
-            .party { flex: 1; border: 1px solid #ddd; padding: 10px; border-radius: 6px; }
-            .party h3 { background: #f5f5f5; margin: -10px -10px 10px -10px; padding: 8px; border-radius: 6px 6px 0 0; font-size: 12px; }
-            .details-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px; }
-            .details-table th, .details-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            .details-table th { background: #f5f5f5; }
-            .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd; text-align: center; font-size: 10px; }
-            @media print { body { margin: 0; padding: 0; } .watermark { print-color-adjust: exact; } }
-          </style>
-        </head>
-        <body>
-          <div class="docket">
-            <div class="watermark">FCPL</div>
-            <div class="header">
-              <h1>FAITH CARGO PRIVATE LIMITED</h1>
-              <p>4/15, Kirti Nagar Industrial Area, New Delhi - 110015</p>
-              <p>GST: 07AAFCF2947K1ZD | Tel: 9818641504</p>
-            </div>
-            <div class="lr-number">CONSIGNMENT NOTE: ${shipment.lr}</div>
-            <div class="barcode"><img src="https://barcode.tec-it.com/barcode.ashx?data=${shipment.lr}&code=Code128&dpi=96" width="250" /></div>
-            <div class="parties">
-              <div class="party">
-                <h3>📤 CONSIGNOR (Sender)</h3>
-                <p><strong>${shipment.pickupName || 'N/A'}</strong></p>
-                <p>Pincode: ${shipment.pickupPincode || 'N/A'}</p>
+      <head>
+        <title>Faith Cargo - Consignment Note ${shipment.lr}</title>
+        <meta charset="UTF-8">
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Segoe UI', 'Roboto', Arial, sans-serif; 
+            background: #e2e8f0; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+          }
+          @media print {
+            body { background: white; padding: 0; margin: 0; }
+            @page { size: A4; margin: 0; }
+          }
+          .docket-pro {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin: 0 auto;
+          }
+          .docket-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 80px;
+            font-weight: 900;
+            color: rgba(211, 47, 47, 0.03);
+            white-space: nowrap;
+            letter-spacing: 10px;
+            pointer-events: none;
+            z-index: 0;
+          }
+          .docket-border {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            bottom: 8px;
+            border: 2px solid #d32f2f;
+            pointer-events: none;
+            border-radius: 8px;
+            z-index: 1;
+          }
+          .status-ribbon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 6px 20px;
+            background: ${statusOpt.color};
+            color: white;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            z-index: 10;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          }
+          .docket-header {
+            padding: 20px 25px 15px 25px;
+            border-bottom: 3px solid #d32f2f;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+            position: relative;
+            z-index: 2;
+            background: white;
+          }
+          .logo-section {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+          }
+          .logo-img {
+            height: 70px;
+            width: auto;
+          }
+          .company-details h1 {
+            font-size: 16px;
+            font-weight: 900;
+            color: #1a1a2e;
+            margin: 0 0 3px 0;
+          }
+          .company-details p {
+            font-size: 8px;
+            color: #d32f2f;
+            font-weight: 600;
+            margin: 0 0 5px 0;
+          }
+          .company-address {
+            font-size: 7px;
+            color: #4a5568;
+            margin-bottom: 3px;
+          }
+          .company-contact {
+            font-size: 7px;
+            color: #4a5568;
+            margin-bottom: 2px;
+          }
+          .company-gst {
+            font-size: 7px;
+            color: #64748b;
+          }
+          .doc-section {
+            text-align: right;
+          }
+          .doc-title {
+            font-size: 10px;
+            font-weight: 800;
+            color: #64748b;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+          }
+          .lr-number {
+            font-size: 26px;
+            font-weight: 900;
+            color: #d32f2f;
+            font-family: monospace;
+            letter-spacing: 2px;
+          }
+          .barcode-img {
+            width: 180px;
+            height: auto;
+            margin: 8px 0;
+            background: white;
+            padding: 4px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+          }
+          .awb-text, .date-text {
+            font-size: 9px;
+            color: #64748b;
+            margin-top: 4px;
+          }
+          .parties-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            padding: 20px 25px;
+            background: #f8fafc;
+            position: relative;
+            z-index: 2;
+          }
+          .party-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+          }
+          .party-header {
+            background: #f1f5f9;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #e2e8f0;
+          }
+          .party-icon { font-size: 22px; }
+          .party-title { font-size: 11px; font-weight: 800; color: #1e293b; }
+          .party-sub { font-size: 9px; color: #64748b; }
+          .party-body { padding: 12px 15px; }
+          .party-name { font-size: 12px; font-weight: 800; margin-bottom: 6px; color: #0f172a; }
+          .party-address { font-size: 9px; color: #475569; margin-bottom: 8px; line-height: 1.4; }
+          .party-details { display: flex; flex-wrap: wrap; gap: 12px; font-size: 8px; padding-top: 8px; border-top: 1px dashed #e2e8f0; color: #64748b; }
+          .table-wrapper { padding: 0 25px; margin-bottom: 20px; overflow-x: auto; position: relative; z-index: 2; }
+          .shipment-table { width: 100%; border-collapse: collapse; font-size: 9px; }
+          .shipment-table th { background: #f1f5f9; padding: 10px 8px; font-weight: 800; border: 1px solid #e2e8f0; text-align: center; }
+          .shipment-table td { padding: 10px 8px; border: 1px solid #e2e8f0; text-align: center; }
+          .text-left { text-align: left; }
+          .text-center { text-align: center; }
+          .goods-note { font-size: 7px; color: #64748b; margin-top: 3px; }
+          .mode-badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 8px; font-weight: 800; background: #dbeafe; color: #1e40af; }
+          .billing-section { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; padding: 0 25px; margin-bottom: 20px; position: relative; z-index: 2; }
+          .invoice-box, .freight-box { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+          .box-header { background: #f8fafc; padding: 10px 15px; font-size: 10px; font-weight: 800; border-bottom: 1px solid #e2e8f0; }
+          .box-content { padding: 12px 15px; }
+          .billing-row { display: flex; justify-content: space-between; font-size: 9px; padding: 6px 0; border-bottom: 1px solid #f1f5f9; }
+          .billing-total { display: flex; justify-content: space-between; font-size: 10px; font-weight: 800; margin-top: 10px; padding-top: 10px; border-top: 2px solid #e2e8f0; }
+          .stamp-section { display: flex; justify-content: space-between; align-items: center; padding: 0 25px; margin: 20px 0; flex-wrap: wrap; gap: 30px; position: relative; z-index: 2; }
+          .stamp-area { width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; }
+          .stamp-img { width: 100%; height: auto; }
+          .signatures { display: flex; gap: 50px; flex-wrap: wrap; }
+          .sign-box { text-align: center; }
+          .sign-line { width: 120px; border-top: 1.5px solid #0f172a; margin-bottom: 6px; }
+          .sign-box p { font-size: 8px; color: #64748b; margin-top: 4px; }
+          .stamp-text { border: 1px dashed #d32f2f; padding: 6px 15px; font-size: 8px; font-weight: 700; color: #d32f2f; background: #ffebed; border-radius: 6px; margin-bottom: 5px; }
+          .terms-section { margin: 0 25px 15px 25px; padding: 10px 15px; background: #f8fafc; border-radius: 10px; position: relative; z-index: 2; }
+          .terms-title { font-size: 8px; font-weight: 800; margin-bottom: 8px; }
+          .terms-section ul { padding-left: 18px; font-size: 6.5px; color: #475569; line-height: 1.5; }
+          .footer { padding: 12px 25px; background: linear-gradient(135deg, #0f172a, #1e1b4b); color: white; position: relative; z-index: 2; }
+          .footer-copies { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 7px; flex-wrap: wrap; gap: 10px; }
+          .footer-powered { font-size: 6px; opacity: 0.6; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="docket-pro">
+          <div class="docket-watermark">FAITH CARGO</div>
+          <div class="docket-border"></div>
+          <div class="status-ribbon">${statusOpt.label.replace('📝 ', '').replace('🚚 ', '').replace('🚛 ', '').replace('📦 ', '').replace('✅ ', '').replace('❌ ', '').replace('✈️ ', '').replace('⏸️ ', '')}</div>
+          
+          <div class="docket-header">
+            <div class="logo-section">
+              <div class="company-details">
+                <h1>FAITH CARGO PRIVATE LIMITED</h1>
+                <p>ISO 9001:2015 & ISO 14001:2015 CERTIFIED</p>
+                <div class="company-address">4/15, Kirti Nagar Industrial Area, New Delhi - 110015</div>
+                <div class="company-contact">📞 +91 9818641504 | ✉️ care@faithcargo.com | 🌐 www.faithcargo.com</div>
+                <div class="company-gst">GST: 07AAFCF2947K1ZD | CIN: U60231DL2021PTC384521</div>
               </div>
-              <div class="party">
-                <h3>📥 CONSIGNEE (Receiver)</h3>
-                <p><strong>${shipment.deliveryName || 'N/A'}</strong></p>
-                <p>Pincode: ${shipment.deliveryPincode || 'N/A'}</p>
-              </div>
             </div>
-            <table class="details-table">
-              <tr><th>Description</th><td>${shipment.material || 'General Cargo'}</td></tr>
-              <tr><th>Weight</th><td>${shipment.weight || 0} kg</td></tr>
-              <tr><th>Total Value</th><td>₹${(shipment.total_value || shipment.value || 0).toLocaleString()}</td></tr>
-              <tr><th>Status</th><td><span style="background:${statusOptions.find(s=>s.value===shipment.status)?.bgColor || '#fef3c7'}; color:${statusOptions.find(s=>s.value===shipment.status)?.color || '#f59e0b'}; padding:3px 10px; border-radius:15px;">${statusOptions.find(s=>s.value===shipment.status)?.label || 'Booked'}</span></td></tr>
-              <tr><th>AWB Number</th><td>${shipment.awb || 'N/A'}</td></tr>
-            </table>
-            <div class="footer">
-              <p>Terms: Goods carried at Owner's Risk | Subject to Delhi Jurisdiction</p>
-              <p>For Support: 9818641504 | care@faithcargo.com</p>
+            <div class="doc-section">
+              <div class="doc-title">CONSIGNMENT NOTE</div>
+              <div class="lr-number">${shipment.lr}</div>
+              <img src="${barcodeUrl}" class="barcode-img" />
+              <div class="awb-text">AWB: ${shipment.awb || 'N/A'}</div>
+              <div class="date-text">Date: ${currentDate}</div>
             </div>
           </div>
-        </body>
+
+          <div class="parties-section">
+            <div class="party-card">
+              <div class="party-header"><span class="party-icon">📤</span><div><div class="party-title">CONSIGNOR</div><div class="party-sub">Sender</div></div></div>
+              <div class="party-body"><div class="party-name">${shipment.pickupName || '____________________'}</div><div class="party-address">${shipment.pickupAddress || 'Address not provided'}</div><div class="party-details"><span>📮 Pincode: ${shipment.pickupPincode || '______'}</span><span>📞 ${shipment.pickupContact || '_________'}</span></div></div>
+            </div>
+            <div class="party-card">
+              <div class="party-header"><span class="party-icon">📥</span><div><div class="party-title">CONSIGNEE</div><div class="party-sub">Receiver</div></div></div>
+              <div class="party-body"><div class="party-name">${shipment.deliveryName || '____________________'}</div><div class="party-address">${shipment.deliveryAddress || 'Address not provided'}</div><div class="party-details"><span>📮 Pincode: ${shipment.deliveryPincode || '______'}</span><span>📞 ${shipment.deliveryContact || '_________'}</span></div></div>
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="shipment-table">
+              <thead><tr><th>PKGS</th><th>DESCRIPTION OF GOODS</th><th>HSN</th><th>ACTUAL WT</th><th>VOL WT</th><th>CHARGED WT</th><th>MODE</th></tr></thead>
+              <tbody><tr><td class="text-center">${shipment.boxes || 1}</td><td class="text-left"><strong>${shipment.material || 'GENERAL CARGO'}</strong><div class="goods-note">Said to Contain</div></td><td class="text-center">${shipment.hsn || '1234'}</td><td class="text-center">${shipment.actual_weight || shipment.weight || 0} kg</td><td class="text-center">${shipment.volumetric_weight || '0'} kg</td><td class="text-center"><strong>${shipment.weight || 0} kg</strong></td><td class="text-center"><span class="mode-badge">${shipment.booking_mode?.toUpperCase() || 'SURFACE'}</span></td></tr></tbody>
+            </table>
+          </div>
+
+          <div class="billing-section">
+            <div class="invoice-box"><div class="box-header">📄 INVOICE DETAILS</div><div class="box-content"><div class="billing-total"><span>TOTAL INVOICE VALUE:</span><strong>₹${(shipment.total_value || shipment.value || 0).toLocaleString()}</strong></div>${shipment.eway_bill ? `<div class="eway-bill" style="margin-top:10px;padding:8px;background:#fef3c7;border-radius:8px;font-size:9px;text-align:center;">🚛 E-WAY BILL: ${shipment.eway_bill}</div>` : ''}</div></div>
+            <div class="freight-box"><div class="box-header">💰 FREIGHT BREAKDOWN</div><div class="box-content"><div class="billing-row"><span>Total Freight</span><span>₹${(shipment.freight_amount || 0).toLocaleString()}</span></div><div class="billing-total"><span>TOTAL FREIGHT</span><strong>₹${(shipment.freight_amount || 0).toLocaleString()}</strong></div></div></div>
+          </div>
+
+          <div class="stamp-section">
+            <div class="stamp-area"><div class="stamp-text" style="width:100px;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:50%;border:2px solid #2563eb;"><div>FAITH</div><div>CARGO</div><div>PVT LTD</div><div style="width:30px;height:1px;background:#2563eb;margin:5px 0;"></div><div>AUTHORIZED</div></div></div>
+            <div class="signatures"><div class="sign-box"><div class="sign-line"></div><p>Receiver's Signature</p></div><div class="sign-box"><div class="stamp-text">FOR FAITH CARGO PVT LTD</div><p>Authorized Signatory</p></div></div>
+          </div>
+
+          <div class="terms-section"><div class="terms-title">TERMS & CONDITIONS</div><ul><li>Goods carried at Owner's Risk. Insurance recommended for high-value shipments.</li><li>Claim must be filed within 7 days of delivery. Jurisdiction: Delhi Only.</li><li>Transit liability as per Carriers Act, 1865.</li><li>E-Way Bill mandatory for invoice value &gt; ₹50,000.</li></ul></div>
+
+          <div class="footer"><div class="footer-copies"><span>📄 ORIGINAL - CONSIGNOR</span><span>📄 DUPLICATE - CONSIGNEE</span><span>📄 TRIPLICATE - OFFICE COPY</span></div><div class="footer-powered">Powered by <strong>Faith Cargo Logistics</strong> | Developed by <strong>Devora Technologies</strong></div></div>
+        </div>
+      </body>
       </html>
     `);
     printWindow.document.close();
@@ -430,38 +573,147 @@ function ShipmentDetails() {
   };
 
   // ============================================
-  // 🏷️ PRINT LABEL
+  // 🏷️ PROFESSIONAL BOX LABEL PRINT - BEST DESIGN (AS PER YOUR IMAGE)
   // ============================================
   const printLabel = (shipment) => {
+    const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${shipment.lr}&code=Code128&dpi=120`;
+    const awbNumber = shipment.awb || shipment.lr || 'N/A';
+    const totalBoxes = shipment.boxes || 1;
+    
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
+      <!DOCTYPE html>
       <html>
-        <head>
-          <title>Label - ${shipment.lr}</title>
-          <style>
-            body { font-family: Arial; padding: 20px; background: white; }
-            .label { width: 4in; border: 2px solid #2563eb; padding: 15px; margin: 0 auto; border-radius: 10px; }
-            .header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 10px; }
-            .header h2 { margin: 0; color: #0f172a; font-size: 16px; }
-            .lr { font-size: 20px; font-weight: bold; text-align: center; margin: 12px 0; color: #d32f2f; }
-            .barcode { text-align: center; margin: 10px 0; }
-            .address { font-size: 10px; margin: 6px 0; }
-            .footer { font-size: 8px; text-align: center; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #ccc; }
-          </style>
-        </head>
-        <body>
-          <div class="label">
-            <div class="header">
-              <h2>FAITH CARGO PVT LTD</h2>
-              <p>4/15, Kirti Nagar, Delhi - 110015</p>
-            </div>
-            <div class="lr">LR: ${shipment.lr}</div>
-            <div class="barcode"><img src="https://barcode.tec-it.com/barcode.ashx?data=${shipment.lr}&code=Code128&dpi=96" width="200" /></div>
-            <div class="address"><strong>From:</strong> ${shipment.pickupName || 'N/A'} - ${shipment.pickupPincode || 'N/A'}</div>
-            <div class="address"><strong>To:</strong> ${shipment.deliveryName || 'N/A'} - ${shipment.deliveryPincode || 'N/A'}</div>
-            <div class="footer">Weight: ${shipment.weight || 0} Kg | Status: ${statusOptions.find(s=>s.value===shipment.status)?.label || 'Booked'}</div>
+      <head>
+        <title>Faith Cargo - Box Label ${shipment.lr}</title>
+        <meta charset="UTF-8">
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Segoe UI', 'Arial', sans-serif; 
+            background: #e2e8f0; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+          }
+          @media print {
+            body { background: white; padding: 0; margin: 0; }
+            @page { size: A4; margin: 0; }
+          }
+          .box-label {
+            width: 180mm;
+            height: 120mm;
+            background: white;
+            border: 3px solid #d32f2f;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+          }
+          .label-watermark {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-size: 50px;
+            font-weight: 900;
+            color: rgba(211, 47, 47, 0.05);
+            white-space: nowrap;
+            pointer-events: none;
+            transform: rotate(-15deg);
+          }
+          .top-red-bar {
+            background: linear-gradient(135deg, #d32f2f, #b71c1c);
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+          }
+          .brand-name { font-size: 18px; font-weight: 800; letter-spacing: 1px; }
+          .brand-tagline { font-size: 9px; opacity: 0.9; }
+          .tollfree { font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 20px; }
+          .label-body { padding: 15px; }
+          .lr-section { text-align: center; margin-bottom: 15px; }
+          .lr-label { font-size: 10px; color: #64748b; letter-spacing: 2px; }
+          .lr-number-large { font-size: 28px; font-weight: 900; color: #d32f2f; font-family: monospace; letter-spacing: 2px; }
+          .barcode-container { text-align: center; margin: 10px 0; }
+          .barcode-img { width: 200px; height: auto; }
+          .address-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0; }
+          .address-box { background: #f8fafc; padding: 10px; border-radius: 8px; border-left: 3px solid #d32f2f; }
+          .address-label { font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
+          .address-name { font-size: 11px; font-weight: 800; color: #1e293b; margin-bottom: 3px; }
+          .address-location { font-size: 9px; color: #475569; }
+          .info-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 8px; background: #f1f5f9; border-radius: 6px; }
+          .info-item { text-align: center; flex: 1; }
+          .info-label { font-size: 8px; color: #64748b; text-transform: uppercase; }
+          .info-value { font-size: 12px; font-weight: 700; color: #1e293b; }
+          .icons-section { display: flex; justify-content: space-around; margin: 15px 0; padding: 10px; background: #fef3c7; border-radius: 8px; flex-wrap: wrap; gap: 10px; }
+          .icon-item { text-align: center; }
+          .icon-text { font-size: 8px; font-weight: 600; margin-top: 3px; }
+          .icon-large { font-size: 24px; }
+          .box-count { text-align: center; margin: 10px 0; }
+          .box-badge { display: inline-block; background: #d32f2f; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: 800; }
+          .footer-bar { background: #0f172a; color: white; padding: 6px; text-align: center; font-size: 7px; position: absolute; bottom: 0; left: 0; right: 0; }
+          .awb-small { font-size: 9px; color: #64748b; text-align: center; margin-top: 5px; }
+        </style>
+      </head>
+      <body>
+        <div class="box-label">
+          <div class="label-watermark">FCPL</div>
+          <div class="top-red-bar">
+            <div><div class="brand-name">FAITH CARGO</div><div class="brand-tagline">LEGACY OF TRUST & DELIVERY</div></div>
+            <div class="tollfree">📞 TOLL FREE: 9818641504</div>
           </div>
-        </body>
+          
+          <div class="label-body">
+            <div class="lr-section">
+              <div class="lr-label">LR No.</div>
+              <div class="lr-number-large">${shipment.lr}</div>
+            </div>
+            
+            <div class="barcode-container">
+              <img src="${barcodeUrl}" class="barcode-img" />
+              <div class="awb-small">AWB: ${awbNumber}</div>
+            </div>
+            
+            <div class="address-grid">
+              <div class="address-box">
+                <div class="address-label">📤 FROM:</div>
+                <div class="address-name">${shipment.pickupName || 'N/A'}</div>
+                <div class="address-location">${shipment.pickupCity || shipment.pickupPincode || 'DELHI'}</div>
+              </div>
+              <div class="address-box">
+                <div class="address-label">📥 TO:</div>
+                <div class="address-name">${shipment.deliveryName || 'N/A'}</div>
+                <div class="address-location">${shipment.deliveryCity || shipment.deliveryPincode || 'LUDHIANA'}</div>
+              </div>
+            </div>
+            
+            <div class="info-row">
+              <div class="info-item"><div class="info-label">Receiver Mob</div><div class="info-value">${shipment.deliveryContact || 'N/A'}</div></div>
+              <div class="info-item"><div class="info-label">Weight</div><div class="info-value">${shipment.weight || 0} kg</div></div>
+              <div class="info-item"><div class="info-label">AWB</div><div class="info-value">${awbNumber}</div></div>
+            </div>
+            
+            <div class="icons-section">
+              <div class="icon-item"><div class="icon-large">📦</div><div class="icon-text">FRAGILE</div></div>
+              <div class="icon-item"><div class="icon-large">🤲</div><div class="icon-text">HANDLE WITH CARE</div></div>
+              <div class="icon-item"><div class="icon-large">⬆️</div><div class="icon-text">THIS SIDE UP</div></div>
+              <div class="icon-item"><div class="icon-large">💧</div><div class="icon-text">KEEP DRY</div></div>
+            </div>
+            
+            <div class="box-count">
+              <span class="box-badge">BOX 1/${totalBoxes}</span>
+            </div>
+          </div>
+          
+          <div class="footer-bar">
+            FAITH CARGO PVT. LTD. | 4/15, Kirti Nagar, Delhi - 110015 | care@faithcargo.com
+          </div>
+        </div>
+      </body>
       </html>
     `);
     printWindow.document.close();
@@ -682,7 +934,7 @@ function ShipmentDetails() {
                         <select className="status-select" value={shipment.status || 'booked'} onChange={(e) => updateShipmentStatus(shipment.lr, e.target.value)} style={{ backgroundColor: statusOpt.bgColor, color: statusOpt.color }}>
                           {statusOptions.map(opt => (<option key={opt.value} value={opt.value} style={{ backgroundColor: opt.bgColor, color: opt.color }}>{opt.label}</option>))}
                         </select>
-                       </td>
+                      </td>
                       <td>{invoiceCount > 0 ? (<button className="invoice-btn" onClick={() => viewInvoices(shipment)}><FileText size={16} /> {invoiceCount}</button>) : (<span className="no-invoice">—</span>)}</td>
                       <td className="action-buttons">
                         <button onClick={() => trackShipment(shipment.lr)} className="action-icon view" title="Track"><Eye size={16} /></button>
