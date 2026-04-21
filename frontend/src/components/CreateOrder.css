@@ -1,6 +1,7 @@
 /* ============================================
-   FAITH CARGO - CREATE ORDER PAGE v14.0
-   COMPLETE FIXED & UPDATED CSS
+   FAITH CARGO - CREATE ORDER PAGE v12.0
+   WITH CLIENT AUTHENTICATION & CUSTOM RATES
+   ULTIMATE PREMIUM UI DESIGN - FULLY OPTIMIZED
    DEVELOPED BY DEVORA TECHNOLOGIES
    ============================================ */
 
@@ -71,7 +72,7 @@ body {
 }
 
 /* --------------------------------------------
-   2. SCROLLBAR STYLES
+   2. SCROLLBAR STYLES - PREMIUM
    -------------------------------------------- */
 ::-webkit-scrollbar {
   width: 8px;
@@ -103,7 +104,7 @@ body {
 }
 
 /* --------------------------------------------
-   4. SIDEBAR STYLES
+   4. SIDEBAR STYLES - PREMIUM GLASSMORPHISM
    -------------------------------------------- */
 .order-sidebar {
   width: 280px;
@@ -166,6 +167,7 @@ body {
   50% { transform: scale(1.3); opacity: 0.7; }
 }
 
+/* Client Info Sidebar - NEW */
 .client-info-sidebar {
   display: flex;
   align-items: center;
@@ -218,6 +220,7 @@ body {
   transform: scale(1.05);
 }
 
+/* Sidebar Rates Info - NEW */
 .sidebar-rates-info {
   background: linear-gradient(135deg, var(--primary-purple-light), rgba(139, 92, 246, 0.1));
   padding: 14px 16px;
@@ -330,6 +333,7 @@ body {
   margin: 0 auto;
 }
 
+/* Loading Container */
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -355,7 +359,7 @@ body {
   font-weight: 500;
 }
 
-/* Page Header */
+/* Page Header - Premium */
 .page-title-section {
   display: flex;
   justify-content: space-between;
@@ -428,12 +432,6 @@ body {
   border-left: 3px solid var(--primary-purple);
 }
 
-.badge.admin-badge {
-  background: linear-gradient(135deg, var(--primary-red-light), white);
-  color: var(--primary-red);
-  border-left: 3px solid var(--primary-red);
-}
-
 /* Error Notice */
 .error-notice {
   background: linear-gradient(135deg, #fee2e2, #fecaca);
@@ -477,7 +475,7 @@ body {
 }
 
 /* --------------------------------------------
-   7. FORM CARDS
+   7. FORM CARDS - PREMIUM GLASS DESIGN
    -------------------------------------------- */
 .form-section {
   background: rgba(255, 255, 255, 0.95);
@@ -518,7 +516,7 @@ body {
   padding: 24px;
 }
 
-/* Form Fields */
+/* Form Fields - Premium */
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -573,7 +571,7 @@ body {
 }
 
 /* --------------------------------------------
-   8. SAVED ADDRESSES STYLES
+   8. SAVED ADDRESSES STYLES - PREMIUM
    -------------------------------------------- */
 .saved-addresses-container {
   margin-bottom: 24px;
@@ -800,7 +798,7 @@ body {
 }
 
 /* --------------------------------------------
-   9. MODE SELECTOR
+   9. MODE SELECTOR - PREMIUM
    -------------------------------------------- */
 .mode-selector {
   margin-bottom: 24px;
@@ -853,7 +851,7 @@ body {
 }
 
 /* --------------------------------------------
-   10. DIMENSION PANEL
+   10. ENHANCED DIMENSION PANEL WITH QUANTITY - PREMIUM
    -------------------------------------------- */
 .dimension-panel-enhanced {
   background: linear-gradient(135deg, var(--bg-gray) 0%, var(--bg-light) 100%);
@@ -1111,7 +1109,7 @@ body {
 }
 
 /* --------------------------------------------
-   12. UPLOAD AREA
+   12. UPLOAD AREA - PREMIUM
    -------------------------------------------- */
 .upload-container {
   margin-top: 20px;
@@ -1239,7 +1237,7 @@ body {
 }
 
 /* --------------------------------------------
-   13. FREIGHT CARD
+   13. FREIGHT CARD - PREMIUM WITH CUSTOM RATE BADGE
    -------------------------------------------- */
 .freight-card {
   margin-top: 20px;
@@ -1262,16 +1260,6 @@ body {
 
 .custom-rate-badge {
   background: linear-gradient(135deg, var(--primary-purple), #7c3aed);
-  color: white;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 10px;
-  font-weight: 700;
-  margin-left: auto;
-}
-
-.admin-badge {
-  background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
   color: white;
   padding: 4px 12px;
   border-radius: 20px;
@@ -1348,7 +1336,7 @@ body {
 }
 
 /* --------------------------------------------
-   14. E-WAY ALERT
+   14. E-WAY ALERT - PREMIUM
    -------------------------------------------- */
 .eway-alert {
   margin-top: 20px;
@@ -1461,7 +1449,7 @@ body {
 }
 
 /* --------------------------------------------
-   16. GENERATE BUTTON
+   16. GENERATE BUTTON - PREMIUM
    -------------------------------------------- */
 .generate-btn {
   width: 100%;
@@ -1519,7 +1507,7 @@ body {
 }
 
 /* --------------------------------------------
-   17. MODAL STYLES
+   17. MODAL STYLES - PREMIUM
    -------------------------------------------- */
 .modal-overlay {
   position: fixed;
@@ -1652,7 +1640,7 @@ body {
 }
 
 /* --------------------------------------------
-   18. TRACKING SECTION
+   18. ENHANCED TRACKING SECTION - PREMIUM
    -------------------------------------------- */
 .tracking-section-enhanced {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -1955,451 +1943,214 @@ body {
 }
 
 /* --------------------------------------------
-   19. FIXED DOCKET STYLES - PROFESSIONAL
+   19. ENHANCED DOCKET HEADER WITH BARCODE - FIXED
    -------------------------------------------- */
-.print-docket-fixed {
-  width: 210mm;
-  min-height: 297mm;
-  margin: 0 auto;
-  background: white;
-  font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-  position: relative;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-}
-
-/* Status Badge */
-.docket-status-badge {
-  position: absolute;
-  top: 15px;
-  right: 20px;
-  padding: 5px 18px;
-  border-radius: 30px;
-  font-size: 11px;
-  font-weight: 800;
-  color: white;
-  letter-spacing: 1px;
-  z-index: 10;
-}
-
-/* Header */
-.docket-fixed-header {
+.docket-header-new {
   display: flex;
   justify-content: space-between;
   padding: 20px 25px;
-  border-bottom: 3px solid #d32f2f;
+  border-bottom: 3px solid var(--primary-red);
   background: white;
+  position: relative;
+  z-index: 2;
   flex-wrap: wrap;
   gap: 20px;
 }
 
-.docket-fixed-logo-section {
-  display: flex;
-  gap: 18px;
-  flex-wrap: wrap;
+.header-left-section {
+  text-align: left;
+  flex: 1;
 }
 
-.docket-fixed-logo {
-  height: 70px;
+.lr-label {
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--text-gray);
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
+}
+
+/* Barcode Styles - Fixed */
+.barcode-canvas {
+  margin: 8px 0;
+  background: white;
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 5px;
+}
+
+.barcode-image {
+  margin: 8px 0;
+  background: white;
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 5px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Barcode Placeholder */
+.barcode-placeholder {
+  width: 280px;
+  height: 60px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 8px 0;
+}
+
+/* Client ID Docket - NEW */
+.client-id-docket {
+  margin-top: 8px;
+  font-size: 9px;
+  color: var(--primary-purple);
+  background: var(--primary-purple-light);
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.lr-number-bold {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--primary-red);
+  font-family: monospace;
+  letter-spacing: 2px;
+  margin-top: 5px;
+}
+
+.awb-section {
+  margin-top: 10px;
+}
+
+.awb-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-gray);
+  margin-right: 10px;
+  text-transform: uppercase;
+}
+
+.awb-value-bold {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-dark);
+}
+
+.status-badge-docket {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 5px 16px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: bold;
+  background: linear-gradient(135deg, var(--success), #059669);
+  color: white;
+}
+
+.date-value-docket {
+  font-size: 9px;
+  color: var(--text-gray);
+  margin-top: 8px;
+}
+
+.header-right-section {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.brand-logo-large {
+  height: 65px;
   width: auto;
+  margin-bottom: 10px;
   object-fit: contain;
 }
 
-.docket-fixed-company h2 {
-  font-size: 14px;
+.company-details h2 {
+  font-size: 15px;
   font-weight: 900;
-  color: #1a1a2e;
-  margin: 0 0 3px 0;
+  margin: 0;
+  color: var(--text-dark);
 }
 
-.docket-fixed-company p {
+.company-details p {
   font-size: 8px;
-  color: #d32f2f;
+  color: var(--primary-red);
   font-weight: 600;
-  margin: 0 0 5px 0;
-}
-
-.docket-fixed-address {
-  font-size: 7px;
-  color: #4a5568;
-  margin-bottom: 3px;
-}
-
-.docket-fixed-contact {
-  font-size: 7px;
-  color: #4a5568;
-  margin-bottom: 2px;
-}
-
-.docket-fixed-gst {
-  font-size: 7px;
-  color: #64748b;
-}
-
-.docket-fixed-doc-section {
-  text-align: right;
-}
-
-.docket-fixed-doc-title {
-  font-size: 10px;
-  font-weight: 800;
-  color: #64748b;
-  letter-spacing: 2px;
-  margin-bottom: 5px;
-}
-
-.docket-fixed-lr {
-  font-size: 24px;
-  font-weight: 900;
-  color: #d32f2f;
-  font-family: monospace;
-  letter-spacing: 2px;
-}
-
-.docket-fixed-barcode {
-  width: 180px;
-  height: auto;
-  margin: 8px 0;
-  background: white;
-  padding: 4px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-}
-
-.docket-fixed-awb, .docket-fixed-date, .docket-fixed-client {
-  font-size: 9px;
-  color: #64748b;
-  margin-top: 4px;
-}
-
-.docket-fixed-client {
-  background: #ede9fe;
-  color: #8b5cf6;
-  padding: 2px 10px;
-  border-radius: 20px;
-  display: inline-block;
-}
-
-/* Parties Section */
-.docket-fixed-parties {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 25px;
-  padding: 20px 25px;
-  background: #f8fafc;
-}
-
-.docket-fixed-party {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.docket-fixed-party-header {
-  background: #f1f5f9;
-  padding: 10px 15px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.party-icon {
-  font-size: 22px;
-}
-
-.party-title {
-  font-size: 11px;
-  font-weight: 800;
-  color: #1e293b;
-}
-
-.party-sub {
-  font-size: 9px;
-  color: #64748b;
-}
-
-.docket-fixed-party-body {
-  padding: 12px 15px;
-}
-
-.party-name {
-  font-size: 12px;
-  font-weight: 800;
-  margin-bottom: 6px;
-  color: #0f172a;
-}
-
-.party-address {
-  font-size: 9px;
-  color: #475569;
-  margin-bottom: 8px;
-  line-height: 1.4;
-}
-
-.party-details {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-size: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed #e2e8f0;
-  color: #64748b;
-}
-
-/* Table */
-.docket-fixed-table {
-  width: calc(100% - 50px);
-  margin: 20px 25px;
-  border-collapse: collapse;
-  font-size: 9px;
-}
-
-.docket-fixed-table th {
-  background: #f1f5f9;
-  padding: 10px 8px;
-  font-weight: 800;
-  border: 1px solid #e2e8f0;
-  text-align: center;
-  color: #1e293b;
-}
-
-.docket-fixed-table td {
-  padding: 10px 8px;
-  border: 1px solid #e2e8f0;
-  text-align: center;
-}
-
-.text-left {
-  text-align: left;
-}
-
-.text-center {
-  text-align: center;
-}
-
-.goods-note {
-  font-size: 7px;
-  color: #64748b;
   margin-top: 3px;
 }
 
-.mode-badge {
-  display: inline-block;
-  padding: 3px 12px;
-  border-radius: 20px;
-  font-size: 8px;
-  font-weight: 800;
-}
-
-.mode-surface { background: #dbeafe; color: #1e40af; }
-.mode-air { background: #fef3c7; color: #92400e; }
-.mode-rail { background: #e0e7ff; color: #3730a3; }
-.mode-express { background: #dcfce7; color: #166534; }
-
-/* Billing Section */
-.docket-fixed-billing {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 25px;
-  padding: 0 25px;
-  margin-bottom: 20px;
-}
-
-.docket-fixed-invoice, .docket-fixed-freight {
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.billing-title {
-  background: #f8fafc;
-  padding: 10px 15px;
-  font-size: 10px;
-  font-weight: 800;
-  border-bottom: 1px solid #e2e8f0;
-  color: #1e293b;
-}
-
-.billing-content {
-  padding: 12px 15px;
-}
-
-.billing-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 9px;
-  padding: 6px 0;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.billing-total {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  font-weight: 800;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 2px solid #e2e8f0;
-  color: #0f172a;
-}
-
-.eway-bill {
-  margin-top: 10px;
-  padding: 8px;
-  background: #fef3c7;
-  border-radius: 8px;
-  font-size: 9px;
-  text-align: center;
-  font-weight: 600;
-}
-
-.rate-note {
-  margin-top: 10px;
+.contact-details {
   font-size: 7px;
-  color: #64748b;
-  text-align: center;
-  padding-top: 8px;
-  border-top: 1px dashed #e2e8f0;
+  color: var(--text-gray);
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
-/* Stamp and Signature */
-.docket-fixed-footer-section {
+/* Print Barcode Styles */
+@media print {
+  .barcode-canvas,
+  .barcode-image {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    filter: none;
+    background: white;
+  }
+  
+  .barcode-placeholder {
+    display: none;
+  }
+}
+
+/* --------------------------------------------
+   20. STAMP IMAGE STYLES - PREMIUM WITH FALLBACK
+   -------------------------------------------- */
+.stamp-signature-wrapper-new {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 25px;
   margin: 20px 0;
+  position: relative;
+  z-index: 2;
   flex-wrap: wrap;
   gap: 30px;
 }
 
-.docket-fixed-stamp {
-  width: 100px;
-  height: 100px;
+.stamp-image-container {
+  width: 130px;
+  height: 130px;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.stamp-image {
-  width: 100%;
-  height: auto;
-  object-fit: contain;
-}
-
-.stamp-fallback {
-  width: 90px;
-  height: 90px;
+  background: rgba(37, 99, 235, 0.03);
   border-radius: 50%;
-  border: 2px solid #2563eb;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: rgba(37,99,235,0.02);
-  text-align: center;
-  font-size: 8px;
-  font-weight: 800;
-  color: #2563eb;
 }
 
-.stamp-fallback .stamp-line {
-  width: 25px;
-  height: 1px;
-  background: #2563eb;
-  margin: 3px 0;
-}
-
-.docket-fixed-signatures {
-  display: flex;
-  gap: 50px;
-  flex-wrap: wrap;
-}
-
-.signature-box {
-  text-align: center;
-}
-
-.sign-line {
-  width: 120px;
-  border-top: 1.5px solid #0f172a;
-  margin-bottom: 6px;
-}
-
-.signature-box p {
-  font-size: 8px;
-  color: #64748b;
-  margin-top: 4px;
-}
-
-.stamp-text {
-  border: 1px dashed #d32f2f;
-  padding: 6px 15px;
-  font-size: 8px;
-  font-weight: 700;
-  color: #d32f2f;
-  background: #ffebed;
-  border-radius: 6px;
-  margin-bottom: 5px;
-  white-space: nowrap;
-}
-
-/* Terms */
-.docket-fixed-terms {
-  margin: 0 25px 15px 25px;
-  padding: 10px 15px;
-  background: #f8fafc;
-  border-radius: 10px;
-}
-
-.terms-title {
-  font-size: 8px;
-  font-weight: 800;
-  margin-bottom: 8px;
-  color: #1e293b;
-}
-
-.docket-fixed-terms ul {
-  padding-left: 18px;
-  font-size: 6.5px;
-  color: #475569;
-  line-height: 1.5;
-}
-
-/* Footer */
-.docket-fixed-footer {
-  padding: 12px 25px;
-  background: linear-gradient(135deg, #0f172a, #1e1b4b);
-  color: white;
-}
-
-.footer-copies {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 7px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.footer-powered {
-  font-size: 6px;
-  opacity: 0.6;
-  text-align: center;
-}
-
-/* --------------------------------------------
-   20. STAMP IMAGE STYLES
-   -------------------------------------------- */
 .official-stamp-image {
-  width: 100px;
+  width: 100%;
   height: auto;
   object-fit: contain;
   opacity: 0.9;
   filter: drop-shadow(0 2px 5px rgba(0,0,0,0.1));
 }
 
+/* Stamp Fallback Styles */
 .official-stamp-fallback {
   width: 100px;
   height: 100px;
@@ -2476,8 +2227,35 @@ body {
   letter-spacing: 0.5px;
 }
 
+.signature-area {
+  display: flex;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.signature-line-item {
+  text-align: center;
+}
+
+.sign-line {
+  width: 100px;
+  border-top: 1.5px solid var(--text-dark);
+  margin-bottom: 6px;
+}
+
+.stamp-box {
+  border: 1.5px dashed var(--primary-red);
+  padding: 6px 12px;
+  font-size: 8px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: var(--primary-red);
+  background: var(--primary-red-light);
+  border-radius: 6px;
+}
+
 /* --------------------------------------------
-   21. PRINT STYLES
+   21. RESPONSIVE DESIGN - ENHANCED
    -------------------------------------------- */
 @media print {
   .no-print,
@@ -2495,7 +2273,7 @@ body {
     display: none !important;
   }
   
-  .print-docket-fixed {
+  .print-docket {
     display: block !important;
     margin: 0;
     padding: 0;
@@ -2511,20 +2289,18 @@ body {
   
   @page {
     size: A4;
-    margin: 0;
+    margin: 8mm;
   }
   
-  .docket-status-badge,
-  .docket-fixed-barcode,
-  .stamp-image {
+  .official-stamp-image,
+  .official-stamp-fallback,
+  .barcode-image,
+  .barcode-canvas {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
 }
 
-/* --------------------------------------------
-   22. RESPONSIVE DESIGN
-   -------------------------------------------- */
 @media (max-width: 1024px) {
   .tracking-details-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -2556,10 +2332,6 @@ body {
   
   .order-main-content {
     padding: 24px;
-  }
-  
-  .docket-fixed-billing {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -2622,6 +2394,12 @@ body {
     text-align: center;
   }
   
+  .stamp-signature-wrapper-new {
+    flex-direction: column;
+    gap: 25px;
+    align-items: center;
+  }
+  
   .modal-dialog {
     padding: 24px;
   }
@@ -2662,56 +2440,35 @@ body {
     gap: 20px;
   }
   
-  .docket-fixed-parties {
-    grid-template-columns: 1fr;
+  /* Mobile barcode adjustments */
+  .barcode-image,
+  .barcode-canvas {
+    max-width: 250px;
   }
   
-  .docket-fixed-footer-section {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+  .lr-number-bold {
+    font-size: 20px;
   }
   
-  .docket-fixed-signatures {
-    justify-content: center;
+  .header-left-section {
+    margin-right: 10px;
   }
   
-  .docket-fixed-header {
-    flex-direction: column;
-    text-align: center;
+  .brand-logo-large {
+    height: 50px;
   }
   
-  .docket-fixed-logo-section {
-    justify-content: center;
+  .company-details h2 {
+    font-size: 12px;
   }
   
-  .docket-fixed-doc-section {
-    text-align: center;
-  }
-  
-  .footer-copies {
+  .docket-header-new {
     flex-direction: column;
     text-align: center;
-    gap: 5px;
   }
   
-  .docket-status-badge {
-    position: relative;
-    top: auto;
-    right: auto;
-    display: inline-block;
-    margin: 10px auto;
-    width: fit-content;
-  }
-  
-  .docket-fixed-table {
-    width: calc(100% - 30px);
-    margin: 15px;
-    font-size: 8px;
-  }
-  
-  .stamp-text {
-    white-space: normal;
+  .header-right-section {
+    text-align: center;
   }
 }
 
@@ -2763,12 +2520,34 @@ body {
     margin-bottom: 5px;
   }
   
-  .docket-fixed-barcode {
-    width: 150px;
+  /* Mobile barcode adjustments */
+  .barcode-image,
+  .barcode-canvas {
+    max-width: 200px;
   }
   
-  .docket-fixed-lr {
+  .lr-number-bold {
     font-size: 18px;
+  }
+  
+  .awb-label,
+  .awb-value-bold {
+    font-size: 11px;
+  }
+  
+  .signature-area {
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+  }
+  
+  .tracking-timeline-enhanced {
+    gap: 15px;
+  }
+  
+  .timeline-step-enhanced {
+    flex-wrap: wrap;
+    justify-content: center;
   }
 }
 
@@ -2777,10 +2556,6 @@ body {
 .text-left { text-align: left; }
 .text-red { color: var(--primary-red); }
 .text-purple { color: var(--primary-purple); }
-.mt-2 { margin-top: 8px; }
-.mt-3 { margin-top: 12px; }
-.mb-2 { margin-bottom: 8px; }
-.mb-3 { margin-bottom: 12px; }
 
 /* Animations */
 @keyframes fadeInUp {
@@ -2796,6 +2571,23 @@ body {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* Loading Animation */
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Success Animation */
+@keyframes checkmark {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* Hover Effects */
