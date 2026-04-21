@@ -1,7 +1,9 @@
 /* ============================================
-   SHIPMENT DETAILS PAGE - ADVANCED v7.0
+   SHIPMENT DETAILS PAGE - ADVANCED v8.0
+   COMPLETE PROFESSIONAL UI UPGRADE
    With Role-Based Access, Status Update, Edit, Print, Label, Invoice Download
    Professional Docket & Label Print Styles
+   Developed by Devora Technologies
    ============================================ */
 
 /* --------------------------------------------
@@ -11,9 +13,11 @@
   --primary-red: #d32f2f;
   --primary-red-dark: #b71c1c;
   --primary-red-light: #ffebed;
+  --primary-red-glow: rgba(211, 47, 47, 0.15);
   --primary-purple: #8b5cf6;
   --primary-purple-dark: #7c3aed;
   --primary-purple-light: #ede9fe;
+  --primary-purple-glow: rgba(139, 92, 246, 0.15);
   --dark-bg: #0f172a;
   --dark-bg-light: #1e293b;
   --text-dark: #0f172a;
@@ -24,23 +28,32 @@
   --bg-light: #f1f5f9;
   --success: #10b981;
   --success-dark: #059669;
+  --success-light: #d1fae5;
   --warning: #f59e0b;
   --warning-dark: #d97706;
+  --warning-light: #fef3c7;
   --info: #3b82f6;
   --info-dark: #2563eb;
+  --info-light: #dbeafe;
   --error: #ef4444;
   --error-dark: #dc2626;
+  --error-light: #fee2e2;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-red: 0 10px 25px -5px rgba(211, 47, 47, 0.3);
+  --shadow-purple: 0 10px 25px -5px rgba(139, 92, 246, 0.3);
+  --shadow-green: 0 10px 25px -5px rgba(16, 185, 129, 0.3);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 20px;
   --radius-2xl: 24px;
   --radius-full: 9999px;
-  --transition: all 0.3s ease;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   
   /* Status Colors */
   --status-booked: #d97706;
@@ -62,7 +75,21 @@
 }
 
 /* --------------------------------------------
-   2. PAGE CONTAINER
+   2. GLOBAL STYLES
+   -------------------------------------------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #eef2f7 100%);
+}
+
+/* --------------------------------------------
+   3. PAGE CONTAINER
    -------------------------------------------- */
 .shipment-details-page {
   padding: 30px;
@@ -71,7 +98,7 @@
 }
 
 /* --------------------------------------------
-   3. USER INFO BAR
+   4. USER INFO BAR
    -------------------------------------------- */
 .user-info-bar {
   display: flex;
@@ -81,10 +108,22 @@
   padding: 12px 24px;
   border-radius: var(--radius-lg);
   margin-bottom: 24px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
   border: 1px solid var(--border-color);
   flex-wrap: wrap;
   gap: 15px;
+  animation: fadeInDown 0.5s ease;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .user-details {
@@ -111,6 +150,7 @@
   border-radius: var(--radius-full);
   font-size: 11px;
   font-weight: 700;
+  box-shadow: var(--shadow-sm);
 }
 
 .client-id-badge {
@@ -120,6 +160,7 @@
   border-radius: var(--radius-full);
   font-size: 11px;
   font-weight: 700;
+  box-shadow: var(--shadow-sm);
 }
 
 .logout-btn {
@@ -146,7 +187,7 @@
 }
 
 /* --------------------------------------------
-   4. PAGE HEADER
+   5. PAGE HEADER
    -------------------------------------------- */
 .page-header-shipment {
   display: flex;
@@ -156,10 +197,17 @@
   padding: 25px 30px;
   background: white;
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
   animation: fadeInUp 0.5s ease;
   flex-wrap: wrap;
   gap: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  transition: var(--transition);
+}
+
+.page-header-shipment:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-xl);
 }
 
 .header-title h1 {
@@ -175,6 +223,7 @@
 .header-title p {
   color: var(--text-gray);
   font-size: 14px;
+  margin-top: 5px;
 }
 
 .header-stats {
@@ -191,11 +240,15 @@
   background: var(--bg-light);
   border-radius: var(--radius-md);
   transition: var(--transition);
+  cursor: pointer;
+  border: 1px solid transparent;
 }
 
 .stat-card:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-md);
+  border-color: var(--border-color);
+  background: white;
 }
 
 .stat-card div {
@@ -208,23 +261,25 @@
   color: var(--text-gray);
   text-transform: uppercase;
   font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .stat-card strong {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 900;
   color: var(--text-dark);
 }
 
 /* --------------------------------------------
-   5. SHIPMENT TABLE CONTAINER
+   6. SHIPMENT TABLE CONTAINER
    -------------------------------------------- */
 .shipment-table-container {
   background: white;
   border-radius: var(--radius-xl);
   padding: 24px;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
   animation: fadeInUp 0.5s ease 0.1s backwards;
+  border: 1px solid rgba(226, 232, 240, 0.6);
 }
 
 .table-header {
@@ -275,13 +330,14 @@
   transform: translateY(-2px);
   box-shadow: var(--shadow-sm);
   background: var(--bg-light);
+  border-color: var(--primary-red-light);
 }
 
 .filter-btn.active {
-  background: var(--primary-red);
+  background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
   color: white;
   border-color: transparent;
-  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.3);
+  box-shadow: var(--shadow-red);
 }
 
 /* Search Box */
@@ -297,7 +353,8 @@
 
 .search-box:focus-within {
   background: white;
-  box-shadow: 0 0 0 2px rgba(211, 47, 47, 0.2);
+  box-shadow: 0 0 0 2px var(--primary-red-glow);
+  border-color: var(--primary-red);
 }
 
 .search-box input {
@@ -315,7 +372,7 @@
 }
 
 .search-box button {
-  background: var(--primary-red);
+  background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
   border: none;
   color: white;
   padding: 6px 12px;
@@ -325,8 +382,8 @@
 }
 
 .search-box button:hover {
-  background: var(--primary-red-dark);
   transform: scale(1.02);
+  box-shadow: var(--shadow-red);
 }
 
 /* Table Wrapper */
@@ -344,18 +401,20 @@
 .shipment-table th {
   text-align: left;
   padding: 15px;
-  background: var(--bg-gray);
+  background: linear-gradient(135deg, var(--bg-gray), white);
   font-weight: 800;
   font-size: 11px;
   text-transform: uppercase;
   color: var(--text-gray);
   letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--border-color);
 }
 
 .shipment-table td {
   padding: 15px;
   border-bottom: 1px solid var(--border-color);
   font-size: 13px;
+  vertical-align: middle;
 }
 
 .shipment-row {
@@ -363,7 +422,9 @@
 }
 
 .shipment-row:hover {
-  background: var(--bg-gray);
+  background: linear-gradient(135deg, var(--bg-gray), white);
+  transform: scale(1.01);
+  box-shadow: var(--shadow-sm);
 }
 
 .lr-cell {
@@ -391,7 +452,7 @@
 
 .invoice-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 3px 10px rgba(139, 92, 246, 0.3);
+  box-shadow: var(--shadow-purple);
 }
 
 .no-invoice {
@@ -409,10 +470,12 @@
   cursor: pointer;
   transition: var(--transition);
   background: white;
+  outline: none;
 }
 
 .status-select:hover {
   transform: scale(1.02);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Status specific styles */
@@ -482,7 +545,7 @@
 .action-icon {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -497,7 +560,7 @@
 }
 
 .action-icon.view:hover {
-  background: #dbeafe;
+  background: var(--info-light);
   transform: scale(1.1);
 }
 
@@ -506,7 +569,7 @@
 }
 
 .action-icon.edit:hover {
-  background: #fef3c7;
+  background: var(--warning-light);
   transform: scale(1.1);
 }
 
@@ -533,12 +596,12 @@
 }
 
 .action-icon.delete:hover {
-  background: #fee2e2;
+  background: var(--error-light);
   transform: scale(1.1);
 }
 
 /* --------------------------------------------
-   6. MODAL STYLES
+   7. MODAL STYLES
    -------------------------------------------- */
 .modal-overlay {
   position: fixed;
@@ -546,13 +609,18 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(8px);
   z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: fadeIn 0.2s ease;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Edit Modal */
@@ -560,12 +628,24 @@
 .tracking-modal,
 .invoice-modal {
   background: white;
-  border-radius: 24px;
+  border-radius: var(--radius-2xl);
   width: 90%;
   max-width: 600px;
   max-height: 85vh;
   overflow-y: auto;
   animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: var(--shadow-2xl);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Invoice Modal Specific */
@@ -593,7 +673,7 @@
 
 .invoice-item:hover {
   transform: translateX(5px);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
   border-color: var(--primary-purple);
 }
 
@@ -643,7 +723,7 @@
 
 .download-invoice-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
+  box-shadow: var(--shadow-green);
 }
 
 .no-invoices {
@@ -660,7 +740,10 @@
   padding: 20px 24px;
   border-bottom: 2px solid var(--border-color);
   background: linear-gradient(135deg, var(--bg-gray) 0%, white 100%);
-  border-radius: 24px 24px 0 0;
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .modal-header h3 {
@@ -670,6 +753,7 @@
   font-size: 18px;
   font-weight: 800;
   margin: 0;
+  color: var(--text-dark);
 }
 
 .close-modal {
@@ -732,7 +816,7 @@
   outline: none;
   border-color: var(--primary-red);
   background: white;
-  box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+  box-shadow: 0 0 0 3px var(--primary-red-glow);
 }
 
 .form-group input:disabled {
@@ -754,8 +838,11 @@
   justify-content: flex-end;
   gap: 12px;
   background: var(--bg-gray);
-  border-radius: 0 0 24px 24px;
+  border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
   flex-wrap: wrap;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 
 .cancel-btn {
@@ -771,6 +858,7 @@
 
 .cancel-btn:hover {
   background: var(--bg-light);
+  transform: translateY(-2px);
 }
 
 .save-btn {
@@ -789,7 +877,7 @@
 
 .save-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(211, 47, 47, 0.3);
+  box-shadow: var(--shadow-red);
 }
 
 /* Tracking Modal Specific */
@@ -803,6 +891,7 @@
   padding: 15px;
   background: var(--primary-red-light);
   border-radius: var(--radius-md);
+  letter-spacing: 2px;
 }
 
 .tracking-status-large {
@@ -818,6 +907,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: pulseGlow 2s infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
 .status-text {
@@ -839,9 +934,15 @@
 .detail-item {
   display: flex;
   gap: 12px;
-  padding: 10px;
+  padding: 12px;
   background: white;
   border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.detail-item:hover {
+  transform: translateX(5px);
+  box-shadow: var(--shadow-sm);
 }
 
 .detail-item svg {
@@ -859,6 +960,7 @@
   text-transform: uppercase;
   font-weight: 700;
   display: block;
+  letter-spacing: 0.5px;
 }
 
 .detail-item p {
@@ -891,7 +993,7 @@
 
 .view-invoices-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 3px 10px rgba(139, 92, 246, 0.3);
+  box-shadow: var(--shadow-purple);
 }
 
 .tracking-modal-footer {
@@ -913,42 +1015,42 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  border: none;
 }
 
 .print-btn {
-  background: var(--dark-bg);
+  background: linear-gradient(135deg, var(--dark-bg), var(--dark-bg-light));
   color: white;
-  border: none;
 }
 
 .print-btn:hover {
-  background: var(--primary-red);
+  background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
   transform: translateY(-2px);
+  box-shadow: var(--shadow-red);
 }
 
 .label-btn {
-  background: var(--success);
+  background: linear-gradient(135deg, var(--success), var(--success-dark));
   color: white;
-  border: none;
 }
 
 .label-btn:hover {
-  background: var(--success-dark);
   transform: translateY(-2px);
+  box-shadow: var(--shadow-green);
 }
 
 .close-btn {
   background: var(--bg-light);
-  border: none;
   color: var(--text-dark);
 }
 
 .close-btn:hover {
   background: var(--border-color);
+  transform: translateY(-2px);
 }
 
 /* --------------------------------------------
-   7. JERVICE AI STYLES
+   8. JERVICE AI STYLES
    -------------------------------------------- */
 .jervice-container {
   position: fixed;
@@ -969,8 +1071,8 @@
   gap: 12px;
   font-weight: bold;
   font-size: 14px;
-  box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: var(--shadow-purple);
+  transition: var(--transition-slow);
   position: relative;
   backdrop-filter: blur(10px);
 }
@@ -1034,11 +1136,11 @@
   width: 420px;
   height: 620px;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border-radius: 24px;
+  border-radius: var(--radius-2xl);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-2xl);
   animation: slideUpRight 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -1087,7 +1189,7 @@
   color: white;
   cursor: pointer;
   padding: 6px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   transition: var(--transition);
   width: 32px;
   height: 32px;
@@ -1120,7 +1222,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 .close-icon:hover {
@@ -1297,7 +1399,7 @@
 
 .send-btn:hover {
   transform: scale(1.05);
-  box-shadow: 0 5px 15px rgba(139, 92, 246, 0.5);
+  box-shadow: var(--shadow-purple);
 }
 
 .send-btn:disabled {
@@ -1345,25 +1447,9 @@
 }
 
 /* --------------------------------------------
-   8. ANIMATIONS
+   9. ANIMATIONS
    -------------------------------------------- */
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideUp {
   from {
     opacity: 0;
     transform: translateY(30px);
@@ -1374,8 +1460,19 @@
   }
 }
 
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* --------------------------------------------
-   9. RESPONSIVE DESIGN
+   10. RESPONSIVE DESIGN
    -------------------------------------------- */
 @media (max-width: 1024px) {
   .shipment-details-page {
@@ -1588,7 +1685,7 @@
 }
 
 /* --------------------------------------------
-   10. PRINT STYLES
+   11. PRINT STYLES
    -------------------------------------------- */
 @media print {
   .page-header-shipment,
@@ -1631,34 +1728,57 @@
     padding: 0;
     margin: 0;
   }
+  
+  @page {
+    margin: 1cm;
+  }
 }
 
 /* --------------------------------------------
-   11. LOADING STATE
+   12. LOADING STATE
    -------------------------------------------- */
 .loading-container {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   min-height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #eef2f7 100%);
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--primary-red);
+  gap: 20px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid var(--bg-light);
+  border-top-color: var(--primary-red);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  font-size: 14px;
+  color: var(--text-gray);
+  font-weight: 500;
 }
 
 /* --------------------------------------------
-   12. NO DATA STATE
+   13. NO DATA STATE
    -------------------------------------------- */
 .no-data {
   text-align: center;
-  padding: 50px !important;
+  padding: 60px !important;
   color: var(--text-gray);
   font-size: 14px;
 }
 
 /* --------------------------------------------
-   13. STATUS BADGE STYLES (for tracking)
+   14. STATUS BADGE STYLES (for tracking)
    -------------------------------------------- */
 .status-badge {
   display: inline-block;
@@ -1706,4 +1826,27 @@
 .status-badge.hold {
   background: var(--status-hold-bg);
   color: var(--status-hold);
+}
+
+/* --------------------------------------------
+   15. SCROLLBAR STYLES
+   -------------------------------------------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-light);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+  border-radius: 10px;
+  transition: var(--transition);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
 }

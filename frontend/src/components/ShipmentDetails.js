@@ -43,14 +43,14 @@ function ShipmentDetails() {
 
   // Available statuses
   const statusOptions = [
-    { value: "booked", label: "📝 Booked", color: "#f59e0b", bgColor: "#fef3c7", icon: "📝" },
-    { value: "picked", label: "🚚 Picked Up", color: "#3b82f6", bgColor: "#dbeafe", icon: "🚚" },
-    { value: "in_transit", label: "🚛 In Transit", color: "#8b5cf6", bgColor: "#e0e7ff", icon: "🚛" },
-    { value: "out_for_delivery", label: "📦 Out for Delivery", color: "#ec4898", bgColor: "#fce7f3", icon: "📦" },
-    { value: "delivered", label: "✅ Delivered", color: "#10b981", bgColor: "#d1fae5", icon: "✅" },
-    { value: "cancelled", label: "❌ Cancelled", color: "#ef4444", bgColor: "#fee2e2", icon: "❌" },
-    { value: "dispatched", label: "✈️ Dispatched", color: "#06b6d4", bgColor: "#cffafe", icon: "✈️" },
-    { value: "hold", label: "⏸️ On Hold", color: "#6b7280", bgColor: "#f1f5f9", icon: "⏸️" }
+    { value: "booked", label: "📝 Booked", color: "#d97706", bgColor: "#fef3c7", icon: "📝" },
+    { value: "picked", label: "🚚 Picked Up", color: "#2563eb", bgColor: "#dbeafe", icon: "🚚" },
+    { value: "in_transit", label: "🚛 In Transit", color: "#4f46e5", bgColor: "#e0e7ff", icon: "🚛" },
+    { value: "out_for_delivery", label: "📦 Out for Delivery", color: "#ea580c", bgColor: "#fed7aa", icon: "📦" },
+    { value: "delivered", label: "✅ Delivered", color: "#059669", bgColor: "#d1fae5", icon: "✅" },
+    { value: "cancelled", label: "❌ Cancelled", color: "#dc2626", bgColor: "#fee2e2", icon: "❌" },
+    { value: "dispatched", label: "✈️ Dispatched", color: "#0891b2", bgColor: "#cffafe", icon: "✈️" },
+    { value: "hold", label: "⏸️ On Hold", color: "#475569", bgColor: "#f1f5f9", icon: "⏸️" }
   ];
 
   // ============================================
@@ -294,12 +294,42 @@ function ShipmentDetails() {
   };
 
   // ============================================
-  // 🖨️ PROFESSIONAL DOCKET PRINT - BEST DESIGN
+  // 🖨️ PROFESSIONAL DOCKET PRINT - FULLY FIXED
   // ============================================
   const printDocket = (shipment) => {
     const statusOpt = statusOptions.find(s => s.value === shipment.status) || statusOptions[0];
-    const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${shipment.lr}&code=Code128&dpi=120`;
+    // Fixed Barcode URL with better rendering
+    const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${shipment.lr}&code=Code128&dpi=120&hidehrt=0`;
     const currentDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    
+    // Get data safely
+    const pickupName = shipment.pickupName || 'N/A';
+    const pickupAddress = shipment.pickupAddress || 'Address not provided';
+    const pickupPincode = shipment.pickupPincode || 'N/A';
+    const pickupContact = shipment.pickupContact || 'N/A';
+    const pickupCity = shipment.pickupCity || '';
+    const pickupState = shipment.pickupState || '';
+    
+    const deliveryName = shipment.deliveryName || 'N/A';
+    const deliveryAddress = shipment.deliveryAddress || 'Address not provided';
+    const deliveryPincode = shipment.deliveryPincode || 'N/A';
+    const deliveryContact = shipment.deliveryContact || 'N/A';
+    const deliveryCity = shipment.deliveryCity || '';
+    const deliveryState = shipment.deliveryState || '';
+    
+    const material = shipment.material || 'GENERAL CARGO';
+    const hsn = shipment.hsn || '1234';
+    const actualWeight = shipment.actual_weight || shipment.weight || 0;
+    const volumetricWeight = shipment.volumetric_weight || '0';
+    const chargedWeight = shipment.weight || 0;
+    const boxes = shipment.boxes || 1;
+    const bookingMode = shipment.booking_mode || 'surface';
+    const modeText = bookingMode === 'air' ? 'AIR' : bookingMode === 'rail' ? 'RAIL' : bookingMode === 'express' ? 'EXPRESS' : 'SURFACE';
+    const modeClass = bookingMode === 'air' ? 'mode-air' : bookingMode === 'rail' ? 'mode-rail' : bookingMode === 'express' ? 'mode-express' : 'mode-surface';
+    
+    const totalValue = shipment.total_value || shipment.value || 0;
+    const ewayBill = shipment.eway_bill || '';
+    const freightAmount = shipment.freight_amount || 0;
     
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
@@ -385,9 +415,11 @@ function ShipmentDetails() {
             gap: 18px;
             flex-wrap: wrap;
           }
-          .logo-img {
-            height: 70px;
-            width: auto;
+          .logo-text {
+            font-size: 28px;
+            font-weight: 900;
+            color: #d32f2f;
+            letter-spacing: 2px;
           }
           .company-details h1 {
             font-size: 16px;
@@ -433,7 +465,7 @@ function ShipmentDetails() {
             letter-spacing: 2px;
           }
           .barcode-img {
-            width: 180px;
+            width: 200px;
             height: auto;
             margin: 8px 0;
             background: white;
@@ -483,21 +515,27 @@ function ShipmentDetails() {
           .text-left { text-align: left; }
           .text-center { text-align: center; }
           .goods-note { font-size: 7px; color: #64748b; margin-top: 3px; }
-          .mode-badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 8px; font-weight: 800; background: #dbeafe; color: #1e40af; }
+          .mode-badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 8px; font-weight: 800; }
+          .mode-surface { background: #dbeafe; color: #1e40af; }
+          .mode-air { background: #fef3c7; color: #92400e; }
+          .mode-rail { background: #e0e7ff; color: #3730a3; }
+          .mode-express { background: #dcfce7; color: #166534; }
           .billing-section { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; padding: 0 25px; margin-bottom: 20px; position: relative; z-index: 2; }
           .invoice-box, .freight-box { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
           .box-header { background: #f8fafc; padding: 10px 15px; font-size: 10px; font-weight: 800; border-bottom: 1px solid #e2e8f0; }
           .box-content { padding: 12px 15px; }
           .billing-row { display: flex; justify-content: space-between; font-size: 9px; padding: 6px 0; border-bottom: 1px solid #f1f5f9; }
           .billing-total { display: flex; justify-content: space-between; font-size: 10px; font-weight: 800; margin-top: 10px; padding-top: 10px; border-top: 2px solid #e2e8f0; }
+          .eway-bill { margin-top: 10px; padding: 8px; background: #fef3c7; border-radius: 8px; font-size: 9px; text-align: center; }
           .stamp-section { display: flex; justify-content: space-between; align-items: center; padding: 0 25px; margin: 20px 0; flex-wrap: wrap; gap: 30px; position: relative; z-index: 2; }
           .stamp-area { width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; }
-          .stamp-img { width: 100%; height: auto; }
+          .stamp-fallback { width: 90px; height: 90px; border-radius: 50%; border: 2px solid #2563eb; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 8px; font-weight: 800; color: #2563eb; background: rgba(37,99,235,0.02); }
+          .stamp-line { width: 25px; height: 1px; background: #2563eb; margin: 3px 0; }
           .signatures { display: flex; gap: 50px; flex-wrap: wrap; }
           .sign-box { text-align: center; }
           .sign-line { width: 120px; border-top: 1.5px solid #0f172a; margin-bottom: 6px; }
           .sign-box p { font-size: 8px; color: #64748b; margin-top: 4px; }
-          .stamp-text { border: 1px dashed #d32f2f; padding: 6px 15px; font-size: 8px; font-weight: 700; color: #d32f2f; background: #ffebed; border-radius: 6px; margin-bottom: 5px; }
+          .stamp-text { border: 1px dashed #d32f2f; padding: 6px 15px; font-size: 8px; font-weight: 700; color: #d32f2f; background: #ffebed; border-radius: 6px; margin-bottom: 5px; white-space: nowrap; }
           .terms-section { margin: 0 25px 15px 25px; padding: 10px 15px; background: #f8fafc; border-radius: 10px; position: relative; z-index: 2; }
           .terms-title { font-size: 8px; font-weight: 800; margin-bottom: 8px; }
           .terms-section ul { padding-left: 18px; font-size: 6.5px; color: #475569; line-height: 1.5; }
@@ -510,10 +548,11 @@ function ShipmentDetails() {
         <div class="docket-pro">
           <div class="docket-watermark">FAITH CARGO</div>
           <div class="docket-border"></div>
-          <div class="status-ribbon">${statusOpt.label.replace('📝 ', '').replace('🚚 ', '').replace('🚛 ', '').replace('📦 ', '').replace('✅ ', '').replace('❌ ', '').replace('✈️ ', '').replace('⏸️ ', '')}</div>
+          <div class="status-ribbon">${statusOpt.label.replace(/[📝🚚🚛📦✅❌✈️⏸️]/g, '').trim()}</div>
           
           <div class="docket-header">
             <div class="logo-section">
+              <div class="logo-text">FCPL</div>
               <div class="company-details">
                 <h1>FAITH CARGO PRIVATE LIMITED</h1>
                 <p>ISO 9001:2015 & ISO 14001:2015 CERTIFIED</p>
@@ -525,7 +564,7 @@ function ShipmentDetails() {
             <div class="doc-section">
               <div class="doc-title">CONSIGNMENT NOTE</div>
               <div class="lr-number">${shipment.lr}</div>
-              <img src="${barcodeUrl}" class="barcode-img" />
+              <img src="${barcodeUrl}" class="barcode-img" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'50\\'%3E%3Crect width=\\'200\\' height=\\'50\\' fill=\\'%23f0f0f0\\'/%3E%3Ctext x=\\'50%25\\' y=\\'50%25\\' text-anchor=\\'middle\\' dy=\\'.3em\\' fill=\\'%23999\\' font-family=\\'monospace\\' font-size=\\'14\\'%3E${shipment.lr}%3C/text%3E%3C/svg%3E'" />
               <div class="awb-text">AWB: ${shipment.awb || 'N/A'}</div>
               <div class="date-text">Date: ${currentDate}</div>
             </div>
@@ -534,34 +573,94 @@ function ShipmentDetails() {
           <div class="parties-section">
             <div class="party-card">
               <div class="party-header"><span class="party-icon">📤</span><div><div class="party-title">CONSIGNOR</div><div class="party-sub">Sender</div></div></div>
-              <div class="party-body"><div class="party-name">${shipment.pickupName || '____________________'}</div><div class="party-address">${shipment.pickupAddress || 'Address not provided'}</div><div class="party-details"><span>📮 Pincode: ${shipment.pickupPincode || '______'}</span><span>📞 ${shipment.pickupContact || '_________'}</span></div></div>
+              <div class="party-body">
+                <div class="party-name">${pickupName}</div>
+                <div class="party-address">${pickupAddress}</div>
+                <div class="party-details">
+                  <span>📮 Pincode: ${pickupPincode}</span>
+                  <span>📍 ${pickupCity} ${pickupState}</span>
+                  <span>📞 ${pickupContact}</span>
+                </div>
+              </div>
             </div>
             <div class="party-card">
               <div class="party-header"><span class="party-icon">📥</span><div><div class="party-title">CONSIGNEE</div><div class="party-sub">Receiver</div></div></div>
-              <div class="party-body"><div class="party-name">${shipment.deliveryName || '____________________'}</div><div class="party-address">${shipment.deliveryAddress || 'Address not provided'}</div><div class="party-details"><span>📮 Pincode: ${shipment.deliveryPincode || '______'}</span><span>📞 ${shipment.deliveryContact || '_________'}</span></div></div>
+              <div class="party-body">
+                <div class="party-name">${deliveryName}</div>
+                <div class="party-address">${deliveryAddress}</div>
+                <div class="party-details">
+                  <span>📮 Pincode: ${deliveryPincode}</span>
+                  <span>📍 ${deliveryCity} ${deliveryState}</span>
+                  <span>📞 ${deliveryContact}</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <div class="table-wrapper">
             <table class="shipment-table">
               <thead><tr><th>PKGS</th><th>DESCRIPTION OF GOODS</th><th>HSN</th><th>ACTUAL WT</th><th>VOL WT</th><th>CHARGED WT</th><th>MODE</th></tr></thead>
-              <tbody><tr><td class="text-center">${shipment.boxes || 1}</td><td class="text-left"><strong>${shipment.material || 'GENERAL CARGO'}</strong><div class="goods-note">Said to Contain</div></td><td class="text-center">${shipment.hsn || '1234'}</td><td class="text-center">${shipment.actual_weight || shipment.weight || 0} kg</td><td class="text-center">${shipment.volumetric_weight || '0'} kg</td><td class="text-center"><strong>${shipment.weight || 0} kg</strong></td><td class="text-center"><span class="mode-badge">${shipment.booking_mode?.toUpperCase() || 'SURFACE'}</span></td></tr></tbody>
+              <tbody>
+                <tr>
+                  <td class="text-center">${boxes}</td>
+                  <td class="text-left"><strong>${material}</strong><div class="goods-note">Said to Contain</div></td>
+                  <td class="text-center">${hsn}</td>
+                  <td class="text-center">${actualWeight} kg</td>
+                  <td class="text-center">${volumetricWeight} kg</td>
+                  <td class="text-center"><strong>${chargedWeight} kg</strong></td>
+                  <td class="text-center"><span class="mode-badge ${modeClass}">${modeText}</span></td>
+                </tr>
+              </tbody>
             </table>
           </div>
 
           <div class="billing-section">
-            <div class="invoice-box"><div class="box-header">📄 INVOICE DETAILS</div><div class="box-content"><div class="billing-total"><span>TOTAL INVOICE VALUE:</span><strong>₹${(shipment.total_value || shipment.value || 0).toLocaleString()}</strong></div>${shipment.eway_bill ? `<div class="eway-bill" style="margin-top:10px;padding:8px;background:#fef3c7;border-radius:8px;font-size:9px;text-align:center;">🚛 E-WAY BILL: ${shipment.eway_bill}</div>` : ''}</div></div>
-            <div class="freight-box"><div class="box-header">💰 FREIGHT BREAKDOWN</div><div class="box-content"><div class="billing-row"><span>Total Freight</span><span>₹${(shipment.freight_amount || 0).toLocaleString()}</span></div><div class="billing-total"><span>TOTAL FREIGHT</span><strong>₹${(shipment.freight_amount || 0).toLocaleString()}</strong></div></div></div>
+            <div class="invoice-box">
+              <div class="box-header">📄 INVOICE DETAILS</div>
+              <div class="box-content">
+                <div class="billing-total"><span>TOTAL INVOICE VALUE:</span><strong>₹${totalValue.toLocaleString()}</strong></div>
+                ${ewayBill ? `<div class="eway-bill">🚛 E-WAY BILL: ${ewayBill}</div>` : ''}
+              </div>
+            </div>
+            <div class="freight-box">
+              <div class="box-header">💰 FREIGHT BREAKDOWN</div>
+              <div class="box-content">
+                <div class="billing-row"><span>Total Freight</span><span>₹${freightAmount.toLocaleString()}</span></div>
+                <div class="billing-total"><span>TOTAL FREIGHT</span><strong>₹${freightAmount.toLocaleString()}</strong></div>
+              </div>
+            </div>
           </div>
 
           <div class="stamp-section">
-            <div class="stamp-area"><div class="stamp-text" style="width:100px;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:50%;border:2px solid #2563eb;"><div>FAITH</div><div>CARGO</div><div>PVT LTD</div><div style="width:30px;height:1px;background:#2563eb;margin:5px 0;"></div><div>AUTHORIZED</div></div></div>
-            <div class="signatures"><div class="sign-box"><div class="sign-line"></div><p>Receiver's Signature</p></div><div class="sign-box"><div class="stamp-text">FOR FAITH CARGO PVT LTD</div><p>Authorized Signatory</p></div></div>
+            <div class="stamp-area">
+              <div class="stamp-fallback">
+                <div>FAITH</div>
+                <div>CARGO</div>
+                <div>PVT LTD</div>
+                <div class="stamp-line"></div>
+                <div>AUTHORIZED</div>
+              </div>
+            </div>
+            <div class="signatures">
+              <div class="sign-box"><div class="sign-line"></div><p>Receiver's Signature</p></div>
+              <div class="sign-box"><div class="stamp-text">FOR FAITH CARGO PVT LTD</div><p>Authorized Signatory</p></div>
+            </div>
           </div>
 
-          <div class="terms-section"><div class="terms-title">TERMS & CONDITIONS</div><ul><li>Goods carried at Owner's Risk. Insurance recommended for high-value shipments.</li><li>Claim must be filed within 7 days of delivery. Jurisdiction: Delhi Only.</li><li>Transit liability as per Carriers Act, 1865.</li><li>E-Way Bill mandatory for invoice value &gt; ₹50,000.</li></ul></div>
+          <div class="terms-section">
+            <div class="terms-title">TERMS & CONDITIONS</div>
+            <ul>
+              <li>Goods carried at Owner's Risk. Insurance recommended for high-value shipments.</li>
+              <li>Claim must be filed within 7 days of delivery. Jurisdiction: Delhi Only.</li>
+              <li>Transit liability as per Carriers Act, 1865.</li>
+              <li>E-Way Bill mandatory for invoice value &gt; ₹50,000.</li>
+            </ul>
+          </div>
 
-          <div class="footer"><div class="footer-copies"><span>📄 ORIGINAL - CONSIGNOR</span><span>📄 DUPLICATE - CONSIGNEE</span><span>📄 TRIPLICATE - OFFICE COPY</span></div><div class="footer-powered">Powered by <strong>Faith Cargo Logistics</strong> | Developed by <strong>Devora Technologies</strong></div></div>
+          <div class="footer">
+            <div class="footer-copies"><span>📄 ORIGINAL - CONSIGNOR</span><span>📄 DUPLICATE - CONSIGNEE</span><span>📄 TRIPLICATE - OFFICE COPY</span></div>
+            <div class="footer-powered">Powered by <strong>Faith Cargo Logistics</strong> | Developed by <strong>Devora Technologies</strong></div>
+          </div>
         </div>
       </body>
       </html>
@@ -573,12 +672,22 @@ function ShipmentDetails() {
   };
 
   // ============================================
-  // 🏷️ PROFESSIONAL BOX LABEL PRINT - BEST DESIGN (AS PER YOUR IMAGE)
+  // 🏷️ PROFESSIONAL BOX LABEL PRINT - FULLY FIXED
   // ============================================
   const printLabel = (shipment) => {
-    const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${shipment.lr}&code=Code128&dpi=120`;
+    const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${shipment.lr}&code=Code128&dpi=120&hidehrt=0`;
     const awbNumber = shipment.awb || shipment.lr || 'N/A';
     const totalBoxes = shipment.boxes || 1;
+    
+    const pickupName = shipment.pickupName || 'N/A';
+    const pickupPincode = shipment.pickupPincode || 'N/A';
+    const pickupCity = shipment.pickupCity || 'DELHI';
+    
+    const deliveryName = shipment.deliveryName || 'N/A';
+    const deliveryPincode = shipment.deliveryPincode || 'N/A';
+    const deliveryCity = shipment.deliveryCity || 'LUDHIANA';
+    const deliveryContact = shipment.deliveryContact || 'N/A';
+    const weight = shipment.weight || 0;
     
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
@@ -674,26 +783,26 @@ function ShipmentDetails() {
             </div>
             
             <div class="barcode-container">
-              <img src="${barcodeUrl}" class="barcode-img" />
+              <img src="${barcodeUrl}" class="barcode-img" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'40\\'%3E%3Crect width=\\'200\\' height=\\'40\\' fill=\\'%23f0f0f0\\'/%3E%3Ctext x=\\'50%25\\' y=\\'50%25\\' text-anchor=\\'middle\\' dy=\\'.3em\\' fill=\\'%23999\\' font-family=\\'monospace\\' font-size=\\'12\\'%3E${shipment.lr}%3C/text%3E%3C/svg%3E'" />
               <div class="awb-small">AWB: ${awbNumber}</div>
             </div>
             
             <div class="address-grid">
               <div class="address-box">
                 <div class="address-label">📤 FROM:</div>
-                <div class="address-name">${shipment.pickupName || 'N/A'}</div>
-                <div class="address-location">${shipment.pickupCity || shipment.pickupPincode || 'DELHI'}</div>
+                <div class="address-name">${pickupName}</div>
+                <div class="address-location">${pickupCity} - ${pickupPincode}</div>
               </div>
               <div class="address-box">
                 <div class="address-label">📥 TO:</div>
-                <div class="address-name">${shipment.deliveryName || 'N/A'}</div>
-                <div class="address-location">${shipment.deliveryCity || shipment.deliveryPincode || 'LUDHIANA'}</div>
+                <div class="address-name">${deliveryName}</div>
+                <div class="address-location">${deliveryCity} - ${deliveryPincode}</div>
               </div>
             </div>
             
             <div class="info-row">
-              <div class="info-item"><div class="info-label">Receiver Mob</div><div class="info-value">${shipment.deliveryContact || 'N/A'}</div></div>
-              <div class="info-item"><div class="info-label">Weight</div><div class="info-value">${shipment.weight || 0} kg</div></div>
+              <div class="info-item"><div class="info-label">Receiver Mob</div><div class="info-value">${deliveryContact}</div></div>
+              <div class="info-item"><div class="info-label">Weight</div><div class="info-value">${weight} kg</div></div>
               <div class="info-item"><div class="info-label">AWB</div><div class="info-value">${awbNumber}</div></div>
             </div>
             
@@ -734,9 +843,6 @@ function ShipmentDetails() {
     utterance.rate = 0.92;
     utterance.pitch = 0.88;
     utterance.volume = 1;
-    const voices = window.speechSynthesis.getVoices();
-    const indianVoice = voices.find(voice => voice.lang === 'hi-IN' && (voice.name.includes('Female') || voice.name.includes('Google')));
-    if (indianVoice) utterance.voice = indianVoice;
     window.speechSynthesis.speak(utterance);
   };
 
