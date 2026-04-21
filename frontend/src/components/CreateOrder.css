@@ -1,5 +1,5 @@
 /* ============================================
-   FAITH CARGO - CREATE ORDER PAGE v12.0
+   FAITH CARGO - CREATE ORDER PAGE v13.0
    WITH CLIENT AUTHENTICATION & CUSTOM RATES
    ULTIMATE PREMIUM UI DESIGN - FULLY OPTIMIZED
    DEVELOPED BY DEVORA TECHNOLOGIES
@@ -167,7 +167,7 @@ body {
   50% { transform: scale(1.3); opacity: 0.7; }
 }
 
-/* Client Info Sidebar - NEW */
+/* Client Info Sidebar */
 .client-info-sidebar {
   display: flex;
   align-items: center;
@@ -220,7 +220,7 @@ body {
   transform: scale(1.05);
 }
 
-/* Sidebar Rates Info - NEW */
+/* Sidebar Rates Info */
 .sidebar-rates-info {
   background: linear-gradient(135deg, var(--primary-purple-light), rgba(139, 92, 246, 0.1));
   padding: 14px 16px;
@@ -1943,178 +1943,627 @@ body {
 }
 
 /* --------------------------------------------
-   19. ENHANCED DOCKET HEADER WITH BARCODE - FIXED
+   19. ENHANCED DOCKET STYLES - A4 SIZE (70% PAGE USAGE) - PROFESSIONAL
    -------------------------------------------- */
-.docket-header-new {
-  display: flex;
-  justify-content: space-between;
-  padding: 20px 25px;
-  border-bottom: 3px solid var(--primary-red);
+.print-docket-pro {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
   background: white;
   position: relative;
+  padding: 12px;
+  font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+}
+
+/* Watermark */
+.docket-watermark-pro {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 80px;
+  font-weight: 900;
+  color: rgba(211, 47, 47, 0.03);
+  white-space: nowrap;
+  letter-spacing: 10px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Border Frame */
+.docket-border-pro {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  border: 2px solid var(--primary-red);
+  pointer-events: none;
+  border-radius: 8px;
+  z-index: 1;
+}
+
+/* Header Section */
+.docket-header-pro {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 20px;
+  border-bottom: 2px solid var(--primary-red);
+  margin-bottom: 15px;
+  position: relative;
   z-index: 2;
+  background: white;
   flex-wrap: wrap;
   gap: 20px;
 }
 
-.header-left-section {
-  text-align: left;
+.header-left-pro {
   flex: 1;
 }
 
-.lr-label {
-  font-size: 11px;
-  font-weight: bold;
+.doc-type-pro {
+  font-size: 10px;
+  font-weight: 700;
   color: var(--text-gray);
-  letter-spacing: 1.5px;
-  margin-bottom: 6px;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
 }
 
-/* Barcode Styles - Fixed */
-.barcode-canvas {
-  margin: 8px 0;
-  background: white;
-  display: block;
-  width: 100%;
-  max-width: 300px;
-  height: auto;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 5px;
-}
-
-.barcode-image {
-  margin: 8px 0;
-  background: white;
-  display: block;
-  width: 100%;
-  max-width: 300px;
-  height: auto;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 5px;
-  box-shadow: var(--shadow-sm);
-}
-
-/* Barcode Placeholder */
-.barcode-placeholder {
-  width: 280px;
-  height: 60px;
-  background: #f8fafc;
-  border: 1px dashed #cbd5e1;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: #94a3b8;
-  margin: 8px 0;
-}
-
-/* Client ID Docket - NEW */
-.client-id-docket {
-  margin-top: 8px;
-  font-size: 9px;
-  color: var(--primary-purple);
-  background: var(--primary-purple-light);
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-weight: 600;
-}
-
-.lr-number-bold {
+.lr-number-pro {
   font-size: 26px;
   font-weight: 900;
   color: var(--primary-red);
   font-family: monospace;
   letter-spacing: 2px;
-  margin-top: 5px;
+  margin: 8px 0;
 }
 
-.awb-section {
-  margin-top: 10px;
+.barcode-area-pro {
+  margin: 10px 0;
 }
 
-.awb-label {
+.barcode-img-pro {
+  width: 260px;
+  height: auto;
+  background: white;
+  padding: 5px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.barcode-placeholder-pro {
+  width: 260px;
+  height: 50px;
+  background: var(--bg-gray);
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: monospace;
+  font-size: 16px;
+  letter-spacing: 3px;
+  color: var(--text-light);
+}
+
+.awb-row-pro {
+  margin: 8px 0;
   font-size: 12px;
+}
+
+.awb-label-pro {
   font-weight: 700;
   color: var(--text-gray);
   margin-right: 10px;
-  text-transform: uppercase;
 }
 
-.awb-value-bold {
-  font-size: 15px;
+.awb-value-pro {
   font-weight: 800;
   color: var(--text-dark);
 }
 
-.status-badge-docket {
+.client-tag-pro {
   display: inline-block;
-  margin-top: 12px;
-  padding: 5px 16px;
+  margin-top: 8px;
+  font-size: 9px;
+  background: var(--primary-purple-light);
+  color: var(--primary-purple);
+  padding: 3px 12px;
   border-radius: 20px;
-  font-size: 10px;
-  font-weight: bold;
-  background: linear-gradient(135deg, var(--success), #059669);
-  color: white;
+  font-weight: 600;
 }
 
-.date-value-docket {
+.date-tag-pro {
+  margin-top: 8px;
   font-size: 9px;
   color: var(--text-gray);
-  margin-top: 8px;
 }
 
-.header-right-section {
+.header-right-pro {
   text-align: right;
   flex-shrink: 0;
 }
 
-.brand-logo-large {
-  height: 65px;
+.company-logo-pro {
+  height: 55px;
   width: auto;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   object-fit: contain;
 }
 
-.company-details h2 {
-  font-size: 15px;
+.company-name-pro {
+  font-size: 13px;
   font-weight: 900;
-  margin: 0;
   color: var(--text-dark);
+  letter-spacing: 0.5px;
 }
 
-.company-details p {
-  font-size: 8px;
+.company-cert-pro {
+  font-size: 7px;
   color: var(--primary-red);
   font-weight: 600;
+  margin-top: 2px;
+}
+
+.company-address-pro {
+  font-size: 7px;
+  color: var(--text-gray);
+  margin-top: 5px;
+  line-height: 1.3;
+}
+
+.company-contact-pro {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  font-size: 6px;
+  color: var(--text-gray);
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.company-gst-pro {
+  font-size: 6px;
+  color: var(--text-gray);
   margin-top: 3px;
 }
 
-.contact-details {
-  font-size: 7px;
-  color: var(--text-gray);
-  margin-top: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+/* Status Ribbon */
+.status-ribbon-pro {
+  display: inline-block;
+  margin: 0 20px 15px 20px;
+  padding: 5px 16px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+  color: white;
+  position: relative;
+  z-index: 2;
 }
 
-/* Print Barcode Styles */
-@media print {
-  .barcode-canvas,
-  .barcode-image {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-    filter: none;
-    background: white;
-  }
-  
-  .barcode-placeholder {
-    display: none;
-  }
+/* Parties Grid */
+.parties-grid-pro {
+  display: flex;
+  gap: 20px;
+  padding: 0 20px;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 2;
+  flex-wrap: wrap;
+}
+
+.party-card-pro {
+  flex: 1;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.party-header-pro {
+  background: linear-gradient(135deg, var(--bg-gray), white);
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.party-icon-pro {
+  font-size: 22px;
+}
+
+.party-title-pro {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-dark);
+  letter-spacing: 1px;
+}
+
+.party-sub-pro {
+  font-size: 9px;
+  color: var(--text-gray);
+}
+
+.party-body-pro {
+  padding: 12px 15px;
+}
+
+.party-name-pro {
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  color: var(--text-dark);
+}
+
+.party-address-pro {
+  font-size: 9px;
+  color: var(--text-gray);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.party-meta-pro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-color);
+  color: var(--text-gray);
+}
+
+.gst-tag-pro {
+  background: var(--info-light);
+  color: var(--info);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.arrow-icon-pro {
+  font-size: 28px;
+  color: var(--primary-red);
+  display: flex;
+  align-items: center;
+}
+
+/* Shipment Table */
+.shipment-table-wrapper-pro {
+  padding: 0 20px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  position: relative;
+  z-index: 2;
+}
+
+.shipment-table-pro {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9px;
+}
+
+.shipment-table-pro th {
+  background: linear-gradient(135deg, var(--bg-gray), #f1f5f9);
+  padding: 10px 8px;
+  font-weight: 800;
+  border: 1px solid var(--border-color);
+  text-align: center;
+  color: var(--text-dark);
+}
+
+.shipment-table-pro td {
+  padding: 10px 8px;
+  border: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.text-center-pro {
+  text-align: center;
+}
+
+.text-left-pro {
+  text-align: left;
+}
+
+.goods-note-pro {
+  font-size: 7px;
+  color: var(--text-gray);
+  margin-top: 3px;
+}
+
+.mode-badge-pro {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.mode-surface {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.mode-air {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.mode-rail {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.mode-express {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.dim-text-pro {
+  font-size: 8px;
+  color: var(--text-gray);
+}
+
+/* Billing Grid */
+.billing-grid-pro {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 0 20px;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 2;
+}
+
+.invoice-box-pro, .freight-box-pro {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.box-header-pro {
+  background: linear-gradient(135deg, var(--bg-gray), white);
+  padding: 10px 15px;
+  font-size: 10px;
+  font-weight: 800;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-dark);
+}
+
+.invoice-items-pro, .freight-items-pro {
+  padding: 12px 15px;
+}
+
+.invoice-line-pro, .freight-line-pro {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  padding: 6px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.invoice-total-pro, .freight-total-pro {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 800;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 2px solid var(--border-color);
+  color: var(--text-dark);
+}
+
+.eway-bill-pro {
+  margin-top: 10px;
+  padding: 8px;
+  background: var(--warning-light);
+  border-radius: 8px;
+  font-size: 9px;
+  text-align: center;
+}
+
+.rate-note-pro {
+  margin-top: 10px;
+  font-size: 7px;
+  color: var(--text-gray);
+  text-align: center;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-color);
+}
+
+/* Stamp and Signature */
+.stamp-signature-pro {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  margin: 20px 0;
+  position: relative;
+  z-index: 2;
+  flex-wrap: wrap;
+  gap: 30px;
+}
+
+.stamp-area-pro {
+  width: 110px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.company-stamp-pro {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.stamp-fallback-pro {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stamp-circle-pro {
+  width: 95px;
+  height: 95px;
+  border-radius: 50%;
+  border: 2px solid var(--primary-blue);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(37, 99, 235, 0.02);
+}
+
+.stamp-text-pro {
+  font-size: 8px;
+  font-weight: 900;
+  color: var(--primary-blue);
+  text-transform: uppercase;
+}
+
+.stamp-text-small-pro {
+  font-size: 6px;
+  font-weight: 700;
+  color: var(--primary-blue);
+}
+
+.stamp-line-pro {
+  width: 25px;
+  height: 1px;
+  background: var(--primary-blue);
+  margin: 3px 0;
+}
+
+.signatures-pro {
+  display: flex;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.sign-box-pro {
+  text-align: center;
+}
+
+.sign-line-pro {
+  width: 100px;
+  border-top: 1.5px solid var(--text-dark);
+  margin-bottom: 6px;
+}
+
+.sign-box-pro p {
+  font-size: 8px;
+  color: var(--text-gray);
+  margin-top: 4px;
+}
+
+.stamp-box-pro {
+  border: 1px dashed var(--primary-red);
+  padding: 5px 12px;
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--primary-red);
+  background: var(--primary-red-light);
+  border-radius: 6px;
+  margin-bottom: 5px;
+}
+
+/* Instructions */
+.instructions-pro {
+  margin: 0 20px 15px 20px;
+  padding: 12px 15px;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border-radius: 12px;
+  border-left: 3px solid var(--success);
+  position: relative;
+  z-index: 2;
+}
+
+.instructions-header-pro {
+  font-size: 9px;
+  font-weight: 800;
+  margin-bottom: 10px;
+  color: var(--success-dark, #059669);
+}
+
+.instructions-grid-pro {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.instruction-item-pro {
+  display: flex;
+  gap: 8px;
+  font-size: 7px;
+}
+
+.instruction-item-pro span {
+  font-size: 14px;
+}
+
+.instruction-item-pro strong {
+  display: block;
+  font-size: 8px;
+  margin-bottom: 2px;
+}
+
+.instruction-item-pro p {
+  color: var(--text-gray);
+}
+
+/* Terms */
+.terms-pro {
+  margin: 0 20px 15px 20px;
+  padding: 10px 15px;
+  background: var(--bg-gray);
+  border-radius: 10px;
+  position: relative;
+  z-index: 2;
+}
+
+.terms-header-pro {
+  font-size: 8px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: var(--text-dark);
+}
+
+.terms-list-pro {
+  padding-left: 15px;
+  font-size: 6px;
+  color: var(--text-gray);
+  line-height: 1.5;
+}
+
+/* Footer */
+.footer-pro {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, var(--dark-bg), #1e1b4b);
+  color: white;
+  position: relative;
+  z-index: 2;
+}
+
+.footer-copies-pro {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 7px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.footer-powered-pro {
+  font-size: 6px;
+  opacity: 0.6;
+  text-align: center;
 }
 
 /* --------------------------------------------
@@ -2132,18 +2581,8 @@ body {
   gap: 30px;
 }
 
-.stamp-image-container {
-  width: 130px;
-  height: 130px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(37, 99, 235, 0.03);
-  border-radius: 50%;
-}
-
 .official-stamp-image {
-  width: 100%;
+  width: 100px;
   height: auto;
   object-fit: contain;
   opacity: 0.9;
@@ -2227,35 +2666,8 @@ body {
   letter-spacing: 0.5px;
 }
 
-.signature-area {
-  display: flex;
-  gap: 40px;
-  flex-wrap: wrap;
-}
-
-.signature-line-item {
-  text-align: center;
-}
-
-.sign-line {
-  width: 100px;
-  border-top: 1.5px solid var(--text-dark);
-  margin-bottom: 6px;
-}
-
-.stamp-box {
-  border: 1.5px dashed var(--primary-red);
-  padding: 6px 12px;
-  font-size: 8px;
-  font-weight: bold;
-  margin-bottom: 5px;
-  color: var(--primary-red);
-  background: var(--primary-red-light);
-  border-radius: 6px;
-}
-
 /* --------------------------------------------
-   21. RESPONSIVE DESIGN - ENHANCED
+   21. PRINT STYLES - A4 OPTIMIZED
    -------------------------------------------- */
 @media print {
   .no-print,
@@ -2273,10 +2685,10 @@ body {
     display: none !important;
   }
   
-  .print-docket {
+  .print-docket-pro {
     display: block !important;
     margin: 0;
-    padding: 0;
+    padding: 8px;
     box-shadow: none;
     width: 100%;
   }
@@ -2292,15 +2704,21 @@ body {
     margin: 8mm;
   }
   
-  .official-stamp-image,
-  .official-stamp-fallback,
-  .barcode-image,
-  .barcode-canvas {
+  .barcode-img-pro,
+  .company-stamp-pro,
+  .official-stamp-image {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
+  
+  .docket-watermark-pro {
+    opacity: 0.02;
+  }
 }
 
+/* --------------------------------------------
+   22. RESPONSIVE DESIGN - ENHANCED
+   -------------------------------------------- */
 @media (max-width: 1024px) {
   .tracking-details-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -2332,6 +2750,14 @@ body {
   
   .order-main-content {
     padding: 24px;
+  }
+  
+  .billing-grid-pro {
+    grid-template-columns: 1fr;
+  }
+  
+  .instructions-grid-pro {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -2440,35 +2866,46 @@ body {
     gap: 20px;
   }
   
-  /* Mobile barcode adjustments */
-  .barcode-image,
-  .barcode-canvas {
-    max-width: 250px;
+  .parties-grid-pro {
+    flex-direction: column;
   }
   
-  .lr-number-bold {
-    font-size: 20px;
+  .arrow-icon-pro {
+    transform: rotate(90deg);
+    justify-content: center;
   }
   
-  .header-left-section {
-    margin-right: 10px;
+  .stamp-signature-pro {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
   }
   
-  .brand-logo-large {
-    height: 50px;
+  .signatures-pro {
+    justify-content: center;
   }
   
-  .company-details h2 {
-    font-size: 12px;
-  }
-  
-  .docket-header-new {
+  .docket-header-pro {
     flex-direction: column;
     text-align: center;
   }
   
-  .header-right-section {
+  .header-right-pro {
     text-align: center;
+  }
+  
+  .company-contact-pro {
+    justify-content: center;
+  }
+  
+  .instructions-grid-pro {
+    grid-template-columns: 1fr;
+  }
+  
+  .footer-copies-pro {
+    flex-direction: column;
+    text-align: center;
+    gap: 5px;
   }
 }
 
@@ -2520,34 +2957,12 @@ body {
     margin-bottom: 5px;
   }
   
-  /* Mobile barcode adjustments */
-  .barcode-image,
-  .barcode-canvas {
-    max-width: 200px;
+  .barcode-img-pro {
+    width: 200px;
   }
   
-  .lr-number-bold {
-    font-size: 18px;
-  }
-  
-  .awb-label,
-  .awb-value-bold {
-    font-size: 11px;
-  }
-  
-  .signature-area {
-    flex-direction: column;
-    gap: 20px;
-    align-items: center;
-  }
-  
-  .tracking-timeline-enhanced {
-    gap: 15px;
-  }
-  
-  .timeline-step-enhanced {
-    flex-wrap: wrap;
-    justify-content: center;
+  .lr-number-pro {
+    font-size: 20px;
   }
 }
 
@@ -2556,6 +2971,10 @@ body {
 .text-left { text-align: left; }
 .text-red { color: var(--primary-red); }
 .text-purple { color: var(--primary-purple); }
+.mt-2 { margin-top: 8px; }
+.mt-3 { margin-top: 12px; }
+.mb-2 { margin-bottom: 8px; }
+.mb-3 { margin-bottom: 12px; }
 
 /* Animations */
 @keyframes fadeInUp {
@@ -2571,23 +2990,6 @@ body {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-
-/* Loading Animation */
-.loading-spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-/* Success Animation */
-@keyframes checkmark {
-  0% { transform: scale(0); opacity: 0; }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); opacity: 1; }
 }
 
 /* Hover Effects */

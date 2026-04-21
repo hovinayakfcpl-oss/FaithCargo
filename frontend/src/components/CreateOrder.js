@@ -16,6 +16,7 @@ import {
   FolderOpen, LogOut, UserCircle
 } from "lucide-react";
 import logo from "../assets/logo.png";
+import stampImage from "../assets/stamp.png";
 import "./CreateOrder.css";
 
 // ============================================
@@ -226,33 +227,38 @@ const FreightCalculator = ({ weight, origin, destination, bookingMode, clientPol
 };
 
 // ============================================
-// 🎨 DOCKET COMPONENT
+// 🎨 PROFESSIONAL DOCKET COMPONENT - A4 OPTIMIZED (70% page usage)
 // ============================================
 const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData, status, uploadedInvoices, clientId, userRole }, ref) => {
   const barcodeRef = useRef(null);
   const [barcodeImageUrl, setBarcodeImageUrl] = useState("");
+  const [stampError, setStampError] = useState(false);
   
+  // Generate barcode with proper settings
   useEffect(() => {
     if (lrNumber && barcodeRef.current) {
       try {
+        // Clear canvas first
         const canvas = barcodeRef.current;
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
+        // Generate barcode
         JsBarcode(canvas, lrNumber, {
           format: "CODE128",
-          width: 2,
-          height: 50,
+          width: 1.8,
+          height: 45,
           displayValue: true,
-          fontSize: 14,
+          fontSize: 11,
           font: "monospace",
-          margin: 10,
+          margin: 8,
           textAlign: "center",
-          textMargin: 5,
+          textMargin: 4,
           background: "#ffffff",
           lineColor: "#000000"
         });
         
+        // Convert to image URL
         const imageUrl = canvas.toDataURL("image/png");
         setBarcodeImageUrl(imageUrl);
       } catch (err) {
@@ -266,7 +272,16 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
       case 'air': return 'AIR EXPRESS';
       case 'rail': return 'RAIL CARGO';
       case 'express': return 'SPEED POST';
-      default: return 'SURFACE TRANSPORT';
+      default: return 'SURFACE';
+    }
+  };
+
+  const getModeClass = () => {
+    switch(bookingMode) {
+      case 'air': return 'mode-air';
+      case 'rail': return 'mode-rail';
+      case 'express': return 'mode-express';
+      default: return 'mode-surface';
     }
   };
 
@@ -276,14 +291,24 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
       case 'in_transit': return 'IN TRANSIT';
       case 'out_for_delivery': return 'OUT FOR DELIVERY';
       case 'picked': return 'PICKED UP';
-      default: return 'BOOKED';
+      default: return 'CONFIRMED';
+    }
+  };
+
+  const getStatusColor = () => {
+    switch(status) {
+      case 'delivered': return '#10b981';
+      case 'in_transit': return '#3b82f6';
+      case 'out_for_delivery': return '#f59e0b';
+      case 'picked': return '#8b5cf6';
+      default: return '#ef4444';
     }
   };
 
   const getDimensionsText = () => {
     if (!data?.orderDetails?.dimensions || data.orderDetails.dimensions.length === 0) return "—";
     return data.orderDetails.dimensions.map(d => 
-      `${d.quantity} x (${d.length}×${d.width}×${d.height})`
+      `${d.quantity}×(${d.length}×${d.width}×${d.height})`
     ).join(", ");
   };
 
@@ -297,155 +322,274 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
   };
 
   return (
-    <div ref={ref} className="print-docket">
-      <div className="docket-watermark">FCPL</div>
-      <div className="docket-inner-border"></div>
-      <canvas ref={barcodeRef} style={{ display: 'none' }} width="350" height="80"></canvas>
-      <div className="docket-header-new">
-        <div className="header-left-section">
-          <div className="lr-label">CONSIGNMENT NOTE</div>
-          {barcodeImageUrl ? (
-            <img src={barcodeImageUrl} alt="Barcode" className="barcode-image" />
-          ) : (
-            <div className="barcode-placeholder">Generating barcode...</div>
-          )}
-          <div className="lr-number-bold">{lrNumber || "DRAFT"}</div>
-          <div className="awb-section">
-            <span className="awb-label">AWB:</span>
-            <span className="awb-value-bold">{awbNumber || "N/A"}</span>
+    <div ref={ref} className="print-docket-pro">
+      {/* Hidden canvas for barcode generation */}
+      <canvas ref={barcodeRef} style={{ display: 'none' }} width="300" height="70"></canvas>
+      
+      {/* Watermark */}
+      <div className="docket-watermark-pro">FAITH CARGO</div>
+      
+      {/* Border Frame */}
+      <div className="docket-border-pro"></div>
+      
+      {/* Header Section */}
+      <div className="docket-header-pro">
+        <div className="header-left-pro">
+          <div className="doc-type-pro">CONSIGNMENT NOTE</div>
+          <div className="lr-number-pro">{lrNumber || "DRAFT"}</div>
+          <div className="barcode-area-pro">
+            {barcodeImageUrl ? (
+              <img src={barcodeImageUrl} alt="Barcode" className="barcode-img-pro" />
+            ) : (
+              <div className="barcode-placeholder-pro">••••••••</div>
+            )}
           </div>
-          {clientId && <div className="client-id-docket">Client: {clientId}</div>}
-          {userRole === "admin" && <div className="admin-badge-docket">Admin</div>}
-          <div className="status-badge-docket">{getStatusText()}</div>
-          <div className="date-value-docket">{new Date().toLocaleDateString('en-IN')}</div>
+          <div className="awb-row-pro">
+            <span className="awb-label-pro">AWB:</span>
+            <span className="awb-value-pro">{awbNumber || "N/A"}</span>
+          </div>
+          {clientId && <div className="client-tag-pro">Client: {clientId}</div>}
+          <div className="date-tag-pro">Date: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
         </div>
-        <div className="header-right-section">
-          <img src={logo} alt="FCPL" className="brand-logo-large" />
-          <div className="company-details">
-            <h2>FAITH CARGO PRIVATE LIMITED</h2>
-            <p>ISO 9001:2015 & ISO 14001:2015 CERTIFIED</p>
-            <div className="contact-details">
-              <span>🏢 4/15, Kirti Nagar Industrial Area, New Delhi - 110015</span>
-              <span>📞 +91 9818641504 | ✉️ care@faithcargo.com</span>
-              <span>🔷 GST: 07AAFCF2947K1ZD | CIN: U60231DL2021PTC384521</span>
-            </div>
+        
+        <div className="header-right-pro">
+          <img src={logo} alt="Faith Cargo" className="company-logo-pro" onError={(e) => e.target.style.display = 'none'} />
+          <div className="company-name-pro">FAITH CARGO PVT LTD</div>
+          <div className="company-cert-pro">ISO 9001:2015 & ISO 14001:2015</div>
+          <div className="company-address-pro">4/15, Kirti Nagar Industrial Area, New Delhi - 110015</div>
+          <div className="company-contact-pro">
+            <span>📞 +91 9818641504</span>
+            <span>✉️ care@faithcargo.com</span>
+            <span>🌐 www.faithcargo.com</span>
           </div>
+          <div className="company-gst-pro">GST: 07AAFCF2947K1ZD | CIN: U60231DL2021PTC384521</div>
         </div>
       </div>
 
-      <div className="parties-container">
-        <div className="party sender">
-          <div className="party-title">
-            <div className="party-icon">📤</div>
-            <div><h3>CONSIGNOR</h3><span>Sender</span></div>
+      {/* Status Ribbon */}
+      <div className="status-ribbon-pro" style={{ backgroundColor: getStatusColor() }}>
+        <span>{getStatusText()}</span>
+      </div>
+
+      {/* Parties Section */}
+      <div className="parties-grid-pro">
+        <div className="party-card-pro">
+          <div className="party-header-pro">
+            <span className="party-icon-pro">📤</span>
+            <div>
+              <div className="party-title-pro">CONSIGNOR</div>
+              <div className="party-sub-pro">Sender</div>
+            </div>
           </div>
-          <div className="party-content">
-            <h4>{safeData.pickup.name || "____________________"}</h4>
-            <p className="address-text">{safeData.pickup.address || "Address not provided"}</p>
-            <div className="party-contact">
+          <div className="party-body-pro">
+            <div className="party-name-pro">{safeData.pickup.name || "____________________"}</div>
+            <div className="party-address-pro">{safeData.pickup.address || "Address not provided"}</div>
+            <div className="party-meta-pro">
               <span>📮 {safeData.pickup.pincode || "______"}</span>
               <span>📍 {safeData.pickup.city || "_____"}, {safeData.pickup.state || "_____"}</span>
               <span>📞 {safeData.pickup.contact || "_________"}</span>
-              {safeData.pickup.gstin && <span>🔷 GST: {safeData.pickup.gstin}</span>}
+              {safeData.pickup.gstin && <span className="gst-tag-pro">GST: {safeData.pickup.gstin}</span>}
             </div>
           </div>
         </div>
-        <div className="party-arrow-icon"><ArrowRight size={28} /></div>
-        <div className="party receiver">
-          <div className="party-title">
-            <div className="party-icon">📥</div>
-            <div><h3>CONSIGNEE</h3><span>Receiver</span></div>
+        
+        <div className="arrow-icon-pro">→</div>
+        
+        <div className="party-card-pro">
+          <div className="party-header-pro">
+            <span className="party-icon-pro">📥</span>
+            <div>
+              <div className="party-title-pro">CONSIGNEE</div>
+              <div className="party-sub-pro">Receiver</div>
+            </div>
           </div>
-          <div className="party-content">
-            <h4>{safeData.delivery.name || "____________________"}</h4>
-            <p className="address-text">{safeData.delivery.address || "Address not provided"}</p>
-            <div className="party-contact">
+          <div className="party-body-pro">
+            <div className="party-name-pro">{safeData.delivery.name || "____________________"}</div>
+            <div className="party-address-pro">{safeData.delivery.address || "Address not provided"}</div>
+            <div className="party-meta-pro">
               <span>📮 {safeData.delivery.pincode || "______"}</span>
               <span>📍 {safeData.delivery.city || "_____"}, {safeData.delivery.state || "_____"}</span>
               <span>📞 {safeData.delivery.contact || "_________"}</span>
-              {safeData.delivery.gstin && <span>🔷 GST: {safeData.delivery.gstin}</span>}
+              {safeData.delivery.gstin && <span className="gst-tag-pro">GST: {safeData.delivery.gstin}</span>}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="shipment-wrapper">
-        <table className="shipment-data-table">
+      {/* Shipment Details Table */}
+      <div className="shipment-table-wrapper-pro">
+        <table className="shipment-table-pro">
           <thead>
-            <tr><th>PKGS</th><th>DESCRIPTION</th><th>HSN</th><th>ACTUAL WT</th><th>VOL WT</th><th>CHARGED WT</th><th>MODE</th><th>DIMENSIONS</th></tr>
+            <tr>
+              <th width="8%">PKGS</th>
+              <th width="25%">DESCRIPTION</th>
+              <th width="10%">HSN</th>
+              <th width="12%">ACTUAL WT</th>
+              <th width="12%">VOL WT</th>
+              <th width="12%">CHARGED WT</th>
+              <th width="10%">MODE</th>
+              <th width="11%">DIMENSIONS</th>
+            </tr>
           </thead>
           <tbody>
             <tr>
-              <td className="text-center">{safeData.orderDetails.boxesCount || 0}</td>
-              <td className="text-left"><strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong><div className="goods-note">Said to contain</div></td>
-              <td className="text-center">{safeData.orderDetails.hsnCode || "1234"}</td>
-              <td className="text-center">{safeData.orderDetails.weight || 0} kg</td>
-              <td className="text-center">{safeData.volWeight} kg</td>
-              <td className="text-center"><strong>{safeData.chargedWeight} kg</strong></td>
-              <td className="text-center"><div className={`mode-label mode-${bookingMode || 'surface'}`}>{getModeText()}</div></td>
-              <td className="text-center small-text">{getDimensionsText()}</td>
+              <td className="text-center-pro">{safeData.orderDetails.boxesCount || 0}</td>
+              <td className="text-left-pro">
+                <strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong>
+                <div className="goods-note-pro">Said to Contain</div>
+              </td>
+              <td className="text-center-pro">{safeData.orderDetails.hsnCode || "1234"}</td>
+              <td className="text-center-pro">{safeData.orderDetails.weight || 0} kg</td>
+              <td className="text-center-pro">{safeData.volWeight} kg</td>
+              <td className="text-center-pro"><strong>{safeData.chargedWeight} kg</strong></td>
+              <td className="text-center-pro">
+                <span className={`mode-badge-pro ${getModeClass()}`}>{getModeText()}</span>
+              </td>
+              <td className="text-center-pro dim-text-pro">{getDimensionsText()}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div className="billing-wrapper">
-        <div className="invoice-section">
-          <div className="section-header">INVOICE DETAILS</div>
-          <div className="invoice-items">
+      {/* Billing Section - Two Columns */}
+      <div className="billing-grid-pro">
+        <div className="invoice-box-pro">
+          <div className="box-header-pro">📄 INVOICE DETAILS</div>
+          <div className="invoice-items-pro">
             {safeData.invoices?.filter(inv => inv.no).map((inv, idx) => (
-              <div key={idx} className="invoice-row-line"><span>{inv.no}</span><span>₹{parseFloat(inv.value).toLocaleString()}</span></div>
+              <div key={idx} className="invoice-line-pro">
+                <span>{inv.no}</span>
+                <span>₹{parseFloat(inv.value).toLocaleString()}</span>
+              </div>
             ))}
-            <div className="invoice-total-line"><span>TOTAL VALUE:</span><strong>₹{totalValue?.toLocaleString() || 0}</strong></div>
-            {ewayBill && <div className="eway-badge">E-WAY BILL: {ewayBill}</div>}
+            <div className="invoice-total-pro">
+              <span>TOTAL INVOICE VALUE:</span>
+              <strong>₹{totalValue?.toLocaleString() || 0}</strong>
+            </div>
+            {ewayBill && (
+              <div className="eway-bill-pro">
+                <span>🚛 E-WAY BILL: </span>
+                <strong>{ewayBill}</strong>
+              </div>
+            )}
           </div>
         </div>
+        
         {showFreight && freightData && (
-          <div className="freight-section">
-            <div className="section-header">FREIGHT BREAKDOWN</div>
-            <div className="freight-items">
-              <div className="freight-row-line"><span>Base Freight:</span><span>₹{freightData.baseFreight?.toLocaleString()}</span></div>
-              <div className="freight-row-line"><span>Fuel Surcharge:</span><span>₹{freightData.fuelSurcharge?.toLocaleString()}</span></div>
-              <div className="freight-row-line"><span>GST:</span><span>₹{freightData.gst?.toLocaleString()}</span></div>
-              <div className="freight-row-line"><span>Docket Charge:</span><span>₹{freightData.docketCharge || 100}</span></div>
-              <div className="freight-row-line total-freight"><span>TOTAL:</span><span className="total-price">₹{freightData.total?.toLocaleString()}</span></div>
-              <div className="rate-note">Rate: ₹{freightData.ratePerKg}/kg | {freightData.fromZone} → {freightData.toZone}</div>
+          <div className="freight-box-pro">
+            <div className="box-header-pro">💰 FREIGHT BREAKDOWN</div>
+            <div className="freight-items-pro">
+              <div className="freight-line-pro">
+                <span>Base Freight</span>
+                <span>₹{freightData.baseFreight?.toLocaleString()}</span>
+              </div>
+              <div className="freight-line-pro">
+                <span>Fuel Surcharge</span>
+                <span>₹{freightData.fuelSurcharge?.toLocaleString()}</span>
+              </div>
+              <div className="freight-line-pro">
+                <span>GST (18%)</span>
+                <span>₹{freightData.gst?.toLocaleString()}</span>
+              </div>
+              <div className="freight-line-pro">
+                <span>Docket Charge</span>
+                <span>₹{freightData.docketCharge || 100}</span>
+              </div>
+              <div className="freight-line-pro">
+                <span>FOV Charge</span>
+                <span>₹{freightData.fovCharge || 75}</span>
+              </div>
+              <div className="freight-total-pro">
+                <span>TOTAL FREIGHT</span>
+                <strong>₹{freightData.total?.toLocaleString()}</strong>
+              </div>
+              <div className="rate-note-pro">
+                Rate: ₹{freightData.ratePerKg}/kg | {freightData.fromZone} → {freightData.toZone}
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      <div className="stamp-signature-wrapper-new">
-        <StampImage />
-        <div className="signature-area">
-          <div className="signature-line-item"><div className="sign-line"></div><p>Receiver's Signature</p></div>
-          <div className="signature-line-item"><div className="stamp-box">FOR FAITH CARGO PVT LTD</div><p>Authorized Signatory</p></div>
+      {/* Stamp and Signature Section */}
+      <div className="stamp-signature-pro">
+        <div className="stamp-area-pro">
+          {!stampError ? (
+            <img 
+              src={stampImage} 
+              alt="Company Stamp" 
+              className="company-stamp-pro"
+              onError={() => setStampError(true)}
+            />
+          ) : (
+            <div className="stamp-fallback-pro">
+              <div className="stamp-circle-pro">
+                <div className="stamp-text-pro">FAITH CARGO</div>
+                <div className="stamp-text-small-pro">PVT LTD</div>
+                <div className="stamp-line-pro"></div>
+                <div className="stamp-text-small-pro">AUTHORIZED</div>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        <div className="signatures-pro">
+          <div className="sign-box-pro">
+            <div className="sign-line-pro"></div>
+            <p>Receiver's Signature</p>
+          </div>
+          <div className="sign-box-pro">
+            <div className="stamp-box-pro">FOR FAITH CARGO PVT LTD</div>
+            <p>Authorized Signatory</p>
+          </div>
         </div>
       </div>
 
-      <div className="company-instructions">
-        <h4>📋 IMPORTANT INSTRUCTIONS</h4>
-        <div className="instructions-grid">
-          <div className="instruction-item"><span className="instruction-icon">⏰</span><div><strong>Timely Delivery</strong><p>Transit time: 2-5 business days</p></div></div>
-          <div className="instruction-item"><span className="instruction-icon">📄</span><div><strong>Documents Required</strong><p>Tax Invoice, E-Way Bill, GR Copy</p></div></div>
-          <div className="instruction-item"><span className="instruction-icon">🛡️</span><div><strong>Insurance</strong><p>Recommended for high-value shipments</p></div></div>
-          <div className="instruction-item"><span className="instruction-icon">📞</span><div><strong>Support</strong><p>24/7 Customer Care: 9818641504</p></div></div>
+      {/* Instructions Section */}
+      <div className="instructions-pro">
+        <div className="instructions-header-pro">📋 IMPORTANT INSTRUCTIONS</div>
+        <div className="instructions-grid-pro">
+          <div className="instruction-item-pro">
+            <span>⏰</span>
+            <div><strong>Timely Delivery</strong><p>Transit: 2-5 business days</p></div>
+          </div>
+          <div className="instruction-item-pro">
+            <span>📄</span>
+            <div><strong>Documents Required</strong><p>Tax Invoice, E-Way Bill</p></div>
+          </div>
+          <div className="instruction-item-pro">
+            <span>🛡️</span>
+            <div><strong>Insurance</strong><p>Recommended for high value</p></div>
+          </div>
+          <div className="instruction-item-pro">
+            <span>📞</span>
+            <div><strong>24/7 Support</strong><p>+91 9818641504</p></div>
+          </div>
         </div>
       </div>
 
-      <div className="terms-wrapper">
-        <h4>TERMS & CONDITIONS</h4>
-        <ul>
-          <li>Goods carried at Owner's Risk. Insurance recommended.</li>
-          <li>Claim within 7 days of delivery. Jurisdiction: Delhi Only.</li>
+      {/* Terms Section */}
+      <div className="terms-pro">
+        <div className="terms-header-pro">TERMS & CONDITIONS</div>
+        <ul className="terms-list-pro">
+          <li>Goods carried at Owner's Risk. Insurance recommended for high-value shipments.</li>
+          <li>Claim must be filed within 7 days of delivery. Jurisdiction: Delhi Only.</li>
           <li>Transit liability as per Carriers Act, 1865.</li>
-          <li>E-Way Bill mandatory for invoice &gt; ₹50,000.</li>
+          <li>E-Way Bill mandatory for invoice value &gt; ₹50,000.</li>
+          <li>All disputes subject to Delhi jurisdiction.</li>
         </ul>
       </div>
 
-      <div className="docket-footer">
-        <div className="footer-copies"><span>📄 ORIGINAL - CONSIGNOR</span><span>📄 DUPLICATE - CONSIGNEE</span><span>📄 TRIPLICATE - OFFICE</span></div>
-        <div className="footer-website"><span>🌐 www.faithcargo.com</span><span>📞 9818641504</span><span>✉️ care@faithcargo.com</span></div>
+      {/* Footer */}
+      <div className="footer-pro">
+        <div className="footer-copies-pro">
+          <span>📄 ORIGINAL - CONSIGNOR</span>
+          <span>📄 DUPLICATE - CONSIGNEE</span>
+          <span>📄 TRIPLICATE - OFFICE COPY</span>
+        </div>
+        <div className="footer-powered-pro">
+          Powered by <strong>Faith Cargo Logistics</strong> | Developed by <strong>Devora Technologies</strong>
+        </div>
       </div>
     </div>
   );
@@ -476,7 +620,7 @@ const StampImage = () => {
   
   return (
     <img 
-      src={require("../assets/stamp.png")} 
+      src={stampImage} 
       alt="Company Stamp" 
       className="official-stamp-image"
       onError={() => setImgError(true)}
@@ -791,15 +935,11 @@ const getTrackingTimeline = (currentStatus) => {
 };
 
 // ============================================
-// 🔔 SEND NOTIFICATION FUNCTION (Frontend)
-// ============================================
-// ============================================
 // 🔔 SEND SMS NOTIFICATION (ACTUAL BACKEND API CALL)
 // ============================================
 const sendOrderNotification = async (orderData) => {
   console.log("📱 Sending SMS notification to backend...", orderData);
   
-  // Validate phone numbers
   if (!orderData.pickupContact || orderData.pickupContact.length !== 10) {
     console.log("⚠️ Invalid sender phone number:", orderData.pickupContact);
   }
@@ -839,12 +979,11 @@ const sendOrderNotification = async (orderData) => {
     }
   } catch (error) {
     console.error("❌ SMS notification error:", error);
-    console.error("Error message:", error.message);
   }
   
-  // Show success message to user (order is already created)
   alert(`✅ Order Created Successfully!\n\n📋 LR Number: ${orderData.lrNumber}\n✈️ AWB: ${orderData.awb}\n\n📱 SMS sent to Sender & Receiver!`);
 };
+
 // ============================================
 // 🚀 MAIN CREATE ORDER COMPONENT
 // ============================================
@@ -1034,52 +1173,33 @@ export default function CreateOrder() {
     if (printContent) {
       const printWindow = window.open('', '_blank');
       printWindow.document.write(`
-        <html><head><title>Faith Cargo - Docket ${lrNumber}</title>
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Segoe UI', Arial, sans-serif; background: white; padding: 15px; }
-          .print-docket { width: 200mm; min-height: 280mm; margin: 0 auto; position: relative; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-          .docket-watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 100px; font-weight: 900; color: rgba(0,0,0,0.02); white-space: nowrap; z-index: 0; pointer-events: none; letter-spacing: 10px; }
-          .docket-inner-border { position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border: 2px solid #d32f2f; pointer-events: none; border-radius: 8px; z-index: 1; }
-          .docket-header-new { display: flex; justify-content: space-between; padding: 15px 20px; border-bottom: 3px solid #d32f2f; background: white; position: relative; z-index: 2; }
-          .header-left-section { text-align: left; }
-          .lr-label { font-size: 10px; font-weight: bold; color: #64748b; letter-spacing: 1px; margin-bottom: 5px; }
-          .barcode-image { margin: 5px 0; background: white; width: 280px; height: auto; display: block; }
-          .lr-number-bold { font-size: 24px; font-weight: 900; color: #d32f2f; font-family: monospace; letter-spacing: 2px; }
-          .status-badge-docket { display: inline-block; margin-top: 10px; padding: 4px 14px; border-radius: 20px; font-size: 9px; font-weight: bold; background: #10b981; color: white; }
-          .header-right-section { text-align: right; }
-          .brand-logo-large { height: 60px; width: auto; margin-bottom: 8px; }
-          .company-details h2 { font-size: 14px; font-weight: 900; margin: 0; color: #1a1a2e; }
-          .company-details p { font-size: 8px; color: #d32f2f; font-weight: 600; margin-top: 2px; }
-          .contact-details { font-size: 7px; color: #4a5568; margin-top: 5px; display: flex; flex-direction: column; gap: 2px; }
-          .parties-container { display: flex; gap: 20px; padding: 15px 20px; background: #f8fafc; position: relative; z-index: 2; }
-          .party { flex: 1; background: white; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
-          .party-title { background: #f1f5f9; padding: 8px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #e2e8f0; }
-          .party-content { padding: 12px; }
-          .party-content h4 { font-size: 11px; margin-bottom: 6px; }
-          .address-text { font-size: 9px; color: #475569; margin-bottom: 8px; }
-          .party-contact { display: flex; flex-wrap: wrap; gap: 8px; font-size: 8px; padding-top: 6px; border-top: 1px dashed #e2e8f0; }
-          .shipment-wrapper { padding: 0 20px; margin-bottom: 15px; position: relative; z-index: 2; }
-          .shipment-data-table { width: 100%; border-collapse: collapse; font-size: 9px; }
-          .shipment-data-table th { background: #f1f5f9; padding: 8px; font-weight: bold; border: 1px solid #e2e8f0; }
-          .shipment-data-table td { padding: 8px; border: 1px solid #e2e8f0; text-align: center; }
-          .billing-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 0 20px; margin-bottom: 15px; position: relative; z-index: 2; }
-          .invoice-section, .freight-section { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
-          .section-header { background: #f8fafc; padding: 8px 12px; font-size: 9px; font-weight: bold; border-bottom: 1px solid #e2e8f0; }
-          .invoice-items, .freight-items { padding: 10px; }
-          .stamp-signature-wrapper-new { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; margin: 15px 0; position: relative; z-index: 2; }
-          .stamp-image-container { width: 120px; height: 120px; }
-          .official-stamp-image { width: 100%; height: auto; object-fit: contain; }
-          .company-instructions { margin: 0 20px 15px 20px; padding: 12px; background: #f0fdf4; border-radius: 8px; border-left: 3px solid #10b981; position: relative; z-index: 2; }
-          .instructions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
-          .instruction-item { display: flex; gap: 8px; font-size: 7px; }
-          .terms-wrapper { padding: 0 20px; margin-bottom: 15px; position: relative; z-index: 2; }
-          .terms-wrapper h4 { font-size: 8px; margin-bottom: 5px; }
-          .terms-wrapper ul { padding-left: 15px; font-size: 6px; }
-          .docket-footer { padding: 10px 20px; background: #0f172a; color: white; display: flex; justify-content: space-between; font-size: 7px; position: relative; z-index: 2; }
-          @media print { body { margin: 0; padding: 0; } }
-        </style>
-        </head><body>${printContent.outerHTML}</body></html>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Faith Cargo - Consignment Note ${lrNumber}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Segoe UI', 'Roboto', Arial, sans-serif; 
+              background: #e2e8f0; 
+              padding: 20px;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+            }
+            @media print {
+              body { background: white; padding: 0; margin: 0; }
+              .no-print { display: none; }
+              @page { size: A4; margin: 0; }
+            }
+          </style>
+          <link rel="stylesheet" href="${window.location.origin}/CreateOrder.css">
+        </head>
+        <body>
+          ${printContent.outerHTML}
+        </body>
+        </html>
       `);
       printWindow.document.close();
       printWindow.focus();
