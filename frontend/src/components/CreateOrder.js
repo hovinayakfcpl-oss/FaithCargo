@@ -227,40 +227,35 @@ const FreightCalculator = ({ weight, origin, destination, bookingMode, clientPol
 };
 
 // ============================================
-// 🎨 PROFESSIONAL DOCKET COMPONENT - A4 OPTIMIZED (70% page usage)
+// 🎨 PROFESSIONAL DOCKET COMPONENT - ULTIMATE DESIGN
 // ============================================
 const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData, status, uploadedInvoices, clientId, userRole }, ref) => {
   const barcodeRef = useRef(null);
   const [barcodeImageUrl, setBarcodeImageUrl] = useState("");
   const [stampError, setStampError] = useState(false);
   
-  // Generate barcode with proper settings
   useEffect(() => {
     if (lrNumber && barcodeRef.current) {
       try {
-        // Clear canvas first
         const canvas = barcodeRef.current;
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Generate barcode
         JsBarcode(canvas, lrNumber, {
           format: "CODE128",
-          width: 1.8,
-          height: 45,
+          width: 1.5,
+          height: 40,
           displayValue: true,
-          fontSize: 11,
+          fontSize: 10,
           font: "monospace",
-          margin: 8,
+          margin: 5,
           textAlign: "center",
-          textMargin: 4,
+          textMargin: 2,
           background: "#ffffff",
           lineColor: "#000000"
         });
         
-        // Convert to image URL
-        const imageUrl = canvas.toDataURL("image/png");
-        setBarcodeImageUrl(imageUrl);
+        setBarcodeImageUrl(canvas.toDataURL("image/png"));
       } catch (err) {
         console.error("Barcode error:", err);
       }
@@ -269,9 +264,9 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
 
   const getModeText = () => {
     switch(bookingMode) {
-      case 'air': return 'AIR EXPRESS';
-      case 'rail': return 'RAIL CARGO';
-      case 'express': return 'SPEED POST';
+      case 'air': return 'AIR';
+      case 'rail': return 'RAIL';
+      case 'express': return 'EXPRESS';
       default: return 'SURFACE';
     }
   };
@@ -301,15 +296,8 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
       case 'in_transit': return '#3b82f6';
       case 'out_for_delivery': return '#f59e0b';
       case 'picked': return '#8b5cf6';
-      default: return '#ef4444';
+      default: return '#d32f2f';
     }
-  };
-
-  const getDimensionsText = () => {
-    if (!data?.orderDetails?.dimensions || data.orderDetails.dimensions.length === 0) return "—";
-    return data.orderDetails.dimensions.map(d => 
-      `${d.quantity}×(${d.length}×${d.width}×${d.height})`
-    ).join(", ");
   };
 
   const safeData = {
@@ -322,188 +310,164 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
   };
 
   return (
-    <div ref={ref} className="print-docket-pro">
-      {/* Hidden canvas for barcode generation */}
-      <canvas ref={barcodeRef} style={{ display: 'none' }} width="300" height="70"></canvas>
+    <div ref={ref} className="print-docket-ultimate">
+      <canvas ref={barcodeRef} style={{ display: 'none' }} width="300" height="60"></canvas>
       
-      {/* Watermark */}
-      <div className="docket-watermark-pro">FAITH CARGO</div>
-      
-      {/* Border Frame */}
-      <div className="docket-border-pro"></div>
-      
-      {/* Header Section */}
-      <div className="docket-header-pro">
-        <div className="header-left-pro">
-          <div className="doc-type-pro">CONSIGNMENT NOTE</div>
-          <div className="lr-number-pro">{lrNumber || "DRAFT"}</div>
-          <div className="barcode-area-pro">
-            {barcodeImageUrl ? (
-              <img src={barcodeImageUrl} alt="Barcode" className="barcode-img-pro" />
-            ) : (
-              <div className="barcode-placeholder-pro">••••••••</div>
-            )}
-          </div>
-          <div className="awb-row-pro">
-            <span className="awb-label-pro">AWB:</span>
-            <span className="awb-value-pro">{awbNumber || "N/A"}</span>
-          </div>
-          {clientId && <div className="client-tag-pro">Client: {clientId}</div>}
-          <div className="date-tag-pro">Date: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
-        </div>
-        
-        <div className="header-right-pro">
-          <img src={logo} alt="Faith Cargo" className="company-logo-pro" onError={(e) => e.target.style.display = 'none'} />
-          <div className="company-name-pro">FAITH CARGO PVT LTD</div>
-          <div className="company-cert-pro">ISO 9001:2015 & ISO 14001:2015</div>
-          <div className="company-address-pro">4/15, Kirti Nagar Industrial Area, New Delhi - 110015</div>
-          <div className="company-contact-pro">
-            <span>📞 +91 9818641504</span>
-            <span>✉️ care@faithcargo.com</span>
-            <span>🌐 www.faithcargo.com</span>
-          </div>
-          <div className="company-gst-pro">GST: 07AAFCF2947K1ZD | CIN: U60231DL2021PTC384521</div>
-        </div>
-      </div>
-
       {/* Status Ribbon */}
-      <div className="status-ribbon-pro" style={{ backgroundColor: getStatusColor() }}>
-        <span>{getStatusText()}</span>
+      <div className="status-ribbon-ultimate" style={{ background: getStatusColor() }}>
+        {getStatusText()}
+      </div>
+      
+      {/* Header */}
+      <div className="docket-header-ultimate">
+        <div className="header-left-ultimate">
+          <img src={logo} alt="Faith Cargo" className="logo-img-ultimate" />
+          <div className="company-details-ultimate">
+            <h2>FAITH CARGO PRIVATE LIMITED</h2>
+            <p>ISO 9001:2015 & ISO 14001:2015 CERTIFIED</p>
+            <div className="address-ultimate">4/15, Kirti Nagar Industrial Area, New Delhi - 110015</div>
+            <div className="contact-ultimate">
+              📞 +91 9818641504 | ✉️ care@faithcargo.com | 🌐 www.faithcargo.com
+            </div>
+            <div className="gst-ultimate">GST: 07AAFCF2947K1ZD | CIN: U60231DL2021PTC384521</div>
+          </div>
+        </div>
+        <div className="header-right-ultimate">
+          <div className="doc-title-ultimate">CONSIGNMENT NOTE</div>
+          <div className="lr-number-ultimate">{lrNumber || "DRAFT"}</div>
+          {barcodeImageUrl && <img src={barcodeImageUrl} alt="Barcode" className="barcode-ultimate" />}
+          <div className="awb-ultimate">AWB: {awbNumber || "N/A"}</div>
+          <div className="date-ultimate">Date: {new Date().toLocaleDateString('en-IN')}</div>
+          {clientId && <div className="client-id-ultimate">Client: {clientId}</div>}
+        </div>
       </div>
 
       {/* Parties Section */}
-      <div className="parties-grid-pro">
-        <div className="party-card-pro">
-          <div className="party-header-pro">
-            <span className="party-icon-pro">📤</span>
+      <div className="parties-ultimate">
+        <div className="party-ultimate">
+          <div className="party-header-ultimate">
+            <span className="party-icon-ultimate">📤</span>
             <div>
-              <div className="party-title-pro">CONSIGNOR</div>
-              <div className="party-sub-pro">Sender</div>
+              <div className="party-title-ultimate">CONSIGNOR</div>
+              <div className="party-sub-ultimate">Sender</div>
             </div>
           </div>
-          <div className="party-body-pro">
-            <div className="party-name-pro">{safeData.pickup.name || "____________________"}</div>
-            <div className="party-address-pro">{safeData.pickup.address || "Address not provided"}</div>
-            <div className="party-meta-pro">
+          <div className="party-body-ultimate">
+            <div className="party-name-ultimate">{safeData.pickup.name || "____________________"}</div>
+            <div className="party-address-ultimate">{safeData.pickup.address || "Address not provided"}</div>
+            <div className="party-contact-ultimate">
               <span>📮 {safeData.pickup.pincode || "______"}</span>
               <span>📍 {safeData.pickup.city || "_____"}, {safeData.pickup.state || "_____"}</span>
               <span>📞 {safeData.pickup.contact || "_________"}</span>
-              {safeData.pickup.gstin && <span className="gst-tag-pro">GST: {safeData.pickup.gstin}</span>}
+              {safeData.pickup.gstin && <span>🔷 GST: {safeData.pickup.gstin}</span>}
             </div>
           </div>
         </div>
         
-        <div className="arrow-icon-pro">→</div>
+        <div className="arrow-ultimate">→</div>
         
-        <div className="party-card-pro">
-          <div className="party-header-pro">
-            <span className="party-icon-pro">📥</span>
+        <div className="party-ultimate">
+          <div className="party-header-ultimate">
+            <span className="party-icon-ultimate">📥</span>
             <div>
-              <div className="party-title-pro">CONSIGNEE</div>
-              <div className="party-sub-pro">Receiver</div>
+              <div className="party-title-ultimate">CONSIGNEE</div>
+              <div className="party-sub-ultimate">Receiver</div>
             </div>
           </div>
-          <div className="party-body-pro">
-            <div className="party-name-pro">{safeData.delivery.name || "____________________"}</div>
-            <div className="party-address-pro">{safeData.delivery.address || "Address not provided"}</div>
-            <div className="party-meta-pro">
+          <div className="party-body-ultimate">
+            <div className="party-name-ultimate">{safeData.delivery.name || "____________________"}</div>
+            <div className="party-address-ultimate">{safeData.delivery.address || "Address not provided"}</div>
+            <div className="party-contact-ultimate">
               <span>📮 {safeData.delivery.pincode || "______"}</span>
               <span>📍 {safeData.delivery.city || "_____"}, {safeData.delivery.state || "_____"}</span>
               <span>📞 {safeData.delivery.contact || "_________"}</span>
-              {safeData.delivery.gstin && <span className="gst-tag-pro">GST: {safeData.delivery.gstin}</span>}
+              {safeData.delivery.gstin && <span>🔷 GST: {safeData.delivery.gstin}</span>}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Shipment Details Table */}
-      <div className="shipment-table-wrapper-pro">
-        <table className="shipment-table-pro">
+      {/* Shipment Table */}
+      <div className="table-wrapper-ultimate">
+        <table className="shipment-table-ultimate">
           <thead>
             <tr>
-              <th width="8%">PKGS</th>
-              <th width="25%">DESCRIPTION</th>
-              <th width="10%">HSN</th>
-              <th width="12%">ACTUAL WT</th>
-              <th width="12%">VOL WT</th>
-              <th width="12%">CHARGED WT</th>
-              <th width="10%">MODE</th>
-              <th width="11%">DIMENSIONS</th>
+              <th>PKGS</th>
+              <th>DESCRIPTION OF GOODS</th>
+              <th>HSN</th>
+              <th>ACTUAL WT</th>
+              <th>VOL WT</th>
+              <th>CHARGED WT</th>
+              <th>MODE</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td className="text-center-pro">{safeData.orderDetails.boxesCount || 0}</td>
-              <td className="text-left-pro">
+              <td className="text-center">{safeData.orderDetails.boxesCount || 0}</td>
+              <td className="text-left">
                 <strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong>
-                <div className="goods-note-pro">Said to Contain</div>
+                <div className="goods-note-ultimate">Said to Contain</div>
               </td>
-              <td className="text-center-pro">{safeData.orderDetails.hsnCode || "1234"}</td>
-              <td className="text-center-pro">{safeData.orderDetails.weight || 0} kg</td>
-              <td className="text-center-pro">{safeData.volWeight} kg</td>
-              <td className="text-center-pro"><strong>{safeData.chargedWeight} kg</strong></td>
-              <td className="text-center-pro">
-                <span className={`mode-badge-pro ${getModeClass()}`}>{getModeText()}</span>
+              <td className="text-center">{safeData.orderDetails.hsnCode || "1234"}</td>
+              <td className="text-center">{safeData.orderDetails.weight || 0} kg</td>
+              <td className="text-center">{safeData.volWeight} kg</td>
+              <td className="text-center"><strong>{safeData.chargedWeight} kg</strong></td>
+              <td className="text-center">
+                <span className={`mode-badge-ultimate ${getModeClass()}`}>{getModeText()}</span>
               </td>
-              <td className="text-center-pro dim-text-pro">{getDimensionsText()}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      {/* Billing Section - Two Columns */}
-      <div className="billing-grid-pro">
-        <div className="invoice-box-pro">
-          <div className="box-header-pro">📄 INVOICE DETAILS</div>
-          <div className="invoice-items-pro">
+      {/* Billing Section */}
+      <div className="billing-ultimate">
+        <div className="invoice-section-ultimate">
+          <div className="section-header-ultimate">INVOICE DETAILS</div>
+          <div className="invoice-items-ultimate">
             {safeData.invoices?.filter(inv => inv.no).map((inv, idx) => (
-              <div key={idx} className="invoice-line-pro">
+              <div key={idx} className="invoice-row-ultimate">
                 <span>{inv.no}</span>
                 <span>₹{parseFloat(inv.value).toLocaleString()}</span>
               </div>
             ))}
-            <div className="invoice-total-pro">
+            <div className="invoice-total-ultimate">
               <span>TOTAL INVOICE VALUE:</span>
               <strong>₹{totalValue?.toLocaleString() || 0}</strong>
             </div>
-            {ewayBill && (
-              <div className="eway-bill-pro">
-                <span>🚛 E-WAY BILL: </span>
-                <strong>{ewayBill}</strong>
-              </div>
-            )}
+            {ewayBill && <div className="eway-ultimate">🚛 E-WAY BILL: {ewayBill}</div>}
           </div>
         </div>
         
         {showFreight && freightData && (
-          <div className="freight-box-pro">
-            <div className="box-header-pro">💰 FREIGHT BREAKDOWN</div>
-            <div className="freight-items-pro">
-              <div className="freight-line-pro">
+          <div className="freight-section-ultimate">
+            <div className="section-header-ultimate">FREIGHT BREAKDOWN</div>
+            <div className="freight-items-ultimate">
+              <div className="freight-row-ultimate">
                 <span>Base Freight</span>
                 <span>₹{freightData.baseFreight?.toLocaleString()}</span>
               </div>
-              <div className="freight-line-pro">
+              <div className="freight-row-ultimate">
                 <span>Fuel Surcharge</span>
                 <span>₹{freightData.fuelSurcharge?.toLocaleString()}</span>
               </div>
-              <div className="freight-line-pro">
+              <div className="freight-row-ultimate">
                 <span>GST (18%)</span>
                 <span>₹{freightData.gst?.toLocaleString()}</span>
               </div>
-              <div className="freight-line-pro">
+              <div className="freight-row-ultimate">
                 <span>Docket Charge</span>
                 <span>₹{freightData.docketCharge || 100}</span>
               </div>
-              <div className="freight-line-pro">
+              <div className="freight-row-ultimate">
                 <span>FOV Charge</span>
                 <span>₹{freightData.fovCharge || 75}</span>
               </div>
-              <div className="freight-total-pro">
+              <div className="freight-total-ultimate">
                 <span>TOTAL FREIGHT</span>
                 <strong>₹{freightData.total?.toLocaleString()}</strong>
               </div>
-              <div className="rate-note-pro">
+              <div className="rate-note-ultimate">
                 Rate: ₹{freightData.ratePerKg}/kg | {freightData.fromZone} → {freightData.toZone}
               </div>
             </div>
@@ -511,83 +475,58 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         )}
       </div>
 
-      {/* Stamp and Signature Section */}
-      <div className="stamp-signature-pro">
-        <div className="stamp-area-pro">
+      {/* Stamp & Signature */}
+      <div className="stamp-signature-ultimate">
+        <div className="stamp-area-ultimate">
           {!stampError ? (
             <img 
               src={stampImage} 
               alt="Company Stamp" 
-              className="company-stamp-pro"
+              className="stamp-img-ultimate"
               onError={() => setStampError(true)}
             />
           ) : (
-            <div className="stamp-fallback-pro">
-              <div className="stamp-circle-pro">
-                <div className="stamp-text-pro">FAITH CARGO</div>
-                <div className="stamp-text-small-pro">PVT LTD</div>
-                <div className="stamp-line-pro"></div>
-                <div className="stamp-text-small-pro">AUTHORIZED</div>
+            <div className="stamp-fallback-ultimate">
+              <div className="stamp-circle-ultimate">
+                <div>FAITH CARGO</div>
+                <div>PVT LTD</div>
+                <div className="stamp-line-ultimate"></div>
+                <div>AUTHORIZED</div>
               </div>
             </div>
           )}
         </div>
-        
-        <div className="signatures-pro">
-          <div className="sign-box-pro">
-            <div className="sign-line-pro"></div>
+        <div className="signatures-ultimate">
+          <div className="sign-box-ultimate">
+            <div className="sign-line-ultimate"></div>
             <p>Receiver's Signature</p>
           </div>
-          <div className="sign-box-pro">
-            <div className="stamp-box-pro">FOR FAITH CARGO PVT LTD</div>
+          <div className="sign-box-ultimate">
+            <div className="stamp-box-ultimate">FOR FAITH CARGO PVT LTD</div>
             <p>Authorized Signatory</p>
           </div>
         </div>
       </div>
 
-      {/* Instructions Section */}
-      <div className="instructions-pro">
-        <div className="instructions-header-pro">📋 IMPORTANT INSTRUCTIONS</div>
-        <div className="instructions-grid-pro">
-          <div className="instruction-item-pro">
-            <span>⏰</span>
-            <div><strong>Timely Delivery</strong><p>Transit: 2-5 business days</p></div>
-          </div>
-          <div className="instruction-item-pro">
-            <span>📄</span>
-            <div><strong>Documents Required</strong><p>Tax Invoice, E-Way Bill</p></div>
-          </div>
-          <div className="instruction-item-pro">
-            <span>🛡️</span>
-            <div><strong>Insurance</strong><p>Recommended for high value</p></div>
-          </div>
-          <div className="instruction-item-pro">
-            <span>📞</span>
-            <div><strong>24/7 Support</strong><p>+91 9818641504</p></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Terms Section */}
-      <div className="terms-pro">
-        <div className="terms-header-pro">TERMS & CONDITIONS</div>
-        <ul className="terms-list-pro">
+      {/* Terms */}
+      <div className="terms-ultimate">
+        <div className="terms-header-ultimate">TERMS & CONDITIONS</div>
+        <ul>
           <li>Goods carried at Owner's Risk. Insurance recommended for high-value shipments.</li>
           <li>Claim must be filed within 7 days of delivery. Jurisdiction: Delhi Only.</li>
           <li>Transit liability as per Carriers Act, 1865.</li>
           <li>E-Way Bill mandatory for invoice value &gt; ₹50,000.</li>
-          <li>All disputes subject to Delhi jurisdiction.</li>
         </ul>
       </div>
 
       {/* Footer */}
-      <div className="footer-pro">
-        <div className="footer-copies-pro">
+      <div className="footer-ultimate">
+        <div className="footer-copies-ultimate">
           <span>📄 ORIGINAL - CONSIGNOR</span>
           <span>📄 DUPLICATE - CONSIGNEE</span>
           <span>📄 TRIPLICATE - OFFICE COPY</span>
         </div>
-        <div className="footer-powered-pro">
+        <div className="footer-powered-ultimate">
           Powered by <strong>Faith Cargo Logistics</strong> | Developed by <strong>Devora Technologies</strong>
         </div>
       </div>
@@ -935,24 +874,15 @@ const getTrackingTimeline = (currentStatus) => {
 };
 
 // ============================================
-// 🔔 SEND SMS NOTIFICATION (ACTUAL BACKEND API CALL)
+// 🔔 SEND SMS NOTIFICATION
 // ============================================
 const sendOrderNotification = async (orderData) => {
   console.log("📱 Sending SMS notification to backend...", orderData);
   
-  if (!orderData.pickupContact || orderData.pickupContact.length !== 10) {
-    console.log("⚠️ Invalid sender phone number:", orderData.pickupContact);
-  }
-  if (!orderData.deliveryContact || orderData.deliveryContact.length !== 10) {
-    console.log("⚠️ Invalid receiver phone number:", orderData.deliveryContact);
-  }
-  
   try {
     const response = await fetch("https://faithcargo.onrender.com/api/shipments/send-notification/", {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         lrNumber: orderData.lrNumber,
         awb: orderData.awb,
@@ -967,15 +897,9 @@ const sendOrderNotification = async (orderData) => {
       })
     });
     
-    console.log("📡 Response status:", response.status);
-    
     const result = await response.json();
-    console.log("📦 Response data:", result);
-    
     if (result.success) {
       console.log("✅ SMS sent successfully!");
-    } else {
-      console.log("⚠️ SMS failed:", result.error);
     }
   } catch (error) {
     console.error("❌ SMS notification error:", error);
@@ -1075,10 +999,6 @@ export default function CreateOrder() {
     setApiError("");
 
     const calculatedFreight = freightData?.total || 0;
-    
-    console.log("=== Creating Order ===");
-    console.log("Freight Data:", freightData);
-    console.log("Calculated Freight:", calculatedFreight);
 
     const orderData = {
       clientId: userRole === "client" ? user?.clientId : null,
@@ -1108,8 +1028,6 @@ export default function CreateOrder() {
         invoice_value: parseFloat(inv.value) 
       }))
     };
-
-    console.log("Order Data being sent:", orderData);
 
     try {
       const response = await fetch("https://faithcargo.onrender.com/api/shipments/create-order/", {
@@ -1179,26 +1097,15 @@ export default function CreateOrder() {
           <title>Faith Cargo - Consignment Note ${lrNumber}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              font-family: 'Segoe UI', 'Roboto', Arial, sans-serif; 
-              background: #e2e8f0; 
-              padding: 20px;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              min-height: 100vh;
-            }
+            body { font-family: 'Segoe UI', Arial, sans-serif; background: #e2e8f0; padding: 20px; }
             @media print {
               body { background: white; padding: 0; margin: 0; }
-              .no-print { display: none; }
               @page { size: A4; margin: 0; }
             }
           </style>
           <link rel="stylesheet" href="${window.location.origin}/CreateOrder.css">
         </head>
-        <body>
-          ${printContent.outerHTML}
-        </body>
+        <body>${printContent.outerHTML}</body>
         </html>
       `);
       printWindow.document.close();
@@ -1210,14 +1117,14 @@ export default function CreateOrder() {
 
   const getStatusBadge = (status) => {
     const statusMap = {
-      'booked': { text: '📝 Booked', class: 'status-booked', color: '#f59e0b' },
-      'picked': { text: '🚚 Picked Up', class: 'status-picked', color: '#3b82f6' },
-      'in_transit': { text: '🚛 In Transit', class: 'status-transit', color: '#8b5cf6' },
-      'out_for_delivery': { text: '📦 Out for Delivery', class: 'status-out', color: '#ec4898' },
-      'delivered': { text: '✅ Delivered', class: 'status-delivered', color: '#10b981' }
+      'booked': { text: '📝 Booked', color: '#f59e0b' },
+      'picked': { text: '🚚 Picked Up', color: '#3b82f6' },
+      'in_transit': { text: '🚛 In Transit', color: '#8b5cf6' },
+      'out_for_delivery': { text: '📦 Out for Delivery', color: '#ec4898' },
+      'delivered': { text: '✅ Delivered', color: '#10b981' }
     };
     const s = statusMap[status] || statusMap.booked;
-    return <span className={`status-badge ${s.class}`} style={{ backgroundColor: `${s.color}15`, color: s.color, borderLeftColor: s.color }}>{s.text}</span>;
+    return <span className="status-badge" style={{ background: `${s.color}15`, color: s.color }}>{s.text}</span>;
   };
 
   const handleTrackShipment = async () => {
@@ -1244,7 +1151,6 @@ export default function CreateOrder() {
           weight: data.weight,
           material: data.material,
           totalValue: data.totalValue,
-          updatedAt: data.updatedAt
         });
       } else {
         alert("Shipment not found!");
@@ -1365,9 +1271,8 @@ export default function CreateOrder() {
         )}
 
         <div className="two-column-form">
-          {/* Left Column - Pickup & Delivery */}
+          {/* Left Column */}
           <div className="left-form-col">
-            {/* Consignor Section */}
             <div className="form-section">
               <div className="section-heading"><MapPin size={18} color="#d32f2f" /> Consignor (Sender)</div>
               <div className="section-body">
@@ -1385,7 +1290,6 @@ export default function CreateOrder() {
               </div>
             </div>
 
-            {/* Consignee Section */}
             <div className="form-section">
               <div className="section-heading"><Truck size={18} color="#d32f2f" /> Consignee (Receiver)</div>
               <div className="section-body">
@@ -1397,7 +1301,7 @@ export default function CreateOrder() {
             </div>
           </div>
 
-          {/* Right Column - Shipment Details */}
+          {/* Right Column */}
           <div className="right-form-col">
             <div className="form-section">
               <div className="section-heading"><Package size={18} color="#d32f2f" /> Shipment Details</div>
