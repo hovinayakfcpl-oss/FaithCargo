@@ -1,6 +1,6 @@
 /* ============================================
-   FAITH CARGO - CREATE ORDER PAGE v13.0
-   ULTIMATE PREMIUM UI DESIGN - FULLY OPTIMIZED
+   FAITH CARGO - CREATE ORDER PAGE v14.0
+   COMPLETE FIXED & UPDATED CSS
    DEVELOPED BY DEVORA TECHNOLOGIES
    ============================================ */
 
@@ -71,7 +71,7 @@ body {
 }
 
 /* --------------------------------------------
-   2. SCROLLBAR STYLES - PREMIUM
+   2. SCROLLBAR STYLES
    -------------------------------------------- */
 ::-webkit-scrollbar {
   width: 8px;
@@ -103,7 +103,7 @@ body {
 }
 
 /* --------------------------------------------
-   4. SIDEBAR STYLES - PREMIUM GLASSMORPHISM
+   4. SIDEBAR STYLES
    -------------------------------------------- */
 .order-sidebar {
   width: 280px;
@@ -166,7 +166,6 @@ body {
   50% { transform: scale(1.3); opacity: 0.7; }
 }
 
-/* Client Info Sidebar */
 .client-info-sidebar {
   display: flex;
   align-items: center;
@@ -219,7 +218,6 @@ body {
   transform: scale(1.05);
 }
 
-/* Sidebar Rates Info */
 .sidebar-rates-info {
   background: linear-gradient(135deg, var(--primary-purple-light), rgba(139, 92, 246, 0.1));
   padding: 14px 16px;
@@ -332,7 +330,6 @@ body {
   margin: 0 auto;
 }
 
-/* Loading Container */
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -358,7 +355,7 @@ body {
   font-weight: 500;
 }
 
-/* Page Header - Premium */
+/* Page Header */
 .page-title-section {
   display: flex;
   justify-content: space-between;
@@ -480,7 +477,7 @@ body {
 }
 
 /* --------------------------------------------
-   7. FORM CARDS - PREMIUM GLASS DESIGN
+   7. FORM CARDS
    -------------------------------------------- */
 .form-section {
   background: rgba(255, 255, 255, 0.95);
@@ -521,7 +518,7 @@ body {
   padding: 24px;
 }
 
-/* Form Fields - Premium */
+/* Form Fields */
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -576,7 +573,7 @@ body {
 }
 
 /* --------------------------------------------
-   8. SAVED ADDRESSES STYLES - PREMIUM
+   8. SAVED ADDRESSES STYLES
    -------------------------------------------- */
 .saved-addresses-container {
   margin-bottom: 24px;
@@ -803,7 +800,7 @@ body {
 }
 
 /* --------------------------------------------
-   9. MODE SELECTOR - PREMIUM
+   9. MODE SELECTOR
    -------------------------------------------- */
 .mode-selector {
   margin-bottom: 24px;
@@ -856,7 +853,7 @@ body {
 }
 
 /* --------------------------------------------
-   10. ENHANCED DIMENSION PANEL WITH QUANTITY - PREMIUM
+   10. DIMENSION PANEL
    -------------------------------------------- */
 .dimension-panel-enhanced {
   background: linear-gradient(135deg, var(--bg-gray) 0%, var(--bg-light) 100%);
@@ -1114,7 +1111,7 @@ body {
 }
 
 /* --------------------------------------------
-   12. UPLOAD AREA - PREMIUM
+   12. UPLOAD AREA
    -------------------------------------------- */
 .upload-container {
   margin-top: 20px;
@@ -1242,7 +1239,7 @@ body {
 }
 
 /* --------------------------------------------
-   13. FREIGHT CARD - PREMIUM WITH CUSTOM RATE BADGE
+   13. FREIGHT CARD
    -------------------------------------------- */
 .freight-card {
   margin-top: 20px;
@@ -1351,7 +1348,7 @@ body {
 }
 
 /* --------------------------------------------
-   14. E-WAY ALERT - PREMIUM
+   14. E-WAY ALERT
    -------------------------------------------- */
 .eway-alert {
   margin-top: 20px;
@@ -1464,7 +1461,7 @@ body {
 }
 
 /* --------------------------------------------
-   16. GENERATE BUTTON - PREMIUM
+   16. GENERATE BUTTON
    -------------------------------------------- */
 .generate-btn {
   width: 100%;
@@ -1522,7 +1519,7 @@ body {
 }
 
 /* --------------------------------------------
-   17. MODAL STYLES - PREMIUM
+   17. MODAL STYLES
    -------------------------------------------- */
 .modal-overlay {
   position: fixed;
@@ -1655,7 +1652,7 @@ body {
 }
 
 /* --------------------------------------------
-   18. ENHANCED TRACKING SECTION - PREMIUM
+   18. TRACKING SECTION
    -------------------------------------------- */
 .tracking-section-enhanced {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -1958,92 +1955,91 @@ body {
 }
 
 /* --------------------------------------------
-   19. ULTIMATE DOCKET DESIGN - PROFESSIONAL A4
+   19. FIXED DOCKET STYLES - PROFESSIONAL
    -------------------------------------------- */
-.print-docket-ultimate {
+.print-docket-fixed {
   width: 210mm;
   min-height: 297mm;
   margin: 0 auto;
   background: white;
-  position: relative;
   font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  position: relative;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
 }
 
-/* Status Ribbon */
-.status-ribbon-ultimate {
+/* Status Badge */
+.docket-status-badge {
   position: absolute;
-  top: 20px;
+  top: 15px;
   right: 20px;
-  padding: 6px 18px;
+  padding: 5px 18px;
   border-radius: 30px;
   font-size: 11px;
   font-weight: 800;
   color: white;
   letter-spacing: 1px;
   z-index: 10;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-/* Header Section */
-.docket-header-ultimate {
-  padding: 20px 25px 15px 25px;
-  border-bottom: 3px solid #d32f2f;
-  background: white;
+/* Header */
+.docket-fixed-header {
   display: flex;
   justify-content: space-between;
+  padding: 20px 25px;
+  border-bottom: 3px solid #d32f2f;
+  background: white;
   flex-wrap: wrap;
   gap: 20px;
 }
 
-.header-left-ultimate {
+.docket-fixed-logo-section {
   display: flex;
-  gap: 20px;
+  gap: 18px;
   flex-wrap: wrap;
 }
 
-.logo-img-ultimate {
+.docket-fixed-logo {
   height: 70px;
   width: auto;
   object-fit: contain;
 }
 
-.company-details-ultimate h2 {
+.docket-fixed-company h2 {
   font-size: 14px;
   font-weight: 900;
   color: #1a1a2e;
   margin: 0 0 3px 0;
 }
 
-.company-details-ultimate p {
+.docket-fixed-company p {
   font-size: 8px;
   color: #d32f2f;
   font-weight: 600;
   margin: 0 0 5px 0;
 }
 
-.address-ultimate {
+.docket-fixed-address {
   font-size: 7px;
   color: #4a5568;
   margin-bottom: 3px;
 }
 
-.contact-ultimate {
+.docket-fixed-contact {
   font-size: 7px;
   color: #4a5568;
   margin-bottom: 2px;
 }
 
-.gst-ultimate {
+.docket-fixed-gst {
   font-size: 7px;
   color: #64748b;
 }
 
-.header-right-ultimate {
+.docket-fixed-doc-section {
   text-align: right;
 }
 
-.doc-title-ultimate {
+.docket-fixed-doc-title {
   font-size: 10px;
   font-weight: 800;
   color: #64748b;
@@ -2051,7 +2047,7 @@ body {
   margin-bottom: 5px;
 }
 
-.lr-number-ultimate {
+.docket-fixed-lr {
   font-size: 24px;
   font-weight: 900;
   color: #d32f2f;
@@ -2059,8 +2055,8 @@ body {
   letter-spacing: 2px;
 }
 
-.barcode-ultimate {
-  width: 200px;
+.docket-fixed-barcode {
+  width: 180px;
   height: auto;
   margin: 8px 0;
   background: white;
@@ -2069,13 +2065,13 @@ body {
   border-radius: 6px;
 }
 
-.awb-ultimate, .date-ultimate, .client-id-ultimate {
+.docket-fixed-awb, .docket-fixed-date, .docket-fixed-client {
   font-size: 9px;
   color: #64748b;
   margin-top: 4px;
 }
 
-.client-id-ultimate {
+.docket-fixed-client {
   background: #ede9fe;
   color: #8b5cf6;
   padding: 2px 10px;
@@ -2084,24 +2080,22 @@ body {
 }
 
 /* Parties Section */
-.parties-ultimate {
-  display: flex;
+.docket-fixed-parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 25px;
   padding: 20px 25px;
   background: #f8fafc;
-  flex-wrap: wrap;
 }
 
-.party-ultimate {
-  flex: 1;
+.docket-fixed-party {
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   overflow: hidden;
-  transition: all 0.2s;
 }
 
-.party-header-ultimate {
+.docket-fixed-party-header {
   background: #f1f5f9;
   padding: 10px 15px;
   display: flex;
@@ -2110,40 +2104,40 @@ body {
   border-bottom: 1px solid #e2e8f0;
 }
 
-.party-icon-ultimate {
+.party-icon {
   font-size: 22px;
 }
 
-.party-title-ultimate {
+.party-title {
   font-size: 11px;
   font-weight: 800;
   color: #1e293b;
 }
 
-.party-sub-ultimate {
+.party-sub {
   font-size: 9px;
   color: #64748b;
 }
 
-.party-body-ultimate {
+.docket-fixed-party-body {
   padding: 12px 15px;
 }
 
-.party-name-ultimate {
+.party-name {
   font-size: 12px;
   font-weight: 800;
   margin-bottom: 6px;
   color: #0f172a;
 }
 
-.party-address-ultimate {
+.party-address {
   font-size: 9px;
   color: #475569;
   margin-bottom: 8px;
   line-height: 1.4;
 }
 
-.party-contact-ultimate {
+.party-details {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -2153,27 +2147,15 @@ body {
   color: #64748b;
 }
 
-.arrow-ultimate {
-  font-size: 28px;
-  color: #d32f2f;
-  display: flex;
-  align-items: center;
-}
-
-/* Shipment Table */
-.table-wrapper-ultimate {
-  padding: 0 25px;
-  margin-bottom: 20px;
-  overflow-x: auto;
-}
-
-.shipment-table-ultimate {
-  width: 100%;
+/* Table */
+.docket-fixed-table {
+  width: calc(100% - 50px);
+  margin: 20px 25px;
   border-collapse: collapse;
   font-size: 9px;
 }
 
-.shipment-table-ultimate th {
+.docket-fixed-table th {
   background: #f1f5f9;
   padding: 10px 8px;
   font-weight: 800;
@@ -2182,19 +2164,27 @@ body {
   color: #1e293b;
 }
 
-.shipment-table-ultimate td {
+.docket-fixed-table td {
   padding: 10px 8px;
   border: 1px solid #e2e8f0;
   text-align: center;
 }
 
-.goods-note-ultimate {
+.text-left {
+  text-align: left;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.goods-note {
   font-size: 7px;
   color: #64748b;
   margin-top: 3px;
 }
 
-.mode-badge-ultimate {
+.mode-badge {
   display: inline-block;
   padding: 3px 12px;
   border-radius: 20px;
@@ -2202,28 +2192,13 @@ body {
   font-weight: 800;
 }
 
-.mode-surface {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.mode-air {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.mode-rail {
-  background: #e0e7ff;
-  color: #3730a3;
-}
-
-.mode-express {
-  background: #dcfce7;
-  color: #166534;
-}
+.mode-surface { background: #dbeafe; color: #1e40af; }
+.mode-air { background: #fef3c7; color: #92400e; }
+.mode-rail { background: #e0e7ff; color: #3730a3; }
+.mode-express { background: #dcfce7; color: #166534; }
 
 /* Billing Section */
-.billing-ultimate {
+.docket-fixed-billing {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 25px;
@@ -2231,13 +2206,13 @@ body {
   margin-bottom: 20px;
 }
 
-.invoice-section-ultimate, .freight-section-ultimate {
+.docket-fixed-invoice, .docket-fixed-freight {
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   overflow: hidden;
 }
 
-.section-header-ultimate {
+.billing-title {
   background: #f8fafc;
   padding: 10px 15px;
   font-size: 10px;
@@ -2246,11 +2221,11 @@ body {
   color: #1e293b;
 }
 
-.invoice-items-ultimate, .freight-items-ultimate {
+.billing-content {
   padding: 12px 15px;
 }
 
-.invoice-row-ultimate, .freight-row-ultimate {
+.billing-row {
   display: flex;
   justify-content: space-between;
   font-size: 9px;
@@ -2258,7 +2233,7 @@ body {
   border-bottom: 1px solid #f1f5f9;
 }
 
-.invoice-total-ultimate, .freight-total-ultimate {
+.billing-total {
   display: flex;
   justify-content: space-between;
   font-size: 10px;
@@ -2269,7 +2244,7 @@ body {
   color: #0f172a;
 }
 
-.eway-ultimate {
+.eway-bill {
   margin-top: 10px;
   padding: 8px;
   background: #fef3c7;
@@ -2279,7 +2254,7 @@ body {
   font-weight: 600;
 }
 
-.rate-note-ultimate {
+.rate-note {
   margin-top: 10px;
   font-size: 7px;
   color: #64748b;
@@ -2289,7 +2264,7 @@ body {
 }
 
 /* Stamp and Signature */
-.stamp-signature-ultimate {
+.docket-fixed-footer-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2299,21 +2274,7 @@ body {
   gap: 30px;
 }
 
-.stamp-area-ultimate {
-  width: 110px;
-  height: 110px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stamp-img-ultimate {
-  width: 100%;
-  height: auto;
-  object-fit: contain;
-}
-
-.stamp-fallback-ultimate {
+.docket-fixed-stamp {
   width: 100px;
   height: 100px;
   display: flex;
@@ -2321,7 +2282,13 @@ body {
   justify-content: center;
 }
 
-.stamp-circle-ultimate {
+.stamp-image {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.stamp-fallback {
   width: 90px;
   height: 90px;
   border-radius: 50%;
@@ -2337,36 +2304,36 @@ body {
   color: #2563eb;
 }
 
-.stamp-line-ultimate {
+.stamp-fallback .stamp-line {
   width: 25px;
   height: 1px;
   background: #2563eb;
   margin: 3px 0;
 }
 
-.signatures-ultimate {
+.docket-fixed-signatures {
   display: flex;
   gap: 50px;
   flex-wrap: wrap;
 }
 
-.sign-box-ultimate {
+.signature-box {
   text-align: center;
 }
 
-.sign-line-ultimate {
+.sign-line {
   width: 120px;
   border-top: 1.5px solid #0f172a;
   margin-bottom: 6px;
 }
 
-.sign-box-ultimate p {
+.signature-box p {
   font-size: 8px;
   color: #64748b;
   margin-top: 4px;
 }
 
-.stamp-box-ultimate {
+.stamp-text {
   border: 1px dashed #d32f2f;
   padding: 6px 15px;
   font-size: 8px;
@@ -2375,24 +2342,25 @@ body {
   background: #ffebed;
   border-radius: 6px;
   margin-bottom: 5px;
+  white-space: nowrap;
 }
 
-/* Terms Section */
-.terms-ultimate {
+/* Terms */
+.docket-fixed-terms {
   margin: 0 25px 15px 25px;
   padding: 10px 15px;
   background: #f8fafc;
   border-radius: 10px;
 }
 
-.terms-header-ultimate {
+.terms-title {
   font-size: 8px;
   font-weight: 800;
   margin-bottom: 8px;
   color: #1e293b;
 }
 
-.terms-ultimate ul {
+.docket-fixed-terms ul {
   padding-left: 18px;
   font-size: 6.5px;
   color: #475569;
@@ -2400,13 +2368,13 @@ body {
 }
 
 /* Footer */
-.footer-ultimate {
+.docket-fixed-footer {
   padding: 12px 25px;
   background: linear-gradient(135deg, #0f172a, #1e1b4b);
   color: white;
 }
 
-.footer-copies-ultimate {
+.footer-copies {
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
@@ -2415,14 +2383,14 @@ body {
   gap: 10px;
 }
 
-.footer-powered-ultimate {
+.footer-powered {
   font-size: 6px;
   opacity: 0.6;
   text-align: center;
 }
 
 /* --------------------------------------------
-   20. STAMP IMAGE STYLES - PREMIUM WITH FALLBACK
+   20. STAMP IMAGE STYLES
    -------------------------------------------- */
 .official-stamp-image {
   width: 100px;
@@ -2509,7 +2477,7 @@ body {
 }
 
 /* --------------------------------------------
-   21. PRINT STYLES - A4 OPTIMIZED
+   21. PRINT STYLES
    -------------------------------------------- */
 @media print {
   .no-print,
@@ -2527,7 +2495,7 @@ body {
     display: none !important;
   }
   
-  .print-docket-ultimate {
+  .print-docket-fixed {
     display: block !important;
     margin: 0;
     padding: 0;
@@ -2546,16 +2514,16 @@ body {
     margin: 0;
   }
   
-  .status-ribbon-ultimate,
-  .barcode-ultimate,
-  .stamp-img-ultimate {
+  .docket-status-badge,
+  .docket-fixed-barcode,
+  .stamp-image {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
 }
 
 /* --------------------------------------------
-   22. RESPONSIVE DESIGN - ENHANCED
+   22. RESPONSIVE DESIGN
    -------------------------------------------- */
 @media (max-width: 1024px) {
   .tracking-details-grid {
@@ -2590,7 +2558,7 @@ body {
     padding: 24px;
   }
   
-  .billing-ultimate {
+  .docket-fixed-billing {
     grid-template-columns: 1fr;
   }
 }
@@ -2694,53 +2662,56 @@ body {
     gap: 20px;
   }
   
-  .parties-ultimate {
-    flex-direction: column;
+  .docket-fixed-parties {
+    grid-template-columns: 1fr;
   }
   
-  .arrow-ultimate {
-    transform: rotate(90deg);
-    justify-content: center;
-    display: flex;
-  }
-  
-  .stamp-signature-ultimate {
+  .docket-fixed-footer-section {
     flex-direction: column;
     align-items: center;
     text-align: center;
   }
   
-  .signatures-ultimate {
+  .docket-fixed-signatures {
     justify-content: center;
   }
   
-  .docket-header-ultimate {
+  .docket-fixed-header {
     flex-direction: column;
     text-align: center;
   }
   
-  .header-left-ultimate {
+  .docket-fixed-logo-section {
     justify-content: center;
   }
   
-  .header-right-ultimate {
+  .docket-fixed-doc-section {
     text-align: center;
   }
   
-  .footer-copies-ultimate {
+  .footer-copies {
     flex-direction: column;
     text-align: center;
     gap: 5px;
   }
   
-  .status-ribbon-ultimate {
+  .docket-status-badge {
     position: relative;
     top: auto;
     right: auto;
     display: inline-block;
     margin: 10px auto;
-    text-align: center;
     width: fit-content;
+  }
+  
+  .docket-fixed-table {
+    width: calc(100% - 30px);
+    margin: 15px;
+    font-size: 8px;
+  }
+  
+  .stamp-text {
+    white-space: normal;
   }
 }
 
@@ -2792,12 +2763,12 @@ body {
     margin-bottom: 5px;
   }
   
-  .barcode-ultimate {
-    width: 180px;
+  .docket-fixed-barcode {
+    width: 150px;
   }
   
-  .lr-number-ultimate {
-    font-size: 20px;
+  .docket-fixed-lr {
+    font-size: 18px;
   }
 }
 
