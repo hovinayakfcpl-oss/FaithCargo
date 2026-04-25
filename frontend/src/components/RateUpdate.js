@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./RateUpdate.css";
 
-const zones = ["N1","N2","N3","C1","W1","W2","S1","S2","E1","NE1","NE2"];
+const zones = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1", "NE2"];
 
 function RateUpdate() {
   const navigate = useNavigate();
@@ -12,14 +12,15 @@ function RateUpdate() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   
-  // ========== Client Management State ==========
+  // Client Management State
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
   const [showClientRates, setShowClientRates] = useState(false);
   const [clientRates, setClientRates] = useState({});
   const [masterRates, setMasterRates] = useState({});
+  const [hasSavedRates, setHasSavedRates] = useState(false);
   
-  // ========== Rate Policy Default Values ==========
+  // Rate Policy Default Values
   const [ratePolicy, setRatePolicy] = useState({
     surface_rate_per_kg: 18,
     express_rate_per_kg: 25,
@@ -41,7 +42,7 @@ function RateUpdate() {
     cft: 4500
   });
   
-  // ========== Edit Policy State ==========
+  // Edit Policy State
   const [editingPolicy, setEditingPolicy] = useState(false);
   const [tempPolicy, setTempPolicy] = useState({});
 
@@ -92,7 +93,7 @@ function RateUpdate() {
     }
   };
 
-  // ✅ FIXED: Fetch client-specific rates - Show SAVED rates, not master rates
+  // Fetch client-specific rates - Default master rates fill rahenge
   const fetchClientRates = async (clientId) => {
     setLoading(true);
     try {
@@ -106,40 +107,48 @@ function RateUpdate() {
         }
       });
       
-      let matrix = createEmptyMatrix();
+      // Start with master rates as default template
+      let matrix = JSON.parse(JSON.stringify(masterRates));
+      setHasSavedRates(false);
       
       if (response.ok) {
         const data = await response.json();
         console.log("✅ Client rates response:", data);
         
         if (data.zone_rates && data.zone_rates.length > 0) {
-          // ✅ CUSTOM RATES EXIST - Show them (saved rates)
+          // Custom rates exist - Override master rates with saved rates
           data.zone_rates.forEach(r => {
             if (matrix[r.from_zone]) {
               matrix[r.from_zone][r.to_zone] = r.rate;
             }
           });
-          setMessage(`✅ Loaded ${data.zone_rates.length} custom rates for ${clientId}`);
+          setHasSavedRates(true);
+          setMessage(`✅ Loaded ${data.zone_rates.length} saved custom rates for ${clientId}`);
           console.log(`Loaded ${data.zone_rates.length} saved custom rates`);
         } else {
-          // ❌ NO CUSTOM RATES - Show empty matrix (not master rates)
-          // User will enter new rates from scratch
-          setMessage(`ℹ️ No custom rates for ${clientId}. Enter rates and click Save.`);
-          console.log("No custom rates found, showing empty matrix");
+          // No custom rates - Show master rates as default template
+          setHasSavedRates(false);
+          setMessage(`ℹ️ No custom rates for ${clientId}. Using master rates as template. Edit and click Save.`);
+          console.log("No custom rates found, showing master rates template");
         }
       } else {
         console.error("Failed to fetch client rates:", response.status);
-        setMessage(`⚠️ Could not fetch rates for ${clientId}`);
+        setMessage(`⚠️ Using master rates as template for ${clientId}`);
       }
       
       setClientRates(matrix);
       
     } catch (error) {
       console.error('Error fetching client rates:', error);
-      setClientRates(createEmptyMatrix());
-      setMessage(`❌ Error fetching rates: ${error.message}`);
+      // Fallback to master rates
+      if (Object.keys(masterRates).length > 0) {
+        setClientRates(JSON.parse(JSON.stringify(masterRates)));
+      } else {
+        setClientRates(createEmptyMatrix());
+      }
+      setMessage(`⚠️ Using master rates as template`);
     }
-    setTimeout(() => setMessage(""), 3000);
+    setTimeout(() => setMessage(""), 4000);
     setLoading(false);
   };
 
@@ -171,6 +180,13 @@ function RateUpdate() {
     fetchMasterMatrix();
   }, []);
 
+  // When master rates are loaded and a client is selected, refresh client rates
+  useEffect(() => {
+    if (selectedClient && Object.keys(masterRates).length > 0) {
+      fetchClientRates(selectedClient);
+    }
+  }, [masterRates, selectedClient]);
+
   useEffect(() => {
     if (selectedOption === "b2b") {
       fetchMasterMatrix();
@@ -200,7 +216,7 @@ function RateUpdate() {
     let payload = [];
     zones.forEach(f => {
       zones.forEach(t => {
-        if (rates[f][t] !== "" && rates[f][t] !== null) {
+        if (rates[f] && rates[f][t] !== "" && rates[f][t] !== null) {
           payload.push({ from_zone: f, to_zone: t, rate: Number(rates[f][t]) });
         }
       });
@@ -237,7 +253,7 @@ function RateUpdate() {
     setLoading(false);
   };
 
-  // ✅ Save Client-Specific Rates to Database
+  // Save Client-Specific Rates to Database
   const updateClientRates = async () => {
     if (!selectedClient) {
       setMessage("❌ No client selected");
@@ -269,7 +285,6 @@ function RateUpdate() {
 
     console.log("🟡 Saving rates for client:", selectedClient);
     console.log("🟡 Number of rates:", zonePayload.length);
-    console.log("🟡 Sample rates (first 3):", zonePayload.slice(0, 3));
 
     try {
       const token = localStorage.getItem("token");
@@ -288,10 +303,11 @@ function RateUpdate() {
       console.log("🟢 Server response:", data);
       
       if (res.ok && data.success) {
-        setMessage(`✅ ${data.message || `Rates saved successfully for ${selectedClient}`} (${data.stats?.created || zonePayload.length} rates saved)`);
+        setMessage(`✅ Rates saved successfully for ${selectedClient} (${zonePayload.length} rates saved)`);
         setShowClientRates(false);
+        setHasSavedRates(true);
         
-        // 🔥 IMPORTANT: Refresh to show saved rates
+        // Refresh to show saved rates
         setTimeout(async () => {
           await fetchClientRates(selectedClient);
           setMessage(`✅ Rates verified! ${selectedClient} now has custom rates.`);
@@ -338,7 +354,7 @@ function RateUpdate() {
 
   const renderRateTable = (rateData, onChangeHandler, title, showPlaceholder = true) => (
     <div className="matrix-card">
-      <h3>{title}</h3>
+      <h3>{title} {hasSavedRates && <span style={{ fontSize: "12px", color: "#10b981", marginLeft: "10px" }}>✨ Custom Rates Loaded</span>}</h3>
       <div className="table-wrapper" style={{ overflowX: "auto" }}>
         <table className="rate-table" style={{ borderCollapse: "collapse", width: "100%" }}>
           <thead>
