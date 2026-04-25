@@ -57,86 +57,48 @@ function RateUpdate() {
     return matrix;
   };
 
-  // ✅ FIXED: Fetch all clients from database using correct endpoint
+  // Fetch all clients from database
   const fetchClients = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
       
-      console.log("🔍 Fetching clients from database...");
-      console.log("Token:", token ? "Exists" : "Missing");
-      
       if (!token) {
-        console.log("⚠️ No token found");
-        setMessage("⚠️ Please login first");
-        setTimeout(() => setMessage(""), 3000);
+        console.log("No token found");
         setClients([]);
         return;
       }
       
-      // ✅ CORRECT ENDPOINT - using /api/user/clients/
       const response = await fetch('https://faithcargo.onrender.com/api/user/clients/', {
-        method: 'GET',
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
       
-      console.log("Response status:", response.status);
-      
       if (response.ok) {
         const data = await response.json();
-        console.log("✅ Clients fetched from database:", data);
-        
-        // Handle response format
-        let clientsList = [];
-        if (Array.isArray(data)) {
-          clientsList = data;
-        } else if (data.clients && Array.isArray(data.clients)) {
-          clientsList = data.clients;
-        } else if (data.results && Array.isArray(data.results)) {
-          clientsList = data.results;
-        }
-        
-        setClients(clientsList);
-        
-        if (clientsList.length === 0) {
-          setMessage("⚠️ No clients found. Please create clients in User Management.");
-        } else {
-          console.log(`✅ ${clientsList.length} clients loaded`);
-        }
-        setTimeout(() => setMessage(""), 3000);
-        
-      } else if (response.status === 401) {
-        console.error("❌ Unauthorized - Invalid token");
-        setMessage("❌ Session expired. Please login again.");
-        setTimeout(() => setMessage(""), 3000);
-      } else if (response.status === 403) {
-        console.error("❌ Forbidden - Admin access required");
-        setMessage("❌ Admin access required to view clients");
-        setTimeout(() => setMessage(""), 3000);
+        console.log("✅ Clients fetched:", data);
+        setClients(Array.isArray(data) ? data : []);
       } else {
-        console.error("❌ Failed to fetch clients:", response.status);
-        setMessage(`❌ Failed to load clients (Error: ${response.status})`);
-        setTimeout(() => setMessage(""), 3000);
+        console.error("Failed to fetch clients:", response.status);
+        setClients([]);
       }
-      
     } catch (error) {
-      console.error('❌ Error fetching clients:', error);
-      setMessage("❌ Network error: Could not connect to server");
-      setTimeout(() => setMessage(""), 3000);
+      console.error('Error fetching clients:', error);
       setClients([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Fetch client-specific rates from database
+  // Fetch client-specific rates from database
   const fetchClientRates = async (clientId) => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
+      console.log(`🔍 Fetching rates for client: ${clientId}`);
+      
       const response = await fetch(`https://faithcargo.onrender.com/api/rates/client/${clientId}/`, {
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
@@ -148,54 +110,44 @@ function RateUpdate() {
       
       if (response.ok) {
         const data = await response.json();
-        console.log("✅ Client rates fetched from DB:", data);
+        console.log("✅ Client rates response:", data);
         
         if (data.zone_rates && data.zone_rates.length > 0) {
+          // Load existing custom rates
           data.zone_rates.forEach(r => {
             if (matrix[r.from_zone]) {
               matrix[r.from_zone][r.to_zone] = r.rate;
             }
           });
-          setMessage(`✅ Loaded custom rates for client ${clientId}`);
+          setMessage(`✅ Loaded ${data.zone_rates.length} custom rates for ${clientId}`);
         } else {
-          // No custom rates found, show master rates as template
+          // No custom rates - show master rates as template for easy editing
           if (Object.keys(masterRates).length > 0) {
-            Object.keys(masterRates).forEach(from => {
-              Object.keys(masterRates[from]).forEach(to => {
-                if (masterRates[from][to]) {
-                  matrix[from][to] = masterRates[from][to];
-                }
-              });
-            });
-            setMessage(`ℹ️ No custom rates found for ${clientId}. Using master rates as template.`);
+            matrix = JSON.parse(JSON.stringify(masterRates));
+            setMessage(`ℹ️ No custom rates for ${clientId}. Using master rates as template. Enter values and click Save.`);
+          } else {
+            setMessage(`ℹ️ No rates found for ${clientId}. Enter rates and click Save.`);
           }
-          setTimeout(() => setMessage(""), 3000);
         }
-        
-        // Set client policy if exists
-        if (data.policy && data.policy.is_custom) {
-          setRatePolicy(data.policy);
-        }
+        setTimeout(() => setMessage(""), 4000);
       } else {
-        console.log("No custom rates found for client");
-        // Show master rates as placeholder
+        console.error("Failed to fetch client rates:", response.status);
+        // Use master rates as fallback
         if (Object.keys(masterRates).length > 0) {
-          Object.keys(masterRates).forEach(from => {
-            Object.keys(masterRates[from]).forEach(to => {
-              if (masterRates[from][to]) {
-                matrix[from][to] = masterRates[from][to];
-              }
-            });
-          });
+          matrix = JSON.parse(JSON.stringify(masterRates));
         }
       }
       
       setClientRates(matrix);
       
     } catch (error) {
-      console.error('❌ Error fetching client rates:', error);
-      setClientRates(createEmptyMatrix());
-      setMessage(`❌ Error fetching rates: ${error.message}`);
+      console.error('Error fetching client rates:', error);
+      if (Object.keys(masterRates).length > 0) {
+        setClientRates(JSON.parse(JSON.stringify(masterRates)));
+      } else {
+        setClientRates(createEmptyMatrix());
+      }
+      setMessage(`⚠️ Using master rates as template`);
       setTimeout(() => setMessage(""), 3000);
     }
     setLoading(false);
@@ -205,9 +157,7 @@ function RateUpdate() {
   const fetchMasterMatrix = async () => {
     try {
       const response = await fetch("https://faithcargo.onrender.com/api/rates/matrix/");
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       
       let matrix = createEmptyMatrix();
@@ -218,22 +168,19 @@ function RateUpdate() {
       });
       setMasterRates(matrix);
       setRates(matrix);
-      console.log("✅ Master rates fetched successfully");
+      console.log("✅ Master rates fetched");
     } catch (error) {
-      console.error('❌ Error fetching master matrix:', error);
-      setMessage(`⚠️ Could not fetch master rates: ${error.message}`);
-      setTimeout(() => setMessage(""), 3000);
+      console.error('Error fetching master matrix:', error);
     }
   };
 
   // Initial Load
   useEffect(() => {
     setRates(createEmptyMatrix());
-    fetchClients(); // Fetch clients on page load
-    fetchMasterMatrix(); // Fetch master rates
+    fetchClients();
+    fetchMasterMatrix();
   }, []);
 
-  // Fetch matrix based on selection
   useEffect(() => {
     if (selectedOption === "b2b") {
       fetchMasterMatrix();
@@ -242,25 +189,17 @@ function RateUpdate() {
     }
   }, [selectedOption]);
 
-  // Handle Input Change
   const handleChange = (from, to, value) => {
     setRates(prev => ({
       ...prev,
-      [from]: {
-        ...prev[from],
-        [to]: value
-      }
+      [from]: { ...prev[from], [to]: value }
     }));
   };
 
-  // Handle Client Rate Change
   const handleClientRateChange = (from, to, value) => {
     setClientRates(prev => ({
       ...prev,
-      [from]: {
-        ...prev[from],
-        [to]: value
-      }
+      [from]: { ...prev[from], [to]: value }
     }));
   };
 
@@ -272,11 +211,7 @@ function RateUpdate() {
     zones.forEach(f => {
       zones.forEach(t => {
         if (rates[f][t] !== "" && rates[f][t] !== null) {
-          payload.push({
-            from_zone: f,
-            to_zone: t,
-            rate: Number(rates[f][t])
-          });
+          payload.push({ from_zone: f, to_zone: t, rate: Number(rates[f][t]) });
         }
       });
     });
@@ -300,20 +235,19 @@ function RateUpdate() {
       const data = await res.json();
       
       if (res.ok) {
-        setMessage(data.message || "✅ Master Rates Updated Successfully");
-        fetchMasterMatrix(); // Refresh after update
+        setMessage("✅ Master Rates Updated Successfully");
+        fetchMasterMatrix();
       } else {
         setMessage(data.error || "❌ Failed to update master rates");
       }
       setTimeout(() => setMessage(""), 3000);
     } catch (error) {
-      console.error("❌ Error:", error);
       setMessage("❌ Server Error: " + error.message);
     }
     setLoading(false);
   };
 
-  // ✅ Save Client-Specific Rates to Database
+  // ✅ FIXED: Save Client-Specific Rates to Database
   const updateClientRates = async () => {
     if (!selectedClient) {
       setMessage("❌ No client selected");
@@ -322,6 +256,7 @@ function RateUpdate() {
     
     setLoading(true);
     
+    // Collect all rates that have values
     let zonePayload = [];
     zones.forEach(f => {
       zones.forEach(t => {
@@ -343,7 +278,8 @@ function RateUpdate() {
     }
 
     console.log("🟡 Saving rates for client:", selectedClient);
-    console.log("🟡 Payload:", zonePayload);
+    console.log("🟡 Number of rates:", zonePayload.length);
+    console.log("🟡 Sample rates (first 3):", zonePayload.slice(0, 3));
 
     try {
       const token = localStorage.getItem("token");
@@ -362,14 +298,20 @@ function RateUpdate() {
       console.log("🟢 Server response:", data);
       
       if (res.ok && data.success) {
-        setMessage(data.message || `✅ Rates saved successfully for ${selectedClient}`);
+        setMessage(`✅ ${data.message || `Rates saved successfully for ${selectedClient}`} (${data.stats?.created || zonePayload.length} rates saved)`);
         setShowClientRates(false);
-        // Refresh to show saved rates
-        await fetchClientRates(selectedClient);
+        
+        // Wait a moment then refresh to verify save
+        setTimeout(async () => {
+          await fetchClientRates(selectedClient);
+          setMessage(`✅ Rates verified! ${selectedClient} now has custom rates.`);
+          setTimeout(() => setMessage(""), 3000);
+        }, 1000);
       } else {
         setMessage(data.error || "❌ Failed to save client rates");
+        console.error("Save failed:", data);
       }
-      setTimeout(() => setMessage(""), 3000);
+      setTimeout(() => setMessage(""), 4000);
     } catch (error) {
       console.error("🔴 Error:", error);
       setMessage("❌ Server Error: " + error.message);
@@ -377,7 +319,6 @@ function RateUpdate() {
     setLoading(false);
   };
 
-  // Update Global Rate Policy
   const updateGlobalPolicy = async () => {
     setLoading(true);
     try {
@@ -393,20 +334,18 @@ function RateUpdate() {
       const data = await res.json();
       
       if (res.ok) {
-        setMessage(data.message || "✅ Rate Policy Updated Successfully");
+        setMessage("✅ Rate Policy Updated Successfully");
         setEditingPolicy(false);
       } else {
         setMessage(data.error || "❌ Failed to update policy");
       }
       setTimeout(() => setMessage(""), 3000);
     } catch (error) {
-      console.error("❌ Error:", error);
       setMessage("❌ Server Error: " + error.message);
     }
     setLoading(false);
   };
 
-  // Render Rate Table
   const renderRateTable = (rateData, onChangeHandler, title, showPlaceholder = true) => (
     <div className="matrix-card">
       <h3>{title}</h3>
@@ -448,122 +387,35 @@ function RateUpdate() {
     </div>
   );
 
-  // Render Rate Policy Card
   const renderPolicyCard = () => (
     <div className="policy-card" style={{ marginTop: "20px", padding: "15px", border: "1px solid #ddd", borderRadius: "8px" }}>
       <div className="policy-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h3>Faith Cargo Rate Policy</h3>
-        <button 
-          className="edit-policy-btn"
-          onClick={() => {
-            setTempPolicy({...ratePolicy});
-            setEditingPolicy(true);
-          }}
-          style={{ padding: "5px 10px", cursor: "pointer" }}
-        >
-          ✏️ Edit Policy
-        </button>
+        <button onClick={() => { setTempPolicy({...ratePolicy}); setEditingPolicy(true); }} style={{ padding: "5px 10px", cursor: "pointer" }}>✏️ Edit Policy</button>
       </div>
-      
       <div className="policy-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "10px", marginTop: "10px" }}>
-        <div className="policy-box">
-          <h4>Surface Rate</h4>
-          {editingPolicy ? (
-            <input type="number" step="0.5" value={tempPolicy.surface_rate_per_kg} onChange={(e) => setTempPolicy({...tempPolicy, surface_rate_per_kg: parseFloat(e.target.value)})} />
-          ) : <p>₹{ratePolicy.surface_rate_per_kg}/kg</p>}
-        </div>
-        
-        <div className="policy-box">
-          <h4>Express Rate</h4>
-          {editingPolicy ? (
-            <input type="number" step="0.5" value={tempPolicy.express_rate_per_kg} onChange={(e) => setTempPolicy({...tempPolicy, express_rate_per_kg: parseFloat(e.target.value)})} />
-          ) : <p>₹{ratePolicy.express_rate_per_kg}/kg</p>}
-        </div>
-        
-        <div className="policy-box">
-          <h4>Air Rate</h4>
-          {editingPolicy ? (
-            <input type="number" step="0.5" value={tempPolicy.air_rate_per_kg} onChange={(e) => setTempPolicy({...tempPolicy, air_rate_per_kg: parseFloat(e.target.value)})} />
-          ) : <p>₹{ratePolicy.air_rate_per_kg}/kg</p>}
-        </div>
-        
-        <div className="policy-box">
-          <h4>Min Freight</h4>
-          {editingPolicy ? (
-            <input type="number" value={tempPolicy.minFreight} onChange={(e) => setTempPolicy({...tempPolicy, minFreight: parseFloat(e.target.value)})} />
-          ) : <p>₹{ratePolicy.minFreight}</p>}
-        </div>
-        
-        <div className="policy-box">
-          <h4>Docket Charge</h4>
-          {editingPolicy ? (
-            <input type="number" value={tempPolicy.docketCharge} onChange={(e) => setTempPolicy({...tempPolicy, docketCharge: parseFloat(e.target.value)})} />
-          ) : <p>₹{ratePolicy.docketCharge}</p>}
-        </div>
-        
-        <div className="policy-box">
-          <h4>Fuel Surcharge</h4>
-          {editingPolicy ? (
-            <input type="number" step="0.5" value={tempPolicy.fuelPercent} onChange={(e) => setTempPolicy({...tempPolicy, fuelPercent: parseFloat(e.target.value)})} />
-          ) : <p>{ratePolicy.fuelPercent}%</p>}
-        </div>
-        
-        <div className="policy-box">
-          <h4>GST</h4>
-          {editingPolicy ? (
-            <input type="number" step="0.5" value={tempPolicy.gstPercent} onChange={(e) => setTempPolicy({...tempPolicy, gstPercent: parseFloat(e.target.value)})} />
-          ) : <p>{ratePolicy.gstPercent}%</p>}
-        </div>
-        
-        <div className="policy-box">
-          <h4>ODA Charge</h4>
-          {editingPolicy ? (
-            <input type="number" step="0.5" value={tempPolicy.odaCharge} onChange={(e) => setTempPolicy({...tempPolicy, odaCharge: parseFloat(e.target.value)})} />
-          ) : <p>₹{ratePolicy.odaCharge}/kg</p>}
-        </div>
-        
-        <div className="policy-box">
-          <h4>COD Charge</h4>
-          {editingPolicy ? (
-            <input type="number" value={tempPolicy.codCharge} onChange={(e) => setTempPolicy({...tempPolicy, codCharge: parseFloat(e.target.value)})} />
-          ) : <p>₹{ratePolicy.codCharge}</p>}
-        </div>
-        
-        <div className="policy-box">
-          <h4>Fragile Charge</h4>
-          {editingPolicy ? (
-            <input type="number" value={tempPolicy.fragileCharge} onChange={(e) => setTempPolicy({...tempPolicy, fragileCharge: parseFloat(e.target.value)})} />
-          ) : <p>₹{ratePolicy.fragileCharge}</p>}
-        </div>
-        
-        <div className="policy-box">
-          <h4>Appointment Charge</h4>
-          {editingPolicy ? (
-            <input type="number" value={tempPolicy.appointmentCharge} onChange={(e) => setTempPolicy({...tempPolicy, appointmentCharge: parseFloat(e.target.value)})} />
-          ) : <p>₹{ratePolicy.appointmentCharge}</p>}
-        </div>
-        
-        <div className="policy-box">
-          <h4>Insurance</h4>
-          {editingPolicy ? (
-            <input type="number" step="0.5" value={tempPolicy.insurancePercent} onChange={(e) => setTempPolicy({...tempPolicy, insurancePercent: parseFloat(e.target.value)})} />
-          ) : <p>{ratePolicy.insurancePercent}%</p>}
-        </div>
+        <div className="policy-box"><h4>Surface Rate</h4>{editingPolicy ? <input type="number" step="0.5" value={tempPolicy.surface_rate_per_kg} onChange={(e) => setTempPolicy({...tempPolicy, surface_rate_per_kg: parseFloat(e.target.value)})} /> : <p>₹{ratePolicy.surface_rate_per_kg}/kg</p>}</div>
+        <div className="policy-box"><h4>Express Rate</h4>{editingPolicy ? <input type="number" step="0.5" value={tempPolicy.express_rate_per_kg} onChange={(e) => setTempPolicy({...tempPolicy, express_rate_per_kg: parseFloat(e.target.value)})} /> : <p>₹{ratePolicy.express_rate_per_kg}/kg</p>}</div>
+        <div className="policy-box"><h4>Air Rate</h4>{editingPolicy ? <input type="number" step="0.5" value={tempPolicy.air_rate_per_kg} onChange={(e) => setTempPolicy({...tempPolicy, air_rate_per_kg: parseFloat(e.target.value)})} /> : <p>₹{ratePolicy.air_rate_per_kg}/kg</p>}</div>
+        <div className="policy-box"><h4>Min Freight</h4>{editingPolicy ? <input type="number" value={tempPolicy.minFreight} onChange={(e) => setTempPolicy({...tempPolicy, minFreight: parseFloat(e.target.value)})} /> : <p>₹{ratePolicy.minFreight}</p>}</div>
+        <div className="policy-box"><h4>Docket Charge</h4>{editingPolicy ? <input type="number" value={tempPolicy.docketCharge} onChange={(e) => setTempPolicy({...tempPolicy, docketCharge: parseFloat(e.target.value)})} /> : <p>₹{ratePolicy.docketCharge}</p>}</div>
+        <div className="policy-box"><h4>Fuel Surcharge</h4>{editingPolicy ? <input type="number" step="0.5" value={tempPolicy.fuelPercent} onChange={(e) => setTempPolicy({...tempPolicy, fuelPercent: parseFloat(e.target.value)})} /> : <p>{ratePolicy.fuelPercent}%</p>}</div>
+        <div className="policy-box"><h4>GST</h4>{editingPolicy ? <input type="number" step="0.5" value={tempPolicy.gstPercent} onChange={(e) => setTempPolicy({...tempPolicy, gstPercent: parseFloat(e.target.value)})} /> : <p>{ratePolicy.gstPercent}%</p>}</div>
+        <div className="policy-box"><h4>ODA Charge</h4>{editingPolicy ? <input type="number" step="0.5" value={tempPolicy.odaCharge} onChange={(e) => setTempPolicy({...tempPolicy, odaCharge: parseFloat(e.target.value)})} /> : <p>₹{ratePolicy.odaCharge}/kg</p>}</div>
+        <div className="policy-box"><h4>COD Charge</h4>{editingPolicy ? <input type="number" value={tempPolicy.codCharge} onChange={(e) => setTempPolicy({...tempPolicy, codCharge: parseFloat(e.target.value)})} /> : <p>₹{ratePolicy.codCharge}</p>}</div>
+        <div className="policy-box"><h4>Fragile Charge</h4>{editingPolicy ? <input type="number" value={tempPolicy.fragileCharge} onChange={(e) => setTempPolicy({...tempPolicy, fragileCharge: parseFloat(e.target.value)})} /> : <p>₹{ratePolicy.fragileCharge}</p>}</div>
+        <div className="policy-box"><h4>Appointment Charge</h4>{editingPolicy ? <input type="number" value={tempPolicy.appointmentCharge} onChange={(e) => setTempPolicy({...tempPolicy, appointmentCharge: parseFloat(e.target.value)})} /> : <p>₹{ratePolicy.appointmentCharge}</p>}</div>
+        <div className="policy-box"><h4>Insurance</h4>{editingPolicy ? <input type="number" step="0.5" value={tempPolicy.insurancePercent} onChange={(e) => setTempPolicy({...tempPolicy, insurancePercent: parseFloat(e.target.value)})} /> : <p>{ratePolicy.insurancePercent}%</p>}</div>
       </div>
-      
       {editingPolicy && (
         <div className="policy-actions" style={{ marginTop: "15px", display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-          <button onClick={() => setEditingPolicy(false)} style={{ padding: "5px 10px", cursor: "pointer" }}>Cancel</button>
-          <button onClick={() => {
-            setRatePolicy(tempPolicy);
-            updateGlobalPolicy();
-          }} style={{ padding: "5px 10px", cursor: "pointer", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "4px" }}>Save Policy</button>
+          <button onClick={() => setEditingPolicy(false)}>Cancel</button>
+          <button onClick={() => { setRatePolicy(tempPolicy); updateGlobalPolicy(); }} style={{ backgroundColor: "#28a745", color: "white", border: "none", padding: "5px 10px", borderRadius: "4px" }}>Save Policy</button>
         </div>
       )}
     </div>
   );
 
-  // Client Selector Dropdown
   const renderClientSelector = () => (
     <div className="client-selector" style={{ marginBottom: "20px", padding: "10px", backgroundColor: "#f8f9fa", borderRadius: "8px" }}>
       <label><strong>Select Client for Custom Rates:</strong></label>
@@ -572,121 +424,71 @@ function RateUpdate() {
         onChange={(e) => {
           const clientId = e.target.value;
           setSelectedClient(clientId);
-          if (clientId) {
-            fetchClientRates(clientId);
-          }
+          if (clientId) fetchClientRates(clientId);
         }}
         style={{ padding: "8px", marginLeft: "10px", borderRadius: "4px", minWidth: "250px" }}
       >
         <option value="">-- Master Rates (Default) --</option>
         {clients.map(client => (
           <option key={client.clientId || client.id} value={client.clientId || client.id}>
-            {client.companyName || client.username || client.name} ({client.clientId || client.id})
+            {client.companyName || client.username} ({client.clientId || client.id})
           </option>
         ))}
       </select>
       {selectedClient && (
-        <button 
-          onClick={() => setShowClientRates(true)}
-          style={{ marginLeft: "10px", padding: "8px 16px", cursor: "pointer", backgroundColor: "#007bff", color: "white", border: "none", borderRadius: "4px" }}
-        >
-          ✏️ Edit Client Rates
-        </button>
+        <button onClick={() => setShowClientRates(true)} style={{ marginLeft: "10px", padding: "8px 16px", cursor: "pointer", backgroundColor: "#007bff", color: "white", border: "none", borderRadius: "4px" }}>✏️ Edit Client Rates</button>
       )}
-      <button 
-        onClick={() => {
-          fetchClients();
-          setMessage("🔄 Refreshing client list...");
-          setTimeout(() => setMessage(""), 2000);
-        }}
-        style={{ marginLeft: "10px", padding: "8px 16px", cursor: "pointer", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "4px" }}
-      >
-        🔄 Refresh Clients
-      </button>
+      <button onClick={() => { fetchClients(); setMessage("🔄 Refreshing client list..."); setTimeout(() => setMessage(""), 2000); }} style={{ marginLeft: "10px", padding: "8px 16px", cursor: "pointer", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "4px" }}>🔄 Refresh Clients</button>
     </div>
   );
 
   return (
     <div className="rate-page" style={{ padding: "20px", maxWidth: "1400px", margin: "0 auto" }}>
-      <h2 className="title" style={{ textAlign: "center", marginBottom: "20px", color: "#333" }}>Faith Cargo Rate Update</h2>
+      <h2 className="title" style={{ textAlign: "center", marginBottom: "20px" }}>Faith Cargo Rate Update</h2>
 
-      {/* Selection Tabs */}
       <div className="checkbox-select" style={{ display: "flex", gap: "20px", justifyContent: "center", marginBottom: "20px" }}>
-        <label style={{ cursor: "pointer", padding: "10px 20px", backgroundColor: selectedOption === "fcpl" ? "#007bff" : "#e9ecef", borderRadius: "5px", color: selectedOption === "fcpl" ? "white" : "#333" }}>
-          <input
-            type="checkbox"
-            checked={selectedOption === "fcpl"}
-            onChange={() => setSelectedOption("fcpl")}
-            style={{ marginRight: "5px" }}
-          />
-          FCPL Rate
+        <label style={{ cursor: "pointer", padding: "10px 20px", backgroundColor: selectedOption === "fcpl" ? "#007bff" : "#e9ecef", borderRadius: "5px" }}>
+          <input type="checkbox" checked={selectedOption === "fcpl"} onChange={() => setSelectedOption("fcpl")} /> FCPL Rate
         </label>
-        <label style={{ cursor: "pointer", padding: "10px 20px", backgroundColor: selectedOption === "b2b" ? "#007bff" : "#e9ecef", borderRadius: "5px", color: selectedOption === "b2b" ? "white" : "#333" }}>
-          <input
-            type="checkbox"
-            checked={selectedOption === "b2b"}
-            onChange={() => setSelectedOption("b2b")}
-            style={{ marginRight: "5px" }}
-          />
-          BA / B2B Rate
+        <label style={{ cursor: "pointer", padding: "10px 20px", backgroundColor: selectedOption === "b2b" ? "#007bff" : "#e9ecef", borderRadius: "5px" }}>
+          <input type="checkbox" checked={selectedOption === "b2b"} onChange={() => setSelectedOption("b2b")} /> BA / B2B Rate
         </label>
       </div>
 
-      {/* Client Selector - Shows when B2B is selected */}
       {selectedOption === "b2b" && renderClientSelector()}
 
-      {/* Master Rate Matrix */}
       {selectedOption === "b2b" && !showClientRates && (
         <>
           {renderRateTable(rates, handleChange, "📊 Master Zone Rate Matrix", true)}
-          
           <div className="buttons" style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "20px" }}>
-            <button 
-              onClick={updateRate} 
-              disabled={loading}
-              style={{ padding: "10px 20px", cursor: "pointer", background: loading ? "#ccc" : "#007bff", color: "white", border: "none", borderRadius: "4px" }}
-            >
-              {loading ? "⏳ Updating..." : "💾 Update Master Rates"}
-            </button>
-            <button 
-              onClick={() => navigate("/admin-dashboard")}
-              style={{ padding: "10px 20px", cursor: "pointer", background: "#6c757d", color: "white", border: "none", borderRadius: "4px" }}
-            >
-              📋 Dashboard
-            </button>
+            <button onClick={updateRate} disabled={loading} style={{ padding: "10px 20px", background: loading ? "#ccc" : "#007bff", color: "white", border: "none", borderRadius: "4px" }}>{loading ? "⏳ Updating..." : "💾 Update Master Rates"}</button>
+            <button onClick={() => navigate("/admin-dashboard")} style={{ padding: "10px 20px", background: "#6c757d", color: "white", border: "none", borderRadius: "4px" }}>📋 Dashboard</button>
           </div>
         </>
       )}
 
-      {/* Client-Specific Rate Matrix Modal */}
       {showClientRates && selectedClient && (
         <div className="modal-overlay" onClick={() => setShowClientRates(false)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ background: "white", padding: "20px", borderRadius: "8px", maxWidth: "95%", maxHeight: "85%", overflow: "auto" }}>
-            <div className="modal-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+            <div className="modal-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h3>⭐ Custom Rates for: {selectedClient}</h3>
-              <button className="close-btn" onClick={() => setShowClientRates(false)} style={{ background: "red", color: "white", border: "none", borderRadius: "50%", width: "30px", height: "30px", cursor: "pointer", fontSize: "18px" }}>×</button>
+              <button onClick={() => setShowClientRates(false)} style={{ background: "red", color: "white", border: "none", borderRadius: "50%", width: "30px", height: "30px", cursor: "pointer" }}>×</button>
             </div>
-            
             {renderRateTable(clientRates, handleClientRateChange, "🎯 Client Zone Rate Matrix", false)}
-            
             <div className="modal-buttons" style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "15px" }}>
-              <button onClick={() => setShowClientRates(false)} style={{ padding: "8px 16px", cursor: "pointer", backgroundColor: "#6c757d", color: "white", border: "none", borderRadius: "4px" }}>Cancel</button>
-              <button onClick={updateClientRates} disabled={loading} style={{ padding: "8px 16px", cursor: "pointer", background: loading ? "#ccc" : "#28a745", color: "white", border: "none", borderRadius: "4px" }}>
-                {loading ? "💾 Saving..." : "✅ Save Client Rates"}
-              </button>
+              <button onClick={() => setShowClientRates(false)}>Cancel</button>
+              <button onClick={updateClientRates} disabled={loading} style={{ background: loading ? "#ccc" : "#28a745", color: "white", border: "none", padding: "8px 16px", borderRadius: "4px" }}>{loading ? "💾 Saving..." : "✅ Save Client Rates"}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Rate Policy Card */}
       {renderPolicyCard()}
 
-      {/* Message Display */}
       {message && (
-        <div className="message" style={{ position: "fixed", bottom: "20px", right: "20px", background: message.includes("✅") ? "#d4edda" : message.includes("⚠️") ? "#fff3cd" : "#f8d7da", color: message.includes("✅") ? "#155724" : message.includes("⚠️") ? "#856404" : "#721c24", padding: "12px 20px", borderRadius: "4px", boxShadow: "0 2px 10px rgba(0,0,0,0.2)", zIndex: 1001 }}>
+        <div className="message" style={{ position: "fixed", bottom: "20px", right: "20px", background: message.includes("✅") ? "#d4edda" : message.includes("⚠️") ? "#fff3cd" : "#f8d7da", color: message.includes("✅") ? "#155724" : message.includes("⚠️") ? "#856404" : "#721c24", padding: "12px 20px", borderRadius: "4px", zIndex: 1001 }}>
           {message}
-          <button onClick={() => setMessage("")} style={{ marginLeft: "10px", background: "none", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "16px" }}>×</button>
+          <button onClick={() => setMessage("")} style={{ marginLeft: "10px", background: "none", border: "none", cursor: "pointer" }}>×</button>
         </div>
       )}
     </div>
