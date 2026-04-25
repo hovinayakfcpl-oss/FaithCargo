@@ -1,4 +1,4 @@
-# usermanagement/views.py
+# user_management/views.py
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -8,6 +8,7 @@ from django.db.models import Sum, Count, Q
 from datetime import datetime, timedelta
 from accounts.models import CustomUser, ClientProfile, ClientRateMatrix, ClientRatePolicy, ClientSession, ClientOrderSummary
 from django.core.exceptions import ObjectDoesNotExist
+from decimal import Decimal
 import logging
 import uuid
 
@@ -493,80 +494,168 @@ def get_client_order_summary(request, client_id):
 
 
 # ============================================
-# 🆕 CLIENT RATES APIs
+# 🆕 CLIENT RATES APIs - FIXED VERSION
 # ============================================
 
-# ✅ GET CLIENT RATES
+# ✅ GET CLIENT RATES - UPDATED
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_client_rates(request, client_id):
     try:
-        user = CustomUser.objects.get(client_id__iexact=client_id, role='Client')
-    except CustomUser.DoesNotExist:
-        return Response({"error": "Client not found"}, status=404)
-    
-    zone_rates = ClientRateMatrix.objects.filter(client=user, is_active=True)
-    zone_rates_data = []
-    for rate in zone_rates:
-        zone_rates_data.append({
-            "id": rate.id,
-            "from_zone": rate.from_zone,
-            "to_zone": rate.to_zone,
-            "rate": float(rate.rate),
-            "surface_rate": float(rate.surface_rate) if rate.surface_rate else None,
-            "express_rate": float(rate.express_rate) if rate.express_rate else None,
-            "air_rate": float(rate.air_rate) if rate.air_rate else None
-        })
-    
-    rate_policy = ClientRatePolicy.objects.filter(client=user).first()
-    policy_data = rate_policy.to_dict() if rate_policy else None
-    
-    return Response({
-        "success": True,
-        "zone_rates": zone_rates_data,
-        "policy": policy_data
-    }, status=200)
+        print(f"🔍 Fetching rates for client: {client_id}")
+        
+        try:
+            user = CustomUser.objects.get(client_id__iexact=client_id, role='Client')
+            print(f"✅ Client found: {user.client_id} (ID: {user.id})")
+        except CustomUser.DoesNotExist:
+            return Response({"error": "Client not found"}, status=404)
+        
+        zone_rates = ClientRateMatrix.objects.filter(client=user, is_active=True)
+        print(f"📊 Found {zone_rates.count()} rate records in DB")
+        
+        zone_rates_data = []
+        for rate in zone_rates:
+            zone_rates_data.append({
+                "id": rate.id,
+                "from_zone": rate.from_zone,
+                "to_zone": rate.to_zone,
+                "rate": float(rate.rate),
+                "surface_rate": float(rate.surface_rate) if rate.surface_rate else None,
+                "express_rate": float(rate.express_rate) if rate.express_rate else None,
+                "air_rate": float(rate.air_rate) if rate.air_rate else None
+            })
+            print(f"   → {rate.from_zone} → {rate.to_zone}: {rate.rate}")
+        
+        rate_policy = ClientRatePolicy.objects.filter(client=user).first()
+        policy_data = rate_policy.to_dict() if rate_policy else None
+        
+        return Response({
+            "success": True,
+            "zone_rates": zone_rates_data,
+            "policy": policy_data
+        }, status=200)
+        
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        return Response({"error": str(e)}, status=500)
 
 
-# ✅ UPDATE CLIENT RATES
+# ✅ UPDATE CLIENT RATES - FIXED VERSION (with update_or_create)
 @api_view(['POST', 'PUT'])
 def update_client_rates(request, client_id):
+    """Update client-specific rates - FIXED VERSION"""
     try:
-        user = CustomUser.objects.get(client_id__iexact=client_id, role='Client')
-    except CustomUser.DoesNotExist:
-        return Response({"error": "Client not found"}, status=404)
-    
-    data = request.data
-    
-    if 'zone_rates' in data:
-        ClientRateMatrix.objects.filter(client=user).delete()
+        print("=" * 60)
+        print(f"🔔 UPDATE CLIENT RATES API CALLED for: {client_id}")
+        print("=" * 60)
         
-        for rate in data['zone_rates']:
-            ClientRateMatrix.objects.create(
-                client=user,
-                from_zone=rate.get('from_zone'),
-                to_zone=rate.get('to_zone'),
-                rate=rate.get('rate', 0),
-                surface_rate=rate.get('surface_rate'),
-                express_rate=rate.get('express_rate'),
-                air_rate=rate.get('air_rate')
-            )
-    
-    if 'policy' in data:
-        policy, created = ClientRatePolicy.objects.get_or_create(client=user)
-        policy.is_custom = True
+        # Find client
+        try:
+            user = CustomUser.objects.get(client_id__iexact=client_id, role='Client')
+            print(f"✅ Client found: {user.client_id} (ID: {user.id})")
+        except CustomUser.DoesNotExist:
+            return Response({
+                "success": False,
+                "error": f"Client '{client_id}' not found"
+            }, status=404)
         
-        policy_data = data['policy']
-        for key, value in policy_data.items():
-            if hasattr(policy, key):
-                setattr(policy, key, value)
+        data = request.data
+        print(f"📦 Request data keys: {list(data.keys())}")
         
-        policy.save()
-    
-    return Response({
-        "success": True,
-        "message": f"Rates updated for {user.client_id}"
-    }, status=200)
+        updated_count = 0
+        created_count = 0
+        error_count = 0
+        
+        # Update zone rates
+        if 'zone_rates' in data and data['zone_rates']:
+            print(f"📊 Processing {len(data['zone_rates'])} zone rates")
+            
+            for rate in data['zone_rates']:
+                from_zone = rate.get('from_zone')
+                to_zone = rate.get('to_zone')
+                rate_value = rate.get('rate')
+                
+                print(f"   Processing: {from_zone} → {to_zone} = {rate_value}")
+                
+                if not from_zone or not to_zone:
+                    print(f"   ⚠️ Skipped: Missing zone")
+                    error_count += 1
+                    continue
+                
+                if rate_value is None or rate_value == '':
+                    print(f"   ⚠️ Skipped: No rate value")
+                    error_count += 1
+                    continue
+                
+                try:
+                    # Use update_or_create to save rates
+                    obj, created = ClientRateMatrix.objects.update_or_create(
+                        client=user,
+                        from_zone=from_zone,
+                        to_zone=to_zone,
+                        defaults={
+                            'rate': Decimal(str(rate_value)),
+                            'is_active': True
+                        }
+                    )
+                    
+                    if created:
+                        created_count += 1
+                        print(f"   ✅ CREATED: {from_zone} → {to_zone} = {rate_value}")
+                    else:
+                        updated_count += 1
+                        print(f"   ✅ UPDATED: {from_zone} → {to_zone} = {rate_value} (was {obj.rate})")
+                        
+                except Exception as e:
+                    error_count += 1
+                    print(f"   ❌ Error saving {from_zone}→{to_zone}: {str(e)}")
+            
+            print(f"✅ Summary: {created_count} created, {updated_count} updated, {error_count} errors")
+        
+        # Update policy if provided
+        if 'policy' in data and data['policy']:
+            try:
+                policy, created = ClientRatePolicy.objects.get_or_create(client=user)
+                policy.is_custom = True
+                
+                policy_data = data['policy']
+                for key, value in policy_data.items():
+                    if hasattr(policy, key) and value is not None:
+                        try:
+                            setattr(policy, key, Decimal(str(value)))
+                            print(f"   ✅ Policy {key} = {value}")
+                        except:
+                            setattr(policy, key, value)
+                            print(f"   ✅ Policy {key} = {value} (as is)")
+                
+                policy.save()
+                print(f"✅ Policy updated")
+            except Exception as e:
+                print(f"⚠️ Policy update error: {str(e)}")
+        
+        # Verify save by counting
+        saved_count = ClientRateMatrix.objects.filter(client=user, is_active=True).count()
+        print(f"📊 Total rates in DB for this client: {saved_count}")
+        
+        return Response({
+            "success": True,
+            "message": f"Rates updated successfully for {user.client_id}",
+            "stats": {
+                "created": created_count,
+                "updated": updated_count,
+                "errors": error_count,
+                "total_in_db": saved_count
+            }
+        }, status=200)
+        
+    except Exception as e:
+        print(f"❌ Error updating client rates: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({
+            "success": False,
+            "error": str(e)
+        }, status=500)
 
 
 # ============================================
