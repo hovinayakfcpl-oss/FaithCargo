@@ -494,12 +494,13 @@ def get_client_rates(request, client_id):
 
 
 # =====================================================
-# 🆕 UPDATE CLIENT RATES API - FINAL WORKING VERSION
+# 🆕 UPDATE CLIENT RATES API - UPDATED with update_or_create (No DELETE)
 # =====================================================
 @api_view(['POST', 'PUT'])
 def update_client_rates(request, client_id):
     """
     Update client-specific rates (Admin only)
+    Uses update_or_create instead of delete + create
     """
     import traceback
     
@@ -520,17 +521,15 @@ def update_client_rates(request, client_id):
             }, status=404)
         
         data = request.data
+        print(f"📦 Request data keys: {list(data.keys())}")
         
-        # Update zone rates
+        # Update zone rates using update_or_create (No DELETE!)
         if 'zone_rates' in data and data['zone_rates']:
-            print(f"📊 Updating {len(data['zone_rates'])} zone rates")
+            print(f"📊 Processing {len(data['zone_rates'])} zone rates")
             
-            # Delete existing rates for this client
-            deleted_count = ClientRateMatrix.objects.filter(client=client_user).delete()
-            print(f"🗑️ Deleted {deleted_count[0]} existing rates")
-            
-            # Create new rates
+            updated_count = 0
             created_count = 0
+            skipped_count = 0
             
             for rate in data['zone_rates']:
                 from_zone = rate.get('from_zone')
@@ -538,25 +537,36 @@ def update_client_rates(request, client_id):
                 rate_value = rate.get('rate')
                 
                 if not from_zone or not to_zone:
+                    skipped_count += 1
                     continue
                 
                 if rate_value is None or rate_value == '':
+                    skipped_count += 1
                     continue
                 
                 try:
-                    ClientRateMatrix.objects.create(
+                    # Use update_or_create instead of delete + create
+                    obj, created = ClientRateMatrix.objects.update_or_create(
                         client=client_user,
                         from_zone=from_zone,
                         to_zone=to_zone,
-                        rate=Decimal(str(rate_value)),
-                        is_active=True
+                        defaults={
+                            'rate': Decimal(str(rate_value)),
+                            'is_active': True
+                        }
                     )
-                    created_count += 1
-                    print(f"   ✅ Created: {from_zone} → {to_zone} = {rate_value}")
+                    
+                    if created:
+                        created_count += 1
+                        print(f"   ✅ Created: {from_zone} → {to_zone} = {rate_value}")
+                    else:
+                        updated_count += 1
+                        print(f"   ✅ Updated: {from_zone} → {to_zone} = {rate_value} (was {obj.rate})")
+                        
                 except Exception as e:
-                    print(f"   ❌ Error: {str(e)}")
+                    print(f"   ❌ Error with {from_zone}→{to_zone}: {str(e)}")
             
-            print(f"✅ Created {created_count} new rates")
+            print(f"✅ Summary: {created_count} created, {updated_count} updated, {skipped_count} skipped")
         
         # Update policy (optional)
         if 'policy' in data and data['policy']:
@@ -566,22 +576,30 @@ def update_client_rates(request, client_id):
                 policy.is_custom = True
                 
                 policy_data = data['policy']
+                updated_fields = []
+                
                 for key, value in policy_data.items():
                     if hasattr(policy, key) and value is not None:
                         try:
                             setattr(policy, key, Decimal(str(value)))
+                            updated_fields.append(key)
                             print(f"   ✅ {key} = {value}")
                         except:
                             setattr(policy, key, value)
+                            updated_fields.append(key)
                 
                 policy.save()
-                print(f"✅ Policy updated")
+                print(f"✅ Policy updated - fields: {', '.join(updated_fields)}")
             except Exception as e:
                 print(f"⚠️ Policy update skipped: {str(e)}")
         
         return Response({
             "success": True,
-            "message": f"Rates updated successfully for {client_user.client_id}"
+            "message": f"Rates updated successfully for {client_user.client_id}",
+            "stats": {
+                "created": created_count if 'zone_rates' in data else 0,
+                "updated": updated_count if 'zone_rates' in data else 0
+            }
         }, status=200)
         
     except Exception as e:
