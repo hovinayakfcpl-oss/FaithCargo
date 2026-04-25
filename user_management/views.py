@@ -1,4 +1,4 @@
-# user_management/views.py
+# user_management/views.py - COMPLETE FIXED VERSION
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -441,27 +441,29 @@ def get_client_order_summary(request, client_id):
 
 
 # ============================================
-# 🆕 CLIENT RATES APIs - 100% WORKING FIXED VERSION
+# 🆕 CLIENT RATES APIs - CASE INSENSITIVE FIXED VERSION
 # ============================================
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_client_rates(request, client_id):
-    """Get client rates - ALWAYS returns success"""
+    """Get client rates - CASE INSENSITIVE"""
     try:
         print(f"🔍 GET CLIENT RATES for: {client_id}")
         
+        # 🔥 FIX: Case-insensitive lookup using __iexact
         user = CustomUser.objects.filter(client_id__iexact=client_id, role='Client').first()
+        
         if not user:
-            print(f"⚠️ Client not found: {client_id}, returning empty rates")
+            print(f"⚠️ Client not found: {client_id}")
             return Response({
                 "success": True,
                 "zone_rates": [],
                 "policy": None,
-                "message": "Client not found, using default rates"
+                "message": f"Client {client_id} not found"
             }, status=200)
         
-        print(f"✅ Client found: {user.client_id}")
+        print(f"✅ Client found: {user.client_id} (ID: {user.id})")
         
         zone_rates = ClientRateMatrix.objects.filter(client=user, is_active=True)
         print(f"📊 Found {zone_rates.count()} rate records")
@@ -474,6 +476,7 @@ def get_client_rates(request, client_id):
                 "to_zone": rate.to_zone,
                 "rate": float(rate.rate),
             })
+            print(f"   → {rate.from_zone} → {rate.to_zone}: {rate.rate}")
         
         return Response({
             "success": True,
@@ -492,7 +495,7 @@ def get_client_rates(request, client_id):
 
 @api_view(['POST', 'PUT'])
 def update_client_rates(request, client_id):
-    """Update client rates - 100% WORKING"""
+    """Update client rates - CASE INSENSITIVE - WORKING VERSION"""
     from decimal import Decimal
     
     print("=" * 60)
@@ -500,11 +503,14 @@ def update_client_rates(request, client_id):
     print("=" * 60)
     
     try:
+        # 🔥 FIX: Case-insensitive lookup using __iexact
         user = CustomUser.objects.filter(client_id__iexact=client_id, role='Client').first()
+        
         if not user:
+            print(f"❌ Client not found: {client_id}")
             return Response({
                 "success": False,
-                "error": f"Client '{client_id}' not found"
+                "error": f"Client '{client_id}' not found. Please check the client ID."
             }, status=404)
         
         print(f"✅ Client found: {user.client_id} (ID: {user.id})")
@@ -513,6 +519,7 @@ def update_client_rates(request, client_id):
         zone_rates_list = data.get('zone_rates', [])
         
         if not zone_rates_list:
+            print(f"⚠️ No zone_rates in request")
             return Response({
                 "success": True,
                 "message": f"No rates to update for {user.client_id}",
@@ -520,8 +527,9 @@ def update_client_rates(request, client_id):
             }, status=200)
         
         print(f"📊 Received {len(zone_rates_list)} zone rates")
+        print(f"📊 Sample: {zone_rates_list[:3] if len(zone_rates_list) > 3 else zone_rates_list}")
         
-        # DELETE existing rates
+        # DELETE existing rates for this client
         deleted_count = ClientRateMatrix.objects.filter(client=user).delete()
         print(f"🗑️ Deleted {deleted_count[0]} existing rates")
         
@@ -553,16 +561,17 @@ def update_client_rates(request, client_id):
                 created_count += 1
             except Exception as e:
                 error_count += 1
-                print(f"   ❌ Error: {from_zone}→{to_zone}: {str(e)}")
+                print(f"   ❌ Error creating {from_zone}→{to_zone}: {str(e)}")
         
         print(f"✅ Created {created_count} rates, {error_count} errors")
         
+        # Verify
         final_count = ClientRateMatrix.objects.filter(client=user).count()
-        print(f"📊 Total rates in DB: {final_count}")
+        print(f"📊 Total rates in DB for {user.client_id}: {final_count}")
         
         return Response({
             "success": True,
-            "message": f"✅ Rates updated for {user.client_id}",
+            "message": f"✅ Rates updated successfully for {user.client_id}",
             "stats": {
                 "deleted": deleted_count[0],
                 "created": created_count,
