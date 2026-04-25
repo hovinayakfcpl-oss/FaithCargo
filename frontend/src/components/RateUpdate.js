@@ -92,7 +92,7 @@ function RateUpdate() {
     }
   };
 
-  // Fetch client-specific rates from database
+  // ✅ FIXED: Fetch client-specific rates - Show SAVED rates, not master rates
   const fetchClientRates = async (clientId) => {
     setLoading(true);
     try {
@@ -113,43 +113,33 @@ function RateUpdate() {
         console.log("✅ Client rates response:", data);
         
         if (data.zone_rates && data.zone_rates.length > 0) {
-          // Load existing custom rates
+          // ✅ CUSTOM RATES EXIST - Show them (saved rates)
           data.zone_rates.forEach(r => {
             if (matrix[r.from_zone]) {
               matrix[r.from_zone][r.to_zone] = r.rate;
             }
           });
           setMessage(`✅ Loaded ${data.zone_rates.length} custom rates for ${clientId}`);
+          console.log(`Loaded ${data.zone_rates.length} saved custom rates`);
         } else {
-          // No custom rates - show master rates as template for easy editing
-          if (Object.keys(masterRates).length > 0) {
-            matrix = JSON.parse(JSON.stringify(masterRates));
-            setMessage(`ℹ️ No custom rates for ${clientId}. Using master rates as template. Enter values and click Save.`);
-          } else {
-            setMessage(`ℹ️ No rates found for ${clientId}. Enter rates and click Save.`);
-          }
+          // ❌ NO CUSTOM RATES - Show empty matrix (not master rates)
+          // User will enter new rates from scratch
+          setMessage(`ℹ️ No custom rates for ${clientId}. Enter rates and click Save.`);
+          console.log("No custom rates found, showing empty matrix");
         }
-        setTimeout(() => setMessage(""), 4000);
       } else {
         console.error("Failed to fetch client rates:", response.status);
-        // Use master rates as fallback
-        if (Object.keys(masterRates).length > 0) {
-          matrix = JSON.parse(JSON.stringify(masterRates));
-        }
+        setMessage(`⚠️ Could not fetch rates for ${clientId}`);
       }
       
       setClientRates(matrix);
       
     } catch (error) {
       console.error('Error fetching client rates:', error);
-      if (Object.keys(masterRates).length > 0) {
-        setClientRates(JSON.parse(JSON.stringify(masterRates)));
-      } else {
-        setClientRates(createEmptyMatrix());
-      }
-      setMessage(`⚠️ Using master rates as template`);
-      setTimeout(() => setMessage(""), 3000);
+      setClientRates(createEmptyMatrix());
+      setMessage(`❌ Error fetching rates: ${error.message}`);
     }
+    setTimeout(() => setMessage(""), 3000);
     setLoading(false);
   };
 
@@ -247,7 +237,7 @@ function RateUpdate() {
     setLoading(false);
   };
 
-  // ✅ FIXED: Save Client-Specific Rates to Database
+  // ✅ Save Client-Specific Rates to Database
   const updateClientRates = async () => {
     if (!selectedClient) {
       setMessage("❌ No client selected");
@@ -301,7 +291,7 @@ function RateUpdate() {
         setMessage(`✅ ${data.message || `Rates saved successfully for ${selectedClient}`} (${data.stats?.created || zonePayload.length} rates saved)`);
         setShowClientRates(false);
         
-        // Wait a moment then refresh to verify save
+        // 🔥 IMPORTANT: Refresh to show saved rates
         setTimeout(async () => {
           await fetchClientRates(selectedClient);
           setMessage(`✅ Rates verified! ${selectedClient} now has custom rates.`);
