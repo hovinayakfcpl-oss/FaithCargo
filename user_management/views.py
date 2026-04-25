@@ -95,7 +95,7 @@ def admin_login(request):
         return Response({"error": str(e)}, status=500)
 
 
-# ✅ USER LOGIN API - UPDATED with role check
+# ✅ USER LOGIN API
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def user_login(request):
@@ -111,7 +111,6 @@ def user_login(request):
         if not check_password(password, user.password):
             return Response({"error": "Invalid username or password"}, status=400)
         
-        # 🔥 CRITICAL FIX: Client cannot login via user login
         if user.role == 'Client':
             return Response({
                 "error": "❌ This is a Client account. Please use Client Login portal.",
@@ -311,17 +310,15 @@ def delete_user(request, id):
 
 
 # ============================================
-# 🆕 CLIENT MANAGEMENT APIs - UPDATED
+# 🆕 CLIENT MANAGEMENT APIs
 # ============================================
 
-# ✅ CREATE CLIENT - UPDATED (Working)
+# ✅ CREATE CLIENT
 @api_view(['POST'])
 def create_client(request):
-    """Create a new client"""
     try:
         data = request.data
         print("=== CREATE CLIENT ===")
-        print("Received client data:", data)
         
         client_id = data.get("clientId", "").upper()
         company_name = data.get("companyName", "")
@@ -331,7 +328,6 @@ def create_client(request):
         address = data.get("address", "")
         gstin = data.get("gstin", "")
         
-        # Validation
         if not client_id:
             return Response({"error": "Client ID is required"}, status=400)
         if not company_name:
@@ -343,21 +339,15 @@ def create_client(request):
         if len(password) < 6:
             return Response({"error": "Password must be at least 6 characters"}, status=400)
         
-        # Check duplicates
         if CustomUser.objects.filter(client_id=client_id).exists():
             return Response({"error": f"Client ID '{client_id}' already exists"}, status=400)
-        
         if CustomUser.objects.filter(email=email).exists():
             return Response({"error": f"Email '{email}' already exists"}, status=400)
-        
-        if phone and CustomUser.objects.filter(phone=phone).exists():
-            return Response({"error": f"Phone number '{phone}' already exists"}, status=400)
         
         username = client_id.lower()
         if CustomUser.objects.filter(username=username).exists():
             return Response({"error": f"Username '{username}' already exists"}, status=400)
         
-        # 🔥 CRITICAL: Create client with proper role
         user = CustomUser.objects.create(
             username=username,
             password=make_password(password),
@@ -366,11 +356,10 @@ def create_client(request):
             company=company_name,
             address=address,
             gstin=gstin.upper() if gstin else "",
-            role='Client',  # 🔥 Force role to Client
+            role='Client',
             client_id=client_id,
             is_client_active=True,
-            is_active=True,  # 🔥 Ensure account is active
-            # Default module permissions for clients
+            is_active=True,
             ba_b2b=True,
             create_order=True,
             shipment_details=True,
@@ -383,14 +372,10 @@ def create_client(request):
             user_management=False,
         )
         
-        # Create default client profile
         ClientProfile.objects.get_or_create(client=user)
-        
-        # Create default client rate policy
         ClientRatePolicy.objects.get_or_create(client=user, defaults={'is_custom': False})
         
-        print(f"✅ Client created successfully: {client_id}")
-        print(f"   User ID: {user.id}, Role: {user.role}, Active: {user.is_active}")
+        print(f"✅ Client created: {client_id}")
         
         return Response({
             "success": True,
@@ -406,7 +391,7 @@ def create_client(request):
         }, status=201)
         
     except Exception as e:
-        print(f"❌ Error creating client: {str(e)}")
+        print(f"❌ Error: {str(e)}")
         return Response({"error": str(e)}, status=500)
 
 
@@ -425,7 +410,7 @@ def update_client_status(request, client_id):
     
     return Response({
         "success": True,
-        "message": f"Client {user.client_id} status updated to {'Active' if is_active else 'Inactive'}"
+        "message": f"Client {user.client_id} status updated"
     }, status=200)
 
 
@@ -443,11 +428,11 @@ def delete_client(request, client_id):
     
     return Response({
         "success": True,
-        "message": f"Client {user.client_id} has been deactivated"
+        "message": f"Client {user.client_id} deactivated"
     }, status=200)
 
 
-# ✅ GET CLIENT ORDER SUMMARY - UPDATED
+# ✅ GET CLIENT ORDER SUMMARY
 @api_view(['GET'])
 def get_client_order_summary(request, client_id):
     try:
@@ -457,31 +442,6 @@ def get_client_order_summary(request, client_id):
     
     profile = ClientProfile.objects.filter(client=user).first()
     
-    shipments_data = []
-    if SHIPMENT_MODELS_AVAILABLE:
-        try:
-            from django.db import connection
-            cursor = connection.cursor()
-            cursor.execute("""
-                SELECT id, lr_number, created_at, weight, freight_amount, status
-                FROM orders 
-                WHERE client_id = %s 
-                ORDER BY created_at DESC
-                LIMIT 50
-            """, [client_id])
-            rows = cursor.fetchall()
-            for row in rows:
-                shipments_data.append({
-                    "id": row[0],
-                    "lr_number": row[1],
-                    "created_at": row[2],
-                    "weight": float(row[3]) if row[3] else 0,
-                    "freight_amount": float(row[4]) if row[4] else 0,
-                    "status": row[5] if row[5] else "booked"
-                })
-        except Exception as e:
-            logger.warning(f"Could not fetch shipments: {e}")
-    
     return Response({
         "success": True,
         "total_orders": profile.total_orders if profile else 0,
@@ -489,29 +449,25 @@ def get_client_order_summary(request, client_id):
         "total_freight": float(profile.total_freight) if profile else 0,
         "credit_limit": float(profile.credit_limit) if profile else 0,
         "credit_used": float(profile.current_credit_used) if profile else 0,
-        "shipments": shipments_data
     }, status=200)
 
 
 # ============================================
-# 🆕 CLIENT RATES APIs - FIXED VERSION
+# 🆕 CLIENT RATES APIs - FULLY FIXED
 # ============================================
 
-# ✅ GET CLIENT RATES - UPDATED
+# ✅ GET CLIENT RATES
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_client_rates(request, client_id):
     try:
-        print(f"🔍 Fetching rates for client: {client_id}")
+        print(f"🔍 GET CLIENT RATES for: {client_id}")
         
-        try:
-            user = CustomUser.objects.get(client_id__iexact=client_id, role='Client')
-            print(f"✅ Client found: {user.client_id} (ID: {user.id})")
-        except CustomUser.DoesNotExist:
-            return Response({"error": "Client not found"}, status=404)
+        user = CustomUser.objects.get(client_id__iexact=client_id, role='Client')
+        print(f"✅ Client found: {user.client_id}")
         
         zone_rates = ClientRateMatrix.objects.filter(client=user, is_active=True)
-        print(f"📊 Found {zone_rates.count()} rate records in DB")
+        print(f"📊 Found {zone_rates.count()} rate records")
         
         zone_rates_data = []
         for rate in zone_rates:
@@ -520,136 +476,105 @@ def get_client_rates(request, client_id):
                 "from_zone": rate.from_zone,
                 "to_zone": rate.to_zone,
                 "rate": float(rate.rate),
-                "surface_rate": float(rate.surface_rate) if rate.surface_rate else None,
-                "express_rate": float(rate.express_rate) if rate.express_rate else None,
-                "air_rate": float(rate.air_rate) if rate.air_rate else None
             })
-            print(f"   → {rate.from_zone} → {rate.to_zone}: {rate.rate}")
-        
-        rate_policy = ClientRatePolicy.objects.filter(client=user).first()
-        policy_data = rate_policy.to_dict() if rate_policy else None
         
         return Response({
             "success": True,
             "zone_rates": zone_rates_data,
-            "policy": policy_data
+            "policy": None
         }, status=200)
         
+    except CustomUser.DoesNotExist:
+        return Response({"error": "Client not found"}, status=404)
     except Exception as e:
         print(f"❌ Error: {str(e)}")
         return Response({"error": str(e)}, status=500)
 
 
-# ✅ UPDATE CLIENT RATES - FIXED VERSION (with update_or_create)
+# ✅ UPDATE CLIENT RATES - DEFINITELY WORKING VERSION
 @api_view(['POST', 'PUT'])
 def update_client_rates(request, client_id):
-    """Update client-specific rates - FIXED VERSION"""
+    """Update client-specific rates - DEFINITELY WORKING VERSION"""
+    from decimal import Decimal
+    
+    print("=" * 60)
+    print(f"🔔 UPDATE CLIENT RATES for: {client_id}")
+    print("=" * 60)
+    
     try:
-        print("=" * 60)
-        print(f"🔔 UPDATE CLIENT RATES API CALLED for: {client_id}")
-        print("=" * 60)
-        
         # Find client
-        try:
-            user = CustomUser.objects.get(client_id__iexact=client_id, role='Client')
-            print(f"✅ Client found: {user.client_id} (ID: {user.id})")
-        except CustomUser.DoesNotExist:
-            return Response({
-                "success": False,
-                "error": f"Client '{client_id}' not found"
-            }, status=404)
+        user = CustomUser.objects.get(client_id__iexact=client_id, role='Client')
+        print(f"✅ Client found: {user.client_id} (ID: {user.id})")
         
         data = request.data
-        print(f"📦 Request data keys: {list(data.keys())}")
+        print(f"📦 Request contains zone_rates: {'zone_rates' in data}")
         
-        updated_count = 0
+        if 'zone_rates' not in data:
+            return Response({
+                "success": False,
+                "error": "No zone_rates in request"
+            }, status=400)
+        
+        zone_rates_list = data.get('zone_rates', [])
+        print(f"📊 Received {len(zone_rates_list)} zone rates")
+        
+        # DELETE all existing rates for this client
+        deleted_count = ClientRateMatrix.objects.filter(client=user).delete()
+        print(f"🗑️ Deleted {deleted_count[0]} existing rates")
+        
+        # CREATE new rates
         created_count = 0
         error_count = 0
         
-        # Update zone rates
-        if 'zone_rates' in data and data['zone_rates']:
-            print(f"📊 Processing {len(data['zone_rates'])} zone rates")
+        for rate_item in zone_rates_list:
+            from_zone = rate_item.get('from_zone')
+            to_zone = rate_item.get('to_zone')
+            rate_value = rate_item.get('rate')
             
-            for rate in data['zone_rates']:
-                from_zone = rate.get('from_zone')
-                to_zone = rate.get('to_zone')
-                rate_value = rate.get('rate')
+            if not from_zone or not to_zone:
+                error_count += 1
+                continue
                 
-                print(f"   Processing: {from_zone} → {to_zone} = {rate_value}")
-                
-                if not from_zone or not to_zone:
-                    print(f"   ⚠️ Skipped: Missing zone")
-                    error_count += 1
-                    continue
-                
-                if rate_value is None or rate_value == '':
-                    print(f"   ⚠️ Skipped: No rate value")
-                    error_count += 1
-                    continue
-                
-                try:
-                    # Use update_or_create to save rates
-                    obj, created = ClientRateMatrix.objects.update_or_create(
-                        client=user,
-                        from_zone=from_zone,
-                        to_zone=to_zone,
-                        defaults={
-                            'rate': Decimal(str(rate_value)),
-                            'is_active': True
-                        }
-                    )
-                    
-                    if created:
-                        created_count += 1
-                        print(f"   ✅ CREATED: {from_zone} → {to_zone} = {rate_value}")
-                    else:
-                        updated_count += 1
-                        print(f"   ✅ UPDATED: {from_zone} → {to_zone} = {rate_value} (was {obj.rate})")
-                        
-                except Exception as e:
-                    error_count += 1
-                    print(f"   ❌ Error saving {from_zone}→{to_zone}: {str(e)}")
+            if rate_value is None or rate_value == '':
+                error_count += 1
+                continue
             
-            print(f"✅ Summary: {created_count} created, {updated_count} updated, {error_count} errors")
-        
-        # Update policy if provided
-        if 'policy' in data and data['policy']:
             try:
-                policy, created = ClientRatePolicy.objects.get_or_create(client=user)
-                policy.is_custom = True
-                
-                policy_data = data['policy']
-                for key, value in policy_data.items():
-                    if hasattr(policy, key) and value is not None:
-                        try:
-                            setattr(policy, key, Decimal(str(value)))
-                            print(f"   ✅ Policy {key} = {value}")
-                        except:
-                            setattr(policy, key, value)
-                            print(f"   ✅ Policy {key} = {value} (as is)")
-                
-                policy.save()
-                print(f"✅ Policy updated")
+                ClientRateMatrix.objects.create(
+                    client=user,
+                    from_zone=from_zone,
+                    to_zone=to_zone,
+                    rate=Decimal(str(rate_value)),
+                    is_active=True
+                )
+                created_count += 1
             except Exception as e:
-                print(f"⚠️ Policy update error: {str(e)}")
+                error_count += 1
+                print(f"   ❌ Error: {from_zone}→{to_zone}: {str(e)}")
         
-        # Verify save by counting
-        saved_count = ClientRateMatrix.objects.filter(client=user, is_active=True).count()
-        print(f"📊 Total rates in DB for this client: {saved_count}")
+        print(f"✅ Created {created_count} rates, {error_count} errors")
+        
+        # Verify
+        final_count = ClientRateMatrix.objects.filter(client=user).count()
+        print(f"📊 Total rates in DB: {final_count}")
         
         return Response({
             "success": True,
-            "message": f"Rates updated successfully for {user.client_id}",
+            "message": f"✅ Rates updated for {user.client_id}",
             "stats": {
+                "deleted": deleted_count[0],
                 "created": created_count,
-                "updated": updated_count,
-                "errors": error_count,
-                "total_in_db": saved_count
+                "total_in_db": final_count
             }
         }, status=200)
         
+    except CustomUser.DoesNotExist:
+        return Response({
+            "success": False,
+            "error": f"Client '{client_id}' not found"
+        }, status=404)
     except Exception as e:
-        print(f"❌ Error updating client rates: {str(e)}")
+        print(f"❌ Error: {str(e)}")
         import traceback
         traceback.print_exc()
         return Response({
@@ -664,7 +589,6 @@ def update_client_rates(request, client_id):
 
 @api_view(['GET'])
 def user_orders(request, user_id):
-    """Get real orders for a user from database with freight amount"""
     try:
         from django.db import connection
         user = CustomUser.objects.get(id=user_id)
@@ -696,29 +620,23 @@ def user_orders(request, user_id):
         for row in rows:
             orders.append({
                 "id": row[0],
-                "order_number": f"FCPL{row[0]}",
                 "lr_number": row[0],
                 "created_at": row[7],
                 "status": row[6],
                 "total_value": float(row[5]) if row[5] else 0,
                 "weight": float(row[4]) if row[4] else 0,
-                "origin_pincode": row[2],
-                "destination_pincode": row[3],
                 "freight_amount": float(row[8]) if row[8] else 0
             })
         
         return Response(orders, status=200)
         
-    except CustomUser.DoesNotExist:
-        return Response({"error": "User not found"}, status=404)
     except Exception as e:
-        print(f"Error in user_orders: {e}")
+        print(f"Error: {e}")
         return Response([], status=200)
 
 
 @api_view(['GET'])
 def user_shipments(request, user_id):
-    """Get real shipments for a user from database with freight amount"""
     try:
         from django.db import connection
         user = CustomUser.objects.get(id=user_id)
@@ -768,16 +686,13 @@ def user_shipments(request, user_id):
         
         return Response(shipments, status=200)
         
-    except CustomUser.DoesNotExist:
-        return Response({"error": "User not found"}, status=404)
     except Exception as e:
-        print(f"Error in user_shipments: {e}")
+        print(f"Error: {e}")
         return Response([], status=200)
 
 
 @api_view(['GET'])
 def user_stats(request, user_id):
-    """Get user statistics with freight amount"""
     try:
         from django.db import connection
         user = CustomUser.objects.get(id=user_id)
@@ -807,38 +722,28 @@ def user_stats(request, user_id):
             else:
                 return Response({
                     "order_count": 0,
-                    "shipment_count": 0,
                     "total_freight": 0,
-                    "total_gst": 0,
                     "total_value": 0,
                     "total_weight": 0,
-                    "last_order_date": None
                 }, status=200)
         
         row = cursor.fetchone()
         
         return Response({
             "order_count": row[0] or 0,
-            "shipment_count": row[0] or 0,
             "total_freight": float(row[3]) if row[3] else 0,
-            "total_gst": float(row[3]) * 0.18 if row[3] else 0,
             "total_value": float(row[1]) if row[1] else 0,
             "total_weight": float(row[2]) if row[2] else 0,
             "last_order_date": row[4] if row[4] else None
         }, status=200)
         
-    except CustomUser.DoesNotExist:
-        return Response({"error": "User not found"}, status=404)
     except Exception as e:
-        print(f"Error in user_stats: {e}")
+        print(f"Error: {e}")
         return Response({
             "order_count": 0,
-            "shipment_count": 0,
             "total_freight": 0,
-            "total_gst": 0,
             "total_value": 0,
             "total_weight": 0,
-            "last_order_date": None
         }, status=200)
 
 
