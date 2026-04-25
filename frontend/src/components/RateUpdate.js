@@ -57,20 +57,25 @@ function RateUpdate() {
     return matrix;
   };
 
-  // ✅ FIXED: Fetch all clients for dropdown
+  // ✅ FIXED: Fetch all clients from database using correct endpoint
   const fetchClients = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
       
+      console.log("🔍 Fetching clients from database...");
+      console.log("Token:", token ? "Exists" : "Missing");
+      
       if (!token) {
-        console.log("⚠️ No token found, please login");
+        console.log("⚠️ No token found");
+        setMessage("⚠️ Please login first");
+        setTimeout(() => setMessage(""), 3000);
         setClients([]);
         return;
       }
       
-      // Direct client endpoint with token
-      const response = await fetch('https://faithcargo.onrender.com/api/users/clients/', {
+      // ✅ CORRECT ENDPOINT - using /api/user/clients/
+      const response = await fetch('https://faithcargo.onrender.com/api/user/clients/', {
         method: 'GET',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -78,60 +83,119 @@ function RateUpdate() {
         }
       });
       
+      console.log("Response status:", response.status);
+      
       if (response.ok) {
         const data = await response.json();
-        console.log("✅ Clients fetched successfully:", data);
-        setClients(data);
+        console.log("✅ Clients fetched from database:", data);
+        
+        // Handle response format
+        let clientsList = [];
+        if (Array.isArray(data)) {
+          clientsList = data;
+        } else if (data.clients && Array.isArray(data.clients)) {
+          clientsList = data.clients;
+        } else if (data.results && Array.isArray(data.results)) {
+          clientsList = data.results;
+        }
+        
+        setClients(clientsList);
+        
+        if (clientsList.length === 0) {
+          setMessage("⚠️ No clients found. Please create clients in User Management.");
+        } else {
+          console.log(`✅ ${clientsList.length} clients loaded`);
+        }
+        setTimeout(() => setMessage(""), 3000);
+        
+      } else if (response.status === 401) {
+        console.error("❌ Unauthorized - Invalid token");
+        setMessage("❌ Session expired. Please login again.");
+        setTimeout(() => setMessage(""), 3000);
+      } else if (response.status === 403) {
+        console.error("❌ Forbidden - Admin access required");
+        setMessage("❌ Admin access required to view clients");
+        setTimeout(() => setMessage(""), 3000);
       } else {
         console.error("❌ Failed to fetch clients:", response.status);
-        setClients([]);
+        setMessage(`❌ Failed to load clients (Error: ${response.status})`);
+        setTimeout(() => setMessage(""), 3000);
       }
+      
     } catch (error) {
       console.error('❌ Error fetching clients:', error);
+      setMessage("❌ Network error: Could not connect to server");
+      setTimeout(() => setMessage(""), 3000);
       setClients([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ FIXED: Fetch client-specific rates
+  // ✅ Fetch client-specific rates from database
   const fetchClientRates = async (clientId) => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`https://faithcargo.onrender.com/api/rates/client/${clientId}/`, {
         headers: {
-          'Authorization': token ? `Bearer ${token}` : ''
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json'
         }
       });
       
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log("✅ Client rates fetched:", data);
-      
-      // Create matrix from client rates
       let matrix = createEmptyMatrix();
-      if (data.zone_rates && data.zone_rates.length > 0) {
-        data.zone_rates.forEach(r => {
-          if (matrix[r.from_zone]) {
-            matrix[r.from_zone][r.to_zone] = r.rate;
-          }
-        });
-      }
-      setClientRates(matrix);
       
-      // Set client policy if exists
-      if (data.policy && data.policy.is_custom) {
-        setRatePolicy(data.policy);
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ Client rates fetched from DB:", data);
+        
+        if (data.zone_rates && data.zone_rates.length > 0) {
+          data.zone_rates.forEach(r => {
+            if (matrix[r.from_zone]) {
+              matrix[r.from_zone][r.to_zone] = r.rate;
+            }
+          });
+          setMessage(`✅ Loaded custom rates for client ${clientId}`);
+        } else {
+          // No custom rates found, show master rates as template
+          if (Object.keys(masterRates).length > 0) {
+            Object.keys(masterRates).forEach(from => {
+              Object.keys(masterRates[from]).forEach(to => {
+                if (masterRates[from][to]) {
+                  matrix[from][to] = masterRates[from][to];
+                }
+              });
+            });
+            setMessage(`ℹ️ No custom rates found for ${clientId}. Using master rates as template.`);
+          }
+          setTimeout(() => setMessage(""), 3000);
+        }
+        
+        // Set client policy if exists
+        if (data.policy && data.policy.is_custom) {
+          setRatePolicy(data.policy);
+        }
+      } else {
+        console.log("No custom rates found for client");
+        // Show master rates as placeholder
+        if (Object.keys(masterRates).length > 0) {
+          Object.keys(masterRates).forEach(from => {
+            Object.keys(masterRates[from]).forEach(to => {
+              if (masterRates[from][to]) {
+                matrix[from][to] = masterRates[from][to];
+              }
+            });
+          });
+        }
       }
+      
+      setClientRates(matrix);
       
     } catch (error) {
       console.error('❌ Error fetching client rates:', error);
       setClientRates(createEmptyMatrix());
-      setMessage(`⚠️ Could not fetch client rates: ${error.message}`);
+      setMessage(`❌ Error fetching rates: ${error.message}`);
       setTimeout(() => setMessage(""), 3000);
     }
     setLoading(false);
@@ -165,7 +229,8 @@ function RateUpdate() {
   // Initial Load
   useEffect(() => {
     setRates(createEmptyMatrix());
-    fetchClients();
+    fetchClients(); // Fetch clients on page load
+    fetchMasterMatrix(); // Fetch master rates
   }, []);
 
   // Fetch matrix based on selection
@@ -248,11 +313,10 @@ function RateUpdate() {
     setLoading(false);
   };
 
-  // ✅ FIXED: Update Client-Specific Rates
+  // ✅ Save Client-Specific Rates to Database
   const updateClientRates = async () => {
     if (!selectedClient) {
       setMessage("❌ No client selected");
-      setLoading(false);
       return;
     }
     
@@ -262,7 +326,7 @@ function RateUpdate() {
     zones.forEach(f => {
       zones.forEach(t => {
         const rateValue = clientRates[f]?.[t];
-        if (rateValue !== "" && rateValue !== null && rateValue !== undefined) {
+        if (rateValue !== "" && rateValue !== null && rateValue !== undefined && rateValue !== '') {
           zonePayload.push({
             from_zone: f,
             to_zone: t,
@@ -278,8 +342,8 @@ function RateUpdate() {
       return;
     }
 
-    console.log("🟡 Updating rates for client:", selectedClient);
-    console.log("🟡 Payload:", JSON.stringify(zonePayload, null, 2));
+    console.log("🟡 Saving rates for client:", selectedClient);
+    console.log("🟡 Payload:", zonePayload);
 
     try {
       const token = localStorage.getItem("token");
@@ -298,12 +362,12 @@ function RateUpdate() {
       console.log("🟢 Server response:", data);
       
       if (res.ok && data.success) {
-        setMessage(data.message || `✅ Rates updated successfully for ${selectedClient}`);
+        setMessage(data.message || `✅ Rates saved successfully for ${selectedClient}`);
         setShowClientRates(false);
-        // Refresh client rates after update
+        // Refresh to show saved rates
         await fetchClientRates(selectedClient);
       } else {
-        setMessage(data.error || "❌ Failed to update client rates");
+        setMessage(data.error || "❌ Failed to save client rates");
       }
       setTimeout(() => setMessage(""), 3000);
     } catch (error) {
@@ -342,32 +406,24 @@ function RateUpdate() {
     setLoading(false);
   };
 
-  // Handle Policy Change
-  const handlePolicyChange = (field, value) => {
-    setRatePolicy(prev => ({
-      ...prev,
-      [field]: parseFloat(value) || 0
-    }));
-  };
-
   // Render Rate Table
   const renderRateTable = (rateData, onChangeHandler, title, showPlaceholder = true) => (
     <div className="matrix-card">
       <h3>{title}</h3>
-      <div className="table-wrapper">
-        <table className="rate-table">
+      <div className="table-wrapper" style={{ overflowX: "auto" }}>
+        <table className="rate-table" style={{ borderCollapse: "collapse", width: "100%" }}>
           <thead>
-            <tr>
-              <th>Zone</th>
-              {zones.map(z => <th key={z}>{z}</th>)}
+            <tr style={{ backgroundColor: "#f2f2f2" }}>
+              <th style={{ padding: "8px", border: "1px solid #ddd" }}>Zone</th>
+              {zones.map(z => <th key={z} style={{ padding: "8px", border: "1px solid #ddd" }}>{z}</th>)}
             </tr>
           </thead>
           <tbody>
             {zones.map(from => (
               <tr key={from}>
-                <td className="zone"><strong>{from}</strong></td>
+                <td style={{ padding: "8px", border: "1px solid #ddd", fontWeight: "bold", backgroundColor: "#f9f9f9" }}>{from}</td>
                 {zones.map(to => (
-                  <td key={to}>
+                  <td key={to} style={{ padding: "4px", border: "1px solid #ddd" }}>
                     <input
                       type="number"
                       step="0.5"
@@ -378,7 +434,7 @@ function RateUpdate() {
                         width: "70px",
                         padding: "6px",
                         textAlign: "center",
-                        border: "1px solid #ddd",
+                        border: "1px solid #ccc",
                         borderRadius: "4px"
                       }}
                     />
@@ -392,10 +448,10 @@ function RateUpdate() {
     </div>
   );
 
-  // Render Rate Policy Card with Edit Option
+  // Render Rate Policy Card
   const renderPolicyCard = () => (
-    <div className="policy-card">
-      <div className="policy-header">
+    <div className="policy-card" style={{ marginTop: "20px", padding: "15px", border: "1px solid #ddd", borderRadius: "8px" }}>
+      <div className="policy-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h3>Faith Cargo Rate Policy</h3>
         <button 
           className="edit-policy-btn"
@@ -403,12 +459,13 @@ function RateUpdate() {
             setTempPolicy({...ratePolicy});
             setEditingPolicy(true);
           }}
+          style={{ padding: "5px 10px", cursor: "pointer" }}
         >
           ✏️ Edit Policy
         </button>
       </div>
       
-      <div className="policy-grid">
+      <div className="policy-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "10px", marginTop: "10px" }}>
         <div className="policy-box">
           <h4>Surface Rate</h4>
           {editingPolicy ? (
@@ -495,12 +552,12 @@ function RateUpdate() {
       </div>
       
       {editingPolicy && (
-        <div className="policy-actions">
-          <button onClick={() => setEditingPolicy(false)}>Cancel</button>
+        <div className="policy-actions" style={{ marginTop: "15px", display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+          <button onClick={() => setEditingPolicy(false)} style={{ padding: "5px 10px", cursor: "pointer" }}>Cancel</button>
           <button onClick={() => {
             setRatePolicy(tempPolicy);
             updateGlobalPolicy();
-          }}>Save Policy</button>
+          }} style={{ padding: "5px 10px", cursor: "pointer", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "4px" }}>Save Policy</button>
         </div>
       )}
     </div>
@@ -508,7 +565,7 @@ function RateUpdate() {
 
   // Client Selector Dropdown
   const renderClientSelector = () => (
-    <div className="client-selector">
+    <div className="client-selector" style={{ marginBottom: "20px", padding: "10px", backgroundColor: "#f8f9fa", borderRadius: "8px" }}>
       <label><strong>Select Client for Custom Rates:</strong></label>
       <select 
         value={selectedClient || ""} 
@@ -519,45 +576,57 @@ function RateUpdate() {
             fetchClientRates(clientId);
           }
         }}
-        style={{ padding: "8px", marginLeft: "10px", borderRadius: "4px" }}
+        style={{ padding: "8px", marginLeft: "10px", borderRadius: "4px", minWidth: "250px" }}
       >
         <option value="">-- Master Rates (Default) --</option>
         {clients.map(client => (
           <option key={client.clientId || client.id} value={client.clientId || client.id}>
-            {client.companyName || client.username} ({client.clientId || client.username})
+            {client.companyName || client.username || client.name} ({client.clientId || client.id})
           </option>
         ))}
       </select>
       {selectedClient && (
         <button 
           onClick={() => setShowClientRates(true)}
-          style={{ marginLeft: "10px", padding: "8px 16px", cursor: "pointer" }}
+          style={{ marginLeft: "10px", padding: "8px 16px", cursor: "pointer", backgroundColor: "#007bff", color: "white", border: "none", borderRadius: "4px" }}
         >
           ✏️ Edit Client Rates
         </button>
       )}
+      <button 
+        onClick={() => {
+          fetchClients();
+          setMessage("🔄 Refreshing client list...");
+          setTimeout(() => setMessage(""), 2000);
+        }}
+        style={{ marginLeft: "10px", padding: "8px 16px", cursor: "pointer", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "4px" }}
+      >
+        🔄 Refresh Clients
+      </button>
     </div>
   );
 
   return (
-    <div className="rate-page" style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto" }}>
-      <h2 className="title" style={{ textAlign: "center", marginBottom: "20px" }}>Faith Cargo Rate Update</h2>
+    <div className="rate-page" style={{ padding: "20px", maxWidth: "1400px", margin: "0 auto" }}>
+      <h2 className="title" style={{ textAlign: "center", marginBottom: "20px", color: "#333" }}>Faith Cargo Rate Update</h2>
 
       {/* Selection Tabs */}
       <div className="checkbox-select" style={{ display: "flex", gap: "20px", justifyContent: "center", marginBottom: "20px" }}>
-        <label style={{ cursor: "pointer" }}>
+        <label style={{ cursor: "pointer", padding: "10px 20px", backgroundColor: selectedOption === "fcpl" ? "#007bff" : "#e9ecef", borderRadius: "5px", color: selectedOption === "fcpl" ? "white" : "#333" }}>
           <input
             type="checkbox"
             checked={selectedOption === "fcpl"}
             onChange={() => setSelectedOption("fcpl")}
+            style={{ marginRight: "5px" }}
           />
           FCPL Rate
         </label>
-        <label style={{ cursor: "pointer" }}>
+        <label style={{ cursor: "pointer", padding: "10px 20px", backgroundColor: selectedOption === "b2b" ? "#007bff" : "#e9ecef", borderRadius: "5px", color: selectedOption === "b2b" ? "white" : "#333" }}>
           <input
             type="checkbox"
             checked={selectedOption === "b2b"}
             onChange={() => setSelectedOption("b2b")}
+            style={{ marginRight: "5px" }}
           />
           BA / B2B Rate
         </label>
@@ -592,16 +661,16 @@ function RateUpdate() {
       {/* Client-Specific Rate Matrix Modal */}
       {showClientRates && selectedClient && (
         <div className="modal-overlay" onClick={() => setShowClientRates(false)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ background: "white", padding: "20px", borderRadius: "8px", maxWidth: "90%", maxHeight: "80%", overflow: "auto" }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ background: "white", padding: "20px", borderRadius: "8px", maxWidth: "95%", maxHeight: "85%", overflow: "auto" }}>
             <div className="modal-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
               <h3>⭐ Custom Rates for: {selectedClient}</h3>
-              <button className="close-btn" onClick={() => setShowClientRates(false)} style={{ background: "red", color: "white", border: "none", borderRadius: "50%", width: "30px", height: "30px", cursor: "pointer" }}>×</button>
+              <button className="close-btn" onClick={() => setShowClientRates(false)} style={{ background: "red", color: "white", border: "none", borderRadius: "50%", width: "30px", height: "30px", cursor: "pointer", fontSize: "18px" }}>×</button>
             </div>
             
             {renderRateTable(clientRates, handleClientRateChange, "🎯 Client Zone Rate Matrix", false)}
             
             <div className="modal-buttons" style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "15px" }}>
-              <button onClick={() => setShowClientRates(false)} style={{ padding: "8px 16px", cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setShowClientRates(false)} style={{ padding: "8px 16px", cursor: "pointer", backgroundColor: "#6c757d", color: "white", border: "none", borderRadius: "4px" }}>Cancel</button>
               <button onClick={updateClientRates} disabled={loading} style={{ padding: "8px 16px", cursor: "pointer", background: loading ? "#ccc" : "#28a745", color: "white", border: "none", borderRadius: "4px" }}>
                 {loading ? "💾 Saving..." : "✅ Save Client Rates"}
               </button>
@@ -615,9 +684,9 @@ function RateUpdate() {
 
       {/* Message Display */}
       {message && (
-        <div className="message" style={{ position: "fixed", bottom: "20px", right: "20px", background: message.includes("✅") ? "#d4edda" : "#f8d7da", color: message.includes("✅") ? "#155724" : "#721c24", padding: "12px 20px", borderRadius: "4px", boxShadow: "0 2px 5px rgba(0,0,0,0.2)", zIndex: 1001 }}>
+        <div className="message" style={{ position: "fixed", bottom: "20px", right: "20px", background: message.includes("✅") ? "#d4edda" : message.includes("⚠️") ? "#fff3cd" : "#f8d7da", color: message.includes("✅") ? "#155724" : message.includes("⚠️") ? "#856404" : "#721c24", padding: "12px 20px", borderRadius: "4px", boxShadow: "0 2px 10px rgba(0,0,0,0.2)", zIndex: 1001 }}>
           {message}
-          <button onClick={() => setMessage("")} style={{ marginLeft: "10px", background: "none", border: "none", cursor: "pointer", fontWeight: "bold" }}>×</button>
+          <button onClick={() => setMessage("")} style={{ marginLeft: "10px", background: "none", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "16px" }}>×</button>
         </div>
       )}
     </div>
