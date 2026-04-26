@@ -1,6 +1,7 @@
 /* ============================================
-   VENDOR MANAGEMENT - PREMIUM DESIGN v2.0
+   VENDOR MANAGEMENT - PREMIUM DESIGN v3.0
    ULTIMATE UI UPGRADE | GLASS MORPHISM
+   Added: Notifications, Status Toggle, Copy Button, ODA Support
    Developed by Devora Technologies
    ============================================ */
 
@@ -73,7 +74,75 @@
 }
 
 /* --------------------------------------------
-   3. PAGE HEADER
+   3. NOTIFICATION SYSTEM (NEW)
+   -------------------------------------------- */
+.notification {
+  position: fixed;
+  top: 30px;
+  right: 30px;
+  padding: 14px 24px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 14px;
+  z-index: 1100;
+  animation: slideInRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 400px;
+}
+
+.notification::before {
+  content: '';
+  font-size: 20px;
+}
+
+.notification.success {
+  background: linear-gradient(135deg, var(--primary-green), #059669);
+  color: white;
+  border-left: 4px solid #fff;
+}
+
+.notification.success::before {
+  content: '✅';
+}
+
+.notification.error {
+  background: linear-gradient(135deg, var(--error), #dc2626);
+  color: white;
+  border-left: 4px solid #fff;
+}
+
+.notification.error::before {
+  content: '❌';
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* --------------------------------------------
+   4. PAGE HEADER
    -------------------------------------------- */
 .page-header {
   display: flex;
@@ -123,7 +192,7 @@
 }
 
 /* --------------------------------------------
-   4. STATS CONTAINER
+   5. STATS CONTAINER
    -------------------------------------------- */
 .stats-container {
   display: grid;
@@ -192,7 +261,7 @@
 }
 
 /* --------------------------------------------
-   5. FILTERS BAR
+   6. FILTERS BAR
    -------------------------------------------- */
 .filters-bar {
   display: flex;
@@ -270,7 +339,7 @@
 }
 
 /* --------------------------------------------
-   6. VENDORS GRID
+   7. VENDORS GRID
    -------------------------------------------- */
 .vendors-grid {
   display: grid;
@@ -297,6 +366,7 @@
 
 .vendor-card.inactive-card {
   opacity: 0.7;
+  background: linear-gradient(135deg, #f9fafb, #f3f4f6);
 }
 
 .vendor-card-header {
@@ -328,6 +398,10 @@
   box-shadow: var(--shadow-sm);
 }
 
+.vendor-icon.inactive-icon {
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
+}
+
 .vendor-name-section h3 {
   font-size: 18px;
   font-weight: 800;
@@ -337,10 +411,10 @@
 
 .vendor-card-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
-.edit-btn, .delete-btn {
+.edit-btn, .delete-btn, .status-toggle-btn {
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -349,6 +423,9 @@
   cursor: pointer;
   font-size: 16px;
   transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .edit-btn:hover {
@@ -363,6 +440,11 @@
   transform: scale(1.05);
 }
 
+.status-toggle-btn:hover {
+  background: var(--primary-green-light);
+  transform: scale(1.05);
+}
+
 /* Vendor Card Body */
 .vendor-card-body {
   padding: 20px 24px;
@@ -371,7 +453,7 @@
 .vendor-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
@@ -379,9 +461,16 @@
   flex: 1;
   min-width: 70px;
   text-align: center;
-  padding: 10px;
+  padding: 10px 8px;
   background: var(--bg-gray);
   border-radius: var(--radius-md);
+  transition: var(--transition);
+}
+
+.vendor-stats .stat:hover {
+  transform: translateY(-2px);
+  background: white;
+  box-shadow: var(--shadow-sm);
 }
 
 .vendor-stats .stat span {
@@ -391,6 +480,7 @@
   text-transform: uppercase;
   margin-bottom: 6px;
   font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .vendor-stats .stat strong {
@@ -408,10 +498,11 @@
 }
 
 .badge {
-  padding: 5px 12px;
-  border-radius: 20px;
+  padding: 6px 14px;
+  border-radius: 30px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.3px;
 }
 
 .delhivery-badge {
@@ -424,6 +515,22 @@
   background: linear-gradient(135deg, var(--primary-orange-light), white);
   color: var(--primary-orange);
   border: 1px solid var(--primary-orange);
+}
+
+.vxpress-badge {
+  background: linear-gradient(135deg, var(--primary-purple-light), white);
+  color: var(--primary-purple);
+  border: 1px solid var(--primary-purple);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
 /* Status Badge */
@@ -452,7 +559,7 @@
 }
 
 /* --------------------------------------------
-   7. MODAL STYLES
+   8. MODAL STYLES
    -------------------------------------------- */
 .modal-overlay {
   position: fixed;
@@ -467,6 +574,15 @@
   align-items: center;
   justify-content: center;
   animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-container {
@@ -560,6 +676,7 @@
 .tab:hover {
   background: var(--bg-light);
   color: var(--text-dark);
+  transform: translateY(-1px);
 }
 
 .tab.active {
@@ -620,10 +737,37 @@
   color: var(--text-dark);
 }
 
+.matrix-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .matrix-note {
   font-size: 11px;
   color: var(--text-gray);
   font-style: italic;
+}
+
+.copy-btn {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.copy-btn:hover {
+  background: linear-gradient(135deg, #4b5563, #374151);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .table-wrapper {
@@ -665,6 +809,11 @@
   background: white;
 }
 
+.from-zone {
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary-red-light), white);
+}
+
 .rate-input {
   width: 70px;
   padding: 6px 8px;
@@ -679,6 +828,11 @@
   outline: none;
   border-color: var(--primary-red);
   box-shadow: 0 0 0 2px var(--primary-red-glow);
+}
+
+.rate-input:hover {
+  border-color: var(--primary-red);
+  background: var(--primary-red-light);
 }
 
 /* Charges Section */
@@ -827,7 +981,7 @@
 }
 
 /* --------------------------------------------
-   8. LOADING & ERROR STATES
+   9. LOADING & ERROR STATES
    -------------------------------------------- */
 .loading-state {
   text-align: center;
@@ -892,7 +1046,7 @@
 }
 
 /* --------------------------------------------
-   9. RESPONSIVE DESIGN
+   10. RESPONSIVE DESIGN
    -------------------------------------------- */
 @media (max-width: 1024px) {
   .vendor-manage-page {
@@ -978,6 +1132,13 @@
     padding: 4px 6px;
     font-size: 11px;
   }
+  
+  .notification {
+    top: 20px;
+    right: 20px;
+    left: 20px;
+    max-width: none;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1026,10 +1187,14 @@
   .stat-info h3 {
     font-size: 24px;
   }
+  
+  .vendor-card-actions {
+    justify-content: center;
+  }
 }
 
 /* --------------------------------------------
-   10. PRINT STYLES
+   11. PRINT STYLES
    -------------------------------------------- */
 @media print {
   .vendor-manage-page {
@@ -1043,7 +1208,8 @@
   .add-vendor-btn,
   .vendor-card-actions,
   .refresh-btn,
-  .modal-overlay {
+  .modal-overlay,
+  .notification {
     display: none !important;
   }
   
@@ -1060,7 +1226,29 @@
 }
 
 /* --------------------------------------------
-   11. UTILITY CLASSES
+   12. SCROLLBAR STYLES (NEW)
+   -------------------------------------------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-gray);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-red-dark);
+}
+
+/* --------------------------------------------
+   13. UTILITY CLASSES
    -------------------------------------------- */
 .text-center { text-align: center; }
 .text-left { text-align: left; }

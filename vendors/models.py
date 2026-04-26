@@ -27,7 +27,6 @@ class VendorRate(models.Model):
     )
     
     # Standard zone-to-zone rate matrix
-    # Structure: {"FROM_ZONE": {"TO_ZONE": rate}}
     rates = models.JSONField(
         default=dict,
         help_text="Zone to zone rate matrix - Format: {from_zone: {to_zone: rate}}"
@@ -47,7 +46,6 @@ class VendorRate(models.Model):
     )
     
     # Additional charges
-    # Structure: {"docket_charge": 100, "fsc": "10%", "gst": "18%", "min_freight": 650, "fov": 75}
     charges = models.JSONField(
         default=dict,
         help_text="Additional charges like docket, FSC, GST, FOV, minimum freight etc."
@@ -75,14 +73,12 @@ class VendorRate(models.Model):
         - cft_type: '6cft' or '10cft' for Delhivery special rates
         """
         try:
-            # For Delhivery - check CFT rates first
             if self.vendor_name == 'DELHIVERY' and cft_type:
                 if cft_type == '6cft':
                     return self.delhivery_6cft.get(from_zone, {}).get(to_zone, 0)
                 elif cft_type == '10cft':
                     return self.delhivery_10cft.get(from_zone, {}).get(to_zone, 0)
             
-            # Standard rates
             return self.rates.get(from_zone, {}).get(to_zone, 0)
         except:
             return 0
@@ -90,6 +86,62 @@ class VendorRate(models.Model):
     def get_charge(self, charge_name):
         """Get specific charge value"""
         return self.charges.get(charge_name, 0)
+
+
+# ============================================
+# VENDOR PINCODE MODEL (UPDATED with oda_category)
+# ============================================
+
+class VendorPincode(models.Model):
+    """Store vendor-specific pincode details including ODA status"""
+    
+    ODA_CATEGORY_CHOICES = [
+        ('A', 'ODA A - ₹2/kg (Min ₹200)'),
+        ('B', 'ODA B - ₹4/kg (Min ₹400)'),
+        ('C', 'ODA C - ₹7/kg (Min ₹700)'),
+        ('D', 'ODA D - ₹10/kg (Min ₹1000)'),
+        ('NONE', 'Non-ODA'),
+    ]
+    
+    vendor = models.ForeignKey(VendorRate, on_delete=models.CASCADE, related_name='pincodes')
+    pincode = models.CharField(max_length=10)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    state = models.CharField(max_length=100, blank=True, null=True)
+    is_oda = models.BooleanField(default=False)
+    oda_category = models.CharField(
+        max_length=10, 
+        choices=ODA_CATEGORY_CHOICES, 
+        default='NONE', 
+        blank=True,
+        help_text="ODA Category: A, B, C, or D"
+    )
+    oda_charge_per_kg = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    oda_min_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    is_serviceable = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'vendor_pincodes'
+        verbose_name = 'Vendor Pincode'
+        verbose_name_plural = 'Vendor Pincodes'
+        unique_together = ['vendor', 'pincode']
+        ordering = ['vendor__vendor_name', 'pincode']
+    
+    def __str__(self):
+        if self.is_oda:
+            return f"{self.vendor.vendor_name} - {self.pincode} (ODA-{self.oda_category})"
+        return f"{self.vendor.vendor_name} - {self.pincode} (Non-ODA)"
+    
+    def get_oda_rate(self):
+        """Get ODA rate details based on category"""
+        rates = {
+            'A': {'per_kg': 2, 'min': 200, 'name': 'ODA A - Normal'},
+            'B': {'per_kg': 4, 'min': 400, 'name': 'ODA B - High'},
+            'C': {'per_kg': 7, 'min': 700, 'name': 'ODA C - Very High'},
+            'D': {'per_kg': 10, 'min': 1000, 'name': 'ODA D - Extreme'},
+        }
+        return rates.get(self.oda_category, {'per_kg': 0, 'min': 0, 'name': 'Non-ODA'})
 
 
 # ============================================

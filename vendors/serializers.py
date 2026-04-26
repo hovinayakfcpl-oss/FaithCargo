@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Vendor, VendorRate, RateHistory, ZoneMaster, B2BRate, VendorServiceRate
+from .models import Vendor, VendorRate, RateHistory, ZoneMaster, B2BRate, VendorServiceRate, VendorPincode
 
 
 # ============================================
@@ -16,6 +16,24 @@ class VendorSerializer(serializers.ModelSerializer):
 
 
 # ============================================
+# VENDOR PINCODE SERIALIZER (NEW)
+# ============================================
+
+class VendorPincodeSerializer(serializers.ModelSerializer):
+    """Serializer for VendorPincode model - ODA pincodes"""
+    
+    vendor_name = serializers.CharField(source='vendor.vendor_name', read_only=True)
+    
+    class Meta:
+        model = VendorPincode
+        fields = [
+            'id', 'vendor', 'vendor_name', 'pincode', 'city', 'state',
+            'is_oda', 'oda_charge_per_kg', 'oda_min_charge', 'is_serviceable'
+        ]
+        read_only_fields = ['id']
+
+
+# ============================================
 # VENDOR RATE SERIALIZER
 # ============================================
 
@@ -23,13 +41,14 @@ class VendorRateSerializer(serializers.ModelSerializer):
     """Serializer for VendorRate model - includes rates and charges"""
     
     vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
+    pincodes = VendorPincodeSerializer(many=True, read_only=True, source='vendorpincode_set')
     
     class Meta:
         model = VendorRate
         fields = [
             'id', 'vendor_name', 'vendor_display', 'rates', 
             'delhivery_6cft', 'delhivery_10cft', 'charges',
-            'is_active', 'created_at', 'updated_at', 'updated_by'
+            'is_active', 'created_at', 'updated_at', 'updated_by', 'pincodes'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
     
@@ -140,6 +159,8 @@ class VendorRateCalculatorSerializer(serializers.Serializer):
     width = serializers.FloatField(required=False, allow_null=True)
     height = serializers.FloatField(required=False, allow_null=True)
     service_type = serializers.CharField(required=False, default='surface')
+    invoice_value = serializers.FloatField(required=False, allow_null=True)
+    mode = serializers.CharField(required=False, default='Prepaid')
     
     # Response fields
     vendor_rates = serializers.DictField(read_only=True)
@@ -171,6 +192,27 @@ class BulkRateUploadSerializer(serializers.Serializer):
 
 
 # ============================================
+# BULK PINCODE UPLOAD SERIALIZER (NEW)
+# ============================================
+
+class BulkPincodeUploadSerializer(serializers.Serializer):
+    """Serializer for bulk pincode upload"""
+    
+    vendor_name = serializers.CharField(required=True)
+    pincodes = serializers.ListField(required=True, child=serializers.DictField())
+    replace_existing = serializers.BooleanField(default=False)
+    
+    def validate_pincodes(self, value):
+        """Validate pincodes data structure"""
+        for item in value:
+            if 'pincode' not in item:
+                raise serializers.ValidationError("Each pincode must have 'pincode' field")
+            if len(str(item['pincode'])) != 6:
+                raise serializers.ValidationError(f"Pincode {item['pincode']} must be 6 digits")
+        return value
+
+
+# ============================================
 # VENDOR COMPARISON SERIALIZER
 # ============================================
 
@@ -181,10 +223,16 @@ class VendorComparisonSerializer(serializers.Serializer):
     destination_pincode = serializers.CharField(max_length=10)
     weight = serializers.FloatField(min_value=0)
     volume = serializers.FloatField(required=False, allow_null=True)
+    length = serializers.FloatField(required=False, allow_null=True)
+    width = serializers.FloatField(required=False, allow_null=True)
+    height = serializers.FloatField(required=False, allow_null=True)
+    invoice_value = serializers.FloatField(required=False, allow_null=True)
+    mode = serializers.CharField(required=False, default='Prepaid')
     
     # Response
     comparisons = serializers.ListField(read_only=True)
     best_vendor = serializers.CharField(read_only=True)
+    best_cft_type = serializers.CharField(read_only=True)
     best_rate = serializers.FloatField(read_only=True)
 
 
@@ -198,3 +246,33 @@ class SimpleVendorRateSerializer(serializers.ModelSerializer):
     class Meta:
         model = VendorRate
         fields = ['id', 'vendor_name', 'is_active']
+
+
+# ============================================
+# VENDOR ODA STATUS SERIALIZER (NEW)
+# ============================================
+
+class VendorODAStatusSerializer(serializers.Serializer):
+    """Serializer for ODA status check response"""
+    
+    pincode = serializers.CharField()
+    vendor_name = serializers.CharField()
+    is_oda = serializers.BooleanField()
+    oda_charge_per_kg = serializers.FloatField()
+    oda_min_charge = serializers.FloatField()
+    city = serializers.CharField(allow_blank=True)
+    state = serializers.CharField(allow_blank=True)
+
+
+# ============================================
+# PINCODE LOCATION SERIALIZER (NEW)
+# ============================================
+
+class PincodeLocationSerializer(serializers.Serializer):
+    """Serializer for pincode location response"""
+    
+    pincode = serializers.CharField()
+    city = serializers.CharField(allow_blank=True)
+    state = serializers.CharField(allow_blank=True)
+    country = serializers.CharField(allow_blank=True)
+    source = serializers.CharField()

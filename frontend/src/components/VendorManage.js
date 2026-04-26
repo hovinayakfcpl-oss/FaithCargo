@@ -29,11 +29,17 @@ function VendorManage() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 });
+  const [notification, setNotification] = useState({ show: false, message: "", type: "" });
 
   // Fetch all vendors on load
   useEffect(() => {
     fetchVendors();
   }, []);
+
+  const showNotification = (message, type = "success") => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => setNotification({ show: false, message: "", type: "" }), 3000);
+  };
 
   const fetchVendors = async () => {
     setLoading(true);
@@ -63,11 +69,11 @@ function VendorManage() {
 
   const loadLocalData = () => {
     const defaultVendors = [
-      { id: 1, vendor_name: "DELHIVERY", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, fov: 100, min_weight: 20, cft_conversion: 6 }, is_active: true },
-      { id: 2, vendor_name: "GATI", rates: {}, charges: { docket_charge: 100, fsc: "15%", gst: "18%", min_freight: 350, fov: 100, min_weight: 20 }, is_active: true },
-      { id: 3, vendor_name: "PD", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, fov: 100 }, is_active: true },
-      { id: 4, vendor_name: "RIVIGO", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 100, fsc: "10%", gst: "18%", min_freight: 350, fov: 100 }, is_active: true },
-      { id: 5, vendor_name: "VXPRESS", rates: {}, charges: { docket_charge: 50, fsc: "8%", gst: "18%", min_freight: 450, fov: 50 }, is_active: true },
+      { id: 1, vendor_name: "DELHIVERY", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, fov: 100, min_weight: 20, cft_conversion: 6, oda_charge: 2 }, is_active: true },
+      { id: 2, vendor_name: "GATI", rates: {}, charges: { docket_charge: 100, fsc: "15%", gst: "18%", min_freight: 350, fov: 100, min_weight: 20, oda_charge: 3 }, is_active: true },
+      { id: 3, vendor_name: "PD LOGISTICS", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, fov: 100, min_weight: 20, cft_conversion: 6, oda_charge: 2.5 }, is_active: true },
+      { id: 4, vendor_name: "RIVIGO", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 85, fsc: "12%", gst: "18%", min_freight: 380, fov: 90, min_weight: 20, cft_conversion: 6, oda_charge: 2.2 }, is_active: true },
+      { id: 5, vendor_name: "VXPRESS", rates: {}, charges: { docket_charge: 50, fsc: "8%", gst: "18%", min_freight: 450, fov: 50, min_weight: 20, oda_charge: 2 }, is_active: true },
     ];
     setVendors(defaultVendors);
     updateStats(defaultVendors);
@@ -102,7 +108,8 @@ function VendorManage() {
         min_freight: 350,
         fov: 75,
         min_weight: 20,
-        cft_conversion: 6
+        cft_conversion: 6,
+        oda_charge: 2
       },
       is_active: true
     });
@@ -138,7 +145,7 @@ function VendorManage() {
     setSaveLoading(true);
     try {
       const url = editMode 
-        ? `${API_BASE_URL}/api/vendors/vendor-rates/${formData.vendor_name}/`
+        ? `${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(formData.vendor_name)}/`
         : `${API_BASE_URL}/api/vendors/vendor-rates/`;
       
       const method = editMode ? "PUT" : "POST";
@@ -150,15 +157,15 @@ function VendorManage() {
       });
       
       if (response.ok) {
-        alert(`✅ ${formData.vendor_name} rates ${editMode ? 'updated' : 'created'} successfully!`);
+        showNotification(`✅ ${formData.vendor_name} rates ${editMode ? 'updated' : 'created'} successfully!`, "success");
         setShowModal(false);
         fetchVendors();
       } else {
         const errorData = await response.json();
-        alert("❌ Error: " + (errorData.error || "Failed to save"));
+        showNotification("❌ Error: " + (errorData.error || "Failed to save"), "error");
       }
     } catch (err) {
-      alert("❌ Network error: " + err.message);
+      showNotification("❌ Network error: " + err.message, "error");
     } finally {
       setSaveLoading(false);
     }
@@ -167,24 +174,58 @@ function VendorManage() {
   const handleDeleteVendor = async (vendor) => {
     if (window.confirm(`⚠️ Are you sure you want to delete ${vendor.vendor_name}? This action cannot be undone.`)) {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${vendor.vendor_name}/`, {
+        const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(vendor.vendor_name)}/`, {
           method: "DELETE"
         });
         
         if (response.ok) {
-          alert(`✅ ${vendor.vendor_name} deleted successfully!`);
+          showNotification(`✅ ${vendor.vendor_name} deleted successfully!`, "success");
           fetchVendors();
         } else {
-          alert("❌ Failed to delete vendor");
+          showNotification("❌ Failed to delete vendor", "error");
         }
       } catch (err) {
-        alert("❌ Network error: " + err.message);
+        showNotification("❌ Network error: " + err.message, "error");
       }
+    }
+  };
+
+  const handleToggleStatus = async (vendor) => {
+    const updatedVendor = { ...vendor, is_active: !vendor.is_active };
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(vendor.vendor_name)}/`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedVendor)
+      });
+      
+      if (response.ok) {
+        showNotification(`${vendor.vendor_name} ${updatedVendor.is_active ? 'activated' : 'deactivated'}`, "success");
+        fetchVendors();
+      } else {
+        showNotification("Failed to update status", "error");
+      }
+    } catch (err) {
+      showNotification("Network error: " + err.message, "error");
     }
   };
 
   const getRateValue = (rates, fromZone, toZone) => {
     return rates?.[fromZone]?.[toZone] || "";
+  };
+
+  const copyRatesToClipboard = () => {
+    const rates = formData.rates;
+    let text = "From\\To\t" + ZONES.join("\t") + "\n";
+    ZONES.forEach(fromZone => {
+      text += fromZone + "\t";
+      ZONES.forEach(toZone => {
+        text += (rates[fromZone]?.[toZone] || "0") + "\t";
+      });
+      text += "\n";
+    });
+    navigator.clipboard.writeText(text);
+    showNotification("Rates copied to clipboard!", "success");
   };
 
   const filteredVendors = vendors.filter(vendor => 
@@ -198,7 +239,12 @@ function VendorManage() {
       <div className="rate-matrix-container">
         <div className="matrix-header">
           <h3>{title}</h3>
-          <span className="matrix-note">* All rates are in ₹ per kg</span>
+          <div className="matrix-actions">
+            <span className="matrix-note">* All rates are in ₹ per kg</span>
+            <button className="copy-btn" onClick={copyRatesToClipboard} title="Copy to clipboard">
+              📋 Copy
+            </button>
+          </div>
         </div>
         <div className="table-wrapper">
           <table className="rate-matrix-table">
@@ -238,6 +284,7 @@ function VendorManage() {
     const isDelhivery = formData.vendor_name === "DELHIVERY";
     const isRivigo = formData.vendor_name === "RIVIGO";
     const isVxpress = formData.vendor_name === "VXPRESS";
+    const isPd = formData.vendor_name === "PD LOGISTICS";
     
     return (
       <div className="charges-section">
@@ -322,14 +369,15 @@ function VendorManage() {
           </div>
           
           <div className="charge-card">
-            <div className="charge-icon">🚚</div>
+            <div className="charge-icon">🌍</div>
             <div className="charge-field">
               <label>ODA Charges (₹/kg)</label>
               <input
                 type="number"
+                step="0.01"
                 className="charge-input"
-                value={charges.oda || 0}
-                onChange={(e) => handleChargeChange("oda", parseFloat(e.target.value))}
+                value={charges.oda_charge || 2}
+                onChange={(e) => handleChargeChange("oda_charge", parseFloat(e.target.value))}
               />
             </div>
           </div>
@@ -348,7 +396,7 @@ function VendorManage() {
           </div>
         </div>
         
-        {(isDelhivery || isRivigo) && (
+        {(isDelhivery || isRivigo || isPd) && (
           <div className="info-note">
             <span className="info-icon">ℹ️</span>
             <span>This vendor supports 6 CFT and 10 CFT rate slabs. Switch tabs above to edit them.</span>
@@ -358,7 +406,7 @@ function VendorManage() {
         {isVxpress && (
           <div className="info-note special">
             <span className="info-icon">⭐</span>
-            <span>V-Xpress has special contract rates. Please verify with the latest contract.</span>
+            <span>V-Xpress has special ODA categories (A/B/C/D @ ₹2/4/7/10 per kg). Rates are calculated based on destination pincode ODA category.</span>
           </div>
         )}
       </div>
@@ -369,12 +417,13 @@ function VendorManage() {
     const isDelhivery = vendor.vendor_name === "DELHIVERY";
     const has6CFT = vendor.delhivery_6cft && Object.keys(vendor.delhivery_6cft).length > 0;
     const has10CFT = vendor.delhivery_10cft && Object.keys(vendor.delhivery_10cft).length > 0;
+    const isVxpress = vendor.vendor_name === "VXPRESS";
     
     return (
       <div className={`vendor-card ${!vendor.is_active ? 'inactive-card' : ''}`} key={vendor.id}>
         <div className="vendor-card-header">
           <div className="vendor-name-section">
-            <div className="vendor-icon">
+            <div className={`vendor-icon ${!vendor.is_active ? 'inactive-icon' : ''}`}>
               {vendor.vendor_name.charAt(0)}
             </div>
             <h3>{vendor.vendor_name}</h3>
@@ -382,6 +431,9 @@ function VendorManage() {
           <div className="vendor-card-actions">
             <button className="edit-btn" onClick={() => handleEditVendor(vendor)} title="Edit Vendor">
               ✏️
+            </button>
+            <button className="status-toggle-btn" onClick={() => handleToggleStatus(vendor)} title={vendor.is_active ? "Deactivate" : "Activate"}>
+              {vendor.is_active ? "🔴" : "🟢"}
             </button>
             <button className="delete-btn" onClick={() => handleDeleteVendor(vendor)} title="Delete Vendor">
               🗑️
@@ -408,16 +460,17 @@ function VendorManage() {
               <strong>₹{vendor.charges?.min_freight || 350}</strong>
             </div>
             <div className="stat">
-              <span>Min Weight</span>
-              <strong>{vendor.charges?.min_weight || 20} kg</strong>
+              <span>ODA</span>
+              <strong>₹{vendor.charges?.oda_charge || 2}/kg</strong>
             </div>
           </div>
           
-          {(isDelhivery || has6CFT || has10CFT) && (
+          {(isDelhivery || has6CFT || has10CFT || isVxpress) && (
             <div className="vendor-badges">
               {isDelhivery && <span className="badge delhivery-badge">🚚 Delhivery Partner</span>}
               {has6CFT && <span className="badge cft-badge">📦 6 CFT Support</span>}
               {has10CFT && <span className="badge cft-badge">📦 10 CFT Support</span>}
+              {isVxpress && <span className="badge vxpress-badge">⭐ V-Xpress ODA Ready</span>}
             </div>
           )}
           
@@ -435,7 +488,9 @@ function VendorManage() {
     if (!showModal) return null;
     
     const isDelhivery = formData.vendor_name === "DELHIVERY";
-    const hasCFT = isDelhivery || formData.vendor_name === "RIVIGO" || formData.vendor_name === "PD";
+    const isRivigo = formData.vendor_name === "RIVIGO";
+    const isPd = formData.vendor_name === "PD LOGISTICS";
+    const hasCFT = isDelhivery || isRivigo || isPd;
     
     return (
       <div className="modal-overlay" onClick={() => setShowModal(false)}>
@@ -499,10 +554,16 @@ function VendorManage() {
 
   return (
     <div className="vendor-manage-page">
+      {notification.show && (
+        <div className={`notification ${notification.type}`}>
+          {notification.message}
+        </div>
+      )}
+      
       <div className="page-header">
         <div className="header-content">
           <h1>🚚 Vendor Rate Management</h1>
-          <p>Manage zone-to-zone rates, CFT rates, and charges for all logistics vendors</p>
+          <p>Manage zone-to-zone rates, CFT rates, and ODA charges for all logistics vendors</p>
         </div>
         <button className="add-vendor-btn" onClick={handleAddVendor}>
           + Add New Vendor

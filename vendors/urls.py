@@ -6,7 +6,18 @@ urlpatterns = [
     path('vendor-rates/', views.manage_vendor_rate, name='vendor-rates'),
     path('vendor-rates/<str:vendor_name>/', views.manage_vendor_rate, name='vendor-rate-detail'),
     
-    # Legacy endpoints (backward compatibility)
+    # ============================================
+    # VENDOR PINCODE MANAGEMENT (NEW)
+    # ============================================
+    path('vendor-pincodes/<str:vendor_name>/', views.manage_vendor_pincodes, name='vendor-pincodes'),
+    path('vendor-pincodes/<str:vendor_name>/<str:pincode>/', views.manage_vendor_pincodes, name='vendor-pincode-detail'),
+    path('vendor-pincodes/bulk-upload/<str:vendor_name>/', views.bulk_upload_pincodes, name='bulk-upload-pincodes'),
+    
+    # Location and ODA
+    path('pincode-location/<str:pincode>/', views.get_pincode_location, name='pincode-location'),
+    path('check-oda/<str:vendor_name>/<str:pincode>/', views.check_oda_status, name='check-oda'),
+    
+    # Legacy endpoints
     path('update-vendor-rate/<str:vendor_name>/', views.update_vendor_rate, name='update-vendor-rate'),
     path('get-vendor-rate/<str:vendor_name>/', views.get_vendor_rate, name='get-vendor-rate'),
     
