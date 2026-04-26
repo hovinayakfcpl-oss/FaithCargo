@@ -21,7 +21,12 @@ urlpatterns = [
     path("api/user/", include("user_management.urls")),
     path("api/shipments/", include("shipments.urls")),
     path("api/rates/", include("rates.urls")),
+    
+    # =====================================================
+    # 🚚 VENDOR APIs - Full CRUD + Calculator + Compare
+    # =====================================================
     path("api/vendors/", include("vendors.urls")),
+    
     path("api/pickup/", include("pickup.urls")),
     path("api/pincode/", include("pincode.urls")),
     path("api/signup/", include("signup.urls")),

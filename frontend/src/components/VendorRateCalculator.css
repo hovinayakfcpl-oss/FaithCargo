@@ -1,50 +1,215 @@
-.vendor-rate-page {
-  padding: 20px;
-  background: #f4f6f9;
-  min-height: 100vh;
-  font-family: Arial, Helvetica, sans-serif;
+/* ============================================
+   VENDOR RATE CALCULATOR - PREMIUM UI v3.0
+   Glass Morphism | Dark/Light Theme | Professional Design
+   Developed by Devora Technologies
+   ============================================ */
+
+/* --------------------------------------------
+   1. ROOT VARIABLES
+   -------------------------------------------- */
+:root {
+  --primary-red: #d32f2f;
+  --primary-red-dark: #b71c1c;
+  --primary-red-light: #ffebed;
+  --primary-red-glow: rgba(211, 47, 47, 0.15);
+  --primary-green: #10b981;
+  --primary-green-dark: #059669;
+  --primary-green-light: #d1fae5;
+  --primary-blue: #2563eb;
+  --primary-blue-light: #dbeafe;
+  --primary-purple: #8b5cf6;
+  --primary-purple-light: #ede9fe;
+  --primary-orange: #f59e0b;
+  --primary-orange-light: #fef3c7;
+  --dark-bg: #0f172a;
+  --dark-bg-light: #1e293b;
+  --text-dark: #0f172a;
+  --text-gray: #64748b;
+  --text-light: #94a3b8;
+  --border-color: #e2e8f0;
+  --bg-gray: #f8fafc;
+  --bg-light: #f1f5f9;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-red: 0 10px 25px -5px rgba(211, 47, 47, 0.3);
+  --shadow-green: 0 10px 25px -5px rgba(16, 185, 129, 0.3);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Title */
+/* --------------------------------------------
+   2. MAIN CONTAINER
+   -------------------------------------------- */
+.vendor-rate-page {
+  padding: 32px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #eef2f7 100%);
+  min-height: 100vh;
+  position: relative;
+}
+
+.vendor-rate-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 20% 80%, rgba(211, 47, 47, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* --------------------------------------------
+   3. PAGE HEADER
+   -------------------------------------------- */
+.page-header-calc {
+  text-align: center;
+  margin-bottom: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+.page-header-calc h1 {
+  font-size: 32px;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--dark-bg) 0%, var(--primary-red) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.page-header-calc p {
+  color: var(--text-gray);
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .title {
   text-align: center;
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 20px;
-  color: #d32f2f;
+  font-size: 28px;
+  font-weight: 900;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, var(--dark-bg) 0%, var(--primary-red) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-/* Big Background Card */
+/* --------------------------------------------
+   4. BIG CARD - GLASS MORPHISM
+   -------------------------------------------- */
 .big-card {
-  background: #fff;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 28px;
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  position: relative;
+  z-index: 1;
+  transition: var(--transition);
 }
 
-/* Main layout */
+.big-card:hover {
+  box-shadow: var(--shadow-2xl);
+}
+
+/* --------------------------------------------
+   5. CALCULATOR CONTAINER - MAIN LAYOUT
+   -------------------------------------------- */
 .calculator-container {
   display: flex;
-  gap: 20px;
+  gap: 28px;
   justify-content: space-between;
   align-items: flex-start;
 }
 
-/* LEFT FORM */
-.form-card {
-  background: #fafafa;
-  width: 48%;
-  padding: 18px;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+@media (max-width: 1024px) {
+  .calculator-container {
+    flex-direction: column;
+  }
 }
 
+/* --------------------------------------------
+   6. LEFT FORM CARD - PREMIUM
+   -------------------------------------------- */
+.form-card {
+  background: linear-gradient(135deg, var(--bg-gray), white);
+  width: 48%;
+  padding: 24px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border: 1px solid var(--border-color);
+  transition: var(--transition);
+}
+
+.form-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-xl);
+}
+
+@media (max-width: 1024px) {
+  .form-card {
+    width: 100%;
+  }
+}
+
+.form-card label {
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--text-gray);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-card input,
+.form-card select {
+  padding: 12px 14px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  width: 100%;
+  box-sizing: border-box;
+  transition: var(--transition);
+  background: white;
+  color: var(--text-dark);
+}
+
+.form-card input:focus,
+.form-card select:focus {
+  outline: none;
+  border-color: var(--primary-red);
+  box-shadow: 0 0 0 3px var(--primary-red-glow);
+  background: white;
+}
+
+.form-card input::placeholder {
+  color: var(--text-light);
+}
+
+/* Row Layout */
 .row {
   display: flex;
-  gap: 10px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
@@ -55,169 +220,642 @@
   flex-direction: column;
 }
 
+.col.small {
+  flex: 0.8;
+}
+
 .col.small input {
-  padding: 5px;
-  font-size: 12px;
-}
-
-.form-card label {
-  font-weight: 600;
-  font-size: 12px;
-  color: #555;
-  margin-bottom: 4px;
-}
-
-.form-card input,
-.form-card select {
-  padding: 7px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  padding: 10px;
   font-size: 13px;
-  width: 100%;
-  box-sizing: border-box;
 }
 
-.form-card input:focus,
-.form-card select:focus {
+/* --------------------------------------------
+   7. DIMENSIONS SECTION
+   -------------------------------------------- */
+.dimensions-section {
+  margin-top: 8px;
+  padding: 16px;
+  background: var(--bg-gray);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+.dimensions-section label {
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--text-gray);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.dimension-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 1fr 1fr 40px;
+  gap: 10px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.dimension-row input {
+  padding: 10px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  text-align: center;
+  transition: var(--transition);
+}
+
+.dimension-row input:focus {
   outline: none;
-  border-color: #d32f2f;
+  border-color: var(--primary-red);
+  box-shadow: 0 0 0 2px var(--primary-red-glow);
+}
+
+.remove-btn {
+  background: #fee2e2;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--error);
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.remove-btn:hover {
+  background: var(--error);
+  color: white;
+  transform: scale(1.05);
 }
 
 /* Add Dimension Button */
 .add-btn {
-  background: #d32f2f;
-  color: #fff;
+  background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
+  color: white;
   border: none;
-  border-radius: 6px;
-  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  padding: 10px 18px;
   font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
   width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: var(--transition);
+  margin-top: 8px;
 }
 
 .add-btn:hover {
-  background: #b71c1c;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-red);
 }
 
-/* Buttons */
+/* --------------------------------------------
+   8. VENDOR FILTER SECTION
+   -------------------------------------------- */
+.vendor-filter {
+  margin: 16px 0;
+  padding: 16px;
+  background: var(--bg-gray);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+.vendor-filter label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-dark);
+}
+
+.vendor-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.vendor-selector label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 0;
+  background: white;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.vendor-selector label:hover {
+  border-color: var(--primary-red);
+  background: var(--primary-red-light);
+}
+
+.vendor-selector input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary-red);
+}
+
+/* --------------------------------------------
+   9. BUTTON GROUP
+   -------------------------------------------- */
 .btn-group {
   display: flex;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 15px;
+  margin-top: 8px;
 }
 
 .calc-btn {
-  background: #2e7d32;
-  color: #fff;
+  flex: 2;
+  background: linear-gradient(135deg, var(--primary-green), var(--primary-green-dark));
+  color: white;
   border: none;
-  border-radius: 6px;
-  padding: 9px 16px;
-  font-size: 13px;
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 800;
   cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
-.calc-btn:hover { background: #1b5e20; }
+.calc-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-green);
+}
 
 .reset-btn {
-  background: #e0e0e0;
-  color: #333;
-  border: none;
-  border-radius: 6px;
-  padding: 9px 16px;
+  flex: 1;
+  background: var(--bg-light);
+  color: var(--text-dark);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
   font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  transition: var(--transition);
 }
 
-.reset-btn:hover { background: #d5d5d5; }
+.reset-btn:hover {
+  background: var(--border-color);
+  transform: translateY(-2px);
+}
 
 .back-btn {
-  background: #9e9e9e;
-  color: #fff;
+  flex: 1;
+  background: linear-gradient(135deg, var(--primary-purple), #7c3aed);
+  color: white;
   border: none;
-  border-radius: 6px;
-  padding: 9px 16px;
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
   font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
-.back-btn:hover { background: #757575; }
+.back-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-purple, 0 10px 25px -5px rgba(139, 92, 246, 0.3));
+}
 
-/* RIGHT RESULT CARD */
+/* --------------------------------------------
+   10. RIGHT RESULT CARD
+   -------------------------------------------- */
 .main-result-card {
   width: 48%;
-  background: #fff;
-  padding: 18px;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  font-size: 12px;
+  background: white;
+  padding: 24px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
   max-height: 80vh;
   overflow-y: auto;
+  transition: var(--transition);
 }
 
-/* Vendor Card */
+.main-result-card:hover {
+  box-shadow: var(--shadow-xl);
+}
+
+@media (max-width: 1024px) {
+  .main-result-card {
+    width: 100%;
+    max-height: none;
+  }
+}
+
+/* Custom Scrollbar */
+.main-result-card::-webkit-scrollbar {
+  width: 6px;
+}
+
+.main-result-card::-webkit-scrollbar-track {
+  background: var(--bg-light);
+  border-radius: 10px;
+}
+
+.main-result-card::-webkit-scrollbar-thumb {
+  background: var(--primary-red);
+  border-radius: 10px;
+}
+
+/* --------------------------------------------
+   11. VENDOR CARD - RESULT
+   -------------------------------------------- */
 .vendor-card {
-  margin-bottom: 14px;
-  padding: 12px;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  background: #fafafa;
-  transition: 0.2s;
+  margin-bottom: 20px;
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--bg-gray), white);
+  transition: var(--transition);
+  border: 1px solid var(--border-color);
+  position: relative;
+  overflow: hidden;
+}
+
+.vendor-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(135deg, var(--primary-red), var(--primary-orange));
 }
 
 .vendor-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+  transform: translateX(5px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-red-light);
 }
 
 /* Vendor Name */
 .vendor-name {
-  color: #d32f2f;
-  font-size: 14px;
-  font-weight: bold;
-  margin-bottom: 6px;
+  color: var(--primary-red);
+  font-size: 18px;
+  font-weight: 900;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-/* Contract Card */
-.contract-card {
-  padding: 7px;
-  border-top: 1px dashed #ccc;
-  margin-top: 7px;
-  background: #fff;
-  border-radius: 6px;
-}
-
-.contract-card p {
-  margin: 3px 0;
-  font-size: 12px;
-  color: #444;
+/* CFT Badge */
+.cft-badge {
+  background: linear-gradient(135deg, var(--primary-orange), #d97706);
+  color: white;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 700;
 }
 
 /* Total Price */
 .total-price {
-  color: #d32f2f;
+  color: var(--primary-red);
+  font-weight: 900;
+  font-size: 24px;
+  margin: 12px 0;
+  display: inline-block;
+  background: var(--primary-red-light);
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+}
+
+/* Contract Card - Breakdown */
+.contract-card {
+  padding: 16px;
+  border-top: 1px dashed var(--border-color);
+  margin-top: 12px;
+  background: white;
+  border-radius: var(--radius-md);
+}
+
+.contract-card p {
+  margin: 8px 0;
+  font-size: 12px;
+  color: var(--text-gray);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.contract-card p::before {
+  content: '•';
+  color: var(--primary-red);
   font-weight: bold;
-  font-size: 14px;
+  margin-right: 8px;
 }
 
 /* ODA Badge */
 .oda-yes {
-  color: #d32f2f;
-  font-weight: bold;
+  color: var(--error);
+  font-weight: 800;
+  background: #fee2e2;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
 }
 
 .oda-no {
-  color: #2e7d32;
-  font-weight: bold;
+  color: var(--primary-green);
+  font-weight: 800;
+  background: var(--primary-green-light);
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
 }
 
-/* Responsive */
-@media screen and (max-width: 900px) {
-  .calculator-container {
+/* --------------------------------------------
+   12. BEST VENDOR HIGHLIGHT
+   -------------------------------------------- */
+.best-vendor-highlight {
+  background: linear-gradient(135deg, var(--primary-orange-light), #fffbeb);
+  border: 2px solid var(--primary-orange);
+  position: relative;
+}
+
+.best-vendor-highlight::before {
+  background: linear-gradient(135deg, var(--primary-orange), #d97706);
+}
+
+.best-badge {
+  position: absolute;
+  top: -12px;
+  right: 20px;
+  background: linear-gradient(135deg, var(--primary-orange), #d97706);
+  color: white;
+  padding: 4px 16px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* --------------------------------------------
+   13. LOADING & EMPTY STATES
+   -------------------------------------------- */
+.loading-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-gray);
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid var(--bg-light);
+  border-top-color: var(--primary-red);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-gray);
+  font-size: 14px;
+}
+
+.empty-state p {
+  display: inline-block;
+  padding: 16px 24px;
+  background: var(--bg-gray);
+  border-radius: var(--radius-lg);
+}
+
+/* --------------------------------------------
+   14. DISCLAIMER
+   -------------------------------------------- */
+.disclaimer {
+  margin-top: 20px;
+  padding: 12px;
+  text-align: center;
+  background: var(--bg-gray);
+  border-radius: var(--radius-md);
+  font-size: 11px;
+  color: var(--text-gray);
+  border-left: 3px solid var(--primary-red);
+}
+
+/* --------------------------------------------
+   15. ANIMATIONS
+   -------------------------------------------- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.vendor-card {
+  animation: fadeInUp 0.3s ease;
+}
+
+/* --------------------------------------------
+   16. RESPONSIVE DESIGN
+   -------------------------------------------- */
+@media (max-width: 768px) {
+  .vendor-rate-page {
+    padding: 16px;
+  }
+  
+  .big-card {
+    padding: 16px;
+  }
+  
+  .form-card {
+    padding: 18px;
+  }
+  
+  .row {
     flex-direction: column;
   }
-
-  .form-card,
-  .main-result-card {
+  
+  .col {
     width: 100%;
   }
+  
+  .dimension-row {
+    grid-template-columns: 50px 1fr 1fr 1fr 35px;
+    gap: 8px;
+  }
+  
+  .btn-group {
+    flex-direction: column;
+  }
+  
+  .vendor-name {
+    font-size: 16px;
+  }
+  
+  .total-price {
+    font-size: 20px;
+  }
+  
+  .vendor-selector {
+    gap: 8px;
+  }
+  
+  .vendor-selector label {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dimension-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .remove-btn {
+    width: 100%;
+  }
+  
+  .page-header-calc h1 {
+    font-size: 24px;
+  }
+  
+  .title {
+    font-size: 22px;
+  }
+  
+  .vendor-card {
+    padding: 14px;
+  }
+  
+  .contract-card p {
+    font-size: 11px;
+  }
+}
+
+/* --------------------------------------------
+   17. SCROLLBAR
+   -------------------------------------------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-light);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+  border-radius: 10px;
+  transition: var(--transition);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
+}
+
+/* --------------------------------------------
+   18. PRINT STYLES
+   -------------------------------------------- */
+@media print {
+  .vendor-rate-page {
+    background: white;
+    padding: 0;
+  }
+  
+  .btn-group,
+  .add-btn,
+  .vendor-filter,
+  .back-btn,
+  .reset-btn,
+  .calc-btn {
+    display: none !important;
+  }
+  
+  .vendor-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  
+  .main-result-card {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+/* --------------------------------------------
+   19. UTILITY CLASSES
+   -------------------------------------------- */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-red { color: var(--primary-red); }
+.text-green { color: var(--primary-green); }
+.mt-2 { margin-top: 8px; }
+.mt-3 { margin-top: 12px; }
+.mb-2 { margin-bottom: 8px; }
+.mb-3 { margin-bottom: 12px; }
+
+/* --------------------------------------------
+   20. DEVELOPER CREDIT
+   -------------------------------------------- */
+.dev-credit {
+  text-align: center;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+  font-size: 11px;
+  color: var(--text-gray);
+  position: relative;
+  z-index: 1;
+}
+
+.dev-credit strong {
+  color: var(--primary-red);
+  font-weight: 700;
 }

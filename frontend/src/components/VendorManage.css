@@ -1,123 +1,256 @@
 /* ============================================
-   USER MANAGEMENT - PREMIUM DESIGN v2.0
+   USER MANAGEMENT - PREMIUM DESIGN v3.0
+   ULTIMATE UI UPGRADE | GLASS MORPHISM | DARK THEME
+   Developed by Devora Technologies
    ============================================ */
 
+/* --------------------------------------------
+   1. ROOT VARIABLES & RESET
+   -------------------------------------------- */
 :root {
   --primary-red: #d32f2f;
   --primary-red-dark: #b71c1c;
   --primary-red-light: #ffebed;
+  --primary-red-glow: rgba(211, 47, 47, 0.15);
   --primary-blue: #2563eb;
   --primary-blue-light: #dbeafe;
+  --primary-blue-glow: rgba(37, 99, 235, 0.15);
+  --primary-purple: #8b5cf6;
+  --primary-purple-light: #ede9fe;
+  --primary-green: #10b981;
+  --primary-green-light: #d1fae5;
+  --primary-orange: #f59e0b;
+  --primary-orange-light: #fef3c7;
   --dark-bg: #0f172a;
+  --dark-bg-light: #1e293b;
   --text-dark: #0f172a;
   --text-gray: #64748b;
+  --text-light: #94a3b8;
   --border-color: #e2e8f0;
   --bg-gray: #f8fafc;
+  --bg-light: #f1f5f9;
   --success: #10b981;
+  --success-dark: #059669;
   --warning: #f59e0b;
+  --warning-dark: #d97706;
+  --error: #ef4444;
+  --error-dark: #dc2626;
+  --info: #3b82f6;
+  --info-dark: #2563eb;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-red: 0 10px 25px -5px rgba(211, 47, 47, 0.3);
+  --shadow-blue: 0 10px 25px -5px rgba(37, 99, 235, 0.3);
+  --shadow-purple: 0 10px 25px -5px rgba(139, 92, 246, 0.3);
+  --shadow-green: 0 10px 25px -5px rgba(16, 185, 129, 0.3);
+  --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 20px;
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-  --transition: all 0.3s ease;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------
+   2. SCROLLBAR STYLES
+   -------------------------------------------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-light);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+  border-radius: 10px;
+  transition: var(--transition);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
+}
+
+/* --------------------------------------------
+   3. MAIN CONTAINER
+   -------------------------------------------- */
 .um-container {
   padding: 32px;
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   background: linear-gradient(135deg, #f5f7fa 0%, #eef2f7 100%);
   min-height: 100vh;
+  position: relative;
 }
 
-/* Stats Grid */
+/* Animated Background */
+.um-container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 20% 80%, rgba(211, 47, 47, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* --------------------------------------------
+   4. STATS GRID - PREMIUM CARDS
+   -------------------------------------------- */
 .um-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  gap: 24px;
   margin-bottom: 32px;
+  position: relative;
+  z-index: 1;
 }
 
 .um-stat-card {
   background: white;
-  border-radius: var(--radius-lg);
-  padding: 20px;
+  border-radius: var(--radius-xl);
+  padding: 24px 20px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  box-shadow: var(--shadow-md);
-  transition: var(--transition);
-  border: 1px solid var(--border-color);
+  gap: 18px;
+  box-shadow: var(--shadow-lg);
+  transition: var(--transition-slow);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+.um-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-red), var(--primary-orange));
 }
 
 .um-stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-2xl);
 }
 
 .um-stat-icon {
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: linear-gradient(135deg, var(--primary-red-light), white);
+  box-shadow: var(--shadow-sm);
 }
 
 .um-stat-info h3 {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 800;
   margin: 0;
-  color: var(--text-dark);
+  background: linear-gradient(135deg, var(--dark-bg), var(--primary-red));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .um-stat-info p {
   font-size: 13px;
   color: var(--text-gray);
-  margin: 4px 0 0;
+  margin: 6px 0 0;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* Content Grid */
+/* --------------------------------------------
+   5. CONTENT GRID
+   -------------------------------------------- */
 .um-content-grid {
   display: grid;
   grid-template-columns: 480px 1fr;
   gap: 28px;
+  position: relative;
+  z-index: 1;
 }
 
-/* Form Card */
+@media (max-width: 1200px) {
+  .um-content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --------------------------------------------
+   6. FORM CARD - GLASS MORPHISM
+   -------------------------------------------- */
 .um-form-card {
-  background: white;
-  border-radius: var(--radius-xl);
-  padding: 24px;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: var(--radius-2xl);
+  padding: 28px;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: var(--transition);
+}
+
+.um-form-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-2xl);
 }
 
 .um-card-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
   border-bottom: 2px solid var(--border-color);
 }
 
 .um-card-header h3 {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 800;
   margin: 0;
   flex: 1;
+  background: linear-gradient(135deg, var(--dark-bg), var(--primary-red));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .um-search-box {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   background: var(--bg-gray);
-  padding: 8px 16px;
-  border-radius: 40px;
-  border: 1px solid var(--border-color);
+  padding: 8px 18px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--border-color);
+  transition: var(--transition);
+}
+
+.um-search-box:focus-within {
+  border-color: var(--primary-red);
+  box-shadow: 0 0 0 3px var(--primary-red-glow);
+  background: white;
 }
 
 .um-search-box input {
@@ -126,49 +259,80 @@
   outline: none;
   font-size: 13px;
   width: 180px;
+  color: var(--text-dark);
 }
 
-/* Form Groups */
+.um-search-box input::placeholder {
+  color: var(--text-light);
+}
+
+/* --------------------------------------------
+   7. FORM GROUPS - PREMIUM
+   -------------------------------------------- */
 .um-form-group {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .um-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.um-form-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-gray);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
 }
 
 .um-form-group input,
-.um-form-group textarea {
+.um-form-group textarea,
+.um-form-group select {
   width: 100%;
   padding: 12px 16px;
   border: 2px solid var(--border-color);
   border-radius: var(--radius-md);
   font-size: 14px;
+  font-weight: 500;
   transition: var(--transition);
   background: var(--bg-gray);
+  font-family: inherit;
+  color: var(--text-dark);
 }
 
 .um-form-group input:focus,
-.um-form-group textarea:focus {
+.um-form-group textarea:focus,
+.um-form-group select:focus {
   outline: none;
   border-color: var(--primary-red);
   background: white;
-  box-shadow: 0 0 0 3px var(--primary-red-glow, rgba(211,47,47,0.1));
+  box-shadow: 0 0 0 4px var(--primary-red-glow);
 }
 
-/* Permissions */
+/* --------------------------------------------
+   8. PERMISSIONS SECTION - MODERN
+   -------------------------------------------- */
 .um-permissions-section {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+  background: linear-gradient(135deg, var(--bg-gray), white);
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
 }
 
 .um-permissions-section h4 {
-  font-size: 13px;
-  font-weight: 700;
-  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 18px;
   color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .um-checkbox-grid {
@@ -180,18 +344,21 @@
 .um-checkbox-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 12px;
-  font-weight: 500;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  padding: 8px 12px;
-  background: var(--bg-gray);
+  padding: 10px 14px;
+  background: white;
   border-radius: var(--radius-md);
   transition: var(--transition);
+  border: 1px solid var(--border-color);
 }
 
 .um-checkbox-item:hover {
+  border-color: var(--primary-red);
   background: var(--primary-red-light);
+  transform: translateX(5px);
 }
 
 .um-checkbox-item input {
@@ -201,104 +368,132 @@
   accent-color: var(--primary-red);
 }
 
-/* Buttons */
+/* --------------------------------------------
+   9. BUTTONS - PREMIUM
+   -------------------------------------------- */
 .um-btn-add {
   width: 100%;
-  padding: 14px;
+  padding: 16px;
   background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
   color: white;
   border: none;
-  border-radius: var(--radius-md);
-  font-weight: 700;
+  border-radius: var(--radius-lg);
+  font-weight: 800;
+  font-size: 15px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.um-btn-add::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.6s;
+}
+
+.um-btn-add:hover::before {
+  left: 100%;
 }
 
 .um-btn-add:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 20px rgba(211, 47, 47, 0.3);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-red);
 }
 
 .um-btn-primary {
   background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
   color: white;
   border: none;
-  padding: 10px 20px;
+  padding: 12px 24px;
   border-radius: var(--radius-md);
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   transition: var(--transition);
 }
 
 .um-btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-red);
 }
 
 .um-btn-secondary {
   background: white;
   color: var(--text-dark);
   border: 2px solid var(--border-color);
-  padding: 10px 20px;
+  padding: 12px 24px;
   border-radius: var(--radius-md);
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   transition: var(--transition);
 }
 
 .um-btn-secondary:hover {
   border-color: var(--primary-red);
   background: var(--primary-red-light);
+  transform: translateY(-2px);
 }
 
-/* Users Card */
+/* --------------------------------------------
+   10. USERS CARD - GLASS DESIGN
+   -------------------------------------------- */
 .um-users-card {
-  background: white;
-  border-radius: var(--radius-xl);
-  padding: 24px;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: var(--radius-2xl);
+  padding: 28px;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .um-users-list {
-  max-height: 600px;
+  max-height: 650px;
   overflow-y: auto;
+  padding-right: 8px;
 }
 
 .um-user-card {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 16px;
-  border-radius: var(--radius-md);
+  padding: 18px;
+  border-radius: var(--radius-lg);
   transition: var(--transition);
   cursor: pointer;
   border: 1px solid transparent;
+  margin-bottom: 10px;
 }
 
 .um-user-card:hover {
   background: var(--bg-gray);
   border-color: var(--border-color);
+  transform: translateX(5px);
 }
 
 .um-user-card.active {
-  background: var(--primary-red-light);
+  background: linear-gradient(135deg, var(--primary-red-light), white);
   border-color: var(--primary-red);
+  box-shadow: var(--shadow-sm);
 }
 
 .um-user-avatar {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
   border-radius: 50%;
   display: flex;
@@ -306,7 +501,13 @@
   justify-content: center;
   color: white;
   font-weight: 800;
-  font-size: 18px;
+  font-size: 20px;
+  box-shadow: var(--shadow-md);
+  transition: var(--transition);
+}
+
+.um-user-card:hover .um-user-avatar {
+  transform: scale(1.05);
 }
 
 .um-user-info {
@@ -314,9 +515,10 @@
 }
 
 .um-user-name {
-  font-weight: 700;
+  font-weight: 800;
   margin-bottom: 6px;
   color: var(--text-dark);
+  font-size: 15px;
 }
 
 .um-user-stats {
@@ -324,22 +526,23 @@
   gap: 16px;
   font-size: 11px;
   color: var(--text-gray);
+  flex-wrap: wrap;
 }
 
 .um-user-stats span {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
 
 .um-user-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .um-btn-icon {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: none;
   background: var(--bg-gray);
@@ -354,23 +557,25 @@
 .um-btn-icon:hover {
   background: var(--primary-red-light);
   color: var(--primary-red);
-  transform: scale(1.05);
+  transform: scale(1.1);
 }
 
 .um-btn-icon.delete:hover {
   background: #fee2e2;
-  color: #dc2626;
+  color: var(--error);
 }
 
-/* Modal Styles */
+/* --------------------------------------------
+   11. MODAL STYLES - PREMIUM
+   -------------------------------------------- */
 .um-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -378,232 +583,20 @@
   animation: fadeIn 0.3s ease;
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .um-modal {
   background: white;
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
   max-width: 900px;
   width: 90%;
   max-height: 85vh;
   overflow-y: auto;
-  animation: zoomIn 0.3s ease;
-  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
-}
-
-.um-bill-modal {
-  max-width: 1000px;
-}
-
-.um-edit-modal {
-  max-width: 500px;
-}
-
-.um-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 2px solid var(--border-color);
-}
-
-.um-modal-header h2 {
-  font-size: 20px;
-  font-weight: 700;
-  margin: 0;
-}
-
-.um-modal-close {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: none;
-  background: var(--bg-gray);
-  font-size: 24px;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.um-modal-close:hover {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.um-modal-body {
-  padding: 24px;
-}
-
-.um-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 24px;
-  border-top: 2px solid var(--border-color);
-}
-
-/* User Profile Stats */
-.um-user-profile {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.um-profile-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.um-stat-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: var(--bg-gray);
-  border-radius: var(--radius-md);
-}
-
-.um-stat-item strong {
-  font-size: 20px;
-  font-weight: 800;
-  display: block;
-  color: var(--text-dark);
-}
-
-.um-stat-item span {
-  font-size: 11px;
-  color: var(--text-gray);
-}
-
-.um-profile-actions {
-  display: flex;
-  gap: 12px;
-}
-
-/* Shipments Table */
-.um-shipments-table {
-  margin-top: 16px;
-}
-
-.um-shipments-table h4 {
-  margin-bottom: 16px;
-  font-size: 16px;
-}
-
-.um-shipments-table table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.um-shipments-table th,
-.um-shipments-table td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.um-shipments-table th {
-  background: var(--bg-gray);
-  font-weight: 700;
-}
-
-.um-status {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-/* Bill Styles */
-.um-bill {
-  padding: 20px;
-}
-
-.um-bill-header {
-  text-align: center;
-  padding-bottom: 20px;
-  border-bottom: 2px solid var(--primary-red);
-  margin-bottom: 20px;
-}
-
-.um-bill-header h1 {
-  color: var(--primary-red);
-  margin-bottom: 8px;
-}
-
-.um-bill-header p {
-  font-size: 12px;
-  color: var(--text-gray);
-}
-
-.um-bill-customer {
-  background: var(--bg-gray);
-  padding: 16px;
-  border-radius: var(--radius-md);
-  margin-bottom: 20px;
-}
-
-.um-bill-customer h3 {
-  margin-bottom: 12px;
-  font-size: 14px;
-}
-
-.um-bill-dates {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  font-size: 12px;
-  color: var(--text-gray);
-}
-
-.um-bill-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 20px;
-}
-
-.um-bill-table th,
-.um-bill-table td {
-  padding: 12px;
-  border: 1px solid var(--border-color);
-  text-align: left;
-  font-size: 12px;
-}
-
-.um-bill-table th {
-  background: var(--bg-gray);
-  font-weight: 700;
-}
-
-.um-bill-table tfoot td {
-  font-weight: 700;
-  background: var(--bg-gray);
-}
-
-.um-bill-footer {
-  text-align: center;
-  padding-top: 20px;
-  border-top: 1px solid var(--border-color);
-  margin-top: 20px;
-}
-
-.um-signature {
-  margin-top: 40px;
-  font-family: cursive;
-  text-align: right;
-}
-
-/* Loading State */
-.um-loading {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-gray);
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: var(--shadow-2xl);
 }
 
 @keyframes zoomIn {
@@ -617,14 +610,378 @@
   }
 }
 
-/* Responsive */
+.um-bill-modal {
+  max-width: 1000px;
+}
+
+.um-edit-modal {
+  max-width: 550px;
+}
+
+.um-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 28px;
+  border-bottom: 2px solid var(--border-color);
+  background: linear-gradient(135deg, var(--bg-gray), white);
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+}
+
+.um-modal-header h2 {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0;
+  background: linear-gradient(135deg, var(--dark-bg), var(--primary-red));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.um-modal-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-gray);
+  font-size: 24px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.um-modal-close:hover {
+  background: #fee2e2;
+  color: var(--error);
+  transform: rotate(90deg);
+}
+
+.um-modal-body {
+  padding: 28px;
+}
+
+.um-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  padding: 20px 28px;
+  border-top: 2px solid var(--border-color);
+  background: linear-gradient(135deg, var(--bg-gray), white);
+  border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
+}
+
+/* --------------------------------------------
+   12. USER PROFILE STATS
+   -------------------------------------------- */
+.um-user-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.um-profile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.um-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px;
+  background: linear-gradient(135deg, var(--bg-gray), white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  transition: var(--transition);
+}
+
+.um-stat-item:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-red-light);
+}
+
+.um-stat-item strong {
+  font-size: 24px;
+  font-weight: 800;
+  display: block;
+  color: var(--primary-red);
+}
+
+.um-stat-item span {
+  font-size: 12px;
+  color: var(--text-gray);
+  font-weight: 600;
+}
+
+.um-profile-actions {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+/* --------------------------------------------
+   13. SHIPMENTS TABLE
+   -------------------------------------------- */
+.um-shipments-table {
+  margin-top: 20px;
+}
+
+.um-shipments-table h4 {
+  margin-bottom: 18px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.um-shipments-table .table-wrapper {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+.um-shipments-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.um-shipments-table th,
+.um-shipments-table td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.um-shipments-table th {
+  background: linear-gradient(135deg, var(--bg-gray), #f1f5f9);
+  font-weight: 800;
+  color: var(--text-dark);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.um-shipments-table tr:hover {
+  background: var(--bg-gray);
+}
+
+.um-status {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 30px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.um-status.delivered {
+  background: var(--primary-green-light);
+  color: var(--primary-green);
+}
+
+.um-status.in-transit {
+  background: var(--primary-blue-light);
+  color: var(--primary-blue);
+}
+
+.um-status.pending {
+  background: var(--primary-orange-light);
+  color: var(--primary-orange);
+}
+
+/* --------------------------------------------
+   14. BILL STYLES - PROFESSIONAL
+   -------------------------------------------- */
+.um-bill {
+  padding: 28px;
+  background: white;
+}
+
+.um-bill-header {
+  text-align: center;
+  padding-bottom: 24px;
+  border-bottom: 3px solid var(--primary-red);
+  margin-bottom: 24px;
+}
+
+.um-bill-header h1 {
+  color: var(--primary-red);
+  margin-bottom: 10px;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.um-bill-header p {
+  font-size: 12px;
+  color: var(--text-gray);
+}
+
+.um-bill-customer {
+  background: linear-gradient(135deg, var(--bg-gray), white);
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 24px;
+  border: 1px solid var(--border-color);
+}
+
+.um-bill-customer h3 {
+  margin-bottom: 14px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--primary-red);
+}
+
+.um-bill-dates {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  font-size: 12px;
+  color: var(--text-gray);
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.um-bill-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+}
+
+.um-bill-table th,
+.um-bill-table td {
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  text-align: left;
+  font-size: 12px;
+}
+
+.um-bill-table th {
+  background: linear-gradient(135deg, var(--bg-gray), #f1f5f9);
+  font-weight: 800;
+}
+
+.um-bill-table tfoot td {
+  font-weight: 800;
+  background: var(--bg-gray);
+}
+
+.um-bill-footer {
+  text-align: center;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color);
+  margin-top: 24px;
+}
+
+.um-signature {
+  margin-top: 50px;
+  font-family: 'Segoe UI', cursive;
+  text-align: right;
+  padding-top: 20px;
+  border-top: 1px dashed var(--border-color);
+}
+
+/* --------------------------------------------
+   15. LOADING & EMPTY STATES
+   -------------------------------------------- */
+.um-loading {
+  text-align: center;
+  padding: 80px;
+  color: var(--text-gray);
+  font-size: 16px;
+}
+
+.um-loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid var(--bg-light);
+  border-top-color: var(--primary-red);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.um-empty-state {
+  text-align: center;
+  padding: 60px;
+  color: var(--text-gray);
+}
+
+.um-empty-state svg {
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+/* --------------------------------------------
+   16. ANIMATIONS
+   -------------------------------------------- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* --------------------------------------------
+   17. RESPONSIVE DESIGN
+   -------------------------------------------- */
+@media (max-width: 1200px) {
+  .um-stats-grid {
+    gap: 18px;
+  }
+  
+  .um-stat-icon {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .um-stat-info h3 {
+    font-size: 26px;
+  }
+}
+
 @media (max-width: 1024px) {
-  .um-content-grid {
-    grid-template-columns: 1fr;
+  .um-container {
+    padding: 24px;
   }
   
   .um-stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .um-form-card {
+    padding: 22px;
   }
 }
 
@@ -649,11 +1006,137 @@
     grid-template-columns: 1fr;
   }
   
-  .um-shipments-table {
+  .um-shipments-table .table-wrapper {
     overflow-x: auto;
   }
   
   .um-modal {
     width: 95%;
   }
+  
+  .um-modal-body {
+    padding: 20px;
+  }
+  
+  .um-user-card {
+    flex-wrap: wrap;
+  }
+  
+  .um-user-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .um-profile-actions {
+    flex-direction: column;
+  }
+  
+  .um-btn-primary,
+  .um-btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .um-bill-dates {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .um-stat-card {
+    padding: 16px;
+  }
+  
+  .um-stat-icon {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .um-stat-info h3 {
+    font-size: 22px;
+  }
+  
+  .um-user-stats {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .um-bill-table th,
+  .um-bill-table td {
+    padding: 8px;
+    font-size: 10px;
+  }
+}
+
+/* --------------------------------------------
+   18. PRINT STYLES
+   -------------------------------------------- */
+@media print {
+  .um-container {
+    background: white;
+    padding: 0;
+  }
+  
+  .um-stats-grid,
+  .um-form-card,
+  .um-users-card,
+  .um-modal-overlay,
+  .um-profile-actions,
+  .um-user-actions,
+  .um-btn-add,
+  .um-btn-primary,
+  .um-btn-secondary,
+  .um-search-box,
+  .um-modal-close {
+    display: none !important;
+  }
+  
+  .um-bill-modal {
+    position: static;
+    background: white;
+    box-shadow: none;
+  }
+  
+  .um-bill {
+    padding: 0;
+  }
+  
+  @page {
+    size: A4;
+    margin: 2cm;
+  }
+}
+
+/* --------------------------------------------
+   19. UTILITY CLASSES
+   -------------------------------------------- */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-red { color: var(--primary-red); }
+.text-green { color: var(--success); }
+.text-purple { color: var(--primary-purple); }
+.mt-2 { margin-top: 8px; }
+.mt-3 { margin-top: 12px; }
+.mt-4 { margin-top: 16px; }
+.mb-2 { margin-bottom: 8px; }
+.mb-3 { margin-bottom: 12px; }
+.mb-4 { margin-bottom: 16px; }
+
+/* --------------------------------------------
+   20. DEVELOPER CREDIT
+   -------------------------------------------- */
+.dev-credit {
+  text-align: center;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+  font-size: 11px;
+  color: var(--text-gray);
+  position: relative;
+  z-index: 1;
+}
+
+.dev-credit strong {
+  color: var(--primary-red);
+  font-weight: 700;
 }
