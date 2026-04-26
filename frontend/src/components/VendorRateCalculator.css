@@ -1,6 +1,6 @@
 /* ============================================
-   VENDOR RATE CALCULATOR - PREMIUM UI v3.0
-   Glass Morphism | Dark/Light Theme | Professional Design
+   VENDOR RATE CALCULATOR - PREMIUM UI v4.0
+   ULTIMATE DESIGN | GLASS MORPHISM | MODERN LAYOUT
    Developed by Devora Technologies
    ============================================ */
 
@@ -15,6 +15,7 @@
   --primary-green: #10b981;
   --primary-green-dark: #059669;
   --primary-green-light: #d1fae5;
+  --primary-green-glow: rgba(16, 185, 129, 0.15);
   --primary-blue: #2563eb;
   --primary-blue-light: #dbeafe;
   --primary-purple: #8b5cf6;
@@ -40,6 +41,7 @@
   --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
   --shadow-red: 0 10px 25px -5px rgba(211, 47, 47, 0.3);
   --shadow-green: 0 10px 25px -5px rgba(16, 185, 129, 0.3);
+  --shadow-purple: 0 10px 25px -5px rgba(139, 92, 246, 0.3);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -80,33 +82,35 @@
   margin-bottom: 32px;
   position: relative;
   z-index: 1;
+  animation: fadeInDown 0.5s ease;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .page-header-calc h1 {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 900;
   background: linear-gradient(135deg, var(--dark-bg) 0%, var(--primary-red) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
 }
 
 .page-header-calc p {
   color: var(--text-gray);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
-}
-
-.title {
-  text-align: center;
-  font-size: 28px;
-  font-weight: 900;
-  margin-bottom: 24px;
-  background: linear-gradient(135deg, var(--dark-bg) 0%, var(--primary-red) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 /* --------------------------------------------
@@ -121,21 +125,22 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
   position: relative;
   z-index: 1;
-  transition: var(--transition);
+  transition: var(--transition-slow);
 }
 
 .big-card:hover {
   box-shadow: var(--shadow-2xl);
+  transform: translateY(-2px);
 }
 
 /* --------------------------------------------
-   5. CALCULATOR CONTAINER - MAIN LAYOUT
+   5. CALCULATOR CONTAINER
    -------------------------------------------- */
 .calculator-container {
   display: flex;
   gap: 28px;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 @media (max-width: 1024px) {
@@ -145,17 +150,14 @@
 }
 
 /* --------------------------------------------
-   6. LEFT FORM CARD - PREMIUM
+   6. FORM CARD - LEFT SIDE
    -------------------------------------------- */
 .form-card {
-  background: linear-gradient(135deg, var(--bg-gray), white);
-  width: 48%;
-  padding: 24px;
+  background: linear-gradient(135deg, var(--bg-gray) 0%, white 100%);
+  width: 45%;
+  padding: 28px;
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
   border: 1px solid var(--border-color);
   transition: var(--transition);
 }
@@ -163,6 +165,7 @@
 .form-card:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-xl);
+  border-color: var(--primary-red-light);
 }
 
 @media (max-width: 1024px) {
@@ -171,87 +174,84 @@
   }
 }
 
-.form-card label {
+.form-card h3 {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 20px;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
   font-weight: 700;
   font-size: 11px;
   color: var(--text-gray);
-  margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.form-card input,
-.form-card select {
+.form-group input,
+.form-group select {
   padding: 12px 14px;
   border: 2px solid var(--border-color);
   border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 500;
   width: 100%;
-  box-sizing: border-box;
   transition: var(--transition);
   background: white;
   color: var(--text-dark);
 }
 
-.form-card input:focus,
-.form-card select:focus {
+.form-group input:focus,
+.form-group select:focus {
   outline: none;
   border-color: var(--primary-red);
   box-shadow: 0 0 0 3px var(--primary-red-glow);
   background: white;
 }
 
-.form-card input::placeholder {
-  color: var(--text-light);
-}
-
-/* Row Layout */
-.row {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.col {
-  flex: 1;
-  min-width: 100px;
-  display: flex;
-  flex-direction: column;
-}
-
-.col.small {
-  flex: 0.8;
-}
-
-.col.small input {
-  padding: 10px;
-  font-size: 13px;
-}
-
 /* --------------------------------------------
    7. DIMENSIONS SECTION
    -------------------------------------------- */
 .dimensions-section {
-  margin-top: 8px;
-  padding: 16px;
+  margin: 20px 0;
+  padding: 20px;
   background: var(--bg-gray);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
 }
 
-.dimensions-section label {
+.dimensions-section > label {
   font-weight: 700;
   font-size: 11px;
   color: var(--text-gray);
   text-transform: uppercase;
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  letter-spacing: 0.5px;
 }
 
 .dimension-row {
   display: grid;
-  grid-template-columns: 60px 1fr 1fr 1fr 40px;
+  grid-template-columns: 70px 1fr 1fr 1fr 40px;
   gap: 10px;
   margin-bottom: 12px;
   align-items: center;
@@ -272,7 +272,7 @@
   box-shadow: 0 0 0 2px var(--primary-red-glow);
 }
 
-.remove-btn {
+.remove-dim-btn {
   background: #fee2e2;
   border: none;
   border-radius: var(--radius-sm);
@@ -287,14 +287,13 @@
   transition: var(--transition);
 }
 
-.remove-btn:hover {
+.remove-dim-btn:hover {
   background: var(--error);
   color: white;
   transform: scale(1.05);
 }
 
-/* Add Dimension Button */
-.add-btn {
+.add-dim-btn {
   background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
   color: white;
   border: none;
@@ -308,33 +307,41 @@
   align-items: center;
   gap: 8px;
   transition: var(--transition);
-  margin-top: 8px;
+  margin-top: 12px;
 }
 
-.add-btn:hover {
+.add-dim-btn:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-red);
 }
 
 /* --------------------------------------------
-   8. VENDOR FILTER SECTION
+   8. VENDOR FILTER
    -------------------------------------------- */
 .vendor-filter {
-  margin: 16px 0;
+  margin: 20px 0;
   padding: 16px;
   background: var(--bg-gray);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
 }
 
-.vendor-filter label {
+.filter-label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: 12px;
   color: var(--text-dark);
+  font-size: 13px;
+}
+
+.filter-label input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--primary-red);
 }
 
 .vendor-selector {
@@ -347,7 +354,7 @@
 .vendor-selector label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 12px;
   font-weight: 500;
   margin-bottom: 0;
@@ -362,6 +369,7 @@
 .vendor-selector label:hover {
   border-color: var(--primary-red);
   background: var(--primary-red-light);
+  transform: translateY(-2px);
 }
 
 .vendor-selector input {
@@ -377,7 +385,7 @@
 .btn-group {
   display: flex;
   gap: 15px;
-  margin-top: 8px;
+  margin-top: 20px;
 }
 
 .calc-btn {
@@ -387,7 +395,7 @@
   border: none;
   border-radius: var(--radius-md);
   padding: 14px 20px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
   cursor: pointer;
   transition: var(--transition);
@@ -397,9 +405,14 @@
   gap: 10px;
 }
 
-.calc-btn:hover {
+.calc-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: var(--shadow-green);
+}
+
+.calc-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .reset-btn {
@@ -409,7 +422,7 @@
   border: 2px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 14px 20px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
@@ -420,217 +433,271 @@
   transform: translateY(-2px);
 }
 
-.back-btn {
-  flex: 1;
-  background: linear-gradient(135deg, var(--primary-purple), #7c3aed);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  padding: 14px 20px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.back-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-purple, 0 10px 25px -5px rgba(139, 92, 246, 0.3));
-}
-
 /* --------------------------------------------
-   10. RIGHT RESULT CARD
+   10. RESULTS CARD - RIGHT SIDE
    -------------------------------------------- */
 .main-result-card {
-  width: 48%;
+  width: 55%;
   background: white;
-  padding: 24px;
+  padding: 28px;
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--border-color);
-  max-height: 80vh;
-  overflow-y: auto;
   transition: var(--transition);
-}
-
-.main-result-card:hover {
-  box-shadow: var(--shadow-xl);
 }
 
 @media (max-width: 1024px) {
   .main-result-card {
     width: 100%;
-    max-height: none;
   }
 }
 
-/* Custom Scrollbar */
-.main-result-card::-webkit-scrollbar {
-  width: 6px;
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--border-color);
 }
 
-.main-result-card::-webkit-scrollbar-track {
-  background: var(--bg-light);
-  border-radius: 10px;
-}
-
-.main-result-card::-webkit-scrollbar-thumb {
-  background: var(--primary-red);
-  border-radius: 10px;
-}
-
-/* --------------------------------------------
-   11. VENDOR CARD - RESULT
-   -------------------------------------------- */
-.vendor-card {
-  margin-bottom: 20px;
-  padding: 20px;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--bg-gray), white);
-  transition: var(--transition);
-  border: 1px solid var(--border-color);
-  position: relative;
-  overflow: hidden;
-}
-
-.vendor-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: linear-gradient(135deg, var(--primary-red), var(--primary-orange));
-}
-
-.vendor-card:hover {
-  transform: translateX(5px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--primary-red-light);
-}
-
-/* Vendor Name */
-.vendor-name {
-  color: var(--primary-red);
+.results-header h3 {
   font-size: 18px;
-  font-weight: 900;
-  margin-bottom: 8px;
+  font-weight: 800;
+  color: var(--text-dark);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
   gap: 10px;
 }
 
-/* CFT Badge */
-.cft-badge {
-  background: linear-gradient(135deg, var(--primary-orange), #d97706);
-  color: white;
-  padding: 4px 12px;
+.calc-info {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-gray);
+  background: var(--bg-gray);
+  padding: 8px 16px;
   border-radius: var(--radius-full);
-  font-size: 10px;
+}
+
+.calc-info strong {
+  color: var(--primary-red);
   font-weight: 700;
 }
 
-/* Total Price */
-.total-price {
-  color: var(--primary-red);
-  font-weight: 900;
-  font-size: 24px;
-  margin: 12px 0;
-  display: inline-block;
-  background: var(--primary-red-light);
-  padding: 6px 16px;
-  border-radius: var(--radius-full);
-}
-
-/* Contract Card - Breakdown */
-.contract-card {
-  padding: 16px;
-  border-top: 1px dashed var(--border-color);
-  margin-top: 12px;
-  background: white;
-  border-radius: var(--radius-md);
-}
-
-.contract-card p {
-  margin: 8px 0;
-  font-size: 12px;
-  color: var(--text-gray);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.contract-card p::before {
-  content: '•';
-  color: var(--primary-red);
-  font-weight: bold;
-  margin-right: 8px;
-}
-
-/* ODA Badge */
-.oda-yes {
-  color: var(--error);
-  font-weight: 800;
-  background: #fee2e2;
-  padding: 2px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-}
-
-.oda-no {
-  color: var(--primary-green);
-  font-weight: 800;
-  background: var(--primary-green-light);
-  padding: 2px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-}
-
 /* --------------------------------------------
-   12. BEST VENDOR HIGHLIGHT
+   11. BEST VENDOR HIGHLIGHT
    -------------------------------------------- */
 .best-vendor-highlight {
   background: linear-gradient(135deg, var(--primary-orange-light), #fffbeb);
   border: 2px solid var(--primary-orange);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  margin-bottom: 24px;
   position: relative;
+  animation: pulse 2s infinite;
 }
 
-.best-vendor-highlight::before {
-  background: linear-gradient(135deg, var(--primary-orange), #d97706);
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+  }
 }
 
 .best-badge {
   position: absolute;
   top: -12px;
-  right: 20px;
+  left: 24px;
   background: linear-gradient(135deg, var(--primary-orange), #d97706);
   color: white;
-  padding: 4px 16px;
+  padding: 4px 20px;
   border-radius: var(--radius-full);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
+  box-shadow: var(--shadow-md);
+}
+
+.best-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.best-vendor {
+  font-size: 24px;
+  font-weight: 900;
+  color: #92400e;
+}
+
+.best-price {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--primary-red);
+}
+
+.best-rate {
+  font-size: 14px;
+  color: var(--text-gray);
+  background: white;
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
 }
 
 /* --------------------------------------------
-   13. LOADING & EMPTY STATES
+   12. RESULTS LIST
+   -------------------------------------------- */
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.results-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.vendor-result {
+  background: var(--bg-gray);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  transition: var(--transition);
+  border: 1px solid transparent;
+}
+
+.vendor-result:hover {
+  transform: translateX(5px);
+  border-color: var(--border-color);
+  background: white;
+  box-shadow: var(--shadow-md);
+}
+
+.vendor-result.is-best {
+  background: linear-gradient(135deg, var(--primary-green-light), white);
+  border-color: var(--primary-green);
+}
+
+.vendor-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--border-color);
+}
+
+.vendor-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--primary-red);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cft-badge {
+  background: linear-gradient(135deg, var(--primary-purple), #7c3aed);
+  color: white;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.vendor-total {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--primary-red);
+}
+
+/* Breakdown */
+.vendor-breakdown {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.breakdown-row span:first-child {
+  color: var(--text-gray);
+}
+
+.breakdown-row strong {
+  color: var(--text-dark);
+  font-weight: 700;
+}
+
+.breakdown-row.total {
+  grid-column: span 2;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 2px solid var(--border-color);
+  border-bottom: none;
+  font-size: 14px;
+}
+
+.breakdown-row.total span:first-child {
+  font-weight: 800;
+  color: var(--text-dark);
+}
+
+.breakdown-row.total strong {
+  color: var(--primary-red);
+  font-size: 16px;
+}
+
+/* ODA Row */
+.oda-yes {
+  background: #fee2e2;
+  color: var(--error);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.oda-no {
+  background: var(--primary-green-light);
+  color: var(--primary-green);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* --------------------------------------------
+   13. LOADING STATE
    -------------------------------------------- */
 .loading-state {
   text-align: center;
   padding: 60px 20px;
-  color: var(--text-gray);
 }
 
 .loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 3px solid var(--bg-light);
+  width: 60px;
+  height: 60px;
+  border: 4px solid var(--bg-light);
   border-top-color: var(--primary-red);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -642,26 +709,35 @@
   to { transform: rotate(360deg); }
 }
 
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
+.loading-state p {
   color: var(--text-gray);
   font-size: 14px;
 }
 
+/* --------------------------------------------
+   14. EMPTY STATE
+   -------------------------------------------- */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
 .empty-state p {
   display: inline-block;
-  padding: 16px 24px;
+  padding: 20px 32px;
   background: var(--bg-gray);
   border-radius: var(--radius-lg);
+  color: var(--text-gray);
+  font-size: 14px;
+  border: 1px dashed var(--border-color);
 }
 
 /* --------------------------------------------
-   14. DISCLAIMER
+   15. DISCLAIMER
    -------------------------------------------- */
 .disclaimer {
-  margin-top: 20px;
-  padding: 12px;
+  margin-top: 24px;
+  padding: 12px 16px;
   text-align: center;
   background: var(--bg-gray);
   border-radius: var(--radius-md);
@@ -671,40 +747,29 @@
 }
 
 /* --------------------------------------------
-   15. ANIMATIONS
-   -------------------------------------------- */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.vendor-card {
-  animation: fadeInUp 0.3s ease;
-}
-
-/* --------------------------------------------
    16. RESPONSIVE DESIGN
    -------------------------------------------- */
+@media (max-width: 1024px) {
+  .vendor-rate-page {
+    padding: 24px;
+  }
+  
+  .page-header-calc h1 {
+    font-size: 28px;
+  }
+  
+  .big-card {
+    padding: 20px;
+  }
+}
+
 @media (max-width: 768px) {
   .vendor-rate-page {
     padding: 16px;
+  }
+  
+  .page-header-calc h1 {
+    font-size: 24px;
   }
   
   .big-card {
@@ -712,32 +777,63 @@
   }
   
   .form-card {
-    padding: 18px;
+    padding: 20px;
   }
   
-  .row {
-    flex-direction: column;
-  }
-  
-  .col {
-    width: 100%;
+  .form-row {
+    grid-template-columns: 1fr;
   }
   
   .dimension-row {
-    grid-template-columns: 50px 1fr 1fr 1fr 35px;
+    grid-template-columns: 1fr;
     gap: 8px;
+  }
+  
+  .remove-dim-btn {
+    width: 100%;
   }
   
   .btn-group {
     flex-direction: column;
   }
   
-  .vendor-name {
-    font-size: 16px;
+  .results-header {
+    flex-direction: column;
+    text-align: center;
   }
   
-  .total-price {
+  .calc-info {
+    justify-content: center;
+  }
+  
+  .best-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .best-vendor {
     font-size: 20px;
+  }
+  
+  .best-price {
+    font-size: 28px;
+  }
+  
+  .vendor-result-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .vendor-name {
+    justify-content: center;
+  }
+  
+  .vendor-breakdown {
+    grid-template-columns: 1fr;
+  }
+  
+  .breakdown-row.total {
+    grid-column: span 1;
   }
   
   .vendor-selector {
@@ -748,32 +844,35 @@
     padding: 4px 10px;
     font-size: 11px;
   }
+  
+  .main-result-card {
+    padding: 20px;
+  }
 }
 
 @media (max-width: 480px) {
-  .dimension-row {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-  
-  .remove-btn {
-    width: 100%;
+  .vendor-rate-page {
+    padding: 12px;
   }
   
   .page-header-calc h1 {
-    font-size: 24px;
-  }
-  
-  .title {
     font-size: 22px;
   }
   
-  .vendor-card {
-    padding: 14px;
+  .page-header-calc p {
+    font-size: 12px;
   }
   
-  .contract-card p {
-    font-size: 11px;
+  .form-card h3 {
+    font-size: 16px;
+  }
+  
+  .vendor-total {
+    font-size: 20px;
+  }
+  
+  .vendor-name {
+    font-size: 16px;
   }
 }
 
@@ -810,15 +909,14 @@
   }
   
   .btn-group,
-  .add-btn,
+  .add-dim-btn,
   .vendor-filter,
-  .back-btn,
   .reset-btn,
   .calc-btn {
     display: none !important;
   }
   
-  .vendor-card {
+  .vendor-result {
     break-inside: avoid;
     page-break-inside: avoid;
   }
@@ -826,6 +924,10 @@
   .main-result-card {
     max-height: none;
     overflow: visible;
+  }
+  
+  .best-vendor-highlight {
+    animation: none;
   }
 }
 
@@ -840,22 +942,3 @@
 .mt-3 { margin-top: 12px; }
 .mb-2 { margin-bottom: 8px; }
 .mb-3 { margin-bottom: 12px; }
-
-/* --------------------------------------------
-   20. DEVELOPER CREDIT
-   -------------------------------------------- */
-.dev-credit {
-  text-align: center;
-  margin-top: 32px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border-color);
-  font-size: 11px;
-  color: var(--text-gray);
-  position: relative;
-  z-index: 1;
-}
-
-.dev-credit strong {
-  color: var(--primary-red);
-  font-weight: 700;
-}
