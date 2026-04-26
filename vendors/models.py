@@ -12,7 +12,7 @@ class VendorRate(models.Model):
     VENDOR_CHOICES = [
         ('DELHIVERY', 'Delhivery'),
         ('GATI', 'Gati'),
-        ('PD', 'PD Logistics'),
+        ('PD LOGISTICS', 'PD Logistics'),
         ('RIVIGO', 'Rivigo'),
         ('VXPRESS', 'V-Express'),
         ('FCPL', 'Faith Cargo'),
@@ -86,10 +86,14 @@ class VendorRate(models.Model):
     def get_charge(self, charge_name):
         """Get specific charge value"""
         return self.charges.get(charge_name, 0)
+    
+    def get_default_oda_charge(self):
+        """Get default ODA charge from vendor settings"""
+        return float(self.charges.get('oda_charge', 0))
 
 
 # ============================================
-# VENDOR PINCODE MODEL (UPDATED with oda_category)
+# VENDOR PINCODE MODEL (FIXED)
 # ============================================
 
 class VendorPincode(models.Model):
@@ -103,11 +107,28 @@ class VendorPincode(models.Model):
         ('NONE', 'Non-ODA'),
     ]
     
-    vendor = models.ForeignKey(VendorRate, on_delete=models.CASCADE, related_name='pincodes')
-    pincode = models.CharField(max_length=10)
+    vendor = models.ForeignKey(
+        VendorRate, 
+        on_delete=models.CASCADE, 
+        related_name='pincodes'
+    )
+    
+    # ⚠️ FIXED: Increased max_length to 20
+    pincode = models.CharField(
+        max_length=20, 
+        db_index=True,
+        help_text="6-digit pincode"
+    )
+    
     city = models.CharField(max_length=100, blank=True, null=True)
     state = models.CharField(max_length=100, blank=True, null=True)
-    is_oda = models.BooleanField(default=False)
+    
+    is_oda = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Is this pincode Out of Delivery Area?"
+    )
+    
     oda_category = models.CharField(
         max_length=10, 
         choices=ODA_CATEGORY_CHOICES, 
@@ -115,9 +136,26 @@ class VendorPincode(models.Model):
         blank=True,
         help_text="ODA Category: A, B, C, or D"
     )
-    oda_charge_per_kg = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    oda_min_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    is_serviceable = models.BooleanField(default=True)
+    
+    oda_charge_per_kg = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0,
+        help_text="ODA charge per kg"
+    )
+    
+    oda_min_charge = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0,
+        help_text="Minimum ODA charge"
+    )
+    
+    is_serviceable = models.BooleanField(
+        default=True,
+        help_text="Is this pincode serviceable by the vendor?"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -125,8 +163,14 @@ class VendorPincode(models.Model):
         db_table = 'vendor_pincodes'
         verbose_name = 'Vendor Pincode'
         verbose_name_plural = 'Vendor Pincodes'
+        # ⚠️ FIXED: Added proper unique constraint
         unique_together = ['vendor', 'pincode']
         ordering = ['vendor__vendor_name', 'pincode']
+        indexes = [
+            models.Index(fields=['vendor', 'pincode']),
+            models.Index(fields=['is_oda']),
+            models.Index(fields=['oda_category']),
+        ]
     
     def __str__(self):
         if self.is_oda:
@@ -217,7 +261,7 @@ class RateHistory(models.Model):
 
 
 # ============================================
-# ZONE MASTER MODEL
+# ZONE MASTER MODEL - FIXED for JSON query
 # ============================================
 
 class ZoneMaster(models.Model):
@@ -240,7 +284,13 @@ class ZoneMaster(models.Model):
     
     zone_code = models.CharField(max_length=10, unique=True, choices=ZONE_CHOICES)
     zone_name = models.CharField(max_length=100)
-    pincodes = models.JSONField(default=list, help_text="List of pincodes in this zone")
+    
+    # ⚠️ Store as JSON but add helper method for query
+    pincodes = models.JSONField(
+        default=list, 
+        help_text="List of pincodes in this zone"
+    )
+    
     state_codes = models.JSONField(default=list, blank=True, help_text="List of state codes")
     
     is_active = models.BooleanField(default=True)
@@ -255,6 +305,10 @@ class ZoneMaster(models.Model):
     
     def __str__(self):
         return f"{self.zone_code} - {self.zone_name}"
+    
+    def contains_pincode(self, pincode):
+        """Check if pincode is in this zone"""
+        return str(pincode) in self.pincodes
 
 
 # ============================================
