@@ -10,20 +10,23 @@ const ZONES = [
   "S1", "S2", "S3", "S4", "E1", "E2", "NE1", "NE2", "NE3"
 ];
 
-// ODA Categories (Min ODA Charge updated to ₹500 for all)
+// ODA Categories 
 const ODA_CATEGORIES = {
-  'A': { rate: 2, min: 500, name: 'ODA A (₹2/kg, Min ₹500)', color: '#10b981' },
-  'B': { rate: 4, min: 500, name: 'ODA B (₹4/kg, Min ₹500)', color: '#f59e0b' },
-  'C': { rate: 7, min: 500, name: 'ODA C (₹7/kg, Min ₹500)', color: '#ef4444' },
-  'D': { rate: 10, min: 500, name: 'ODA D (₹10/kg, Min ₹500)', color: '#8b5cf6' },
-  'DEFAULT': { rate: 4, min: 500, name: 'ODA Default (₹4/kg, Min ₹500)', color: '#6b7280' }
+  'A': { rate: 2, min: 200, name: 'ODA A (₹2/kg, Min ₹200)', color: '#10b981' },
+  'B': { rate: 4, min: 400, name: 'ODA B (₹4/kg, Min ₹400)', color: '#f59e0b' },
+  'C': { rate: 7, min: 700, name: 'ODA C (₹7/kg, Min ₹700)', color: '#ef4444' },
+  'D': { rate: 10, min: 1000, name: 'ODA D (₹10/kg, Min ₹1000)', color: '#8b5cf6' },
+  'DEFAULT': { rate: 4, min: 400, name: 'ODA Default (₹4/kg, Min ₹400)', color: '#6b7280' }
 };
 
-// Vendors that support CFT rates (UPDATED: PD LOGISTICS removed → PD added)
-const CFT_SUPPORTED_VENDORS = ["DELHIVERY", "RIVIGO", "PD"];
+// Vendors that support CFT rates (UPDATED)
+const CFT_SUPPORTED_VENDORS = ["DELHIVERY", "RIVIGO", "PD LOGISTICS", "TRUCX DLH Lite", "TRUCX DLH Dense", "TRUCX DLH Cargo"];
 
 // Shipshopy vendors
 const SHIPSHOPY_VENDORS = ["SHIPSHOPY BLUE DART", "SHIPSHOPY DELIVERY"];
+
+// V-Xpress vendors (same pincode logic)
+const VXPRESS_VENDORS = ["VXPRESS", "SHIVANI VX"];
 
 // Volumetric constants
 const VOLUMETRIC_DIVISOR = {
@@ -34,8 +37,9 @@ const VOLUMETRIC_DIVISOR = {
 
 // Default fallback rates (UPDATED)
 const DEFAULT_VENDOR_RATES = {
-  "DELHIVERY": 28, "GATI": 25, "PD": 22,
-  "RIVIGO": 24, "VXPRESS": 20,
+  "DELHIVERY": 28, "GATI": 25, "PD LOGISTICS": 22,
+  "RIVIGO": 24, "VXPRESS": 20, "SHIVANI VX": 20,
+  "TRUCX DLH Lite": 22, "TRUCX DLH Dense": 22, "TRUCX DLH Cargo": 22,
   "SHIPSHOPY BLUE DART": 25, "SHIPSHOPY DELIVERY": 22
 };
 
@@ -124,16 +128,24 @@ function VendorRateCalculator() {
 
   const setDefaultVendors = () => {
     const defaultVendors = [
-      { vendor_name: "DELHIVERY", is_active: true, rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, min_weight: 20, oda_charge: 2, oda_min_charge: 500 } },
-      { vendor_name: "GATI", is_active: true, rates: {}, charges: { docket_charge: 100, fsc: "15%", gst: "18%", min_freight: 350, min_weight: 20, oda_charge: 3, oda_min_charge: 500 } },
-      { vendor_name: "PD", is_active: true, rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, min_weight: 20, oda_charge: 4, oda_min_charge: 500 } },
-      { vendor_name: "RIVIGO", is_active: true, rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 85, fsc: "12%", gst: "18%", min_freight: 380, min_weight: 20, oda_charge: 4, oda_min_charge: 500 } },
-      { vendor_name: "VXPRESS", is_active: true, rates: {}, charges: { docket_charge: 50, fsc: "8%", gst: "18%", min_freight: 450, min_weight: 25, oda_charge: 2, oda_min_charge: 500 } },
-      { vendor_name: "SHIPSHOPY BLUE DART", is_active: true, rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 50, fsc: "20%", gst: "18%", min_freight: 400, min_weight: 20, divisor: 4500, oda_charge: 5, oda_min_charge: 500 } },
+      { vendor_name: "DELHIVERY", is_active: true, rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, min_weight: 20, oda_charge: 2 } },
+      { vendor_name: "GATI", is_active: true, rates: {}, charges: { docket_charge: 100, fsc: "15%", gst: "18%", min_freight: 350, min_weight: 20, oda_charge: 3 } },
+      { vendor_name: "PD LOGISTICS", is_active: true, rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, min_weight: 20, oda_charge: 4, oda_min_charge: 600 } },
+      { vendor_name: "RIVIGO", is_active: true, rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 85, fsc: "12%", gst: "18%", min_freight: 380, min_weight: 20, oda_charge: 4 } },
+      { vendor_name: "VXPRESS", is_active: true, rates: {}, charges: { docket_charge: 50, fsc: "8%", gst: "18%", min_freight: 450, min_weight: 25, oda_charge: 2 } },
+      { vendor_name: "SHIVANI VX", is_active: true, rates: {}, charges: { docket_charge: 50, fsc: "7%", gst: "18%", min_freight: 800, min_weight: 20, divisor: 5000 } },
+      { vendor_name: "TRUCX DLH Lite", is_active: true, rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 4500, oda_charge: 3, oda_min_charge: 500 } },
+      { vendor_name: "TRUCX DLH Dense", is_active: true, rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "12%", gst: "18%", min_freight: 300, min_weight: 20, divisor: 2700, oda_charge: 3, oda_min_charge: 500 } },
+      { vendor_name: "TRUCX DLH Cargo", is_active: true, rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 3540, oda_charge: 3, oda_min_charge: 500 } },
+      { vendor_name: "SHIPSHOPY BLUE DART", is_active: true, rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 50, fsc: "20%", gst: "18%", min_freight: 400, min_weight: 20, divisor: 4500, oda_charge: 5, oda_min_charge: 3000 } },
       { vendor_name: "SHIPSHOPY DELIVERY", is_active: true, rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 4500, oda_charge: 3, oda_min_charge: 500 } },
     ];
     setVendors(defaultVendors);
-    setSelectedVendors(["DELHIVERY", "GATI", "PD", "RIVIGO", "VXPRESS", "SHIPSHOPY BLUE DART", "SHIPSHOPY DELIVERY"]);
+    setSelectedVendors([
+      "DELHIVERY", "GATI", "PD LOGISTICS", "RIVIGO", 
+      "VXPRESS", "SHIVANI VX", "TRUCX DLH Lite", "TRUCX DLH Dense", 
+      "TRUCX DLH Cargo", "SHIPSHOPY BLUE DART", "SHIPSHOPY DELIVERY"
+    ]);
   };
 
   const fetchPincodeLocation = async (pincode, type) => {
@@ -168,8 +180,10 @@ function VendorRateCalculator() {
     try {
       const vendorList = vendors.length > 0 ? vendors : [
         { vendor_name: "DELHIVERY" }, { vendor_name: "GATI" }, 
-        { vendor_name: "PD" }, { vendor_name: "RIVIGO" }, 
-        { vendor_name: "VXPRESS" }, { vendor_name: "SHIPSHOPY BLUE DART" },
+        { vendor_name: "PD LOGISTICS" }, { vendor_name: "RIVIGO" }, 
+        { vendor_name: "VXPRESS" }, { vendor_name: "SHIVANI VX" },
+        { vendor_name: "TRUCX DLH Lite" }, { vendor_name: "TRUCX DLH Dense" },
+        { vendor_name: "TRUCX DLH Cargo" }, { vendor_name: "SHIPSHOPY BLUE DART" },
         { vendor_name: "SHIPSHOPY DELIVERY" }
       ];
       
@@ -188,22 +202,29 @@ function VendorRateCalculator() {
           
           if (response.ok) {
             const data = await response.json();
-            let result = { isODA: false, charge: 0, minCharge: 500, category: null };
+            let result = { isODA: false, charge: 0, minCharge: 0, category: null };
             
-            if (data.is_oda === true) {
+            // Check if serviceable (for Blue Dart)
+            if (data.is_serviceable === false) {
+              result = { isODA: false, charge: 0, minCharge: 0, category: null, isServiceable: false };
+            } else if (data.is_oda === true) {
               result = {
                 isODA: true,
                 charge: parseFloat(data.oda_charge_per_kg) || 0,
-                minCharge: 500, // Force ₹500 min ODA charge
-                category: data.oda_category
+                minCharge: parseFloat(data.oda_min_charge) || 0,
+                category: data.oda_category,
+                isServiceable: true
               };
             } else if (data.oda_charge_per_kg > 0) {
               result = {
                 isODA: true,
                 charge: parseFloat(data.oda_charge_per_kg) || 0,
-                minCharge: 500, // Force ₹500 min ODA charge
-                category: 'DEFAULT'
+                minCharge: parseFloat(data.oda_min_charge) || 0,
+                category: 'DEFAULT',
+                isServiceable: true
               };
+            } else {
+              result = { isODA: false, charge: 0, minCharge: 0, category: null, isServiceable: true };
             }
             
             setOdaCache(prev => ({ ...prev, [cacheKey]: result }));
@@ -213,7 +234,7 @@ function VendorRateCalculator() {
           if (err.name === 'AbortError') return null;
         }
         
-        return { vendorName: vendor.vendor_name, result: { isODA: false, charge: 0, minCharge: 500, category: null } };
+        return { vendorName: vendor.vendor_name, result: { isODA: false, charge: 0, minCharge: 0, category: null, isServiceable: true } };
       });
       
       await Promise.all(promises);
@@ -255,15 +276,28 @@ function VendorRateCalculator() {
     return { volumetricWeight: totalVolKg, volumeCFT: totalVolCFT };
   }, [dimensions]);
 
-  const getZoneFromPincode = (pincode) => {
-    const firstDigit = pincode?.charAt(0);
+  // Updated zone mapping for 17 zones
+  const getZoneFromPincode = useCallback((pincode) => {
+    const pincodeStr = String(pincode);
+    const firstDigit = pincodeStr.charAt(0);
+    const secondDigit = pincodeStr.charAt(1);
+    
+    // Complete zone mapping for 17 zones
     const zoneMap = {
       '1': 'N1', '2': 'N2', '3': 'N3', '4': 'N4',
-      '5': 'W1', '6': 'W2', '7': 'S1', '8': 'S2',
-      '9': 'E1', '0': 'NE1'
+      '5': 'C1', '6': 'C2',
+      '7': 'W1', '8': 'W2',
+      '9': 'S1', '30': 'S2', '31': 'S3', '32': 'S4',
+      '10': 'E1', '11': 'E2',
+      '12': 'NE1', '13': 'NE2', '14': 'NE3'
     };
-    return zoneMap[firstDigit] || 'N1';
-  };
+    
+    const key = secondDigit === '0' && firstDigit === '3' ? '30' : 
+                secondDigit === '1' && firstDigit === '3' ? '31' :
+                secondDigit === '2' && firstDigit === '3' ? '32' : firstDigit;
+    
+    return zoneMap[key] || 'N1';
+  }, []);
 
   // Calculate rate for a single vendor
   const calculateRateForVendor = useCallback((vendor, fromZone, toZone, weight, finalODACharge, cftSize, odaInfo) => {
@@ -275,7 +309,23 @@ function VendorRateCalculator() {
     const hasCFTSupport = CFT_SUPPORTED_VENDORS.includes(vendorName);
     const isShipshopy = SHIPSHOPY_VENDORS.includes(vendorName);
     
+    // Check if vendor is serviceable
+    if (odaInfo && odaInfo.isServiceable === false) {
+      return null;
+    }
+    
     if (hasCFTSupport) {
+      if (cftSize === "6CFT" && vendor.delhivery_6cft) {
+        rates = vendor.delhivery_6cft;
+      } else if (cftSize === "10CFT" && vendor.delhivery_10cft) {
+        rates = vendor.delhivery_10cft;
+      } else {
+        rates = vendor.rates || {};
+      }
+    }
+    
+    // For PD LOGISTICS, also check CFT rates
+    if (vendorName === "PD LOGISTICS" && cftSize !== "Standard") {
       if (cftSize === "6CFT" && vendor.delhivery_6cft) {
         rates = vendor.delhivery_6cft;
       } else if (cftSize === "10CFT" && vendor.delhivery_10cft) {
@@ -326,10 +376,10 @@ function VendorRateCalculator() {
       mode_charge: modeCharge,
       fov_charge: fovCharge,
       oda_charge: finalODACharge,
-      oda_applicable: odaInfo.isODA && odaInfo.charge > 0,
-      oda_category: odaInfo.category,
-      oda_rate_per_kg: odaInfo.charge,
-      oda_min_charge: odaInfo.minCharge,
+      oda_applicable: odaInfo?.isODA === true && odaInfo.charge > 0,
+      oda_category: odaInfo?.category,
+      oda_rate_per_kg: odaInfo?.charge || 0,
+      oda_min_charge: odaInfo?.minCharge || 0,
       min_freight: minFreight,
       total_freight: totalFreight
     };
@@ -391,23 +441,30 @@ function VendorRateCalculator() {
         let odaInfo = odaCache[cacheKey];
         
         if (!odaInfo) {
-          // Use default ODA from vendor charges (Min ODA = 500)
+          // Use default ODA from vendor charges
           const defaultODA = parseFloat(charges.oda_charge) || 0;
           odaInfo = {
             isODA: defaultODA > 0,
             charge: defaultODA,
-            minCharge: 500, // Force ₹500 min ODA charge
-            category: 'DEFAULT'
+            minCharge: parseFloat(charges.oda_min_charge) || (defaultODA * 100),
+            category: 'DEFAULT',
+            isServiceable: true
           };
+        }
+        
+        // Skip if not serviceable
+        if (odaInfo.isServiceable === false) {
+          continue;
         }
         
         let finalODACharge = 0;
         if (odaInfo.isODA && odaInfo.charge > 0) {
-          finalODACharge = Math.max(actualWeight * odaInfo.charge, 500); // Force min ₹500
+          finalODACharge = Math.max(actualWeight * odaInfo.charge, odaInfo.minCharge);
         }
         
         const isShipshopy = SHIPSHOPY_VENDORS.includes(vendorName);
         const hasCFTSupport = CFT_SUPPORTED_VENDORS.includes(vendorName);
+        const isVXpressType = VXPRESS_VENDORS.includes(vendorName);
         
         if (isShipshopy) {
           // Shipshopy vendors - use their specific divisor
@@ -420,9 +477,10 @@ function VendorRateCalculator() {
           }
           
           const rate = calculateRateForVendor(vendor, fromZone, toZone, chargedWt, finalODACharge, "Standard", odaInfo);
-          if (rate.rate_per_kg > 0) calculatedResults.push(rate);
+          if (rate && rate.rate_per_kg > 0) calculatedResults.push(rate);
           
         } else if (hasCFTSupport) {
+          // For PD LOGISTICS, DELHIVERY, RIVIGO, TRUCX - show both 6CFT and 10CFT
           // 6 CFT - Use divisor 4500
           const { volumetricWeight: volWeight6, volumeCFT: volCFT6 } = calculateVolumetricWeight('6CFT');
           const chargedWeight6 = Math.max(actualWeight, volWeight6);
@@ -437,14 +495,33 @@ function VendorRateCalculator() {
           }
           
           const rate6CFT = calculateRateForVendor(vendor, fromZone, toZone, chargedWeight6, finalODACharge, "6CFT", odaInfo);
-          if (rate6CFT.rate_per_kg > 0) calculatedResults.push(rate6CFT);
+          if (rate6CFT && rate6CFT.rate_per_kg > 0) calculatedResults.push(rate6CFT);
           
           const rate10CFT = calculateRateForVendor(vendor, fromZone, toZone, chargedWeight10, finalODACharge, "10CFT", odaInfo);
-          if (rate10CFT.rate_per_kg > 0) calculatedResults.push(rate10CFT);
+          if (rate10CFT && rate10CFT.rate_per_kg > 0) calculatedResults.push(rate10CFT);
+          
+          // Also add standard rate for comparison
+          const { volumetricWeight: volWeightStd, volumeCFT: volCFTStd } = calculateVolumetricWeight('STANDARD', vendorDivisor);
+          const chargedWeightStd = Math.max(actualWeight, volWeightStd);
+          const rateStd = calculateRateForVendor(vendor, fromZone, toZone, chargedWeightStd, finalODACharge, "Standard", odaInfo);
+          if (rateStd && rateStd.rate_per_kg > 0) calculatedResults.push(rateStd);
+          
+        } else if (isVXpressType) {
+          // VXPRESS and SHIVANI VX - standard rate only
+          const { volumetricWeight: volWeight, volumeCFT: volCFT } = calculateVolumetricWeight('STANDARD', vendorDivisor);
+          const chargedWt = Math.max(actualWeight, volWeight);
+          
+          if (volCFT > 0) {
+            setVolumeCFT(volCFT);
+            setChargedWeight(chargedWt);
+          }
+          
+          const rate = calculateRateForVendor(vendor, fromZone, toZone, chargedWt, finalODACharge, "Standard", odaInfo);
+          if (rate && rate.rate_per_kg > 0) calculatedResults.push(rate);
           
         } else {
-          // Standard - Use divisor 5000
-          const { volumetricWeight: volWeightStd, volumeCFT: volCFTStd } = calculateVolumetricWeight('STANDARD');
+          // Standard vendors - Use divisor 5000
+          const { volumetricWeight: volWeightStd, volumeCFT: volCFTStd } = calculateVolumetricWeight('STANDARD', vendorDivisor);
           const chargedWeightStd = Math.max(actualWeight, volWeightStd);
           
           if (volCFTStd > 0) {
@@ -453,7 +530,7 @@ function VendorRateCalculator() {
           }
           
           const rate = calculateRateForVendor(vendor, fromZone, toZone, chargedWeightStd, finalODACharge, "Standard", odaInfo);
-          if (rate.rate_per_kg > 0) calculatedResults.push(rate);
+          if (rate && rate.rate_per_kg > 0) calculatedResults.push(rate);
         }
       }
       
@@ -740,12 +817,12 @@ function VendorRateCalculator() {
                 <div className="results-list">
                   {results.map((vendor, idx) => {
                     const isCFTVendor = CFT_SUPPORTED_VENDORS.includes(vendor.vendor_name);
-                    if (isCFTVendor && !vendor.cft_type) return null;
+                    if (isCFTVendor && !vendor.cft_type && vendor.vendor_name !== "PD LOGISTICS") return null;
                     
                     return (
                       <div 
                         key={idx} 
-                        className={`vendor-result ${bestVendor?.vendor_name === vendor.vendor_name ? 'is-best' : ''}`}
+                        className={`vendor-result ${bestVendor?.vendor_name === vendor.vendor_name && !bestVendor?.cft_type ? 'is-best' : ''}`}
                       >
                         <div className="vendor-result-header" onClick={() => toggleExpanded(idx)}>
                           <div className="vendor-name">
@@ -755,7 +832,7 @@ function VendorRateCalculator() {
                             )}
                             {vendor.oda_applicable ? (
                               <span className="oda-badge oda-yes">
-                                🚚 ODA {vendor.oda_category || 'Yes'} (Min ₹500) +₹{vendor.oda_charge?.toFixed(2)}
+                                🚚 ODA {vendor.oda_category || 'Yes'} (+₹{vendor.oda_charge?.toFixed(2)})
                               </span>
                             ) : (
                               <span className="oda-badge oda-no">✅ No ODA</span>
@@ -787,7 +864,7 @@ function VendorRateCalculator() {
                           </div>
                           {vendor.oda_applicable && (
                             <div className="breakdown-row oda-highlight">
-                              <span>ODA {vendor.oda_category ? `${vendor.oda_category} (${vendor.oda_rate_per_kg}/kg, Min ₹500):` : 'Charge (Min ₹500):'}</span>
+                              <span>ODA {vendor.oda_category ? `${vendor.oda_category} (${vendor.oda_rate_per_kg}/kg, Min ₹${vendor.oda_min_charge}):` : 'Charge:'}</span>
                               <span>₹{vendor.oda_charge?.toFixed(2)}</span>
                             </div>
                           )}
@@ -824,7 +901,7 @@ function VendorRateCalculator() {
                 </div>
                 
                 <div className="disclaimer">
-                  <small>* Rates are indicative. ODA charges: Min ₹500. Volumetric weight: 6CFT÷4500, 10CFT÷10000, Standard÷5000</small>
+                  <small>* Rates are indicative. ODA charges: Min ₹500 for most vendors. Volumetric weight: 6CFT÷4500, 10CFT÷10000, Standard÷5000</small>
                 </div>
               </>
             )}

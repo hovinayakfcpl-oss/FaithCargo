@@ -15,6 +15,10 @@ class VendorRate(models.Model):
         ('PD LOGISTICS', 'PD Logistics'),
         ('RIVIGO', 'Rivigo'),
         ('VXPRESS', 'V-Express'),
+        ('SHIVANI VX', 'Shivani VX (V-Xpress)'),
+        ('TRUCX DLH Lite', 'TRUCX DLH Lite'),
+        ('TRUCX DLH Dense', 'TRUCX DLH Dense'),
+        ('TRUCX DLH Cargo', 'TRUCX DLH Cargo'),
         ('FCPL', 'Faith Cargo'),
         ('XPRESSBEES', 'XpressBees'),
         ('SHIPSHOPY BLUE DART', 'Shipshopy Blue Dart'),
@@ -34,17 +38,17 @@ class VendorRate(models.Model):
         help_text="Zone to zone rate matrix - Format: {from_zone: {to_zone: rate}}"
     )
     
-    # Delhivery Special - CFT Rates
+    # Special CFT Rates (for Delhivery, PD Logistics, TRUCX)
     delhivery_6cft = models.JSONField(
         default=dict,
         blank=True,
-        help_text="6 CFT rates for Delhivery - Format: {from_zone: {to_zone: rate}}"
+        help_text="6 CFT rates - Format: {from_zone: {to_zone: rate}}"
     )
     
     delhivery_10cft = models.JSONField(
         default=dict,
         blank=True,
-        help_text="10 CFT rates for Delhivery - Format: {from_zone: {to_zone: rate}}"
+        help_text="10 CFT rates - Format: {from_zone: {to_zone: rate}}"
     )
     
     # Additional charges
@@ -72,10 +76,13 @@ class VendorRate(models.Model):
     
     def get_rate(self, from_zone, to_zone, cft_type=None):
         """Get rate between two zones
-        - cft_type: '6cft' or '10cft' for Delhivery special rates
+        - cft_type: '6cft' or '10cft' for vendors that support CFT rates
         """
         try:
-            if self.vendor_name == 'DELHIVERY' and cft_type:
+            # Check for CFT support vendors
+            cft_vendors = ['DELHIVERY', 'RIVIGO', 'PD LOGISTICS', 'TRUCX DLH Lite', 'TRUCX DLH Dense', 'TRUCX DLH Cargo']
+            
+            if self.vendor_name in cft_vendors and cft_type:
                 if cft_type == '6cft':
                     return self.delhivery_6cft.get(from_zone, {}).get(to_zone, 0)
                 elif cft_type == '10cft':
@@ -100,6 +107,23 @@ class VendorRate(models.Model):
     def get_min_freight(self):
         """Get minimum freight from charges"""
         return self.charges.get('min_freight', 350)
+    
+    def has_cft_support(self):
+        """Check if vendor has CFT support"""
+        cft_vendors = ['DELHIVERY', 'RIVIGO', 'PD LOGISTICS', 'TRUCX DLH Lite', 'TRUCX DLH Dense', 'TRUCX DLH Cargo']
+        return self.vendor_name in cft_vendors
+    
+    def is_shipshopy_vendor(self):
+        """Check if vendor is Shipshopy"""
+        return self.vendor_name in ['SHIPSHOPY BLUE DART', 'SHIPSHOPY DELIVERY']
+    
+    def is_vxpress_vendor(self):
+        """Check if vendor is V-Xpress type"""
+        return self.vendor_name in ['VXPRESS', 'SHIVANI VX']
+    
+    def is_trucx_vendor(self):
+        """Check if vendor is TRUCX DLH"""
+        return self.vendor_name in ['TRUCX DLH Lite', 'TRUCX DLH Dense', 'TRUCX DLH Cargo']
 
 
 # ============================================
@@ -114,7 +138,7 @@ class VendorPincode(models.Model):
         ('B', 'ODA B - ₹4/kg (Min ₹400)'),
         ('C', 'ODA C - ₹7/kg (Min ₹700)'),
         ('D', 'ODA D - ₹10/kg (Min ₹1000)'),
-        ('NONE', 'Non-ODA'),
+        ('', 'Non-ODA'),
     ]
     
     vendor = models.ForeignKey(
@@ -141,7 +165,7 @@ class VendorPincode(models.Model):
     oda_category = models.CharField(
         max_length=10, 
         choices=ODA_CATEGORY_CHOICES, 
-        default='NONE', 
+        default='', 
         blank=True,
         help_text="ODA Category: A, B, C, or D"
     )
@@ -288,6 +312,7 @@ class ZoneMaster(models.Model):
         ('N1', 'North Zone 1'),
         ('N2', 'North Zone 2'),
         ('N3', 'North Zone 3'),
+        ('N4', 'North Zone 4'),
         ('C1', 'Central Zone 1'),
         ('C2', 'Central Zone 2'),
         ('W1', 'West Zone 1'),
@@ -382,8 +407,8 @@ class VendorServiceRate(models.Model):
         ('air', 'Air Cargo'),
         ('express', 'Express'),
         ('rail', 'Rail Cargo'),
-        ('cft_6', '6 CFT (Delhivery)'),
-        ('cft_10', '10 CFT (Delhivery)'),
+        ('cft_6', '6 CFT'),
+        ('cft_10', '10 CFT'),
     ]
     
     vendor = models.ForeignKey(VendorRate, on_delete=models.CASCADE, related_name='service_rates')
@@ -460,38 +485,77 @@ class BulkUploadLog(models.Model):
 
 
 # ============================================
-# SHIPSHOPY VENDOR MIXIN (Helper methods)
+# TRUCX HELPER MIXIN
 # ============================================
 
-class ShipshopyVendorMixin:
-    """Mixin for Shipshopy vendor specific methods"""
+class TrucxHelperMixin:
+    """Mixin for TRUCX DLH vendor specific methods"""
     
-    def is_shipshopy_vendor(self):
-        """Check if vendor is Shipshopy"""
-        return self.vendor_name in ['SHIPSHOPY BLUE DART', 'SHIPSHOPY DELIVERY']
+    def is_trucx_lite(self):
+        return self.vendor_name == 'TRUCX DLH Lite'
     
-    def get_shipshopy_divisor(self):
-        """Get Shipshopy specific divisor"""
-        if self.vendor_name == 'SHIPSHOPY BLUE DART':
-            return self.charges.get('divisor', 4500)
-        elif self.vendor_name == 'SHIPSHOPY DELIVERY':
-            return self.charges.get('divisor', 4500)
-        return 5000
+    def is_trucx_dense(self):
+        return self.vendor_name == 'TRUCX DLH Dense'
     
-    def get_shipshopy_oda(self):
-        """Get Shipshopy specific ODA charges"""
-        if self.vendor_name == 'SHIPSHOPY BLUE DART':
+    def is_trucx_cargo(self):
+        return self.vendor_name == 'TRUCX DLH Cargo'
+    
+    def get_trucx_variant_info(self):
+        """Get TRUCX variant specific information"""
+        if self.vendor_name == 'TRUCX DLH Lite':
             return {
-                'charge_per_kg': self.charges.get('oda_charge', 5),
-                'min_charge': self.charges.get('oda_min_charge', 3000)
+                'variant': 'Lite',
+                'divisor': self.charges.get('divisor', 4500),
+                'min_freight': self.charges.get('min_freight', 350),
+                'docket_charge': self.charges.get('docket_charge', 50),
+                'fsc': self.charges.get('fsc', '10%')
             }
-        elif self.vendor_name == 'SHIPSHOPY DELIVERY':
+        elif self.vendor_name == 'TRUCX DLH Dense':
             return {
-                'charge_per_kg': self.charges.get('oda_charge', 3),
-                'min_charge': self.charges.get('oda_min_charge', 500)
+                'variant': 'Dense',
+                'divisor': self.charges.get('divisor', 2700),
+                'min_freight': self.charges.get('min_freight', 300),
+                'docket_charge': self.charges.get('docket_charge', 75),
+                'fsc': self.charges.get('fsc', '12%')
             }
-        return {'charge_per_kg': 0, 'min_charge': 0}
+        elif self.vendor_name == 'TRUCX DLH Cargo':
+            return {
+                'variant': 'Cargo',
+                'divisor': self.charges.get('divisor', 3540),
+                'min_freight': self.charges.get('min_freight', 350),
+                'docket_charge': self.charges.get('docket_charge', 50),
+                'fsc': self.charges.get('fsc', '10%')
+            }
+        return None
 
 
-# Add mixin to VendorRate (optional - can be used in views)
-# You can use these methods in views by checking vendor.vendor_name
+# ============================================
+# SHIVANI VX HELPER MIXIN
+# ============================================
+
+class ShivaniVXHelperMixin:
+    """Mixin for SHIVANI VX (V-XPRESS) specific methods"""
+    
+    def is_shivani_vx(self):
+        return self.vendor_name == 'SHIVANI VX'
+    
+    def get_vxpress_oda_categories(self):
+        """Get V-XPRESS ODA categories"""
+        return self.charges.get('oda_categories', {
+            'A': {'min_charge': 800, 'rate_per_kg': 3.5, 'max_capping': 3500},
+            'B': {'min_charge': 1000, 'rate_per_kg': 4.5, 'max_capping': 4500},
+            'C': {'min_charge': 1500, 'rate_per_kg': 5.5, 'max_capping': 5500},
+            'D': {'min_charge': 2000, 'rate_per_kg': 6.5, 'max_capping': 6500},
+        })
+    
+    def get_vxpress_fsc_details(self):
+        """Get V-XPRESS FSC details"""
+        return {
+            'fsc_percent': self.charges.get('fsc', '7%'),
+            'base_diesel_price': self.charges.get('base_diesel_price', 90.54),
+            'fsc_adjustment': self.charges.get('fsc_adjustment_percent', 2)
+        }
+
+
+# Add mixins to VendorRate (helper methods)
+# These can be used in views: VendorRate.objects.get(...).is_trucx_lite()

@@ -1,7 +1,8 @@
 /* ============================================
-   VENDOR MANAGEMENT - PREMIUM DESIGN v5.0
+   VENDOR MANAGEMENT - PREMIUM DESIGN v6.0
    ULTIMATE UI UPGRADE | GLASS MORPHISM
-   Added: CSV Upload/Download, ODA Categories, Enhanced Modal, Invoice Upload, Shipshopy Support
+   Added: CSV Upload/Download, ODA Categories, Enhanced Modal, Invoice Upload, 
+   New Vendors: SHIVANI VX, TRUCX DLH (Lite/Dense/Cargo)
    Developed by Devora Technologies
    ============================================ */
 
@@ -23,6 +24,12 @@
   --primary-orange-light: #fef3c7;
   --primary-cyan: #06b6d4;
   --primary-cyan-light: #cffafe;
+  --primary-pink: #ec4899;
+  --primary-pink-light: #fce7f3;
+  --primary-indigo: #6366f1;
+  --primary-indigo-light: #e0e7ff;
+  --primary-amber: #fbbf24;
+  --primary-amber-light: #fef3c7;
   --dark-bg: #0f172a;
   --dark-bg-light: #1e293b;
   --text-dark: #0f172a;
@@ -44,6 +51,7 @@
   --shadow-green: 0 10px 25px -5px rgba(16, 185, 129, 0.3);
   --shadow-purple: 0 10px 25px -5px rgba(139, 92, 246, 0.3);
   --shadow-blue: 0 10px 25px -5px rgba(37, 99, 235, 0.3);
+  --shadow-indigo: 0 10px 25px -5px rgba(99, 102, 241, 0.3);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -503,7 +511,7 @@
   color: var(--text-dark);
 }
 
-/* Badges */
+/* Badges - UPDATED with NEW VENDORS */
 .vendor-badges {
   display: flex;
   flex-wrap: wrap;
@@ -554,6 +562,45 @@
   background: linear-gradient(135deg, var(--primary-cyan-light), white);
   color: var(--primary-cyan);
   border: 1px solid var(--primary-cyan);
+}
+
+/* NEW BADGES for SHIVANI VX and TRUCX */
+.shivani-badge {
+  background: linear-gradient(135deg, var(--primary-pink-light), white);
+  color: var(--primary-pink);
+  border: 1px solid var(--primary-pink);
+  animation: pulse 2s infinite;
+}
+
+.trucx-badge {
+  background: linear-gradient(135deg, var(--primary-indigo-light), white);
+  color: var(--primary-indigo);
+  border: 1px solid var(--primary-indigo);
+}
+
+.pd-badge {
+  background: linear-gradient(135deg, var(--primary-amber-light), white);
+  color: var(--primary-amber);
+  border: 1px solid var(--primary-amber);
+}
+
+/* TRUCX Variant Specific Badges */
+.trucx-lite-badge {
+  background: linear-gradient(135deg, #dcfce7, white);
+  color: #166534;
+  border: 1px solid #22c55e;
+}
+
+.trucx-dense-badge {
+  background: linear-gradient(135deg, #fef3c7, white);
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+
+.trucx-cargo-badge {
+  background: linear-gradient(135deg, #fee2e2, white);
+  color: #991b1b;
+  border: 1px solid #ef4444;
 }
 
 @keyframes pulse {
@@ -1525,6 +1572,117 @@
   background: var(--primary-red-dark);
 }
 
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .vendor-manage-page {
+    background: linear-gradient(135deg, var(--dark-bg) 0%, #1e1b4b 100%);
+  }
+  
+  .vendor-card,
+  .stat-card,
+  .modal-container {
+    background: var(--dark-bg-light);
+    border-color: #334155;
+  }
+  
+  .vendor-card-header,
+  .modal-header,
+  .modal-footer {
+    background: var(--dark-bg);
+    border-color: #334155;
+  }
+  
+  .vendor-name-section h3,
+  .modal-header h2,
+  .stat-info h3,
+  .matrix-header h3,
+  .charges-section h3 {
+    color: #f1f5f9;
+  }
+  
+  .vendor-stats .stat {
+    background: var(--dark-bg);
+  }
+  
+  .vendor-stats .stat span {
+    color: #94a3b8;
+  }
+  
+  .vendor-stats .stat strong,
+  .charge-card {
+    color: #f1f5f9;
+  }
+  
+  .charge-card {
+    background: var(--dark-bg);
+  }
+  
+  .charge-icon {
+    background: var(--dark-bg-light);
+  }
+  
+  .rate-matrix-table th,
+  .rate-matrix-table td {
+    background: var(--dark-bg);
+    color: #f1f5f9;
+  }
+  
+  .info-note {
+    background: #1e293b;
+  }
+  
+  .csv-format-box,
+  .json-format-box {
+    background: #0f172a;
+  }
+  
+  .csv-info-section,
+  .invoice-info-section {
+    background: var(--dark-bg);
+  }
+  
+  .rate-input,
+  .charge-input,
+  .form-input {
+    background: var(--dark-bg);
+    color: #f1f5f9;
+    border-color: #475569;
+  }
+  
+  .search-box {
+    background: var(--dark-bg);
+    border-color: #475569;
+  }
+  
+  .search-box input {
+    color: #f1f5f9;
+  }
+  
+  .refresh-btn,
+  .edit-btn,
+  .delete-btn,
+  .status-toggle-btn {
+    background: var(--dark-bg);
+    color: #94a3b8;
+  }
+  
+  .stats-info {
+    background: var(--dark-bg);
+    color: #94a3b8;
+  }
+  
+  .empty-state,
+  .no-results,
+  .error-state {
+    background: var(--dark-bg);
+  }
+  
+  .empty-state p,
+  .no-results p {
+    color: #94a3b8;
+  }
+}
+
 /* --------------------------------------------
    13. UTILITY CLASSES
    -------------------------------------------- */
@@ -1536,6 +1694,8 @@
 .text-purple { color: var(--primary-purple); }
 .text-blue { color: var(--primary-blue); }
 .text-cyan { color: var(--primary-cyan); }
+.text-pink { color: var(--primary-pink); }
+.text-indigo { color: var(--primary-indigo); }
 .mt-2 { margin-top: 8px; }
 .mt-3 { margin-top: 12px; }
 .mb-2 { margin-bottom: 8px; }

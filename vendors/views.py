@@ -33,23 +33,77 @@ def get_zone_from_pincode(pincode):
             if pincode_str in pincodes_list:
                 return zone.zone_code
         
-        # Default zone mapping based on first digit
+        # Default zone mapping based on first digit (17 zones)
         first_digit = pincode_str[0] if pincode_str else '1'
+        second_digit = pincode_str[1] if len(pincode_str) > 1 else '0'
+        
+        # Complete zone mapping for 17 zones
         zone_map = {
-            '1': 'N1', '2': 'N2', '3': 'N3',
-            '4': 'C1', '5': 'W1', '6': 'W2',
-            '7': 'S1', '8': 'S2', '9': 'E1',
-            '0': 'NE1'
+            '1': 'N1', '2': 'N2', '3': 'N3', '4': 'N4',
+            '5': 'C1', '6': 'C2',
+            '7': 'W1', '8': 'W2',
+            '9': 'S1', '30': 'S2', '31': 'S3', '32': 'S4',
+            '10': 'E1', '11': 'E2',
+            '12': 'NE1', '13': 'NE2', '14': 'NE3'
         }
-        return zone_map.get(first_digit, 'N1')
+        
+        key = second_digit if first_digit == '3' else first_digit
+        return zone_map.get(str(key), 'N1')
     except Exception as e:
         logger.error(f"Error getting zone for {pincode_str}: {e}")
         return 'N1'
 
 
-def check_oda_for_vendor(vendor, pincode):
-    """Check if pincode is ODA for a vendor - ENHANCED with default ODA"""
+def is_pincode_serviceable_for_vendor(vendor, pincode):
+    """
+    Check if pincode is serviceable for a vendor
+    - For SHIPSHOPY BLUE DART: Only serviceable if pincode exists in VendorPincode with is_serviceable=True
+    - For PD LOGISTICS: Serviceable only for ODA pincodes
+    - For other vendors: Always serviceable (no restriction)
+    """
     pincode_str = str(pincode).strip()
+    vendor_name = vendor.vendor_name
+    
+    # SHIPSHOPY BLUE DART - Only serviceable if pincode in database
+    if vendor_name == 'SHIPSHOPY BLUE DART':
+        pincode_obj = VendorPincode.objects.filter(
+            vendor=vendor, 
+            pincode=pincode_str,
+            is_serviceable=True
+        ).first()
+        return pincode_obj is not None
+    
+    # PD LOGISTICS - Only serviceable for ODA pincodes
+    elif vendor_name == 'PD LOGISTICS':
+        pincode_obj = VendorPincode.objects.filter(
+            vendor=vendor, 
+            pincode=pincode_str,
+            is_oda=True
+        ).first()
+        return pincode_obj is not None
+    
+    # All other vendors - Always serviceable
+    else:
+        return True
+
+
+def check_oda_for_vendor(vendor, pincode):
+    """Check if pincode is ODA for a vendor - ENHANCED with serviceability check"""
+    pincode_str = str(pincode).strip()
+    vendor_name = vendor.vendor_name
+    
+    # First check if pincode is serviceable for this vendor
+    if not is_pincode_serviceable_for_vendor(vendor, pincode):
+        logger.info(f"Pincode {pincode_str} NOT serviceable for {vendor_name}")
+        return {
+            'is_oda': False,
+            'is_serviceable': False,
+            'charge_per_kg': 0,
+            'min_charge': 0,
+            'category': None,
+            'city': '',
+            'state': ''
+        }
     
     try:
         # Check specific pincode in database
@@ -59,12 +113,26 @@ def check_oda_for_vendor(vendor, pincode):
         ).first()
         
         if pincode_obj and pincode_obj.is_oda:
-            logger.info(f"ODA found for {vendor.vendor_name} - {pincode_str}: Category {pincode_obj.oda_category}")
+            logger.info(f"ODA found for {vendor.vendor_name} - {pincode_str}: Category {pincode_obj.oda_category}, Charge: ₹{pincode_obj.oda_charge_per_kg}/kg, Min: ₹{pincode_obj.oda_min_charge}")
             return {
                 'is_oda': True,
+                'is_serviceable': True,
                 'charge_per_kg': float(pincode_obj.oda_charge_per_kg),
                 'min_charge': float(pincode_obj.oda_min_charge),
                 'category': pincode_obj.oda_category,
+                'city': pincode_obj.city or '',
+                'state': pincode_obj.state or ''
+            }
+        
+        # For SHIPSHOPY BLUE DART - serviceable but no ODA
+        if vendor_name == 'SHIPSHOPY BLUE DART' and pincode_obj and pincode_obj.is_serviceable:
+            logger.info(f"Serviceable (non-ODA) for {vendor_name} - {pincode_str}")
+            return {
+                'is_oda': False,
+                'is_serviceable': True,
+                'charge_per_kg': 0,
+                'min_charge': 0,
+                'category': None,
                 'city': pincode_obj.city or '',
                 'state': pincode_obj.state or ''
             }
@@ -77,6 +145,7 @@ def check_oda_for_vendor(vendor, pincode):
             logger.info(f"Default ODA for {vendor.vendor_name}: ₹{default_oda_charge}/kg")
             return {
                 'is_oda': True,
+                'is_serviceable': True,
                 'charge_per_kg': default_oda_charge,
                 'min_charge': default_oda_charge * 100,
                 'category': 'DEFAULT',
@@ -88,17 +157,23 @@ def check_oda_for_vendor(vendor, pincode):
         logger.error(f"Error checking ODA for {vendor.vendor_name}, {pincode_str}: {e}")
     
     return {
-        'is_oda': False, 
-        'charge_per_kg': 0, 
-        'min_charge': 0, 
+        'is_oda': False,
+        'is_serviceable': True,
+        'charge_per_kg': 0,
+        'min_charge': 0,
         'category': None,
-        'city': '', 
+        'city': '',
         'state': ''
     }
 
 
 def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft_type='standard', oda_info=None):
     """Calculate freight for a single vendor with CFT and ODA support - IMPROVED"""
+    
+    # Check if vendor is serviceable for this route
+    if oda_info and not oda_info.get('is_serviceable', True):
+        logger.info(f"Vendor {vendor.vendor_name} not serviceable for this pincode")
+        return None
     
     rate_per_kg = 0
     display_cft_type = None
@@ -119,7 +194,21 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
         rate_per_kg = rates.get(from_zone, {}).get(to_zone, 0)
         display_cft_type = 'Standard'
         
-    elif vendor.vendor_name == 'DELHIVERY':
+    elif vendor_name == 'DELHIVERY':
+        if cft_type == '6cft':
+            rates = vendor.delhivery_6cft or {}
+            rate_per_kg = rates.get(from_zone, {}).get(to_zone, 0)
+            display_cft_type = '6 CFT'
+        elif cft_type == '10cft':
+            rates = vendor.delhivery_10cft or {}
+            rate_per_kg = rates.get(from_zone, {}).get(to_zone, 0)
+            display_cft_type = '10 CFT'
+        else:
+            rates = vendor.rates or {}
+            rate_per_kg = rates.get(from_zone, {}).get(to_zone, 0)
+            display_cft_type = 'Standard'
+    elif vendor_name == 'PD LOGISTICS':
+        # PD LOGISTICS uses 6CFT and 10CFT rates
         if cft_type == '6cft':
             rates = vendor.delhivery_6cft or {}
             rate_per_kg = rates.get(from_zone, {}).get(to_zone, 0)
@@ -144,8 +233,8 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
             'RIVIGO': 24, 'VXPRESS': 20,
             'SHIPSHOPY BLUE DART': 25, 'SHIPSHOPY DELIVERY': 22
         }
-        rate_per_kg = fallback_rates.get(vendor.vendor_name, 22)
-        logger.info(f"Using fallback rate for {vendor.vendor_name}: ₹{rate_per_kg}/kg")
+        rate_per_kg = fallback_rates.get(vendor_name, 22)
+        logger.info(f"Using fallback rate for {vendor_name}: ₹{rate_per_kg}/kg")
     
     # Get charges with defaults
     charges = vendor.charges or {}
@@ -181,7 +270,7 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
         oda_min = oda_info.get('min_charge', 0)
         oda_calc = effective_weight * oda_charge_per_kg
         oda_charge = max(oda_calc, oda_min)
-        logger.info(f"ODA Charge for {vendor.vendor_name}: ₹{oda_charge} ({oda_category})")
+        logger.info(f"ODA Charge for {vendor_name}: ₹{oda_charge} ({oda_category})")
     
     # GST (applied on base + FSC + docket + ODA)
     gst_amount = (base_freight + fsc_amount + docket_charge + oda_charge) * (gst_percent / 100)
@@ -192,7 +281,7 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
     
     return {
         'vendor_id': vendor.id,
-        'vendor_name': vendor.vendor_name,
+        'vendor_name': vendor_name,
         'from_zone': from_zone,
         'to_zone': to_zone,
         'rate_per_kg': round(rate_per_kg, 2),
@@ -439,6 +528,22 @@ def check_oda_status(request, vendor_name, pincode):
     
     try:
         vendor = VendorRate.objects.get(vendor_name__iexact=vendor_name)
+        
+        # Check serviceability first
+        if not is_pincode_serviceable_for_vendor(vendor, pincode_str):
+            logger.info(f"Pincode {pincode_str} NOT serviceable for {vendor_name}")
+            return Response({
+                'success': True,
+                'pincode': pincode_str,
+                'vendor': vendor_name,
+                'is_oda': False,
+                'is_serviceable': False,
+                'oda_category': None,
+                'oda_charge_per_kg': 0,
+                'oda_min_charge': 0,
+                'message': f'Pincode {pincode_str} is not serviceable for {vendor_name}'
+            })
+        
         pincode_obj = VendorPincode.objects.filter(vendor=vendor, pincode=pincode_str).first()
         
         if pincode_obj and pincode_obj.is_oda:
@@ -448,6 +553,7 @@ def check_oda_status(request, vendor_name, pincode):
                 'pincode': pincode_str,
                 'vendor': vendor_name,
                 'is_oda': True,
+                'is_serviceable': True,
                 'oda_category': pincode_obj.oda_category,
                 'oda_charge_per_kg': float(pincode_obj.oda_charge_per_kg),
                 'oda_min_charge': float(pincode_obj.oda_min_charge),
@@ -466,6 +572,7 @@ def check_oda_status(request, vendor_name, pincode):
                 'pincode': pincode_str,
                 'vendor': vendor_name,
                 'is_oda': default_oda > 0,
+                'is_serviceable': True,
                 'oda_category': 'DEFAULT' if default_oda > 0 else None,
                 'oda_charge_per_kg': default_oda,
                 'oda_min_charge': default_oda * 100 if default_oda > 0 else 0,
@@ -507,11 +614,24 @@ def check_oda_all_vendors(request):
         results = {}
         
         for vendor in vendors:
+            # Check serviceability first
+            if not is_pincode_serviceable_for_vendor(vendor, pincode):
+                results[vendor.vendor_name] = {
+                    'is_oda': False,
+                    'is_serviceable': False,
+                    'oda_category': None,
+                    'oda_charge_per_kg': 0,
+                    'oda_min_charge': 0,
+                    'message': 'Not serviceable'
+                }
+                continue
+            
             pincode_obj = VendorPincode.objects.filter(vendor=vendor, pincode=pincode).first()
             
             if pincode_obj and pincode_obj.is_oda:
                 results[vendor.vendor_name] = {
                     'is_oda': True,
+                    'is_serviceable': True,
                     'oda_category': pincode_obj.oda_category,
                     'oda_charge_per_kg': float(pincode_obj.oda_charge_per_kg),
                     'oda_min_charge': float(pincode_obj.oda_min_charge),
@@ -525,6 +645,7 @@ def check_oda_all_vendors(request):
                 
                 results[vendor.vendor_name] = {
                     'is_oda': default_oda > 0,
+                    'is_serviceable': True,
                     'oda_category': 'DEFAULT' if default_oda > 0 else None,
                     'oda_charge_per_kg': default_oda,
                     'oda_min_charge': default_oda * 100 if default_oda > 0 else 0,
@@ -670,7 +791,7 @@ def bulk_upload_pincodes(request, vendor_name):
                         'city': pincode_data.get('city', ''),
                         'state': pincode_data.get('state', ''),
                         'is_oda': is_oda,
-                        'oda_category': oda_category if is_oda else 'NONE',
+                        'oda_category': oda_category if is_oda else '',
                         'oda_charge_per_kg': oda_charge,
                         'oda_min_charge': oda_min,
                         'is_serviceable': pincode_data.get('is_serviceable', True)
@@ -730,8 +851,14 @@ def download_pincode_template(request, vendor_name):
         # Add sample rows based on vendor
         if 'BLUE DART' in vendor_name:
             samples = [
-                ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '5', '3000', 'TRUE'],
-                ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '5', '3000', 'TRUE'],
+                ['212217', 'Allahabad', 'Uttar Pradesh', 'FALSE', '', '0', '0', 'TRUE'],
+                ['122502', 'Gurgaon', 'Haryana', 'FALSE', '', '0', '0', 'TRUE'],
+                ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
+            ]
+        elif vendor_name == 'PD LOGISTICS':
+            samples = [
+                ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', '400', 'TRUE'],
+                ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', '200', 'TRUE'],
                 ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
             ]
         elif 'DELIVERY' in vendor_name:
@@ -754,54 +881,6 @@ def download_pincode_template(request, vendor_name):
         
     except VendorRate.DoesNotExist:
         return Response({"error": "Vendor not found"}, status=404)
-
-
-# ============================================
-# GET PINCODE LOCATION
-# ============================================
-
-@api_view(["GET"])
-def get_pincode_location(request, pincode):
-    """Get location details for a pincode"""
-    pincode_str = str(pincode).strip()
-    
-    try:
-        # First check in our database
-        pincode_obj = VendorPincode.objects.filter(pincode=pincode_str).first()
-        if pincode_obj and pincode_obj.city and pincode_obj.state:
-            return Response({
-                'success': True,
-                'pincode': pincode_str,
-                'city': pincode_obj.city,
-                'state': pincode_obj.state,
-                'source': 'database'
-            })
-        
-        # Fallback to external API
-        import requests
-        response = requests.get(f'https://api.postalpincode.in/pincode/{pincode_str}', timeout=5)
-        
-        if response.status_code == 200:
-            data = response.json()
-            if data and data[0].get('Status') == 'Success':
-                post_office = data[0]['PostOffice'][0]
-                return Response({
-                    'success': True,
-                    'pincode': pincode_str,
-                    'city': post_office.get('District', ''),
-                    'state': post_office.get('State', ''),
-                    'country': post_office.get('Country', ''),
-                    'block': post_office.get('Block', ''),
-                    'source': 'api'
-                })
-        
-        return Response({
-            'success': False,
-            'error': f'Location not found for pincode {pincode_str}'
-        }, status=404)
-        
-    except Exception as e:
-        return Response({"error": str(e)}, status=400)
 
 
 # ============================================
@@ -845,6 +924,11 @@ def calculate_all_vendor_rates(request):
         for vendor in vendors:
             vendor_name = vendor.vendor_name
             
+            # Check if pincode is serviceable first
+            if not is_pincode_serviceable_for_vendor(vendor, destination_pincode):
+                logger.info(f"Vendor {vendor_name} not serviceable for pincode {destination_pincode}")
+                continue
+            
             # Check ODA for destination
             oda_info = check_oda_for_vendor(vendor, destination_pincode)
             
@@ -868,11 +952,23 @@ def calculate_all_vendor_rates(request):
                 if rate_standard and rate_standard.get('rate_per_kg', 0) > 0:
                     results.append(rate_standard)
                     
-            elif vendor_name in ['SHIPSHOPY BLUE DART', 'SHIPSHOPY DELIVERY']:
-                # Shipshopy vendors - standard rate only
-                rate = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, 'standard', oda_info)
-                if rate and rate.get('rate_per_kg', 0) > 0:
-                    results.append(rate)
+            elif vendor_name in ['SHIPSHOPY BLUE DART', 'SHIPSHOPY DELIVERY', 'PD LOGISTICS']:
+                # For PD LOGISTICS and Shipshopy vendors - 6CFT and 10CFT rates
+                if vendor_name == 'PD LOGISTICS':
+                    # 6 CFT Rate
+                    rate_6cft = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, '6cft', oda_info)
+                    if rate_6cft and rate_6cft.get('rate_per_kg', 0) > 0:
+                        results.append(rate_6cft)
+                    
+                    # 10 CFT Rate
+                    rate_10cft = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, '10cft', oda_info)
+                    if rate_10cft and rate_10cft.get('rate_per_kg', 0) > 0:
+                        results.append(rate_10cft)
+                else:
+                    # Shipshopy vendors - standard rate only
+                    rate = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, 'standard', oda_info)
+                    if rate and rate.get('rate_per_kg', 0) > 0:
+                        results.append(rate)
                     
             else:
                 # Other vendors - standard rate only
@@ -915,7 +1011,7 @@ def calculate_all_vendor_rates(request):
 
 
 # ============================================
-# VENDOR COMPARISON
+# REMAINING FUNCTIONS (unchanged from previous)
 # ============================================
 
 @api_view(["POST"])
@@ -966,10 +1062,6 @@ def compare_vendors(request):
         return Response({"error": str(e)}, status=400)
 
 
-# ============================================
-# TEST API ENDPOINT
-# ============================================
-
 @api_view(["GET"])
 def test_api(request):
     """Simple test endpoint to check if API is working"""
@@ -981,10 +1073,6 @@ def test_api(request):
         'pincodes_count': VendorPincode.objects.count()
     })
 
-
-# ============================================
-# REMAINING FUNCTIONS (unchanged)
-# ============================================
 
 @api_view(["POST"])
 def update_vendor_rate(request, vendor_name):
@@ -1200,3 +1288,47 @@ def manage_vendor_service_rates(request, service_id=None):
             return Response({"message": "Service rate deleted successfully"})
         except VendorServiceRate.DoesNotExist:
             return Response({"error": "Service not found"}, status=404)
+
+
+@api_view(["GET"])
+def get_pincode_location(request, pincode):
+    """Get location details for a pincode"""
+    pincode_str = str(pincode).strip()
+    
+    try:
+        # First check in our database
+        pincode_obj = VendorPincode.objects.filter(pincode=pincode_str).first()
+        if pincode_obj and pincode_obj.city and pincode_obj.state:
+            return Response({
+                'success': True,
+                'pincode': pincode_str,
+                'city': pincode_obj.city,
+                'state': pincode_obj.state,
+                'source': 'database'
+            })
+        
+        # Fallback to external API
+        import requests
+        response = requests.get(f'https://api.postalpincode.in/pincode/{pincode_str}', timeout=5)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data and data[0].get('Status') == 'Success':
+                post_office = data[0]['PostOffice'][0]
+                return Response({
+                    'success': True,
+                    'pincode': pincode_str,
+                    'city': post_office.get('District', ''),
+                    'state': post_office.get('State', ''),
+                    'country': post_office.get('Country', ''),
+                    'block': post_office.get('Block', ''),
+                    'source': 'api'
+                })
+        
+        return Response({
+            'success': False,
+            'error': f'Location not found for pincode {pincode_str}'
+        }, status=404)
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)

@@ -43,7 +43,7 @@ class VendorPincodeSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# VENDOR RATE SERIALIZER (UPDATED)
+# VENDOR RATE SERIALIZER (UPDATED - includes all vendors)
 # ============================================
 
 class VendorRateSerializer(serializers.ModelSerializer):
@@ -51,15 +51,41 @@ class VendorRateSerializer(serializers.ModelSerializer):
     
     vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
     pincodes = VendorPincodeSerializer(many=True, read_only=True)
+    vendor_type = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = VendorRate
         fields = [
-            'id', 'vendor_name', 'vendor_display', 'rates', 
+            'id', 'vendor_name', 'vendor_display', 'vendor_type', 'rates', 
             'delhivery_6cft', 'delhivery_10cft', 'charges',
             'is_active', 'created_at', 'updated_at', 'updated_by', 'pincodes'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_vendor_type(self, obj):
+        """Determine vendor type for classification"""
+        vendor_name = obj.vendor_name
+        
+        if vendor_name == 'SHIVANI VX':
+            return 'vxpress'
+        elif 'TRUCX' in vendor_name:
+            return 'trucx'
+        elif vendor_name == 'SHIPSHOPY BLUE DART':
+            return 'bluedart'
+        elif vendor_name == 'SHIPSHOPY DELIVERY':
+            return 'delhivery_b2b'
+        elif vendor_name == 'DELHIVERY':
+            return 'delhivery'
+        elif vendor_name == 'PD LOGISTICS':
+            return 'pd_logistics'
+        elif vendor_name == 'RIVIGO':
+            return 'rivigo'
+        elif vendor_name == 'GATI':
+            return 'gati'
+        elif vendor_name == 'VXPRESS':
+            return 'vxpress'
+        else:
+            return 'standard'
     
     def validate_rates(self, value):
         """Validate rates structure"""
@@ -74,13 +100,13 @@ class VendorRateSerializer(serializers.ModelSerializer):
         return value
     
     def validate_delhivery_6cft(self, value):
-        """Validate 6CFT rates for Delhivery"""
+        """Validate 6CFT rates for vendors that support it"""
         if value and not isinstance(value, dict):
             raise serializers.ValidationError("6CFT rates must be a dictionary")
         return value
     
     def validate_delhivery_10cft(self, value):
-        """Validate 10CFT rates for Delhivery"""
+        """Validate 10CFT rates for vendors that support it"""
         if value and not isinstance(value, dict):
             raise serializers.ValidationError("10CFT rates must be a dictionary")
         return value
@@ -297,6 +323,7 @@ class VendorODAStatusSerializer(serializers.Serializer):
     pincode = serializers.CharField()
     vendor_name = serializers.CharField()
     is_oda = serializers.BooleanField()
+    is_serviceable = serializers.BooleanField(default=True)
     oda_category = serializers.CharField(allow_blank=True, allow_null=True)
     oda_charge_per_kg = serializers.FloatField()
     oda_min_charge = serializers.FloatField()
@@ -308,7 +335,7 @@ class VendorODAStatusSerializer(serializers.Serializer):
         data = super().to_representation(instance)
         # Ensure all fields are present
         if data.get('oda_category') is None:
-            data['oda_category'] = 'NONE'
+            data['oda_category'] = ''
         return data
 
 
@@ -425,3 +452,149 @@ class DelhiveryB2BRateSerializer(serializers.ModelSerializer):
             'id', 'vendor_name', 'vendor_display', 'rates',
             'delhivery_6cft', 'delhivery_10cft', 'charges', 'is_active'
         ]
+
+
+# ============================================
+# SHIVANI VX RATE SERIALIZER (NEW)
+# ============================================
+
+class ShivaniVXRateSerializer(serializers.ModelSerializer):
+    """Serializer for SHIVANI VX (V-XPRESS) specific rates"""
+    
+    vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
+    oda_categories = serializers.SerializerMethodField(read_only=True)
+    fsc_details = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = VendorRate
+        fields = [
+            'id', 'vendor_name', 'vendor_display', 'rates',
+            'charges', 'is_active', 'oda_categories', 'fsc_details'
+        ]
+    
+    def get_oda_categories(self, obj):
+        """Get ODA categories from charges"""
+        charges = obj.charges or {}
+        return charges.get('oda_categories', {})
+    
+    def get_fsc_details(self, obj):
+        """Get FSC details from charges"""
+        charges = obj.charges or {}
+        return {
+            'fsc_percent': charges.get('fsc', '7%'),
+            'base_diesel_price': charges.get('base_diesel_price', 90.54),
+            'fsc_adjustment': charges.get('fsc_adjustment_percent', 2)
+        }
+
+
+# ============================================
+# TRUCX DLH RATE SERIALIZER (NEW)
+# ============================================
+
+class TrucxDLHRateSerializer(serializers.ModelSerializer):
+    """Serializer for TRUCX DLH variants (Lite, Dense, Cargo)"""
+    
+    vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
+    variant_type = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = VendorRate
+        fields = [
+            'id', 'vendor_name', 'vendor_display', 'variant_type', 'rates',
+            'charges', 'is_active'
+        ]
+    
+    def get_variant_type(self, obj):
+        """Determine TRUCX variant type"""
+        vendor_name = obj.vendor_name
+        if 'Lite' in vendor_name:
+            return 'lite'
+        elif 'Dense' in vendor_name:
+            return 'dense'
+        elif 'Cargo' in vendor_name:
+            return 'cargo'
+        return 'standard'
+
+
+# ============================================
+# PD LOGISTICS RATE SERIALIZER (NEW)
+# ============================================
+
+class PDLogisticsRateSerializer(serializers.ModelSerializer):
+    """Serializer for PD LOGISTICS specific rates"""
+    
+    vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
+    cft_rates_available = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = VendorRate
+        fields = [
+            'id', 'vendor_name', 'vendor_display', 'rates',
+            'delhivery_6cft', 'delhivery_10cft', 'charges', 
+            'is_active', 'cft_rates_available'
+        ]
+    
+    def get_cft_rates_available(self, obj):
+        """Check if CFT rates are available"""
+        has_6cft = bool(obj.delhivery_6cft and any(obj.delhivery_6cft.values()))
+        has_10cft = bool(obj.delhivery_10cft and any(obj.delhivery_10cft.values()))
+        return {
+            '6cft': has_6cft,
+            '10cft': has_10cft
+        }
+
+
+# ============================================
+# ALL VENDORS LIST SERIALIZER (NEW)
+# ============================================
+
+class AllVendorsListSerializer(serializers.ModelSerializer):
+    """Serializer for listing all vendors with their type"""
+    
+    vendor_type = serializers.SerializerMethodField(read_only=True)
+    has_cft_support = serializers.SerializerMethodField(read_only=True)
+    has_oda_support = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = VendorRate
+        fields = [
+            'id', 'vendor_name', 'is_active', 'vendor_type',
+            'has_cft_support', 'has_oda_support'
+        ]
+    
+    def get_vendor_type(self, obj):
+        """Get vendor type classification"""
+        vendor_name = obj.vendor_name
+        
+        if 'SHIVANI VX' in vendor_name:
+            return 'V-XPRESS'
+        elif 'TRUCX' in vendor_name:
+            return 'TRUCX DLH'
+        elif 'SHIPSHOPY BLUE DART' in vendor_name:
+            return 'BLUE DART'
+        elif 'SHIPSHOPY DELIVERY' in vendor_name:
+            return 'DELHIVERY B2B'
+        elif vendor_name == 'DELHIVERY':
+            return 'DELHIVERY'
+        elif vendor_name == 'PD LOGISTICS':
+            return 'PD LOGISTICS'
+        elif vendor_name == 'RIVIGO':
+            return 'RIVIGO'
+        elif vendor_name == 'GATI':
+            return 'GATI'
+        elif vendor_name == 'VXPRESS':
+            return 'V-XPRESS'
+        else:
+            return 'STANDARD'
+    
+    def get_has_cft_support(self, obj):
+        """Check if vendor has CFT support"""
+        vendor_name = obj.vendor_name
+        cft_vendors = ['DELHIVERY', 'RIVIGO', 'PD LOGISTICS', 'TRUCX DLH Lite', 'TRUCX DLH Dense', 'TRUCX DLH Cargo']
+        return vendor_name in cft_vendors
+    
+    def get_has_oda_support(self, obj):
+        """Check if vendor has ODA support"""
+        vendor_name = obj.vendor_name
+        oda_vendors = ['VXPRESS', 'PD LOGISTICS', 'SHIPSHOPY BLUE DART', 'SHIPSHOPY DELIVERY']
+        return vendor_name in oda_vendors

@@ -85,11 +85,15 @@ function VendorManage() {
     const defaultVendors = [
       { id: 1, vendor_name: "DELHIVERY", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, fov: 100, min_weight: 20, cft_conversion: 6, oda_charge: 2 }, is_active: true },
       { id: 2, vendor_name: "GATI", rates: {}, charges: { docket_charge: 100, fsc: "15%", gst: "18%", min_freight: 350, fov: 100, min_weight: 20, oda_charge: 3 }, is_active: true },
-      { id: 3, vendor_name: "PD LOGISTICS", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, fov: 100, min_weight: 20, cft_conversion: 6, oda_charge: 2.5 }, is_active: true },
+      { id: 3, vendor_name: "PD LOGISTICS", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, fov: 100, min_weight: 20, cft_conversion: 6, oda_charge: 4, oda_min_charge: 600 }, is_active: true },
       { id: 4, vendor_name: "RIVIGO", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 85, fsc: "12%", gst: "18%", min_freight: 380, fov: 90, min_weight: 20, cft_conversion: 6, oda_charge: 4 }, is_active: true },
       { id: 5, vendor_name: "VXPRESS", rates: {}, charges: { docket_charge: 50, fsc: "8%", gst: "18%", min_freight: 450, fov: 50, min_weight: 20, oda_charge: 2 }, is_active: true },
-      { id: 6, vendor_name: "SHIPSHOPY BLUE DART", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 50, fsc: "20%", gst: "18%", min_freight: 400, min_weight: 20, divisor: 4500, oda_charge: 5, oda_min_charge: 3000 }, is_active: true },
-      { id: 7, vendor_name: "SHIPSHOPY DELIVERY", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 4500, oda_charge: 3, oda_min_charge: 500 }, is_active: true },
+      { id: 6, vendor_name: "SHIVANI VX", rates: {}, charges: { docket_charge: 50, fsc: "7%", gst: "18%", min_freight: 800, min_weight: 20, divisor: 5000, oda_categories: { A: { min_charge: 800, rate_per_kg: 3.5 }, B: { min_charge: 1000, rate_per_kg: 4.5 }, C: { min_charge: 1500, rate_per_kg: 5.5 }, D: { min_charge: 2000, rate_per_kg: 6.5 } } }, is_active: true },
+      { id: 7, vendor_name: "TRUCX DLH Lite", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 4500, oda_charge: 3, oda_min_charge: 500 }, is_active: true },
+      { id: 8, vendor_name: "TRUCX DLH Dense", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "12%", gst: "18%", min_freight: 300, min_weight: 20, divisor: 2700, oda_charge: 3, oda_min_charge: 500 }, is_active: true },
+      { id: 9, vendor_name: "TRUCX DLH Cargo", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 3540, oda_charge: 3, oda_min_charge: 500 }, is_active: true },
+      { id: 10, vendor_name: "SHIPSHOPY BLUE DART", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 50, fsc: "20%", gst: "18%", min_freight: 400, min_weight: 20, divisor: 4500, oda_charge: 5, oda_min_charge: 3000 }, is_active: true },
+      { id: 11, vendor_name: "SHIPSHOPY DELIVERY", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 4500, oda_charge: 3, oda_min_charge: 500 }, is_active: true },
     ];
     setVendors(defaultVendors);
     updateStats(defaultVendors);
@@ -205,7 +209,7 @@ function VendorManage() {
       ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
     ];
     
-    // Customize for Shipshopy vendors
+    // Customize for vendors
     if (vendorName === 'SHIPSHOPY BLUE DART') {
       sampleData = [
         ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '5', '3000', 'TRUE'],
@@ -216,6 +220,18 @@ function VendorManage() {
       sampleData = [
         ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '3', '500', 'TRUE'],
         ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '3', '500', 'TRUE'],
+        ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
+      ];
+    } else if (vendorName === 'PD LOGISTICS') {
+      sampleData = [
+        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', '600', 'TRUE'],
+        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', '200', 'TRUE'],
+        ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
+      ];
+    } else if (vendorName === 'SHIVANI VX') {
+      sampleData = [
+        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4.5', '1000', 'TRUE'],
+        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '3.5', '800', 'TRUE'],
         ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
       ];
     }
@@ -229,7 +245,7 @@ function VendorManage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${vendorName}_oda_pincodes_template.csv`;
+    a.download = `${vendorName}_pincodes_template.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -315,7 +331,7 @@ function VendorManage() {
             pincodeData[header] = value;
           });
           
-          if (pincodeData.pincode && pincodeData.pincode.length === 6) {
+          if (pincodeData.pincode && String(pincodeData.pincode).length === 6) {
             pincodes.push(pincodeData);
           }
         }
@@ -519,7 +535,9 @@ function VendorManage() {
     
     // Show vendor-specific instructions
     const isBlueDart = invoiceVendor?.vendor_name === 'SHIPSHOPY BLUE DART';
-    const isDelhivery = invoiceVendor?.vendor_name === 'SHIPSHOPY DELIVERY';
+    const isShipshopyDelivery = invoiceVendor?.vendor_name === 'SHIPSHOPY DELIVERY';
+    const isShivaniVX = invoiceVendor?.vendor_name === 'SHIVANI VX';
+    const isTrucx = invoiceVendor?.vendor_name?.includes('TRUCX');
     
     let exampleJson = {
       "docket_charge": 100,
@@ -541,7 +559,28 @@ function VendorManage() {
         "oda_min_charge": 3000,
         "divisor": 4500
       };
-    } else if (isDelhivery) {
+    } else if (isShipshopyDelivery) {
+      exampleJson = {
+        "docket_charge": 50,
+        "fsc": "10%",
+        "min_freight": 350,
+        "oda_charge": 3,
+        "oda_min_charge": 500,
+        "divisor": 4500
+      };
+    } else if (isShivaniVX) {
+      exampleJson = {
+        "docket_charge": 50,
+        "fsc": "7%",
+        "min_freight": 800,
+        "oda_categories": {
+          "A": {"min_charge": 800, "rate_per_kg": 3.5},
+          "B": {"min_charge": 1000, "rate_per_kg": 4.5},
+          "C": {"min_charge": 1500, "rate_per_kg": 5.5},
+          "D": {"min_charge": 2000, "rate_per_kg": 6.5}
+        }
+      };
+    } else if (isTrucx) {
       exampleJson = {
         "docket_charge": 50,
         "fsc": "10%",
@@ -575,7 +614,9 @@ function VendorManage() {
                   <li>Only include fields you want to update</li>
                   <li>Existing charges will be merged</li>
                   {isBlueDart && <li>Blue Dart uses divisor 4500 for volumetric calculation</li>}
-                  {isDelhivery && <li>Delhivery uses divisor 4500 for volumetric calculation</li>}
+                  {isShipshopyDelivery && <li>Shipshopy Delhivery uses divisor 4500 for volumetric calculation</li>}
+                  {isTrucx && <li>TRUCX DLH has different divisors: Lite=4500, Dense=2700, Cargo=3540</li>}
+                  {isShivaniVX && <li>Shivani VX has special ODA categories A/B/C/D</li>}
                 </ul>
               </div>
             </div>
@@ -625,13 +666,19 @@ function VendorManage() {
     if (!showCsvModal) return null;
     
     const isBlueDart = csvVendor?.vendor_name === 'SHIPSHOPY BLUE DART';
-    const isDelhivery = csvVendor?.vendor_name === 'SHIPSHOPY DELIVERY';
+    const isShipshopyDelivery = csvVendor?.vendor_name === 'SHIPSHOPY DELIVERY';
+    const isShivaniVX = csvVendor?.vendor_name === 'SHIVANI VX';
+    const isPd = csvVendor?.vendor_name === 'PD LOGISTICS';
     
     let odaHint = "";
     if (isBlueDart) {
       odaHint = "Blue Dart ODA: ₹5/kg (Min ₹3000)";
-    } else if (isDelhivery) {
+    } else if (isShipshopyDelivery) {
       odaHint = "Delhivery ODA: ₹3/kg (Min ₹500)";
+    } else if (isShivaniVX) {
+      odaHint = "Shivani VX ODA: Cat A: ₹3.5/kg (Min ₹800), Cat B: ₹4.5/kg (Min ₹1000), Cat C: ₹5.5/kg (Min ₹1500), Cat D: ₹6.5/kg (Min ₹2000)";
+    } else if (isPd) {
+      odaHint = "PD Logistics ODA: ₹4/kg (Min ₹600)";
     }
     
     return (
@@ -781,9 +828,11 @@ function VendorManage() {
     const isDelhivery = formData.vendor_name === "DELHIVERY";
     const isRivigo = formData.vendor_name === "RIVIGO";
     const isVxpress = formData.vendor_name === "VXPRESS";
+    const isShivaniVX = formData.vendor_name === "SHIVANI VX";
     const isPd = formData.vendor_name === "PD LOGISTICS";
     const isBlueDart = formData.vendor_name === "SHIPSHOPY BLUE DART";
     const isShipshopyDelivery = formData.vendor_name === "SHIPSHOPY DELIVERY";
+    const isTrucx = formData.vendor_name?.includes('TRUCX');
     
     return (
       <div className="charges-section">
@@ -894,7 +943,7 @@ function VendorManage() {
             </div>
           </div>
           
-          {(isBlueDart || isShipshopyDelivery) && (
+          {(isBlueDart || isShipshopyDelivery || isPd) && (
             <div className="charge-card">
               <div className="charge-icon">⚠️</div>
               <div className="charge-field">
@@ -910,24 +959,31 @@ function VendorManage() {
           )}
         </div>
         
-        {(isDelhivery || isRivigo || isPd) && (
+        {(isDelhivery || isRivigo || isPd || isTrucx) && (
           <div className="info-note">
             <span className="info-icon">ℹ️</span>
             <span>This vendor supports 6 CFT and 10 CFT rate slabs. Switch tabs above to edit them.</span>
           </div>
         )}
         
-        {isVxpress && (
+        {(isVxpress || isShivaniVX) && (
           <div className="info-note special">
             <span className="info-icon">⭐</span>
             <span>V-Xpress has special ODA categories (A/B/C/D @ ₹2/4/7/10 per kg). Rates are calculated based on destination pincode ODA category.</span>
           </div>
         )}
         
-        {(isBlueDart || isShipshopyDelivery) && (
+        {(isBlueDart || isShipshopyDelivery || isTrucx) && (
           <div className="info-note">
             <span className="info-icon">📦</span>
             <span>Volumetric calculation uses divisor = {charges.divisor || 4500} (L×W×H ÷ divisor) for chargeable weight.</span>
+          </div>
+        )}
+        
+        {isTrucx && (
+          <div className="info-note">
+            <span className="info-icon">🚚</span>
+            <span>TRUCX DLH Variant: {formData.vendor_name.replace('TRUCX DLH ', '')} with divisor {charges.divisor}</span>
           </div>
         )}
       </div>
@@ -939,11 +995,15 @@ function VendorManage() {
     const has6CFT = vendor.delhivery_6cft && Object.keys(vendor.delhivery_6cft).length > 0;
     const has10CFT = vendor.delhivery_10cft && Object.keys(vendor.delhivery_10cft).length > 0;
     const isVxpress = vendor.vendor_name === "VXPRESS";
+    const isShivaniVX = vendor.vendor_name === "SHIVANI VX";
     const isRivigo = vendor.vendor_name === "RIVIGO";
     const isBlueDart = vendor.vendor_name === "SHIPSHOPY BLUE DART";
     const isShipshopyDelivery = vendor.vendor_name === "SHIPSHOPY DELIVERY";
-    const showCsvButton = isVxpress || isRivigo || isBlueDart || isShipshopyDelivery;
-    const showInvoiceButton = true; // All vendors can have invoice upload
+    const isPd = vendor.vendor_name === "PD LOGISTICS";
+    const isTrucx = vendor.vendor_name?.includes('TRUCX');
+    
+    const showCsvButton = isVxpress || isRivigo || isBlueDart || isShipshopyDelivery || isShivaniVX || isPd;
+    const showInvoiceButton = true;
     
     return (
       <div className={`vendor-card ${!vendor.is_active ? 'inactive-card' : ''}`} key={vendor.id}>
@@ -997,19 +1057,22 @@ function VendorManage() {
             </div>
             <div className="stat">
               <span>ODA</span>
-              <strong>₹{vendor.charges?.oda_charge || 2}/kg</strong>
+              <strong>₹{vendor.charges?.oda_charge || vendor.charges?.oda_categories ? 'Cat A/B/C/D' : 2}/kg</strong>
             </div>
           </div>
           
-          {(isDelhivery || has6CFT || has10CFT || isVxpress || isRivigo || isBlueDart || isShipshopyDelivery) && (
+          {(isDelhivery || has6CFT || has10CFT || isVxpress || isShivaniVX || isRivigo || isBlueDart || isShipshopyDelivery || isPd || isTrucx) && (
             <div className="vendor-badges">
               {isDelhivery && <span className="badge delhivery-badge">🚚 Delhivery Partner</span>}
               {has6CFT && <span className="badge cft-badge">📦 6 CFT Support</span>}
               {has10CFT && <span className="badge cft-badge">📦 10 CFT Support</span>}
               {isVxpress && <span className="badge vxpress-badge">⭐ V-Xpress ODA Ready</span>}
+              {isShivaniVX && <span className="badge shivani-badge">🟣 Shivani VX (V-Xpress)</span>}
               {isRivigo && <span className="badge rivigo-badge">🚛 Rivigo ODA Ready</span>}
               {isBlueDart && <span className="badge bluedart-badge">🔵 Shipshopy Blue Dart</span>}
               {isShipshopyDelivery && <span className="badge delhivery-badge">📦 Shipshopy Delhivery</span>}
+              {isPd && <span className="badge pd-badge">🚚 PD Logistics</span>}
+              {isTrucx && <span className="badge trucx-badge">🚛 TRUCX DLH</span>}
             </div>
           )}
           
@@ -1029,7 +1092,8 @@ function VendorManage() {
     const isDelhivery = formData.vendor_name === "DELHIVERY";
     const isRivigo = formData.vendor_name === "RIVIGO";
     const isPd = formData.vendor_name === "PD LOGISTICS";
-    const hasCFT = isDelhivery || isRivigo || isPd;
+    const isTrucx = formData.vendor_name?.includes('TRUCX');
+    const hasCFT = isDelhivery || isRivigo || isPd || isTrucx;
     
     return (
       <div className="modal-overlay" onClick={() => setShowModal(false)}>
@@ -1048,7 +1112,7 @@ function VendorManage() {
                   className="form-input"
                   value={formData.vendor_name}
                   onChange={(e) => setFormData({...formData, vendor_name: e.target.value.toUpperCase()})}
-                  placeholder="Enter vendor name (e.g., DELHIVERY, SHIPSHOPY BLUE DART)"
+                  placeholder="Enter vendor name (e.g., DELHIVERY, SHIPSHOPY BLUE DART, TRUCX DLH Lite, SHIVANI VX)"
                 />
               </div>
             )}
