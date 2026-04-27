@@ -1,7 +1,7 @@
 /* ============================================
-   VENDOR MANAGEMENT - PREMIUM DESIGN v4.0
+   VENDOR MANAGEMENT - PREMIUM DESIGN v5.0
    ULTIMATE UI UPGRADE | GLASS MORPHISM
-   Added: CSV Upload/Download, ODA Categories, Enhanced Modal
+   Added: CSV Upload/Download, ODA Categories, Enhanced Modal, Invoice Upload, Shipshopy Support
    Developed by Devora Technologies
    ============================================ */
 
@@ -21,6 +21,8 @@
   --primary-green-light: #d1fae5;
   --primary-orange: #f59e0b;
   --primary-orange-light: #fef3c7;
+  --primary-cyan: #06b6d4;
+  --primary-cyan-light: #cffafe;
   --dark-bg: #0f172a;
   --dark-bg-light: #1e293b;
   --text-dark: #0f172a;
@@ -41,6 +43,7 @@
   --shadow-red: 0 10px 25px -5px rgba(211, 47, 47, 0.3);
   --shadow-green: 0 10px 25px -5px rgba(16, 185, 129, 0.3);
   --shadow-purple: 0 10px 25px -5px rgba(139, 92, 246, 0.3);
+  --shadow-blue: 0 10px 25px -5px rgba(37, 99, 235, 0.3);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -403,7 +406,7 @@
   gap: 8px;
 }
 
-.edit-btn, .delete-btn, .status-toggle-btn, .csv-btn {
+.edit-btn, .delete-btn, .status-toggle-btn, .csv-btn, .invoice-btn {
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -443,6 +446,17 @@
   background: linear-gradient(135deg, #059669, #047857);
   transform: scale(1.05);
   box-shadow: var(--shadow-green);
+}
+
+.invoice-btn {
+  background: linear-gradient(135deg, var(--primary-blue), #1d4ed8);
+  color: white;
+}
+
+.invoice-btn:hover {
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-blue);
 }
 
 /* Vendor Card Body */
@@ -530,6 +544,18 @@
   border: 1px solid var(--primary-orange);
 }
 
+.bluedart-badge {
+  background: linear-gradient(135deg, var(--primary-blue-light), white);
+  color: var(--primary-blue);
+  border: 1px solid var(--primary-blue);
+}
+
+.shipshopy-badge {
+  background: linear-gradient(135deg, var(--primary-cyan-light), white);
+  color: var(--primary-cyan);
+  border: 1px solid var(--primary-cyan);
+}
+
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -607,6 +633,11 @@
 /* CSV Modal Specific */
 .modal-container.csv-modal {
   max-width: 900px;
+}
+
+/* Invoice Modal Specific */
+.modal-container.invoice-modal {
+  max-width: 700px;
 }
 
 @keyframes zoomIn {
@@ -735,6 +766,52 @@
 .oda-cat-d {
   background: #e0e7ff;
   color: #3730a3;
+}
+
+/* Invoice Info Section */
+.invoice-info-section {
+  background: var(--bg-gray);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.json-format-box {
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+.json-preview {
+  background: #f1f5f9;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  max-height: 300px;
+  overflow: auto;
+}
+
+.invoice-tips {
+  background: #dbeafe;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  margin-top: 10px;
+}
+
+.invoice-tips ul {
+  margin-top: 8px;
+  margin-left: 20px;
+}
+
+.oda-hint {
+  background: #fef3c7;
+  border-left: 3px solid var(--warning);
+  margin-top: 10px;
 }
 
 /* CSV Upload Section */
@@ -1285,7 +1362,8 @@
     width: 95%;
   }
   
-  .modal-container.csv-modal {
+  .modal-container.csv-modal,
+  .modal-container.invoice-modal {
     width: 95%;
   }
   
@@ -1456,6 +1534,8 @@
 .text-red { color: var(--primary-red); }
 .text-green { color: var(--success); }
 .text-purple { color: var(--primary-purple); }
+.text-blue { color: var(--primary-blue); }
+.text-cyan { color: var(--primary-cyan); }
 .mt-2 { margin-top: 8px; }
 .mt-3 { margin-top: 12px; }
 .mb-2 { margin-bottom: 8px; }

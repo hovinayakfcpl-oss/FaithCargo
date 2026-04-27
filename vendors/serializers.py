@@ -50,7 +50,7 @@ class VendorRateSerializer(serializers.ModelSerializer):
     """Serializer for VendorRate model - includes rates and charges"""
     
     vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
-    pincodes = VendorPincodeSerializer(many=True, read_only=True)  # ✅ Fixed: changed from 'vendorpincode_set' to 'pincodes'
+    pincodes = VendorPincodeSerializer(many=True, read_only=True)
     
     class Meta:
         model = VendorRate
@@ -65,6 +65,12 @@ class VendorRateSerializer(serializers.ModelSerializer):
         """Validate rates structure"""
         if not isinstance(value, dict):
             raise serializers.ValidationError("Rates must be a dictionary")
+        
+        # Validate zone structure
+        for from_zone, to_zones in value.items():
+            if not isinstance(to_zones, dict):
+                raise serializers.ValidationError(f"Rates for zone {from_zone} must be a dictionary")
+        
         return value
     
     def validate_delhivery_6cft(self, value):
@@ -77,6 +83,19 @@ class VendorRateSerializer(serializers.ModelSerializer):
         """Validate 10CFT rates for Delhivery"""
         if value and not isinstance(value, dict):
             raise serializers.ValidationError("10CFT rates must be a dictionary")
+        return value
+    
+    def validate_charges(self, value):
+        """Validate charges structure"""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Charges must be a dictionary")
+        
+        # Recommended fields
+        recommended_fields = ['docket_charge', 'fsc', 'gst', 'min_freight', 'min_weight']
+        for field in recommended_fields:
+            if field not in value:
+                pass  # Warning only, not error
+        
         return value
 
 
@@ -108,11 +127,16 @@ class ZoneMasterSerializer(serializers.ModelSerializer):
     """Serializer for ZoneMaster model"""
     
     zone_display = serializers.CharField(source='get_zone_code_display', read_only=True)
+    pincode_count = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = ZoneMaster
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_pincode_count(self, obj):
+        """Get number of pincodes in this zone"""
+        return len(obj.pincodes) if obj.pincodes else 0
 
 
 # ============================================
@@ -263,12 +287,13 @@ class SimpleVendorRateSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# VENDOR ODA STATUS SERIALIZER
+# VENDOR ODA STATUS SERIALIZER (UPDATED)
 # ============================================
 
 class VendorODAStatusSerializer(serializers.Serializer):
     """Serializer for ODA status check response"""
     
+    success = serializers.BooleanField(default=True)
     pincode = serializers.CharField()
     vendor_name = serializers.CharField()
     is_oda = serializers.BooleanField()
@@ -277,11 +302,18 @@ class VendorODAStatusSerializer(serializers.Serializer):
     oda_min_charge = serializers.FloatField()
     city = serializers.CharField(allow_blank=True)
     state = serializers.CharField(allow_blank=True)
-    success = serializers.BooleanField(default=True)
+    
+    def to_representation(self, instance):
+        """Custom representation"""
+        data = super().to_representation(instance)
+        # Ensure all fields are present
+        if data.get('oda_category') is None:
+            data['oda_category'] = 'NONE'
+        return data
 
 
 # ============================================
-# PINCODE LOCATION SERIALIZER
+# PINCODE LOCATION SERIALIZER (UPDATED)
 # ============================================
 
 class PincodeLocationSerializer(serializers.Serializer):
@@ -297,7 +329,7 @@ class PincodeLocationSerializer(serializers.Serializer):
 
 
 # ============================================
-# VENDOR PINCODE STATS SERIALIZER (NEW)
+# VENDOR PINCODE STATS SERIALIZER (UPDATED)
 # ============================================
 
 class VendorPincodeStatsSerializer(serializers.Serializer):
@@ -310,3 +342,86 @@ class VendorPincodeStatsSerializer(serializers.Serializer):
     non_oda_pincodes = serializers.IntegerField()
     serviceable_pincodes = serializers.IntegerField()
     category_stats = serializers.DictField(required=False)
+    
+    def to_representation(self, data):
+        """Custom representation with formatted output"""
+        representation = super().to_representation(data)
+        
+        # Add summary message
+        if representation.get('total_pincodes', 0) > 0:
+            oda_percentage = (representation.get('oda_pincodes', 0) / representation.get('total_pincodes', 1)) * 100
+            representation['oda_percentage'] = round(oda_percentage, 2)
+        
+        return representation
+
+
+# ============================================
+# SHIPSHOPY VENDOR RATE SERIALIZER (NEW)
+# ============================================
+
+class ShipshopyVendorRateSerializer(serializers.ModelSerializer):
+    """Serializer specifically for SHIPSHOPY vendors"""
+    
+    vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
+    divisor = serializers.SerializerMethodField(read_only=True)
+    min_freight = serializers.SerializerMethodField(read_only=True)
+    oda_details = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = VendorRate
+        fields = [
+            'id', 'vendor_name', 'vendor_display', 'rates',
+            'charges', 'is_active', 'divisor', 'min_freight', 'oda_details'
+        ]
+    
+    def get_divisor(self, obj):
+        """Get divisor from charges"""
+        charges = obj.charges or {}
+        return charges.get('divisor', 5000)
+    
+    def get_min_freight(self, obj):
+        """Get minimum freight from charges"""
+        charges = obj.charges or {}
+        return charges.get('min_freight', 350)
+    
+    def get_oda_details(self, obj):
+        """Get ODA details from charges"""
+        charges = obj.charges or {}
+        return {
+            'charge_per_kg': charges.get('oda_charge', 0),
+            'min_charge': charges.get('oda_min_charge', 0)
+        }
+
+
+# ============================================
+# BLUE DART RATE SERIALIZER (NEW)
+# ============================================
+
+class BlueDartRateSerializer(serializers.ModelSerializer):
+    """Serializer for Blue Dart specific rates"""
+    
+    vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
+    
+    class Meta:
+        model = VendorRate
+        fields = [
+            'id', 'vendor_name', 'vendor_display', 'rates',
+            'charges', 'is_active'
+        ]
+
+
+# ============================================
+# DELHIVERY B2B RATE SERIALIZER (NEW)
+# ============================================
+
+class DelhiveryB2BRateSerializer(serializers.ModelSerializer):
+    """Serializer for Delhivery B2B specific rates"""
+    
+    vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
+    
+    class Meta:
+        model = VendorRate
+        fields = [
+            'id', 'vendor_name', 'vendor_display', 'rates',
+            'delhivery_6cft', 'delhivery_10cft', 'charges', 'is_active'
+        ]

@@ -20,8 +20,13 @@ urlpatterns = [
     # ============================================
     path('pincode-location/<str:pincode>/', views.get_pincode_location, name='pincode-location'),
     path('check-oda/<str:vendor_name>/<str:pincode>/', views.check_oda_status, name='check-oda'),
-    path('check-oda-all/', views.check_oda_all_vendors, name='check-oda-all'),  # ✅ NEW
-    path('vendor-pincode-stats/<str:vendor_name>/', views.get_vendor_pincode_stats, name='vendor-pincode-stats'),  # ✅ NEW
+    path('check-oda-all/', views.check_oda_all_vendors, name='check-oda-all'),
+    path('vendor-pincode-stats/<str:vendor_name>/', views.get_vendor_pincode_stats, name='vendor-pincode-stats'),
+    
+    # ============================================
+    # DOWNLOAD PINCODE TEMPLATE (NEW)
+    # ============================================
+    path('download-pincode-template/<str:vendor_name>/', views.download_pincode_template, name='download-pincode-template'),
     
     # ============================================
     # CALCULATOR AND COMPARISON
@@ -59,4 +64,9 @@ urlpatterns = [
     # ============================================
     path('vendor-service-rates/', views.manage_vendor_service_rates, name='vendor-service-rates'),
     path('vendor-service-rates/<int:service_id>/', views.manage_vendor_service_rates, name='vendor-service-rate-detail'),
+    
+    # ============================================
+    # TEST API ENDPOINT (NEW)
+    # ============================================
+    path('test/', views.test_api, name='test_api'),
 ]

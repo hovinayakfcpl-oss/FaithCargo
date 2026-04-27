@@ -4,8 +4,11 @@ import "./VendorRateCalculator.css";
 // API Base URL
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://faithcargo.onrender.com";
 
-// Zones list
-const ZONES = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1", "NE2", "NE3"];
+// Zones list (UPDATED with all zones)
+const ZONES = [
+  "N1", "N2", "N3", "N4", "C1", "C2", "W1", "W2", 
+  "S1", "S2", "S3", "S4", "E1", "E2", "NE1", "NE2", "NE3"
+];
 
 // ODA Categories 
 const ODA_CATEGORIES = {
@@ -19,11 +22,21 @@ const ODA_CATEGORIES = {
 // Vendors that support CFT rates
 const CFT_SUPPORTED_VENDORS = ["DELHIVERY", "RIVIGO", "PD LOGISTICS"];
 
-// ✅ CORRECT VOLUMETRIC CONSTANTS
+// Shipshopy vendors
+const SHIPSHOPY_VENDORS = ["SHIPSHOPY BLUE DART", "SHIPSHOPY DELIVERY"];
+
+// Volumetric constants
 const VOLUMETRIC_DIVISOR = {
-  'STANDARD': 5000,    // (L×W×H)/5000
-  '6CFT': 4500,        // (L×W×H)/4500 - Surface
-  '10CFT': 10000       // (L×W×H)/10000 - Surface
+  'STANDARD': 5000,
+  '6CFT': 4500,
+  '10CFT': 10000
+};
+
+// Default fallback rates
+const DEFAULT_VENDOR_RATES = {
+  "DELHIVERY": 28, "GATI": 25, "PD LOGISTICS": 22,
+  "RIVIGO": 24, "VXPRESS": 20,
+  "SHIPSHOPY BLUE DART": 25, "SHIPSHOPY DELIVERY": 22
 };
 
 function VendorRateCalculator() {
@@ -49,6 +62,7 @@ function VendorRateCalculator() {
   const [originZone, setOriginZone] = useState("");
   const [destZone, setDestZone] = useState("");
   const [volumeCFT, setVolumeCFT] = useState(0);
+  const [isPrefetching, setIsPrefetching] = useState(false);
   
   const abortControllerRef = useRef(null);
 
@@ -73,14 +87,22 @@ function VendorRateCalculator() {
     fetchVendors();
   }, []);
 
-  // Fetch location on pincode change
+  // Pre-fetch ODA data when destination changes
+  useEffect(() => {
+    if (destination && destination.length === 6 && vendors.length > 0) {
+      prefetchODAData(destination);
+    }
+  }, [destination, vendors]);
+
+  // Fetch location and zone on pincode change
   useEffect(() => {
     if (pickup && pickup.length === 6) {
       fetchPincodeLocation(pickup, "origin");
+      setOriginZone(getZoneFromPincode(pickup));
     }
     if (destination && destination.length === 6) {
       fetchPincodeLocation(destination, "dest");
-      setOdaCache({});
+      setDestZone(getZoneFromPincode(destination));
     }
   }, [pickup, destination]);
 
@@ -107,9 +129,11 @@ function VendorRateCalculator() {
       { vendor_name: "PD LOGISTICS", is_active: true, rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, min_weight: 20, oda_charge: 4 } },
       { vendor_name: "RIVIGO", is_active: true, rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 85, fsc: "12%", gst: "18%", min_freight: 380, min_weight: 20, oda_charge: 4 } },
       { vendor_name: "VXPRESS", is_active: true, rates: {}, charges: { docket_charge: 50, fsc: "8%", gst: "18%", min_freight: 450, min_weight: 25, oda_charge: 2 } },
+      { vendor_name: "SHIPSHOPY BLUE DART", is_active: true, rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 50, fsc: "20%", gst: "18%", min_freight: 400, min_weight: 20, divisor: 4500, oda_charge: 5, oda_min_charge: 3000 } },
+      { vendor_name: "SHIPSHOPY DELIVERY", is_active: true, rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 4500, oda_charge: 3, oda_min_charge: 500 } },
     ];
     setVendors(defaultVendors);
-    setSelectedVendors(["DELHIVERY", "GATI", "PD LOGISTICS", "RIVIGO", "VXPRESS"]);
+    setSelectedVendors(["DELHIVERY", "GATI", "PD LOGISTICS", "RIVIGO", "VXPRESS", "SHIPSHOPY BLUE DART", "SHIPSHOPY DELIVERY"]);
   };
 
   const fetchPincodeLocation = async (pincode, type) => {
@@ -132,15 +156,88 @@ function VendorRateCalculator() {
     }
   };
 
+  // Pre-fetch ODA data for all vendors
+  const prefetchODAData = async (pincode) => {
+    if (!pincode || pincode.length !== 6 || vendors.length === 0) return;
+    if (isPrefetching) return;
+    
+    setIsPrefetching(true);
+    
+    const abortController = new AbortController();
+    
+    try {
+      const vendorList = vendors.length > 0 ? vendors : [
+        { vendor_name: "DELHIVERY" }, { vendor_name: "GATI" }, 
+        { vendor_name: "PD LOGISTICS" }, { vendor_name: "RIVIGO" }, 
+        { vendor_name: "VXPRESS" }, { vendor_name: "SHIPSHOPY BLUE DART" },
+        { vendor_name: "SHIPSHOPY DELIVERY" }
+      ];
+      
+      const promises = vendorList.map(async (vendor) => {
+        const cacheKey = `${vendor.vendor_name}_${pincode}`;
+        
+        if (odaCache[cacheKey]) {
+          return { vendorName: vendor.vendor_name, result: odaCache[cacheKey] };
+        }
+        
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/api/vendors/check-oda/${encodeURIComponent(vendor.vendor_name)}/${pincode}/`,
+            { signal: abortController.signal }
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            let result = { isODA: false, charge: 0, minCharge: 0, category: null };
+            
+            if (data.is_oda === true) {
+              result = {
+                isODA: true,
+                charge: parseFloat(data.oda_charge_per_kg) || 0,
+                minCharge: parseFloat(data.oda_min_charge) || 0,
+                category: data.oda_category
+              };
+            } else if (data.oda_charge_per_kg > 0) {
+              result = {
+                isODA: true,
+                charge: parseFloat(data.oda_charge_per_kg) || 0,
+                minCharge: parseFloat(data.oda_min_charge) || 0,
+                category: 'DEFAULT'
+              };
+            }
+            
+            setOdaCache(prev => ({ ...prev, [cacheKey]: result }));
+            return { vendorName: vendor.vendor_name, result };
+          }
+        } catch (err) {
+          if (err.name === 'AbortError') return null;
+        }
+        
+        return { vendorName: vendor.vendor_name, result: { isODA: false, charge: 0, minCharge: 0, category: null } };
+      });
+      
+      await Promise.all(promises);
+    } catch (err) {
+      console.error("Error prefetching ODA:", err);
+    } finally {
+      setIsPrefetching(false);
+    }
+  };
+
   const isValidPincode = (pincode) => {
     return pincode && pincode.length === 6 && /^\d+$/.test(pincode);
   };
 
-  // ✅ CORRECTED: Calculate volumetric weight based on CFT type
-  const calculateVolumetricWeight = useCallback((cftType = 'STANDARD') => {
+  // Calculate volumetric weight based on CFT type and vendor divisor
+  const calculateVolumetricWeight = useCallback((cftType = 'STANDARD', vendorDivisor = null) => {
     let totalVolKg = 0;
     let totalVolCFT = 0;
-    const divisor = VOLUMETRIC_DIVISOR[cftType] || VOLUMETRIC_DIVISOR.STANDARD;
+    
+    // Use vendor-specific divisor if provided, otherwise use default
+    let divisor = VOLUMETRIC_DIVISOR[cftType] || VOLUMETRIC_DIVISOR.STANDARD;
+    if (vendorDivisor && vendorDivisor > 0) {
+      divisor = vendorDivisor;
+    }
     
     dimensions.forEach((dim) => {
       const qty = Number(dim.qty) || 0;
@@ -149,13 +246,8 @@ function VendorRateCalculator() {
       const h = Number(dim.height) || 0;
       
       if (l > 0 && w > 0 && h > 0 && qty > 0) {
-        // Volume in cubic cm
         const volumeCm3 = l * w * h * qty;
-        
-        // Volumetric weight based on CFT type
         totalVolKg += volumeCm3 / divisor;
-        
-        // Volume in CFT (for display)
         totalVolCFT += volumeCm3 / (30.48 * 30.48 * 30.48);
       }
     });
@@ -166,10 +258,9 @@ function VendorRateCalculator() {
   const getZoneFromPincode = (pincode) => {
     const firstDigit = pincode?.charAt(0);
     const zoneMap = {
-      '1': 'N1', '2': 'N2', '3': 'N3',
-      '4': 'C1', '5': 'W1', '6': 'W2',
-      '7': 'S1', '8': 'S2', '9': 'E1',
-      '0': 'NE1'
+      '1': 'N1', '2': 'N2', '3': 'N3', '4': 'N4',
+      '5': 'W1', '6': 'W2', '7': 'S1', '8': 'S2',
+      '9': 'E1', '0': 'NE1'
     };
     return zoneMap[firstDigit] || 'N1';
   };
@@ -182,6 +273,7 @@ function VendorRateCalculator() {
     let rates = vendor.rates || {};
     
     const hasCFTSupport = CFT_SUPPORTED_VENDORS.includes(vendorName);
+    const isShipshopy = SHIPSHOPY_VENDORS.includes(vendorName);
     
     if (hasCFTSupport) {
       if (cftSize === "6CFT" && vendor.delhivery_6cft) {
@@ -194,11 +286,7 @@ function VendorRateCalculator() {
     ratePerKg = rates[fromZone]?.[toZone] || 0;
     
     if (ratePerKg === 0) {
-      const defaultRates = {
-        "DELHIVERY": 28, "GATI": 25, "PD LOGISTICS": 22,
-        "RIVIGO": 24, "VXPRESS": 20
-      };
-      ratePerKg = defaultRates[vendorName] || 22;
+      ratePerKg = DEFAULT_VENDOR_RATES[vendorName] || 22;
     }
     
     const docketCharge = parseFloat(charges.docket_charge) || 100;
@@ -283,109 +371,86 @@ function VendorRateCalculator() {
     abortControllerRef.current = abortController;
     
     try {
-      // Get zones
-      const fromZone = getZoneFromPincode(pickup);
-      const toZone = getZoneFromPincode(destination);
-      setOriginZone(fromZone);
-      setDestZone(toZone);
+      const fromZone = originZone || getZoneFromPincode(pickup);
+      const toZone = destZone || getZoneFromPincode(destination);
       
-      // Get active vendors
       const activeVendors = vendors.filter(v => 
         (showAllVendors || selectedVendors.includes(v.vendor_name)) && v.is_active !== false
       );
       
-      // Fetch all ODA data in parallel
-      const odaPromises = activeVendors.map(async (vendor) => {
-        const cacheKey = `${vendor.vendor_name}_${destination}`;
-        
-        if (odaCache[cacheKey]) {
-          return { vendorName: vendor.vendor_name, result: odaCache[cacheKey] };
-        }
-        
-        try {
-          const response = await fetch(
-            `${API_BASE_URL}/api/vendors/check-oda/${vendor.vendor_name}/${destination}/`,
-            { signal: abortController.signal }
-          );
-          
-          if (response.ok) {
-            const data = await response.json();
-            let result = { isODA: false, charge: 0, minCharge: 0, category: null };
-            
-            if (data.is_oda === true) {
-              result = {
-                isODA: true,
-                charge: parseFloat(data.oda_charge_per_kg) || 0,
-                minCharge: parseFloat(data.oda_min_charge) || 0,
-                category: data.oda_category
-              };
-            } else if (data.oda_charge_per_kg > 0) {
-              result = {
-                isODA: true,
-                charge: parseFloat(data.oda_charge_per_kg) || 0,
-                minCharge: parseFloat(data.oda_min_charge) || 0,
-                category: 'DEFAULT'
-              };
-            }
-            
-            setOdaCache(prev => ({ ...prev, [cacheKey]: result }));
-            return { vendorName: vendor.vendor_name, result };
-          }
-        } catch (err) {
-          if (err.name === 'AbortError') throw err;
-        }
-        
-        return { vendorName: vendor.vendor_name, result: { isODA: false, charge: 0, minCharge: 0, category: null } };
-      });
-      
-      const odaResults = await Promise.all(odaPromises);
-      const odaMap = {};
-      odaResults.forEach(({ vendorName, result }) => {
-        odaMap[vendorName] = result;
-      });
-      
-      // ✅ Calculate for each CFT type with correct volumetric weight
       const calculatedResults = [];
       const actualWeight = parseFloat(weight);
-      const invoiceAmt = parseFloat(invoiceValue) || 0;
       
       for (const vendor of activeVendors) {
         const vendorName = vendor.vendor_name;
-        const odaInfo = odaMap[vendorName] || { isODA: false, charge: 0, minCharge: 0, category: null };
+        const charges = vendor.charges || {};
+        const vendorDivisor = charges.divisor || null;
         
-        // Calculate ODA charge
+        // Get ODA info from cache or default
+        const cacheKey = `${vendorName}_${destination}`;
+        let odaInfo = odaCache[cacheKey];
+        
+        if (!odaInfo) {
+          // Use default ODA from vendor charges
+          const defaultODA = parseFloat(charges.oda_charge) || 0;
+          odaInfo = {
+            isODA: defaultODA > 0,
+            charge: defaultODA,
+            minCharge: parseFloat(charges.oda_min_charge) || (defaultODA * 100),
+            category: 'DEFAULT'
+          };
+        }
+        
         let finalODACharge = 0;
         if (odaInfo.isODA && odaInfo.charge > 0) {
           finalODACharge = Math.max(actualWeight * odaInfo.charge, odaInfo.minCharge);
         }
         
+        const isShipshopy = SHIPSHOPY_VENDORS.includes(vendorName);
         const hasCFTSupport = CFT_SUPPORTED_VENDORS.includes(vendorName);
         
-        if (hasCFTSupport) {
-          // ✅ 6 CFT - Use divisor 4500
+        if (isShipshopy) {
+          // Shipshopy vendors - use their specific divisor
+          const { volumetricWeight: volWeight, volumeCFT: volCFT } = calculateVolumetricWeight('STANDARD', vendorDivisor);
+          const chargedWt = Math.max(actualWeight, volWeight);
+          
+          if (volCFT > 0) {
+            setVolumeCFT(volCFT);
+            setChargedWeight(chargedWt);
+          }
+          
+          const rate = calculateRateForVendor(vendor, fromZone, toZone, chargedWt, finalODACharge, "Standard", odaInfo);
+          if (rate.rate_per_kg > 0) calculatedResults.push(rate);
+          
+        } else if (hasCFTSupport) {
+          // 6 CFT - Use divisor 4500
           const { volumetricWeight: volWeight6, volumeCFT: volCFT6 } = calculateVolumetricWeight('6CFT');
           const chargedWeight6 = Math.max(actualWeight, volWeight6);
           
-          // ✅ 10 CFT - Use divisor 10000
+          // 10 CFT - Use divisor 10000
           const { volumetricWeight: volWeight10, volumeCFT: volCFT10 } = calculateVolumetricWeight('10CFT');
           const chargedWeight10 = Math.max(actualWeight, volWeight10);
           
-          // Store for display
-          if (volCFT6 > 0) setVolumeCFT(volCFT6);
-          if (volCFT6 > 0) setChargedWeight(chargedWeight6);
+          if (volCFT6 > 0) {
+            setVolumeCFT(volCFT6);
+            setChargedWeight(chargedWeight6);
+          }
           
           const rate6CFT = calculateRateForVendor(vendor, fromZone, toZone, chargedWeight6, finalODACharge, "6CFT", odaInfo);
           if (rate6CFT.rate_per_kg > 0) calculatedResults.push(rate6CFT);
           
           const rate10CFT = calculateRateForVendor(vendor, fromZone, toZone, chargedWeight10, finalODACharge, "10CFT", odaInfo);
           if (rate10CFT.rate_per_kg > 0) calculatedResults.push(rate10CFT);
+          
         } else {
           // Standard - Use divisor 5000
           const { volumetricWeight: volWeightStd, volumeCFT: volCFTStd } = calculateVolumetricWeight('STANDARD');
           const chargedWeightStd = Math.max(actualWeight, volWeightStd);
           
-          if (volCFTStd > 0) setVolumeCFT(volCFTStd);
-          if (volCFTStd > 0) setChargedWeight(chargedWeightStd);
+          if (volCFTStd > 0) {
+            setVolumeCFT(volCFTStd);
+            setChargedWeight(chargedWeightStd);
+          }
           
           const rate = calculateRateForVendor(vendor, fromZone, toZone, chargedWeightStd, finalODACharge, "Standard", odaInfo);
           if (rate.rate_per_kg > 0) calculatedResults.push(rate);
@@ -402,12 +467,6 @@ function VendorRateCalculator() {
         charged_weight: chargedWeight,
         volume_cft: volumeCFT
       });
-      
-      // Fetch location names
-      await Promise.all([
-        fetchPincodeLocation(pickup, "origin"),
-        fetchPincodeLocation(destination, "dest")
-      ]);
       
     } catch (error) {
       if (error.name === 'AbortError') {
@@ -469,7 +528,8 @@ function VendorRateCalculator() {
         <p>Compare rates across multiple logistics vendors in real-time</p>
         {destination && (
           <div className="oda-status-info">
-            🔍 Checking ODA for pincode: <strong>{destination}</strong>
+            🔍 ODA Ready for pincode: <strong>{destination}</strong>
+            {isPrefetching && <span className="oda-loading"> (Loading...)</span>}
           </div>
         )}
       </div>
@@ -542,7 +602,7 @@ function VendorRateCalculator() {
             <div className="dimensions-section">
               <label>Package Dimensions (cm)</label>
               <div className="dimension-hint">
-                <small>💡 Volumetric Calculation: 6CFT ÷4500, 10CFT ÷10000, Standard ÷5000</small>
+                <small>💡 Volumetric: 6CFT÷4500, 10CFT÷10000, Standard÷5000</small>
               </div>
               {dimensions.map((dim, idx) => (
                 <div key={idx} className="dimension-row">

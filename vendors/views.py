@@ -103,8 +103,23 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
     rate_per_kg = 0
     display_cft_type = None
     
-    # Get rates based on vendor and CFT type
-    if vendor.vendor_name == 'DELHIVERY':
+    # Get rates based on vendor name
+    vendor_name = vendor.vendor_name
+    
+    # SHIPSHOPY vendors handling
+    if vendor_name == 'SHIPSHOPY BLUE DART':
+        # Blue Dart rates
+        rates = vendor.rates or {}
+        rate_per_kg = rates.get(from_zone, {}).get(to_zone, 0)
+        display_cft_type = 'Standard'
+        
+    elif vendor_name == 'SHIPSHOPY DELIVERY':
+        # Delhivery B2B-6 rates
+        rates = vendor.rates or {}
+        rate_per_kg = rates.get(from_zone, {}).get(to_zone, 0)
+        display_cft_type = 'Standard'
+        
+    elif vendor.vendor_name == 'DELHIVERY':
         if cft_type == '6cft':
             rates = vendor.delhivery_6cft or {}
             rate_per_kg = rates.get(from_zone, {}).get(to_zone, 0)
@@ -126,7 +141,8 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
     if rate_per_kg == 0:
         fallback_rates = {
             'DELHIVERY': 28, 'GATI': 25, 'PD LOGISTICS': 22,
-            'RIVIGO': 24, 'VXPRESS': 20
+            'RIVIGO': 24, 'VXPRESS': 20,
+            'SHIPSHOPY BLUE DART': 25, 'SHIPSHOPY DELIVERY': 22
         }
         rate_per_kg = fallback_rates.get(vendor.vendor_name, 22)
         logger.info(f"Using fallback rate for {vendor.vendor_name}: ₹{rate_per_kg}/kg")
@@ -137,11 +153,15 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
     fsc_percent = float(str(charges.get('fsc', '10%')).replace('%', ''))
     gst_percent = float(str(charges.get('gst', '18%')).replace('%', ''))
     fov_charge = float(charges.get('fov', 75))
-    min_freight = float(charges.get('min_freight', 650))
+    min_freight = float(charges.get('min_freight', 350))
     min_weight = float(charges.get('min_weight', 20))
     
-    # Apply minimum weight
-    effective_weight = max(weight, min_weight)
+    # Get vendor-specific divisor
+    divisor = charges.get('divisor', 5000)
+    
+    # Calculate volumetric weight based on divisor
+    volumetric_weight = volume_cft * (divisor / 10) if volume_cft > 0 else 0
+    effective_weight = max(weight, volumetric_weight, min_weight)
     
     # Calculate base freight
     base_freight = effective_weight * rate_per_kg
@@ -276,7 +296,7 @@ def manage_vendor_rate(request, vendor_name=None):
 
 
 # ============================================
-# VENDOR PINCODE MANAGEMENT (UPDATED)
+# VENDOR PINCODE MANAGEMENT
 # ============================================
 
 @api_view(["GET", "POST", "PUT", "DELETE"])
@@ -284,17 +304,10 @@ def manage_vendor_pincodes(request, vendor_name=None, pincode=None):
     """Manage vendor pincodes - GET, POST, PUT, DELETE"""
     
     if request.method == "GET":
-        try:
-            if vendor_name:
+        if vendor_name:
+            try:
                 # Case-insensitive vendor lookup
-                try:
-                    vendor = VendorRate.objects.get(vendor_name__iexact=vendor_name)
-                except VendorRate.DoesNotExist:
-                    return Response({
-                        'success': False,
-                        'error': f'Vendor "{vendor_name}" not found',
-                        'available_vendors': list(VendorRate.objects.filter(is_active=True).values_list('vendor_name', flat=True))
-                    }, status=404)
+                vendor = VendorRate.objects.get(vendor_name__iexact=vendor_name)
                 
                 if pincode:
                     try:
@@ -311,6 +324,17 @@ def manage_vendor_pincodes(request, vendor_name=None, pincode=None):
                         }, status=404)
                 else:
                     pincodes = VendorPincode.objects.filter(vendor=vendor)
+                    
+                    # If no pincodes, return empty list
+                    if pincodes.count() == 0:
+                        return Response({
+                            'success': True,
+                            'vendor': vendor_name,
+                            'count': 0,
+                            'data': [],
+                            'message': f'No pincodes found for {vendor_name}'
+                        })
+                    
                     # Add pagination for large datasets
                     paginator = Paginator(pincodes, 1000)
                     page = request.GET.get('page', 1)
@@ -325,20 +349,26 @@ def manage_vendor_pincodes(request, vendor_name=None, pincode=None):
                         'count': len(serializer.data),
                         'data': serializer.data
                     })
-            else:
-                all_pincodes = VendorPincode.objects.all().select_related('vendor')
-                serializer = VendorPincodeSerializer(all_pincodes, many=True)
+            except VendorRate.DoesNotExist:
                 return Response({
-                    'success': True,
-                    'count': all_pincodes.count(),
-                    'data': serializer.data
-                })
-        except Exception as e:
-            logger.error(f"Error in manage_vendor_pincodes: {str(e)}")
+                    'success': False,
+                    'error': f'Vendor "{vendor_name}" not found',
+                    'available_vendors': list(VendorRate.objects.filter(is_active=True).values_list('vendor_name', flat=True))
+                }, status=404)
+            except Exception as e:
+                logger.error(f"Error in manage_vendor_pincodes GET: {str(e)}")
+                return Response({
+                    'success': False,
+                    'error': str(e)
+                }, status=500)
+        else:
+            all_pincodes = VendorPincode.objects.all().select_related('vendor')
+            serializer = VendorPincodeSerializer(all_pincodes, many=True)
             return Response({
-                'success': False,
-                'error': str(e)
-            }, status=500)
+                'success': True,
+                'count': all_pincodes.count(),
+                'data': serializer.data
+            })
     
     elif request.method == "POST":
         try:
@@ -399,7 +429,7 @@ def manage_vendor_pincodes(request, vendor_name=None, pincode=None):
 
 
 # ============================================
-# CHECK ODA FOR PINCODE (IMPROVED)
+# CHECK ODA FOR PINCODE
 # ============================================
 
 @api_view(["GET"])
@@ -426,14 +456,19 @@ def check_oda_status(request, vendor_name, pincode):
             })
         else:
             logger.info(f"ODA check: {vendor_name} - {pincode_str} = NO")
+            
+            # Check vendor's default ODA
+            charges = vendor.charges or {}
+            default_oda = float(charges.get('oda_charge', 0))
+            
             return Response({
                 'success': True,
                 'pincode': pincode_str,
                 'vendor': vendor_name,
-                'is_oda': False,
-                'oda_category': None,
-                'oda_charge_per_kg': 0,
-                'oda_min_charge': 0,
+                'is_oda': default_oda > 0,
+                'oda_category': 'DEFAULT' if default_oda > 0 else None,
+                'oda_charge_per_kg': default_oda,
+                'oda_min_charge': default_oda * 100 if default_oda > 0 else 0,
                 'city': pincode_obj.city if pincode_obj else '',
                 'state': pincode_obj.state if pincode_obj else ''
             })
@@ -453,7 +488,7 @@ def check_oda_status(request, vendor_name, pincode):
 
 
 # ============================================
-# CHECK ODA FOR MULTIPLE VENDORS (NEW)
+# CHECK ODA FOR MULTIPLE VENDORS
 # ============================================
 
 @api_view(["GET"])
@@ -484,11 +519,15 @@ def check_oda_all_vendors(request):
                     'state': pincode_obj.state or ''
                 }
             else:
+                # Check vendor's default ODA
+                charges = vendor.charges or {}
+                default_oda = float(charges.get('oda_charge', 0))
+                
                 results[vendor.vendor_name] = {
-                    'is_oda': False,
-                    'oda_category': None,
-                    'oda_charge_per_kg': 0,
-                    'oda_min_charge': 0,
+                    'is_oda': default_oda > 0,
+                    'oda_category': 'DEFAULT' if default_oda > 0 else None,
+                    'oda_charge_per_kg': default_oda,
+                    'oda_min_charge': default_oda * 100 if default_oda > 0 else 0,
                     'city': '',
                     'state': ''
                 }
@@ -560,7 +599,7 @@ def get_vendor_pincode_stats(request, vendor_name):
 
 
 # ============================================
-# BULK PINCODE UPLOAD (IMPROVED - CSV SUPPORT)
+# BULK PINCODE UPLOAD
 # ============================================
 
 @api_view(["POST"])
@@ -669,7 +708,7 @@ def bulk_upload_pincodes(request, vendor_name):
 
 
 # ============================================
-# DOWNLOAD PINCODE TEMPLATE (NEW)
+# DOWNLOAD PINCODE TEMPLATE
 # ============================================
 
 @api_view(["GET"])
@@ -688,13 +727,25 @@ def download_pincode_template(request, vendor_name):
         writer = csv.writer(response)
         writer.writerow(['pincode', 'city', 'state', 'is_oda', 'oda_category', 'oda_charge_per_kg', 'oda_min_charge', 'is_serviceable'])
         
-        # Add sample rows
-        samples = [
-            ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', '400', 'TRUE'],
-            ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', '200', 'TRUE'],
-            ['124105', 'Jhajjar', 'Haryana', 'TRUE', 'A', '2', '200', 'TRUE'],
-            ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
-        ]
+        # Add sample rows based on vendor
+        if 'BLUE DART' in vendor_name:
+            samples = [
+                ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '5', '3000', 'TRUE'],
+                ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '5', '3000', 'TRUE'],
+                ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
+            ]
+        elif 'DELIVERY' in vendor_name:
+            samples = [
+                ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '3', '500', 'TRUE'],
+                ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '3', '500', 'TRUE'],
+                ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
+            ]
+        else:
+            samples = [
+                ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', '400', 'TRUE'],
+                ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', '200', 'TRUE'],
+                ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
+            ]
         
         for sample in samples:
             writer.writerow(sample)
@@ -754,7 +805,7 @@ def get_pincode_location(request, pincode):
 
 
 # ============================================
-# VENDOR RATE CALCULATOR (UPDATED WITH ODA)
+# VENDOR RATE CALCULATOR
 # ============================================
 
 @api_view(["POST"])
@@ -778,52 +829,69 @@ def calculate_all_vendor_rates(request):
         if weight <= 0:
             return Response({"error": "Weight must be greater than 0"}, status=400)
         
-        # Calculate volumetric weight
+        # Calculate volume in CFT
         volume_cft = (length * width * height) / (30.48 * 30.48 * 30.48) if length and width and height else 0
-        volumetric_weight = volume_cft * 10
-        charged_weight = max(weight, volumetric_weight)
         
         # Get zones from pincode
         from_zone = get_zone_from_pincode(origin_pincode)
         to_zone = get_zone_from_pincode(destination_pincode)
         
-        logger.info(f"Calculating rates: {origin_pincode}({from_zone}) → {destination_pincode}({to_zone}), Weight: {charged_weight}kg")
+        logger.info(f"Calculating rates: {origin_pincode}({from_zone}) → {destination_pincode}({to_zone}), Weight: {weight}kg, Volume: {volume_cft} CFT")
         
         # Get all active vendors
         vendors = VendorRate.objects.filter(is_active=True)
         
         results = []
         for vendor in vendors:
+            vendor_name = vendor.vendor_name
+            
             # Check ODA for destination
             oda_info = check_oda_for_vendor(vendor, destination_pincode)
             
             if oda_info.get('is_oda'):
-                logger.info(f"ODA Applied for {vendor.vendor_name}: Category {oda_info.get('category')}, Charge: ₹{oda_info.get('charge_per_kg')}/kg, Min: ₹{oda_info.get('min_charge')}")
+                logger.info(f"ODA Applied for {vendor_name}: Category {oda_info.get('category')}, Charge: ₹{oda_info.get('charge_per_kg')}/kg, Min: ₹{oda_info.get('min_charge')}")
             
-            # Calculate rates for different CFT options for Delhivery
-            if vendor.vendor_name == 'DELHIVERY':
+            # Calculate rates based on vendor type
+            if vendor_name == 'DELHIVERY':
                 # 6 CFT Rate
-                rate_6cft = calculate_vendor_freight(vendor, from_zone, to_zone, charged_weight, volume_cft, '6cft', oda_info)
+                rate_6cft = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, '6cft', oda_info)
                 if rate_6cft and rate_6cft.get('rate_per_kg', 0) > 0:
                     results.append(rate_6cft)
                 
                 # 10 CFT Rate
-                rate_10cft = calculate_vendor_freight(vendor, from_zone, to_zone, charged_weight, volume_cft, '10cft', oda_info)
+                rate_10cft = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, '10cft', oda_info)
                 if rate_10cft and rate_10cft.get('rate_per_kg', 0) > 0:
                     results.append(rate_10cft)
                 
                 # Standard Rate
-                rate_standard = calculate_vendor_freight(vendor, from_zone, to_zone, charged_weight, volume_cft, 'standard', oda_info)
+                rate_standard = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, 'standard', oda_info)
                 if rate_standard and rate_standard.get('rate_per_kg', 0) > 0:
                     results.append(rate_standard)
+                    
+            elif vendor_name in ['SHIPSHOPY BLUE DART', 'SHIPSHOPY DELIVERY']:
+                # Shipshopy vendors - standard rate only
+                rate = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, 'standard', oda_info)
+                if rate and rate.get('rate_per_kg', 0) > 0:
+                    results.append(rate)
+                    
             else:
                 # Other vendors - standard rate only
-                rate = calculate_vendor_freight(vendor, from_zone, to_zone, charged_weight, volume_cft, 'standard', oda_info)
+                rate = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, 'standard', oda_info)
                 if rate and rate.get('rate_per_kg', 0) > 0:
                     results.append(rate)
         
         # Sort by total freight
         results.sort(key=lambda x: x.get('total_freight', 999999))
+        
+        # Calculate charged weight with divisor
+        charged_weight = weight
+        for vendor in vendors:
+            charges = vendor.charges or {}
+            divisor = charges.get('divisor', 5000)
+            if divisor and volume_cft > 0:
+                volumetric_weight = volume_cft * (divisor / 10)
+                charged_weight = max(weight, volumetric_weight)
+            break
         
         return Response({
             'success': True,
@@ -832,7 +900,6 @@ def calculate_all_vendor_rates(request):
             'from_zone': from_zone,
             'to_zone': to_zone,
             'weight': weight,
-            'volumetric_weight': round(volumetric_weight, 2),
             'charged_weight': round(charged_weight, 2),
             'volume_cft': round(volume_cft, 2),
             'vendor_rates': results,
@@ -864,8 +931,6 @@ def compare_vendors(request):
         height = float(data.get('height', 0))
         
         volume_cft = (length * width * height) / (30.48 * 30.48 * 30.48)
-        volumetric_weight = volume_cft * 10
-        charged_weight = max(weight, volumetric_weight)
         
         from_zone = get_zone_from_pincode(origin_pincode)
         to_zone = get_zone_from_pincode(destination_pincode)
@@ -875,7 +940,7 @@ def compare_vendors(request):
         comparison = []
         for vendor in vendors:
             oda_info = check_oda_for_vendor(vendor, destination_pincode)
-            rate_info = calculate_vendor_freight(vendor, from_zone, to_zone, charged_weight, volume_cft, 'standard', oda_info)
+            rate_info = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, 'standard', oda_info)
             if rate_info:
                 comparison.append({
                     'vendor': vendor.vendor_name,
@@ -892,7 +957,7 @@ def compare_vendors(request):
             'origin': origin_pincode,
             'destination': destination_pincode,
             'weight': weight,
-            'charged_weight': round(charged_weight, 2),
+            'charged_weight': round(weight, 2),
             'comparison': comparison,
             'recommended': comparison[0] if comparison else None
         })
@@ -902,7 +967,23 @@ def compare_vendors(request):
 
 
 # ============================================
-# REST OF THE FUNCTIONS (unchanged)
+# TEST API ENDPOINT
+# ============================================
+
+@api_view(["GET"])
+def test_api(request):
+    """Simple test endpoint to check if API is working"""
+    return Response({
+        'success': True,
+        'message': 'API is working!',
+        'timestamp': datetime.now().isoformat(),
+        'vendors_count': VendorRate.objects.count(),
+        'pincodes_count': VendorPincode.objects.count()
+    })
+
+
+# ============================================
+# REMAINING FUNCTIONS (unchanged)
 # ============================================
 
 @api_view(["POST"])

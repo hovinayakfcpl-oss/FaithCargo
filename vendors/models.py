@@ -17,6 +17,8 @@ class VendorRate(models.Model):
         ('VXPRESS', 'V-Express'),
         ('FCPL', 'Faith Cargo'),
         ('XPRESSBEES', 'XpressBees'),
+        ('SHIPSHOPY BLUE DART', 'Shipshopy Blue Dart'),
+        ('SHIPSHOPY DELIVERY', 'Shipshopy Delhivery'),
     ]
     
     vendor_name = models.CharField(
@@ -48,7 +50,7 @@ class VendorRate(models.Model):
     # Additional charges
     charges = models.JSONField(
         default=dict,
-        help_text="Additional charges like docket, FSC, GST, FOV, minimum freight etc."
+        help_text="Additional charges like docket, FSC, GST, FOV, minimum freight, divisor, etc."
     )
     
     # Timestamps
@@ -90,6 +92,14 @@ class VendorRate(models.Model):
     def get_default_oda_charge(self):
         """Get default ODA charge from vendor settings"""
         return float(self.charges.get('oda_charge', 0))
+    
+    def get_divisor(self):
+        """Get volumetric divisor from charges"""
+        return self.charges.get('divisor', 5000)
+    
+    def get_min_freight(self):
+        """Get minimum freight from charges"""
+        return self.charges.get('min_freight', 350)
 
 
 # ============================================
@@ -168,7 +178,7 @@ class VendorPincode(models.Model):
             models.Index(fields=['vendor', 'pincode']),
             models.Index(fields=['is_oda']),
             models.Index(fields=['oda_category']),
-            models.Index(fields=['pincode']),  # For faster lookups
+            models.Index(fields=['pincode']),
         ]
     
     def __str__(self):
@@ -279,11 +289,15 @@ class ZoneMaster(models.Model):
         ('N2', 'North Zone 2'),
         ('N3', 'North Zone 3'),
         ('C1', 'Central Zone 1'),
+        ('C2', 'Central Zone 2'),
         ('W1', 'West Zone 1'),
         ('W2', 'West Zone 2'),
         ('S1', 'South Zone 1'),
         ('S2', 'South Zone 2'),
+        ('S3', 'South Zone 3'),
+        ('S4', 'South Zone 4'),
         ('E1', 'East Zone 1'),
+        ('E2', 'East Zone 2'),
         ('NE1', 'North East Zone 1'),
         ('NE2', 'North East Zone 2'),
         ('NE3', 'North East Zone 3'),
@@ -404,7 +418,7 @@ class VendorServiceRate(models.Model):
 
 
 # ============================================
-# BULK UPLOAD LOG MODEL (NEW)
+# BULK UPLOAD LOG MODEL
 # ============================================
 
 class BulkUploadLog(models.Model):
@@ -443,3 +457,41 @@ class BulkUploadLog(models.Model):
     
     def __str__(self):
         return f"{self.upload_type} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+
+
+# ============================================
+# SHIPSHOPY VENDOR MIXIN (Helper methods)
+# ============================================
+
+class ShipshopyVendorMixin:
+    """Mixin for Shipshopy vendor specific methods"""
+    
+    def is_shipshopy_vendor(self):
+        """Check if vendor is Shipshopy"""
+        return self.vendor_name in ['SHIPSHOPY BLUE DART', 'SHIPSHOPY DELIVERY']
+    
+    def get_shipshopy_divisor(self):
+        """Get Shipshopy specific divisor"""
+        if self.vendor_name == 'SHIPSHOPY BLUE DART':
+            return self.charges.get('divisor', 4500)
+        elif self.vendor_name == 'SHIPSHOPY DELIVERY':
+            return self.charges.get('divisor', 4500)
+        return 5000
+    
+    def get_shipshopy_oda(self):
+        """Get Shipshopy specific ODA charges"""
+        if self.vendor_name == 'SHIPSHOPY BLUE DART':
+            return {
+                'charge_per_kg': self.charges.get('oda_charge', 5),
+                'min_charge': self.charges.get('oda_min_charge', 3000)
+            }
+        elif self.vendor_name == 'SHIPSHOPY DELIVERY':
+            return {
+                'charge_per_kg': self.charges.get('oda_charge', 3),
+                'min_charge': self.charges.get('oda_min_charge', 500)
+            }
+        return {'charge_per_kg': 0, 'min_charge': 0}
+
+
+# Add mixin to VendorRate (optional - can be used in views)
+# You can use these methods in views by checking vendor.vendor_name
