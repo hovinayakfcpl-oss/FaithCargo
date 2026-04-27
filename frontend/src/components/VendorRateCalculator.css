@@ -1,7 +1,7 @@
 /* ============================================
-   VENDOR RATE CALCULATOR - PREMIUM UI v6.0
+   VENDOR RATE CALCULATOR - PREMIUM UI v7.0
    ULTIMATE DESIGN | GLASS MORPHISM | MODERN LAYOUT
-   Added: Error States, Example Buttons, Expand/Collapse, API Status
+   Added: ODA Status Info, Better Expand/Collapse, Enhanced Results
    Developed by Devora Technologies
    ============================================ */
 
@@ -128,6 +128,24 @@
   margin-top: 12px;
   display: inline-block;
   animation: pulse 2s infinite;
+}
+
+/* ODA Status Info - NEW */
+.oda-status-info {
+  background: linear-gradient(135deg, var(--primary-blue-light), white);
+  border: 1px solid var(--primary-blue);
+  color: var(--primary-blue);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  margin-top: 12px;
+  display: inline-block;
+  font-weight: 500;
+}
+
+.oda-status-info strong {
+  color: var(--primary-red);
+  font-weight: 700;
 }
 
 /* --------------------------------------------
@@ -681,6 +699,25 @@
   cursor: help;
 }
 
+/* ODA Yes/No Badges - UPDATED */
+.oda-yes {
+  background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-dark));
+  color: white;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.oda-no {
+  background: linear-gradient(135deg, var(--primary-green), var(--primary-green-dark));
+  color: white;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .vendor-total {
   font-size: 24px;
   font-weight: 900;
@@ -691,11 +728,12 @@
 .vendor-breakdown {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.3s ease;
+  transition: max-height 0.3s ease-out;
 }
 
 .vendor-breakdown.expanded {
   max-height: 500px;
+  transition: max-height 0.5s ease-in;
 }
 
 .expand-hint {
@@ -782,25 +820,6 @@
   color: var(--text-gray);
   margin-top: 4px;
   font-weight: normal;
-}
-
-/* ODA Status Indicators */
-.oda-yes {
-  background: linear-gradient(135deg, var(--primary-orange-light), #fff3e0);
-  color: var(--primary-orange-dark);
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.oda-no {
-  background: var(--primary-green-light);
-  color: var(--primary-green);
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  font-size: 10px;
-  font-weight: 700;
 }
 
 /* --------------------------------------------
