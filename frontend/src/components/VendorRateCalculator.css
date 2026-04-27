@@ -1,7 +1,7 @@
 /* ============================================
-   VENDOR RATE CALCULATOR - PREMIUM UI v7.0
+   VENDOR RATE CALCULATOR - PREMIUM UI v8.0
    ULTIMATE DESIGN | GLASS MORPHISM | MODERN LAYOUT
-   Added: ODA Status Info, Better Expand/Collapse, Enhanced Results
+   Added: Zone Display, Charged Weight, Volumetric Info
    Developed by Devora Technologies
    ============================================ */
 
@@ -24,6 +24,8 @@
   --primary-orange: #f59e0b;
   --primary-orange-light: #fef3c7;
   --primary-orange-dark: #d97706;
+  --primary-teal: #14b8a6;
+  --primary-teal-light: #ccfbf1;
   --dark-bg: #0f172a;
   --dark-bg-light: #1e293b;
   --text-dark: #0f172a;
@@ -130,7 +132,7 @@
   animation: pulse 2s infinite;
 }
 
-/* ODA Status Info - NEW */
+/* ODA Status Info */
 .oda-status-info {
   background: linear-gradient(135deg, var(--primary-blue-light), white);
   border: 1px solid var(--primary-blue);
@@ -284,12 +286,20 @@
   margin-top: 4px;
 }
 
-/* Location Hint */
+/* Location & Zone Hints */
 .location-hint {
   display: block;
   font-size: 10px;
   color: var(--primary-green);
   margin-top: 4px;
+  font-weight: 500;
+}
+
+.zone-hint {
+  display: block;
+  font-size: 10px;
+  color: var(--primary-teal);
+  margin-top: 2px;
   font-weight: 500;
 }
 
@@ -312,6 +322,16 @@
   display: block;
   margin-bottom: 16px;
   letter-spacing: 0.5px;
+}
+
+.dimension-hint {
+  margin-bottom: 12px;
+  padding: 6px 10px;
+  background: var(--primary-teal-light);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  color: var(--primary-teal);
+  text-align: center;
 }
 
 .dimension-row {
@@ -552,6 +572,12 @@
   font-weight: 700;
 }
 
+.calc-info span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* --------------------------------------------
    11. EMPTY STATE WITH EXAMPLES
    -------------------------------------------- */
@@ -690,7 +716,6 @@
 }
 
 .oda-badge {
-  background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-dark));
   color: white;
   padding: 3px 10px;
   border-radius: var(--radius-full);
@@ -699,23 +724,12 @@
   cursor: help;
 }
 
-/* ODA Yes/No Badges - UPDATED */
 .oda-yes {
   background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-dark));
-  color: white;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  font-size: 10px;
-  font-weight: 700;
 }
 
 .oda-no {
   background: linear-gradient(135deg, var(--primary-green), var(--primary-green-dark));
-  color: white;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  font-size: 10px;
-  font-weight: 700;
 }
 
 .vendor-total {
@@ -1232,6 +1246,7 @@
 .text-green { color: var(--primary-green); }
 .text-orange { color: var(--primary-orange); }
 .text-purple { color: var(--primary-purple); }
+.text-teal { color: var(--primary-teal); }
 .mt-2 { margin-top: 8px; }
 .mt-3 { margin-top: 12px; }
 .mt-4 { margin-top: 16px; }
@@ -1261,4 +1276,16 @@
 .focus-ring-outline:focus {
   outline: 2px solid var(--primary-red);
   outline-offset: 2px;
+}
+
+/* Volumetric Info Badge */
+.volumetric-badge {
+  display: inline-block;
+  background: var(--primary-teal-light);
+  color: var(--primary-teal);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 9px;
+  font-weight: 600;
+  margin-left: 8px;
 }
