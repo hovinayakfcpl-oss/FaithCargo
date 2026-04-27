@@ -39,6 +39,22 @@ function VendorRateCalculator() {
   const [apiStatus, setApiStatus] = useState({ online: true, lastCheck: null });
   const [expandedVendor, setExpandedVendor] = useState(null);
 
+  // ✅ Dimension functions - ADD THESE
+  const addDimension = () => {
+    setDimensions([...dimensions, { qty: 1, length: "", width: "", height: "" }]);
+  };
+
+  const removeDimension = (index) => {
+    const newDims = dimensions.filter((_, i) => i !== index);
+    setDimensions(newDims);
+  };
+
+  const updateDimension = (index, field, value) => {
+    const newDims = [...dimensions];
+    newDims[index][field] = value;
+    setDimensions(newDims);
+  };
+
   // Fetch all vendors on load
   useEffect(() => {
     fetchVendors();
@@ -137,7 +153,6 @@ function VendorRateCalculator() {
         setOdaCache(prev => ({ ...prev, [cacheKey]: result }));
         return result;
       } else if (retryCount < 2) {
-        // Retry after 1 second
         await new Promise(resolve => setTimeout(resolve, 1000));
         return checkODA(vendorName, pincode, retryCount + 1);
       }
@@ -443,7 +458,7 @@ function VendorRateCalculator() {
                   placeholder="e.g., 110001" 
                   value={pickup} 
                   onChange={(e) => setPickup(e.target.value.replace(/\D/g, ''))} 
-                  className={pickup && !isValidPincode(pickup) ? 'error-input' : ''}
+                  className={pickup && !isValidPincode(pickup) && pickup.length > 0 ? 'error-input' : ''}
                 />
                 {originLocation && <small className="location-hint">📍 {originLocation}</small>}
                 {pickup && !isValidPincode(pickup) && pickup.length > 0 && (
@@ -458,7 +473,7 @@ function VendorRateCalculator() {
                   placeholder="e.g., 212217" 
                   value={destination} 
                   onChange={(e) => setDestination(e.target.value.replace(/\D/g, ''))} 
-                  className={destination && !isValidPincode(destination) ? 'error-input' : ''}
+                  className={destination && !isValidPincode(destination) && destination.length > 0 ? 'error-input' : ''}
                 />
                 {destLocation && <small className="location-hint">📍 {destLocation}</small>}
                 {destination && !isValidPincode(destination) && destination.length > 0 && (
@@ -632,7 +647,7 @@ function VendorRateCalculator() {
                   {results.map((vendor, idx) => (
                     <div 
                       key={idx} 
-                      className={`vendor-result ${bestVendor?.vendor_name === vendor.vendor_name && bestVendor?.cft_type === vendor.cft_type ? 'is-best' : ''} ${expandedVendor === idx ? 'expanded' : ''}`}
+                      className={`vendor-result ${bestVendor?.vendor_name === vendor.vendor_name && bestVendor?.cft_type === vendor.cft_type ? 'is-best' : ''}`}
                     >
                       <div className="vendor-result-header" onClick={() => toggleExpanded(idx)}>
                         <div className="vendor-name">

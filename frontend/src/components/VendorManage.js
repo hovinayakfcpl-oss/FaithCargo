@@ -38,6 +38,8 @@ function VendorManage() {
   const [csvPreview, setCsvPreview] = useState([]);
   const [csvUploading, setCsvUploading] = useState(false);
 
+  // ✅ No dimensions state needed for VendorManage - removed to avoid errors
+
   // Fetch all vendors on load
   useEffect(() => {
     fetchVendors();
