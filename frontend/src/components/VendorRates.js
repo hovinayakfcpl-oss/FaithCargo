@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import "./VendorRateCalculator.css";
 
 // API Base URL
@@ -18,6 +18,13 @@ const ODA_CATEGORIES = {
 
 // ✅ Vendors that support CFT rates
 const CFT_SUPPORTED_VENDORS = ["DELHIVERY", "RIVIGO", "PD LOGISTICS"];
+
+// ✅ Only show these CFT types for supported vendors
+const CFT_TYPES = [
+  { type: "6CFT", label: "6 CFT" },
+  { type: "10CFT", label: "10 CFT" },
+  { type: "Standard", label: "Standard" }
+];
 
 function VendorRateCalculator() {
   // State declarations
@@ -42,7 +49,6 @@ function VendorRateCalculator() {
   const [odaCache, setOdaCache] = useState({});
   const [apiStatus, setApiStatus] = useState({ online: true, lastCheck: null });
   const [expandedVendor, setExpandedVendor] = useState(null);
-  const [odaDebug, setOdaDebug] = useState([]);
 
   // Dimension functions
   const addDimension = () => {
@@ -134,72 +140,67 @@ function VendorRateCalculator() {
     }
   };
 
-  // ODA Check with retry logic
-  const checkODA = useCallback(async (vendorName, pincode, retryCount = 0) => {
-    const cacheKey = `${vendorName}_${pincode}`;
-    
-    if (odaCache[cacheKey]) {
-      return odaCache[cacheKey];
-    }
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/vendors/check-oda/${vendorName}/${pincode}/`);
+  // ✅ OPTIMIZED ODA Check with parallel requests
+  const checkODAForAllVendors = useCallback(async (vendorsList, pincode) => {
+    const promises = vendorsList.map(async (vendor) => {
+      const cacheKey = `${vendor.vendor_name}_${pincode}`;
       
-      if (response.ok) {
-        const data = await response.json();
+      if (odaCache[cacheKey]) {
+        return { vendorName: vendor.vendor_name, result: odaCache[cacheKey] };
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/vendors/check-oda/${vendor.vendor_name}/${pincode}/`);
         
-        let result = {
-          isODA: false,
-          charge: 0,
-          minCharge: 0,
-          category: null,
-          city: '',
-          state: ''
-        };
-        
-        if (data.is_oda === true) {
-          result = {
-            isODA: true,
-            charge: parseFloat(data.oda_charge_per_kg) || 0,
-            minCharge: parseFloat(data.oda_min_charge) || 0,
-            category: data.oda_category,
-            city: data.city || '',
-            state: data.state || ''
+        if (response.ok) {
+          const data = await response.json();
+          let result = {
+            isODA: false,
+            charge: 0,
+            minCharge: 0,
+            category: null
           };
-        } else if (data.oda_charge_per_kg > 0) {
-          result = {
-            isODA: true,
-            charge: parseFloat(data.oda_charge_per_kg) || 0,
-            minCharge: parseFloat(data.oda_min_charge) || 0,
-            category: 'DEFAULT',
-            city: data.city || '',
-            state: data.state || ''
-          };
+          
+          if (data.is_oda === true) {
+            result = {
+              isODA: true,
+              charge: parseFloat(data.oda_charge_per_kg) || 0,
+              minCharge: parseFloat(data.oda_min_charge) || 0,
+              category: data.oda_category
+            };
+          } else if (data.oda_charge_per_kg > 0) {
+            result = {
+              isODA: true,
+              charge: parseFloat(data.oda_charge_per_kg) || 0,
+              minCharge: parseFloat(data.oda_min_charge) || 0,
+              category: 'DEFAULT'
+            };
+          }
+          
+          setOdaCache(prev => ({ ...prev, [cacheKey]: result }));
+          return { vendorName: vendor.vendor_name, result };
         }
-        
-        setOdaCache(prev => ({ ...prev, [cacheKey]: result }));
-        setOdaDebug(prev => [...prev, { vendor: vendorName, pincode, result, timestamp: new Date() }]);
-        return result;
-      } else if (retryCount < 2) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return checkODA(vendorName, pincode, retryCount + 1);
+      } catch (err) {
+        console.error(`ODA API error for ${vendor.vendor_name}:`, err);
       }
-    } catch (err) {
-      console.error(`ODA API error for ${vendorName}:`, err);
-      if (retryCount < 2) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return checkODA(vendorName, pincode, retryCount + 1);
-      }
-    }
+      
+      return { vendorName: vendor.vendor_name, result: { isODA: false, charge: 0, minCharge: 0, category: null } };
+    });
     
-    return { isODA: false, charge: 0, minCharge: 0, category: null, city: '', state: '' };
+    const results = await Promise.all(promises);
+    const odaMap = {};
+    results.forEach(({ vendorName, result }) => {
+      odaMap[vendorName] = result;
+    });
+    return odaMap;
   }, [odaCache]);
 
   const isValidPincode = (pincode) => {
     return pincode && pincode.length === 6 && /^\d+$/.test(pincode);
   };
 
-  const calculateVolumetricWeight = () => {
+  // ✅ OPTIMIZED volumetric weight calculation
+  const calculateVolumetricWeight = useCallback(() => {
     let totalVolCM = 0;
     let totalVolCFT = 0;
     
@@ -216,7 +217,7 @@ function VendorRateCalculator() {
     });
     
     return { volumetricWeight: totalVolCM, volumeCFT: totalVolCFT };
-  };
+  }, [dimensions]);
 
   const getZoneFromPincode = (pincode) => {
     const firstDigit = pincode?.charAt(0);
@@ -229,34 +230,14 @@ function VendorRateCalculator() {
     return zoneMap[firstDigit] || 'N1';
   };
 
-  // ✅ UPDATED: Calculate rate for a single vendor with CFT support for multiple vendors
-  const calculateRateForVendor = async (vendor, fromZone, toZone, weight, volumeCFT, invoiceValue, mode, cftSize) => {
+  // ✅ OPTIMIZED rate calculation with memoization
+  const calculateRateForVendor = useCallback((vendor, fromZone, toZone, weight, finalODACharge, cftSize, odaInfo) => {
     const vendorName = vendor.vendor_name;
     const charges = vendor.charges || {};
     let ratePerKg = 0;
     let rates = vendor.rates || {};
     
-    // Check ODA for destination
-    const odaInfo = await checkODA(vendorName, destination);
-    
-    // Calculate ODA charge
-    let finalODACharge = 0;
-    let odaBreakdown = null;
-    
-    if (odaInfo.isODA && odaInfo.charge > 0) {
-      const odaCalc = weight * odaInfo.charge;
-      finalODACharge = Math.max(odaCalc, odaInfo.minCharge);
-      odaBreakdown = {
-        rate: odaInfo.charge,
-        calculated: odaCalc,
-        minCharge: odaInfo.minCharge,
-        applied: finalODACharge,
-        category: odaInfo.category
-      };
-      console.log(`✅ ODA Applied for ${vendorName}: ${odaInfo.category || 'ODA'} - ₹${finalODACharge}`);
-    }
-    
-    // ✅ FIX: Get CFT rates for supported vendors
+    // Get CFT rates for supported vendors
     const hasCFTSupport = CFT_SUPPORTED_VENDORS.includes(vendorName);
     
     if (hasCFTSupport) {
@@ -321,13 +302,13 @@ function VendorRateCalculator() {
       oda_category: odaInfo.category,
       oda_rate_per_kg: odaInfo.charge,
       oda_min_charge: odaInfo.minCharge,
-      oda_breakdown: odaBreakdown,
       min_freight: minFreight,
       total_freight: totalFreight
     };
-  };
+  }, [mode, invoiceValue]);
 
   const handleCalculate = async () => {
+    // Validation
     if (!pickup || !destination || !weight) {
       alert("❌ Please fill mandatory fields: Origin, Destination, and Weight!");
       return;
@@ -349,7 +330,6 @@ function VendorRateCalculator() {
     }
 
     setLoading(true);
-    setOdaDebug([]);
     
     try {
       const { volumetricWeight, volumeCFT: calculatedVolumeCFT } = calculateVolumetricWeight();
@@ -362,6 +342,7 @@ function VendorRateCalculator() {
       setOriginZone(fromZone);
       setDestZone(toZone);
       
+      // Fetch location names in parallel
       await Promise.all([
         fetchPincodeLocation(pickup, "origin"),
         fetchPincodeLocation(destination, "dest")
@@ -371,31 +352,46 @@ function VendorRateCalculator() {
         (showAllVendors || selectedVendors.includes(v.vendor_name)) && v.is_active !== false
       );
       
+      // ✅ OPTIMIZED: Get all ODA data in parallel first
+      const odaDataMap = await checkODAForAllVendors(activeVendors, destination);
+      
       const calculatedResults = [];
       
-      // ✅ FIX: Process vendors with CFT support check
+      // ✅ Process vendors with ODA data already available
       for (const vendor of activeVendors) {
         const vendorName = vendor.vendor_name;
+        const odaInfo = odaDataMap[vendorName] || { isODA: false, charge: 0, minCharge: 0, category: null };
+        
+        // Calculate ODA charge
+        let finalODACharge = 0;
+        if (odaInfo.isODA && odaInfo.charge > 0) {
+          finalODACharge = Math.max(weight * odaInfo.charge, odaInfo.minCharge);
+        }
+        
         const hasCFTSupport = CFT_SUPPORTED_VENDORS.includes(vendorName);
         
         if (hasCFTSupport) {
-          // Show 6CFT, 10CFT, and Standard rates for supported vendors
-          const rate6CFT = await calculateRateForVendor(vendor, fromZone, toZone, finalChargeableWeight, calculatedVolumeCFT, parseFloat(invoiceValue) || 0, mode, "6CFT");
-          if (rate6CFT.rate_per_kg > 0) calculatedResults.push(rate6CFT);
+          // ✅ Show only 6 CFT and 10 CFT for supported vendors (not Standard)
+          const rate6CFT = calculateRateForVendor(vendor, fromZone, toZone, finalChargeableWeight, finalODACharge, "6CFT", odaInfo);
+          if (rate6CFT.rate_per_kg > 0) calculatedResults.push({ ...rate6CFT, display_order: 1 });
           
-          const rate10CFT = await calculateRateForVendor(vendor, fromZone, toZone, finalChargeableWeight, calculatedVolumeCFT, parseFloat(invoiceValue) || 0, mode, "10CFT");
-          if (rate10CFT.rate_per_kg > 0) calculatedResults.push(rate10CFT);
-          
-          const rateStandard = await calculateRateForVendor(vendor, fromZone, toZone, finalChargeableWeight, calculatedVolumeCFT, parseFloat(invoiceValue) || 0, mode, "Standard");
-          if (rateStandard.rate_per_kg > 0) calculatedResults.push(rateStandard);
+          const rate10CFT = calculateRateForVendor(vendor, fromZone, toZone, finalChargeableWeight, finalODACharge, "10CFT", odaInfo);
+          if (rate10CFT.rate_per_kg > 0) calculatedResults.push({ ...rate10CFT, display_order: 2 });
         } else {
           // Other vendors - standard rate only
-          const rate = await calculateRateForVendor(vendor, fromZone, toZone, finalChargeableWeight, calculatedVolumeCFT, parseFloat(invoiceValue) || 0, mode, "Standard");
-          if (rate.rate_per_kg > 0) calculatedResults.push(rate);
+          const rate = calculateRateForVendor(vendor, fromZone, toZone, finalChargeableWeight, finalODACharge, "Standard", odaInfo);
+          if (rate.rate_per_kg > 0) calculatedResults.push({ ...rate, display_order: 0 });
         }
       }
       
-      calculatedResults.sort((a, b) => a.total_freight - b.total_freight);
+      // Sort by total freight then display order
+      calculatedResults.sort((a, b) => {
+        if (a.total_freight !== b.total_freight) {
+          return a.total_freight - b.total_freight;
+        }
+        return (a.display_order || 0) - (b.display_order || 0);
+      });
+      
       setResults(calculatedResults);
       setCalculationDetails({
         from_zone: fromZone,
@@ -404,8 +400,6 @@ function VendorRateCalculator() {
         charged_weight: finalChargeableWeight,
         volume_cft: calculatedVolumeCFT
       });
-      
-      console.log("📊 Calculation complete. Results:", calculatedResults.length);
       
     } catch (error) {
       console.error("Calculation error:", error);
@@ -429,7 +423,6 @@ function VendorRateCalculator() {
     setOriginLocation("");
     setDestLocation("");
     setOdaCache({});
-    setOdaDebug([]);
     setExpandedVendor(null);
   };
 
@@ -676,91 +669,93 @@ function VendorRateCalculator() {
 
                 {/* Results List */}
                 <div className="results-list">
-                  {results.map((vendor, idx) => (
-                    <div 
-                      key={idx} 
-                      className={`vendor-result ${bestVendor?.vendor_name === vendor.vendor_name && bestVendor?.cft_type === vendor.cft_type ? 'is-best' : ''}`}
-                    >
-                      <div className="vendor-result-header" onClick={() => toggleExpanded(idx)}>
-                        <div className="vendor-name">
-                          {vendor.vendor_name}
-                          {vendor.cft_type && vendor.cft_type !== "Standard" && (
-                            <span className="cft-badge">{vendor.cft_type}</span>
-                          )}
-                          {vendor.oda_applicable ? (
-                            <span className="oda-badge oda-yes" style={{ backgroundColor: ODA_CATEGORIES[vendor.oda_category]?.color || '#f59e0b' }}>
-                              🚚 ODA {vendor.oda_category || 'Yes'} (+₹{vendor.oda_charge?.toFixed(2)})
-                            </span>
-                          ) : (
-                            <span className="oda-badge oda-no">
-                              ✅ No ODA
-                            </span>
-                          )}
-                        </div>
-                        <div className="vendor-total">₹{vendor.total_freight?.toFixed(2)}</div>
-                      </div>
-                      
-                      <div className={`vendor-breakdown ${expandedVendor === idx ? 'expanded' : ''}`}>
-                        <div className="breakdown-row">
-                          <span>Rate/kg:</span>
-                          <strong>₹{vendor.rate_per_kg?.toFixed(2)}</strong>
-                        </div>
-                        <div className="breakdown-row">
-                          <span>Effective Weight:</span>
-                          <span>{vendor.effective_weight?.toFixed(2)} kg</span>
-                        </div>
-                        <div className="breakdown-row">
-                          <span>Base Freight:</span>
-                          <span>₹{vendor.base_freight?.toFixed(2)}</span>
-                        </div>
-                        <div className="breakdown-row">
-                          <span>Docket Charge:</span>
-                          <span>₹{vendor.docket_charge?.toFixed(2)}</span>
-                        </div>
-                        <div className="breakdown-row">
-                          <span>FSC ({vendor.fsc_percent}%):</span>
-                          <span>₹{vendor.fsc_amount?.toFixed(2)}</span>
-                        </div>
-                        {vendor.oda_applicable && (
-                          <div className="breakdown-row oda-highlight">
-                            <span>{vendor.oda_category ? `ODA ${vendor.oda_category} (${vendor.oda_rate_per_kg}/kg):` : 'ODA Charge:'}</span>
-                            <span>₹{vendor.oda_charge?.toFixed(2)}</span>
-                            {vendor.oda_breakdown && (
-                              <small className="oda-detail">
-                                (₹{vendor.oda_breakdown.rate} × {vendor.effective_weight?.toFixed(0)}kg = ₹{vendor.oda_breakdown.calculated?.toFixed(2)}, Min ₹{vendor.oda_breakdown.minCharge})
-                              </small>
+                  {results.map((vendor, idx) => {
+                    // Determine if this is a CFT vendor (show without Standard)
+                    const isCFTVendor = CFT_SUPPORTED_VENDORS.includes(vendor.vendor_name);
+                    // Skip Standard rate for CFT vendors
+                    if (isCFTVendor && !vendor.cft_type) return null;
+                    
+                    return (
+                      <div 
+                        key={idx} 
+                        className={`vendor-result ${bestVendor?.vendor_name === vendor.vendor_name && bestVendor?.cft_type === vendor.cft_type ? 'is-best' : ''}`}
+                      >
+                        <div className="vendor-result-header" onClick={() => toggleExpanded(idx)}>
+                          <div className="vendor-name">
+                            {vendor.vendor_name}
+                            {vendor.cft_type && vendor.cft_type !== "Standard" && (
+                              <span className="cft-badge">{vendor.cft_type}</span>
+                            )}
+                            {vendor.oda_applicable ? (
+                              <span className="oda-badge oda-yes" style={{ backgroundColor: ODA_CATEGORIES[vendor.oda_category]?.color || '#f59e0b' }}>
+                                🚚 ODA {vendor.oda_category || 'Yes'} (+₹{vendor.oda_charge?.toFixed(2)})
+                              </span>
+                            ) : (
+                              <span className="oda-badge oda-no">
+                                ✅ No ODA
+                              </span>
                             )}
                           </div>
-                        )}
-                        <div className="breakdown-row">
-                          <span>GST ({vendor.gst_percent}%):</span>
-                          <span>₹{vendor.gst_amount?.toFixed(2)}</span>
+                          <div className="vendor-total">₹{vendor.total_freight?.toFixed(2)}</div>
                         </div>
-                        {vendor.mode_charge > 0 && (
+                        
+                        <div className={`vendor-breakdown ${expandedVendor === idx ? 'expanded' : ''}`}>
                           <div className="breakdown-row">
-                            <span>Mode Charge:</span>
-                            <span>₹{vendor.mode_charge?.toFixed(2)}</span>
+                            <span>Rate/kg:</span>
+                            <strong>₹{vendor.rate_per_kg?.toFixed(2)}</strong>
+                          </div>
+                          <div className="breakdown-row">
+                            <span>Effective Weight:</span>
+                            <span>{vendor.effective_weight?.toFixed(2)} kg</span>
+                          </div>
+                          <div className="breakdown-row">
+                            <span>Base Freight:</span>
+                            <span>₹{vendor.base_freight?.toFixed(2)}</span>
+                          </div>
+                          <div className="breakdown-row">
+                            <span>Docket Charge:</span>
+                            <span>₹{vendor.docket_charge?.toFixed(2)}</span>
+                          </div>
+                          <div className="breakdown-row">
+                            <span>FSC ({vendor.fsc_percent}%):</span>
+                            <span>₹{vendor.fsc_amount?.toFixed(2)}</span>
+                          </div>
+                          {vendor.oda_applicable && (
+                            <div className="breakdown-row oda-highlight">
+                              <span>{vendor.oda_category ? `ODA ${vendor.oda_category} (${vendor.oda_rate_per_kg}/kg):` : 'ODA Charge:'}</span>
+                              <span>₹{vendor.oda_charge?.toFixed(2)}</span>
+                            </div>
+                          )}
+                          <div className="breakdown-row">
+                            <span>GST ({vendor.gst_percent}%):</span>
+                            <span>₹{vendor.gst_amount?.toFixed(2)}</span>
+                          </div>
+                          {vendor.mode_charge > 0 && (
+                            <div className="breakdown-row">
+                              <span>Mode Charge:</span>
+                              <span>₹{vendor.mode_charge?.toFixed(2)}</span>
+                            </div>
+                          )}
+                          {vendor.fov_charge > 0 && (
+                            <div className="breakdown-row">
+                              <span>FOV/Insurance:</span>
+                              <span>₹{vendor.fov_charge?.toFixed(2)}</span>
+                            </div>
+                          )}
+                          <div className="breakdown-row total">
+                            <span>Total Freight:</span>
+                            <strong>₹{vendor.total_freight?.toFixed(2)}</strong>
+                          </div>
+                        </div>
+                        
+                        {expandedVendor !== idx && (
+                          <div className="expand-hint" onClick={() => toggleExpanded(idx)}>
+                            <span>▼ Click to expand</span>
                           </div>
                         )}
-                        {vendor.fov_charge > 0 && (
-                          <div className="breakdown-row">
-                            <span>FOV/Insurance:</span>
-                            <span>₹{vendor.fov_charge?.toFixed(2)}</span>
-                          </div>
-                        )}
-                        <div className="breakdown-row total">
-                          <span>Total Freight:</span>
-                          <strong>₹{vendor.total_freight?.toFixed(2)}</strong>
-                        </div>
                       </div>
-                      
-                      {expandedVendor !== idx && (
-                        <div className="expand-hint" onClick={() => toggleExpanded(idx)}>
-                          <span>▼ Click to expand</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 
                 <div className="disclaimer">
