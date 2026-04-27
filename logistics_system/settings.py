@@ -40,7 +40,7 @@ INSTALLED_APPS = [
 
     # third party
     'rest_framework',
-    'corsheaders',
+    'corsheaders',  # ✅ CORS app
     'rest_framework.authtoken',
     'import_export',
 
@@ -55,10 +55,13 @@ INSTALLED_APPS = [
     'shipments'
 ]
 
-# MIDDLEWARE
+# ============================================
+# ✅ MIDDLEWARE - FIXED (CORS must be FIRST)
+# ============================================
+
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # ✅ MUST be VERY FIRST
     'django.middleware.security.SecurityMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -67,12 +70,50 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# CORS SETTINGS
+# ============================================
+# ✅ CORS SETTINGS - COMPLETE
+# ============================================
+
+# Allow all origins (for testing - change in production)
 CORS_ALLOW_ALL_ORIGINS = True
 
+# Also specify specific origins
+CORS_ALLOWED_ORIGINS = [
+    "https://faith-cargo.vercel.app",
+    "https://faith-cargo.vercel.app",  # both with and without trailing slash
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# ✅ CSRF Settings - Vercel URL added
 CSRF_TRUSTED_ORIGINS = [
     "https://faith-cargo.vercel.app",
     "https://faithcargo.onrender.com",
+    "http://localhost:3000",
 ]
 
 # URL CONFIG
@@ -101,9 +142,16 @@ WSGI_APPLICATION = 'logistics_system.wsgi.application'
 # ✅ DATABASE (POSTGRESQL - RENDER)
 # ============================================
 
+# Get database URL from environment
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Fallback URL if environment variable not set
+if not DATABASE_URL:
+    DATABASE_URL = "postgresql://faithcargo_db_user:BBpJl41XxxrQ43mnodSSeQfiJrxuDzbi@dpg-d6voftfkijhs73cvfrfg-a.oregon-postgres.render.com/faithcargo_db"
+
 DATABASES = {
-    'default': dj_database_url.parse(
-        os.getenv("DATABASE_URL", "postgresql://faithcargo_db_user:BBpJl41XxxrQ43mnodSSeQfiJrxuDzbi@dpg-d6voftfkijhs73cvfrfg-a.oregon-postgres.render.com/faithcargo_db"),
+    'default': dj_database_url.config(
+        default=DATABASE_URL,
         conn_max_age=600,
         ssl_require=True
     )
@@ -164,13 +212,25 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': 'INFO',
+        'level': 'DEBUG',  # Changed to DEBUG for troubleshooting
     },
     'loggers': {
         'utils.notifications': {
             'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': False,
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        'corsheaders': {  # Added CORS logging
+            'handlers': ['console'],
+            'level': 'DEBUG',
         },
     },
 }
