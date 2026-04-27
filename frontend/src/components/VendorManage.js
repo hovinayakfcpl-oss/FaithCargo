@@ -38,7 +38,12 @@ function VendorManage() {
   const [csvPreview, setCsvPreview] = useState([]);
   const [csvUploading, setCsvUploading] = useState(false);
 
-  // ✅ No dimensions state needed for VendorManage - removed to avoid errors
+  // ✅ Invoice Upload States
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceVendor, setInvoiceVendor] = useState(null);
+  const [invoiceFile, setInvoiceFile] = useState(null);
+  const [invoiceData, setInvoiceData] = useState(null);
+  const [invoiceUploading, setInvoiceUploading] = useState(false);
 
   // Fetch all vendors on load
   useEffect(() => {
@@ -81,11 +86,102 @@ function VendorManage() {
       { id: 1, vendor_name: "DELHIVERY", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, fov: 100, min_weight: 20, cft_conversion: 6, oda_charge: 2 }, is_active: true },
       { id: 2, vendor_name: "GATI", rates: {}, charges: { docket_charge: 100, fsc: "15%", gst: "18%", min_freight: 350, fov: 100, min_weight: 20, oda_charge: 3 }, is_active: true },
       { id: 3, vendor_name: "PD LOGISTICS", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, fov: 100, min_weight: 20, cft_conversion: 6, oda_charge: 2.5 }, is_active: true },
-      { id: 4, vendor_name: "RIVIGO", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 85, fsc: "12%", gst: "18%", min_freight: 380, fov: 90, min_weight: 20, cft_conversion: 6, oda_charge: 2.2 }, is_active: true },
+      { id: 4, vendor_name: "RIVIGO", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 85, fsc: "12%", gst: "18%", min_freight: 380, fov: 90, min_weight: 20, cft_conversion: 6, oda_charge: 4 }, is_active: true },
       { id: 5, vendor_name: "VXPRESS", rates: {}, charges: { docket_charge: 50, fsc: "8%", gst: "18%", min_freight: 450, fov: 50, min_weight: 20, oda_charge: 2 }, is_active: true },
     ];
     setVendors(defaultVendors);
     updateStats(defaultVendors);
+  };
+
+  // ============================================
+  // INVOICE UPLOAD FUNCTIONS (NEW)
+  // ============================================
+  const openInvoiceModal = (vendor) => {
+    setInvoiceVendor(vendor);
+    setInvoiceFile(null);
+    setInvoiceData(null);
+    setShowInvoiceModal(true);
+  };
+
+  const handleInvoiceFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && (file.type === 'application/json' || file.name.endsWith('.json'))) {
+      setInvoiceFile(file);
+      previewInvoiceData(file);
+    } else {
+      showNotification("Please upload a valid JSON file", "error");
+    }
+  };
+
+  const previewInvoiceData = (file) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        setInvoiceData(data);
+        showNotification("✅ Invoice data loaded successfully", "success");
+      } catch (err) {
+        showNotification("❌ Invalid JSON format", "error");
+        setInvoiceData(null);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const uploadInvoiceData = async () => {
+    if (!invoiceFile || !invoiceVendor) {
+      showNotification("Please select a JSON file", "error");
+      return;
+    }
+
+    if (!invoiceData) {
+      showNotification("Invalid invoice data", "error");
+      return;
+    }
+
+    setInvoiceUploading(true);
+
+    try {
+      // Get current vendor data first
+      const getResponse = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${invoiceVendor.vendor_name}/`);
+      let currentData = {};
+      
+      if (getResponse.ok) {
+        currentData = await getResponse.json();
+      }
+
+      // Merge current charges with invoice data
+      const updatedCharges = {
+        ...currentData.charges,
+        ...invoiceData
+      };
+
+      // Update vendor with new charges
+      const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${invoiceVendor.vendor_name}/`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...currentData,
+          charges: updatedCharges
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        showNotification(`✅ Invoice uploaded successfully for ${invoiceVendor.vendor_name}!`, "success");
+        setShowInvoiceModal(false);
+        setInvoiceFile(null);
+        setInvoiceData(null);
+        fetchVendors(); // Refresh the list
+      } else {
+        const error = await response.json();
+        showNotification(`❌ Upload failed: ${error.error || "Unknown error"}`, "error");
+      }
+    } catch (err) {
+      showNotification(`❌ Network error: ${err.message}`, "error");
+    } finally {
+      setInvoiceUploading(false);
+    }
   };
 
   // ============================================
@@ -195,11 +291,9 @@ function VendorManage() {
           headers.forEach((header, idx) => {
             let value = values[idx]?.trim() || '';
             
-            // Convert boolean strings
             if (header === 'is_oda' || header === 'is_serviceable') {
               value = value.toLowerCase() === 'true' || value === '1' || value.toLowerCase() === 'yes';
             }
-            // Convert numbers
             if (header === 'oda_charge_per_kg' || header === 'oda_min_charge') {
               value = parseFloat(value) || 0;
             }
@@ -207,7 +301,6 @@ function VendorManage() {
             pincodeData[header] = value;
           });
           
-          // Validate pincode
           if (pincodeData.pincode && pincodeData.pincode.length === 6) {
             pincodes.push(pincodeData);
           }
@@ -402,6 +495,86 @@ function VendorManage() {
   const filteredVendors = vendors.filter(vendor => 
     vendor.vendor_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // ============================================
+  // INVOICE MODAL RENDER (NEW)
+  // ============================================
+  const renderInvoiceModal = () => {
+    if (!showInvoiceModal) return null;
+    
+    return (
+      <div className="modal-overlay" onClick={() => setShowInvoiceModal(false)}>
+        <div className="modal-container invoice-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>📄 Invoice Upload - {invoiceVendor?.vendor_name}</h2>
+            <button className="close-btn" onClick={() => setShowInvoiceModal(false)}>×</button>
+          </div>
+          
+          <div className="modal-body">
+            <div className="invoice-info-section">
+              <h4>📋 Invoice JSON Format Instructions:</h4>
+              <div className="json-format-box">
+                <code>
+                  {`{
+  "docket_charge": 100,
+  "fsc": "12%",
+  "gst": "18%",
+  "min_freight": 380,
+  "min_weight": 20,
+  "oda_charge": 4,
+  "oda_min_charge": 400,
+  "cod_charge": 500,
+  "to_pay_charge": 200
+}`}
+                </code>
+              </div>
+              <div className="invoice-tips">
+                <strong>💡 Tips:</strong>
+                <ul>
+                  <li>Upload JSON file with vendor charges</li>
+                  <li>Only include fields you want to update</li>
+                  <li>Existing charges will be merged</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div className="invoice-upload-section">
+              <div className="file-upload-area">
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleInvoiceFileChange}
+                  id="invoice-file-input"
+                  style={{ display: 'none' }}
+                />
+                <label htmlFor="invoice-file-input" className="file-upload-label">
+                  📁 {invoiceFile ? invoiceFile.name : "Choose JSON Invoice File"}
+                </label>
+              </div>
+              
+              {invoiceData && (
+                <div className="invoice-preview">
+                  <h4>Preview Invoice Data:</h4>
+                  <div className="preview-table-wrapper">
+                    <pre className="json-preview">
+                      {JSON.stringify(invoiceData, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="modal-footer">
+            <button className="cancel-btn" onClick={() => setShowInvoiceModal(false)}>Cancel</button>
+            <button className="upload-btn" onClick={uploadInvoiceData} disabled={!invoiceFile || invoiceUploading}>
+              {invoiceUploading ? "⏳ Uploading..." : "📤 Upload Invoice"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // ============================================
   // CSV MODAL RENDER
@@ -702,6 +875,9 @@ function VendorManage() {
             <button className="edit-btn" onClick={() => handleEditVendor(vendor)} title="Edit Vendor">
               ✏️
             </button>
+            <button className="invoice-btn" onClick={() => openInvoiceModal(vendor)} title="Upload Invoice">
+              📄
+            </button>
             {showCsvButton && (
               <button className="csv-btn" onClick={() => openCsvModal(vendor)} title="Manage ODA Pincodes">
                 📊
@@ -839,7 +1015,7 @@ function VendorManage() {
       <div className="page-header">
         <div className="header-content">
           <h1>🚚 Vendor Rate Management</h1>
-          <p>Manage zone-to-zone rates, CFT rates, and ODA charges for all logistics vendors</p>
+          <p>Manage zone-to-zone rates, CFT rates, ODA charges, and upload invoices for all logistics vendors</p>
         </div>
         <button className="add-vendor-btn" onClick={handleAddVendor}>
           + Add New Vendor
@@ -912,6 +1088,7 @@ function VendorManage() {
       
       {renderModal()}
       {renderCsvModal()}
+      {renderInvoiceModal()}
     </div>
   );
 }
