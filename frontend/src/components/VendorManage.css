@@ -1,7 +1,7 @@
 /* ============================================
-   VENDOR MANAGEMENT - PREMIUM DESIGN v3.0
+   VENDOR MANAGEMENT - PREMIUM DESIGN v4.0
    ULTIMATE UI UPGRADE | GLASS MORPHISM
-   Added: Notifications, Status Toggle, Copy Button, ODA Support
+   Added: CSV Upload/Download, ODA Categories, Enhanced Modal
    Developed by Devora Technologies
    ============================================ */
 
@@ -74,7 +74,7 @@
 }
 
 /* --------------------------------------------
-   3. NOTIFICATION SYSTEM (NEW)
+   3. NOTIFICATION SYSTEM
    -------------------------------------------- */
 .notification {
   position: fixed;
@@ -127,17 +127,6 @@
   to {
     transform: translateX(0);
     opacity: 1;
-  }
-}
-
-@keyframes slideOutRight {
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(100%);
-    opacity: 0;
   }
 }
 
@@ -414,7 +403,7 @@
   gap: 8px;
 }
 
-.edit-btn, .delete-btn, .status-toggle-btn {
+.edit-btn, .delete-btn, .status-toggle-btn, .csv-btn {
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -443,6 +432,17 @@
 .status-toggle-btn:hover {
   background: var(--primary-green-light);
   transform: scale(1.05);
+}
+
+.csv-btn {
+  background: linear-gradient(135deg, var(--primary-green), #059669);
+  color: white;
+}
+
+.csv-btn:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-green);
 }
 
 /* Vendor Card Body */
@@ -524,6 +524,12 @@
   animation: pulse 2s infinite;
 }
 
+.rivigo-badge {
+  background: linear-gradient(135deg, #fef3c7, white);
+  color: var(--primary-orange);
+  border: 1px solid var(--primary-orange);
+}
+
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -598,6 +604,11 @@
   box-shadow: var(--shadow-2xl);
 }
 
+/* CSV Modal Specific */
+.modal-container.csv-modal {
+  max-width: 900px;
+}
+
 @keyframes zoomIn {
   from {
     opacity: 0;
@@ -649,6 +660,172 @@
   flex: 1;
   overflow-y: auto;
   padding: 24px 28px;
+}
+
+/* CSV Info Section */
+.csv-info-section {
+  background: var(--bg-gray);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.csv-info-section h4 {
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 12px;
+  color: var(--text-dark);
+}
+
+.csv-format-box {
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+.csv-format-box code {
+  display: block;
+  line-height: 1.6;
+}
+
+.oda-categories-info {
+  margin-top: 16px;
+}
+
+.oda-categories-info strong {
+  font-size: 13px;
+  color: var(--text-dark);
+}
+
+.oda-categories-info ul {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.oda-categories-info li {
+  list-style: none;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.oda-cat-a {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.oda-cat-b {
+  background: #fed7aa;
+  color: #92400e;
+}
+
+.oda-cat-c {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.oda-cat-d {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+/* CSV Upload Section */
+.csv-upload-section {
+  text-align: center;
+}
+
+.download-template-btn {
+  background: linear-gradient(135deg, var(--primary-blue), #1d4ed8);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-bottom: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.download-template-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.file-upload-area {
+  margin-bottom: 20px;
+}
+
+.file-upload-label {
+  display: block;
+  background: var(--bg-gray);
+  border: 2px dashed var(--border-color);
+  padding: 16px 24px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 14px;
+  color: var(--text-gray);
+}
+
+.file-upload-label:hover {
+  border-color: var(--primary-red);
+  background: var(--primary-red-light);
+}
+
+/* CSV Preview Table */
+.csv-preview {
+  margin-top: 20px;
+}
+
+.csv-preview h4 {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--text-dark);
+}
+
+.preview-table-wrapper {
+  max-height: 300px;
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.preview-table {
+  width: 100%;
+  font-size: 11px;
+  border-collapse: collapse;
+}
+
+.preview-table th,
+.preview-table td {
+  border: 1px solid var(--border-color);
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.preview-table th {
+  background: var(--bg-gray);
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.preview-table tr:hover {
+  background: var(--bg-light);
 }
 
 /* Tabs */
@@ -959,7 +1136,7 @@
   transform: translateY(-2px);
 }
 
-.save-btn {
+.save-btn, .upload-btn {
   padding: 10px 28px;
   background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
   color: white;
@@ -970,14 +1147,24 @@
   transition: var(--transition);
 }
 
-.save-btn:hover:not(:disabled) {
+.save-btn:hover:not(:disabled),
+.upload-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: var(--shadow-red);
 }
 
-.save-btn:disabled {
+.save-btn:disabled,
+.upload-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.upload-btn {
+  background: linear-gradient(135deg, var(--primary-green), #059669);
+}
+
+.upload-btn:hover:not(:disabled) {
+  box-shadow: var(--shadow-green);
 }
 
 /* --------------------------------------------
@@ -1098,6 +1285,10 @@
     width: 95%;
   }
   
+  .modal-container.csv-modal {
+    width: 95%;
+  }
+  
   .tabs {
     flex-direction: column;
   }
@@ -1114,7 +1305,7 @@
     flex-direction: column;
   }
   
-  .cancel-btn, .save-btn {
+  .cancel-btn, .save-btn, .upload-btn {
     width: 100%;
     text-align: center;
   }
@@ -1138,6 +1329,15 @@
     right: 20px;
     left: 20px;
     max-width: none;
+  }
+  
+  .oda-categories-info ul {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .preview-table-wrapper {
+    font-size: 10px;
   }
 }
 
@@ -1226,7 +1426,7 @@
 }
 
 /* --------------------------------------------
-   12. SCROLLBAR STYLES (NEW)
+   12. SCROLLBAR STYLES
    -------------------------------------------- */
 ::-webkit-scrollbar {
   width: 8px;

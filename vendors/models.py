@@ -93,7 +93,7 @@ class VendorRate(models.Model):
 
 
 # ============================================
-# VENDOR PINCODE MODEL (FIXED)
+# VENDOR PINCODE MODEL (FULLY UPDATED)
 # ============================================
 
 class VendorPincode(models.Model):
@@ -113,7 +113,6 @@ class VendorPincode(models.Model):
         related_name='pincodes'
     )
     
-    # ⚠️ FIXED: Increased max_length to 20
     pincode = models.CharField(
         max_length=20, 
         db_index=True,
@@ -163,13 +162,13 @@ class VendorPincode(models.Model):
         db_table = 'vendor_pincodes'
         verbose_name = 'Vendor Pincode'
         verbose_name_plural = 'Vendor Pincodes'
-        # ⚠️ FIXED: Added proper unique constraint
         unique_together = ['vendor', 'pincode']
         ordering = ['vendor__vendor_name', 'pincode']
         indexes = [
             models.Index(fields=['vendor', 'pincode']),
             models.Index(fields=['is_oda']),
             models.Index(fields=['oda_category']),
+            models.Index(fields=['pincode']),  # For faster lookups
         ]
     
     def __str__(self):
@@ -186,6 +185,14 @@ class VendorPincode(models.Model):
             'D': {'per_kg': 10, 'min': 1000, 'name': 'ODA D - Extreme'},
         }
         return rates.get(self.oda_category, {'per_kg': 0, 'min': 0, 'name': 'Non-ODA'})
+    
+    def get_oda_charge(self, weight):
+        """Calculate ODA charge for given weight"""
+        if not self.is_oda:
+            return 0
+        rate_info = self.get_oda_rate()
+        calculated = weight * rate_info['per_kg']
+        return max(calculated, rate_info['min'])
 
 
 # ============================================
@@ -285,7 +292,6 @@ class ZoneMaster(models.Model):
     zone_code = models.CharField(max_length=10, unique=True, choices=ZONE_CHOICES)
     zone_name = models.CharField(max_length=100)
     
-    # ⚠️ Store as JSON but add helper method for query
     pincodes = models.JSONField(
         default=list, 
         help_text="List of pincodes in this zone"
@@ -309,6 +315,10 @@ class ZoneMaster(models.Model):
     def contains_pincode(self, pincode):
         """Check if pincode is in this zone"""
         return str(pincode) in self.pincodes
+    
+    def get_pincode_count(self):
+        """Get number of pincodes in this zone"""
+        return len(self.pincodes)
 
 
 # ============================================
@@ -377,6 +387,59 @@ class VendorServiceRate(models.Model):
         verbose_name = 'Vendor Service Rate'
         verbose_name_plural = 'Vendor Service Rates'
         unique_together = ['vendor', 'service_type']
+        indexes = [
+            models.Index(fields=['vendor', 'service_type']),
+            models.Index(fields=['is_active']),
+        ]
     
     def __str__(self):
         return f"{self.vendor.vendor_name} - {self.get_service_type_display()}"
+    
+    def get_rate(self, from_zone, to_zone):
+        """Get rate for this service type"""
+        try:
+            return self.rates.get(from_zone, {}).get(to_zone, 0)
+        except:
+            return 0
+
+
+# ============================================
+# BULK UPLOAD LOG MODEL (NEW)
+# ============================================
+
+class BulkUploadLog(models.Model):
+    """Track bulk upload operations"""
+    
+    UPLOAD_TYPES = [
+        ('pincode', 'Pincode Upload'),
+        ('rate', 'Rate Upload'),
+        ('vendor', 'Vendor Upload'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ]
+    
+    vendor = models.ForeignKey(VendorRate, on_delete=models.CASCADE, null=True, blank=True)
+    upload_type = models.CharField(max_length=20, choices=UPLOAD_TYPES)
+    file_name = models.CharField(max_length=255, blank=True, null=True)
+    total_records = models.IntegerField(default=0)
+    success_records = models.IntegerField(default=0)
+    failed_records = models.IntegerField(default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    error_message = models.TextField(blank=True, null=True)
+    uploaded_by = models.CharField(max_length=100, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(blank=True, null=True)
+    
+    class Meta:
+        db_table = 'bulk_upload_logs'
+        verbose_name = 'Bulk Upload Log'
+        verbose_name_plural = 'Bulk Upload Logs'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.upload_type} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"

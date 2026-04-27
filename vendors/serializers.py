@@ -16,32 +16,41 @@ class VendorSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# VENDOR PINCODE SERIALIZER (NEW)
+# VENDOR PINCODE SERIALIZER (UPDATED)
 # ============================================
 
 class VendorPincodeSerializer(serializers.ModelSerializer):
     """Serializer for VendorPincode model - ODA pincodes"""
     
     vendor_name = serializers.CharField(source='vendor.vendor_name', read_only=True)
+    oda_category_display = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = VendorPincode
         fields = [
             'id', 'vendor', 'vendor_name', 'pincode', 'city', 'state',
-            'is_oda', 'oda_charge_per_kg', 'oda_min_charge', 'is_serviceable'
+            'is_oda', 'oda_category', 'oda_category_display',
+            'oda_charge_per_kg', 'oda_min_charge', 'is_serviceable',
+            'created_at', 'updated_at'
         ]
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_oda_category_display(self, obj):
+        """Get display name for ODA category"""
+        if obj.oda_category:
+            return dict(VendorPincode.ODA_CATEGORY_CHOICES).get(obj.oda_category, obj.oda_category)
+        return None
 
 
 # ============================================
-# VENDOR RATE SERIALIZER
+# VENDOR RATE SERIALIZER (UPDATED)
 # ============================================
 
 class VendorRateSerializer(serializers.ModelSerializer):
     """Serializer for VendorRate model - includes rates and charges"""
     
     vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
-    pincodes = VendorPincodeSerializer(many=True, read_only=True, source='vendorpincode_set')
+    pincodes = VendorPincodeSerializer(many=True, read_only=True)  # ✅ Fixed: changed from 'vendorpincode_set' to 'pincodes'
     
     class Meta:
         model = VendorRate
@@ -97,6 +106,8 @@ class RateHistorySerializer(serializers.ModelSerializer):
 
 class ZoneMasterSerializer(serializers.ModelSerializer):
     """Serializer for ZoneMaster model"""
+    
+    zone_display = serializers.CharField(source='get_zone_code_display', read_only=True)
     
     class Meta:
         model = ZoneMaster
@@ -192,7 +203,7 @@ class BulkRateUploadSerializer(serializers.Serializer):
 
 
 # ============================================
-# BULK PINCODE UPLOAD SERIALIZER (NEW)
+# BULK PINCODE UPLOAD SERIALIZER
 # ============================================
 
 class BulkPincodeUploadSerializer(serializers.Serializer):
@@ -207,8 +218,11 @@ class BulkPincodeUploadSerializer(serializers.Serializer):
         for item in value:
             if 'pincode' not in item:
                 raise serializers.ValidationError("Each pincode must have 'pincode' field")
-            if len(str(item['pincode'])) != 6:
-                raise serializers.ValidationError(f"Pincode {item['pincode']} must be 6 digits")
+            pincode_str = str(item['pincode']).strip()
+            if len(pincode_str) != 6:
+                raise serializers.ValidationError(f"Pincode {pincode_str} must be 6 digits")
+            if not pincode_str.isdigit():
+                raise serializers.ValidationError(f"Pincode {pincode_str} must contain only digits")
         return value
 
 
@@ -249,7 +263,7 @@ class SimpleVendorRateSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# VENDOR ODA STATUS SERIALIZER (NEW)
+# VENDOR ODA STATUS SERIALIZER
 # ============================================
 
 class VendorODAStatusSerializer(serializers.Serializer):
@@ -258,21 +272,41 @@ class VendorODAStatusSerializer(serializers.Serializer):
     pincode = serializers.CharField()
     vendor_name = serializers.CharField()
     is_oda = serializers.BooleanField()
+    oda_category = serializers.CharField(allow_blank=True, allow_null=True)
     oda_charge_per_kg = serializers.FloatField()
     oda_min_charge = serializers.FloatField()
     city = serializers.CharField(allow_blank=True)
     state = serializers.CharField(allow_blank=True)
+    success = serializers.BooleanField(default=True)
 
 
 # ============================================
-# PINCODE LOCATION SERIALIZER (NEW)
+# PINCODE LOCATION SERIALIZER
 # ============================================
 
 class PincodeLocationSerializer(serializers.Serializer):
     """Serializer for pincode location response"""
     
+    success = serializers.BooleanField(default=True)
     pincode = serializers.CharField()
     city = serializers.CharField(allow_blank=True)
     state = serializers.CharField(allow_blank=True)
-    country = serializers.CharField(allow_blank=True)
-    source = serializers.CharField()
+    country = serializers.CharField(allow_blank=True, required=False)
+    block = serializers.CharField(allow_blank=True, required=False)
+    source = serializers.CharField(required=False, default='api')
+
+
+# ============================================
+# VENDOR PINCODE STATS SERIALIZER (NEW)
+# ============================================
+
+class VendorPincodeStatsSerializer(serializers.Serializer):
+    """Serializer for vendor pincode statistics"""
+    
+    success = serializers.BooleanField(default=True)
+    vendor = serializers.CharField()
+    total_pincodes = serializers.IntegerField()
+    oda_pincodes = serializers.IntegerField()
+    non_oda_pincodes = serializers.IntegerField()
+    serviceable_pincodes = serializers.IntegerField()
+    category_stats = serializers.DictField(required=False)

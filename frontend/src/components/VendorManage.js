@@ -30,6 +30,13 @@ function VendorManage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 });
   const [notification, setNotification] = useState({ show: false, message: "", type: "" });
+  
+  // CSV Upload States
+  const [showCsvModal, setShowCsvModal] = useState(false);
+  const [csvVendor, setCsvVendor] = useState(null);
+  const [csvFile, setCsvFile] = useState(null);
+  const [csvPreview, setCsvPreview] = useState([]);
+  const [csvUploading, setCsvUploading] = useState(false);
 
   // Fetch all vendors on load
   useEffect(() => {
@@ -77,6 +84,168 @@ function VendorManage() {
     ];
     setVendors(defaultVendors);
     updateStats(defaultVendors);
+  };
+
+  // ============================================
+  // CSV DOWNLOAD FUNCTION
+  // ============================================
+  const downloadCsvTemplate = (vendorName) => {
+    const headers = [
+      'pincode',
+      'city',
+      'state',
+      'is_oda',
+      'oda_category',
+      'oda_charge_per_kg',
+      'oda_min_charge',
+      'is_serviceable'
+    ];
+    
+    const sampleData = [
+      ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', '400', 'TRUE'],
+      ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', '200', 'TRUE'],
+      ['124105', 'Jhajjar', 'Haryana', 'TRUE', 'A', '2', '200', 'TRUE'],
+      ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
+    ];
+    
+    const csvContent = [
+      headers.join(','),
+      ...sampleData.map(row => row.join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${vendorName}_oda_pincodes_template.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showNotification(`📥 CSV template downloaded for ${vendorName}`, "success");
+  };
+
+  // ============================================
+  // CSV UPLOAD FUNCTIONS
+  // ============================================
+  const openCsvModal = (vendor) => {
+    setCsvVendor(vendor);
+    setCsvFile(null);
+    setCsvPreview([]);
+    setShowCsvModal(true);
+  };
+
+  const handleCsvFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type === 'text/csv') {
+      setCsvFile(file);
+      previewCsvData(file);
+    } else {
+      showNotification("Please upload a valid CSV file", "error");
+    }
+  };
+
+  const previewCsvData = (file) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target.result;
+      const lines = text.split('\n');
+      const headers = lines[0].split(',');
+      const previewData = [];
+      
+      for (let i = 1; i < Math.min(lines.length, 11); i++) {
+        if (lines[i].trim()) {
+          const values = lines[i].split(',');
+          const row = {};
+          headers.forEach((header, idx) => {
+            row[header.trim()] = values[idx]?.trim() || '';
+          });
+          previewData.push(row);
+        }
+      }
+      setCsvPreview(previewData);
+    };
+    reader.readAsText(file);
+  };
+
+  const uploadCsvData = async () => {
+    if (!csvFile || !csvVendor) {
+      showNotification("Please select a CSV file", "error");
+      return;
+    }
+    
+    setCsvUploading(true);
+    
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target.result;
+      const lines = text.split('\n');
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      
+      const pincodes = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim()) {
+          const values = lines[i].split(',');
+          const pincodeData = {};
+          
+          headers.forEach((header, idx) => {
+            let value = values[idx]?.trim() || '';
+            
+            // Convert boolean strings
+            if (header === 'is_oda' || header === 'is_serviceable') {
+              value = value.toLowerCase() === 'true' || value === '1' || value.toLowerCase() === 'yes';
+            }
+            // Convert numbers
+            if (header === 'oda_charge_per_kg' || header === 'oda_min_charge') {
+              value = parseFloat(value) || 0;
+            }
+            
+            pincodeData[header] = value;
+          });
+          
+          // Validate pincode
+          if (pincodeData.pincode && pincodeData.pincode.length === 6) {
+            pincodes.push(pincodeData);
+          }
+        }
+      }
+      
+      if (pincodes.length === 0) {
+        showNotification("No valid pincodes found in CSV", "error");
+        setCsvUploading(false);
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-pincodes/bulk-upload/${csvVendor.vendor_name}/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pincodes: pincodes,
+            replace_existing: true
+          })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          showNotification(`✅ Uploaded ${result.created} new, updated ${result.updated} pincodes for ${csvVendor.vendor_name}`, "success");
+          setShowCsvModal(false);
+          setCsvFile(null);
+          setCsvPreview([]);
+        } else {
+          const error = await response.json();
+          showNotification(`❌ Upload failed: ${error.error || "Unknown error"}`, "error");
+        }
+      } catch (err) {
+        showNotification(`❌ Network error: ${err.message}`, "error");
+      } finally {
+        setCsvUploading(false);
+      }
+    };
+    
+    reader.readAsText(csvFile);
   };
 
   const handleEditVendor = (vendor) => {
@@ -231,6 +400,103 @@ function VendorManage() {
   const filteredVendors = vendors.filter(vendor => 
     vendor.vendor_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // ============================================
+  // CSV MODAL RENDER
+  // ============================================
+  const renderCsvModal = () => {
+    if (!showCsvModal) return null;
+    
+    return (
+      <div className="modal-overlay" onClick={() => setShowCsvModal(false)}>
+        <div className="modal-container csv-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>📊 CSV Upload - {csvVendor?.vendor_name}</h2>
+            <button className="close-btn" onClick={() => setShowCsvModal(false)}>×</button>
+          </div>
+          
+          <div className="modal-body">
+            <div className="csv-info-section">
+              <h4>📋 CSV Format Instructions:</h4>
+              <div className="csv-format-box">
+                <code>
+                  pincode,city,state,is_oda,oda_category,oda_charge_per_kg,oda_min_charge,is_serviceable
+                </code>
+                <br/>
+                <code>212217,Allahabad,UP,TRUE,B,4,400,TRUE</code>
+                <br/>
+                <code>122502,Gurgaon,Haryana,TRUE,A,2,200,TRUE</code>
+                <br/>
+                <code>110001,New Delhi,Delhi,FALSE,,0,0,TRUE</code>
+              </div>
+              
+              <div className="oda-categories-info">
+                <strong>ODA Categories:</strong>
+                <ul>
+                  <li><span className="oda-cat-a">A</span> - ₹2/kg, Min ₹200</li>
+                  <li><span className="oda-cat-b">B</span> - ₹4/kg, Min ₹400</li>
+                  <li><span className="oda-cat-c">C</span> - ₹7/kg, Min ₹700</li>
+                  <li><span className="oda-cat-d">D</span> - ₹10/kg, Min ₹1000</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div className="csv-upload-section">
+              <button className="download-template-btn" onClick={() => downloadCsvTemplate(csvVendor?.vendor_name)}>
+                📥 Download Template CSV
+              </button>
+              
+              <div className="file-upload-area">
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleCsvFileChange}
+                  id="csv-file-input"
+                  style={{ display: 'none' }}
+                />
+                <label htmlFor="csv-file-input" className="file-upload-label">
+                  📁 {csvFile ? csvFile.name : "Choose CSV File"}
+                </label>
+              </div>
+              
+              {csvPreview.length > 0 && (
+                <div className="csv-preview">
+                  <h4>Preview (First 10 rows):</h4>
+                  <div className="preview-table-wrapper">
+                    <table className="preview-table">
+                      <thead>
+                        <tr>
+                          {Object.keys(csvPreview[0] || {}).map(key => (
+                            <th key={key}>{key}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {csvPreview.map((row, idx) => (
+                          <tr key={idx}>
+                            {Object.values(row).map((val, i) => (
+                              <td key={i}>{val}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="modal-footer">
+            <button className="cancel-btn" onClick={() => setShowCsvModal(false)}>Cancel</button>
+            <button className="upload-btn" onClick={uploadCsvData} disabled={!csvFile || csvUploading}>
+              {csvUploading ? "⏳ Uploading..." : "📤 Upload CSV"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderRateMatrix = (rateType, title) => {
     const rates = formData[rateType] || {};
@@ -418,6 +684,8 @@ function VendorManage() {
     const has6CFT = vendor.delhivery_6cft && Object.keys(vendor.delhivery_6cft).length > 0;
     const has10CFT = vendor.delhivery_10cft && Object.keys(vendor.delhivery_10cft).length > 0;
     const isVxpress = vendor.vendor_name === "VXPRESS";
+    const isRivigo = vendor.vendor_name === "RIVIGO";
+    const showCsvButton = isVxpress || isRivigo;
     
     return (
       <div className={`vendor-card ${!vendor.is_active ? 'inactive-card' : ''}`} key={vendor.id}>
@@ -432,6 +700,11 @@ function VendorManage() {
             <button className="edit-btn" onClick={() => handleEditVendor(vendor)} title="Edit Vendor">
               ✏️
             </button>
+            {showCsvButton && (
+              <button className="csv-btn" onClick={() => openCsvModal(vendor)} title="Manage ODA Pincodes">
+                📊
+              </button>
+            )}
             <button className="status-toggle-btn" onClick={() => handleToggleStatus(vendor)} title={vendor.is_active ? "Deactivate" : "Activate"}>
               {vendor.is_active ? "🔴" : "🟢"}
             </button>
@@ -465,12 +738,13 @@ function VendorManage() {
             </div>
           </div>
           
-          {(isDelhivery || has6CFT || has10CFT || isVxpress) && (
+          {(isDelhivery || has6CFT || has10CFT || isVxpress || isRivigo) && (
             <div className="vendor-badges">
               {isDelhivery && <span className="badge delhivery-badge">🚚 Delhivery Partner</span>}
               {has6CFT && <span className="badge cft-badge">📦 6 CFT Support</span>}
               {has10CFT && <span className="badge cft-badge">📦 10 CFT Support</span>}
               {isVxpress && <span className="badge vxpress-badge">⭐ V-Xpress ODA Ready</span>}
+              {isRivigo && <span className="badge rivigo-badge">🚛 Rivigo ODA Ready</span>}
             </div>
           )}
           
@@ -635,6 +909,7 @@ function VendorManage() {
       )}
       
       {renderModal()}
+      {renderCsvModal()}
     </div>
   );
 }
