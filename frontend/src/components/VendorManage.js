@@ -70,6 +70,18 @@ function VendorManage() {
           }
           
           vendor.charges = charges;
+          
+          // For RIVIGO and PD LOGISTICS, ensure rates are visible in standard tab
+          // by merging CFT rates into rates for display purposes
+          if (vendor.vendor_name === "RIVIGO" || vendor.vendor_name === "PD LOGISTICS") {
+            if (vendor.delhivery_6cft && Object.keys(vendor.delhivery_6cft).length > 0) {
+              // For display, use CFT rates as standard rates
+              if (!vendor.rates || Object.keys(vendor.rates).length === 0) {
+                vendor.rates = vendor.delhivery_6cft;
+              }
+            }
+          }
+          
           return vendor;
         });
         setVendors(updatedData);
@@ -389,7 +401,6 @@ function VendorManage() {
   };
 
   const handleEditVendor = (vendor) => {
-    setSelectedVendor(vendor);
     setFormData({
       vendor_name: vendor.vendor_name,
       rates: vendor.rates || {},
@@ -832,8 +843,6 @@ function VendorManage() {
             </thead>
             <tbody>
               {ZONES.map(fromZone => {
-                // Skip if no zones data
-                const hasData = rates[fromZone] && Object.keys(rates[fromZone]).length > 0;
                 return (
                   <tr key={fromZone}>
                     <td className="zone-cell from-zone">{fromZone}</td>
@@ -845,7 +854,7 @@ function VendorManage() {
                           className="rate-input"
                           value={getRateValue(rates, fromZone, toZone)}
                           onChange={(e) => handleRateChange(rateType, fromZone, toZone, e.target.value)}
-                          placeholder={hasData ? "0.00" : "0.00"}
+                          placeholder="0.00"
                         />
                       </td>
                     ))}
