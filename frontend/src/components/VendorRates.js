@@ -19,8 +19,8 @@ const ODA_CATEGORIES = {
   'DEFAULT': { rate: 4, min: 500, name: 'ODA Default (₹4/kg, Min ₹500)', color: '#6b7280' }
 };
 
-// Vendors that support CFT rates (Only RIVIGO and PD LOGISTICS)
-const CFT_SUPPORTED_VENDORS = ["RIVIGO", "PD LOGISTICS"];
+// Vendors that support CFT rates (RIVIGO, PD LOGISTICS, DELHIVERY, TRUCX)
+const CFT_SUPPORTED_VENDORS = ["RIVIGO", "PD LOGISTICS", "DELHIVERY", "TRUCX DLH Lite", "TRUCX DLH Dense", "TRUCX DLH Cargo"];
 
 // Volumetric constants
 const VOLUMETRIC_DIVISOR = {
@@ -39,12 +39,17 @@ const DEFAULT_VENDOR_RATES = {
 
 // Vendor pincode source mapping
 // Key: Vendor name, Value: Which vendor's pincodes to use
+// Vendors NOT in this list will use their OWN pincodes
 const VENDOR_PINCODE_SOURCE = {
   "SHIPSHOPY DELIVERY": "PD LOGISTICS",
   "TRUCX DLH Lite": "PD LOGISTICS",
   "TRUCX DLH Dense": "PD LOGISTICS",
   "TRUCX DLH Cargo": "PD LOGISTICS",
   "SHIVANI VX": "VXPRESS"
+  // RIVIGO uses its OWN pincodes
+  // PD LOGISTICS uses its OWN pincodes
+  // VXPRESS uses its OWN pincodes
+  // SHIPSHOPY BLUE DART uses its OWN serviceable pincodes
 };
 
 function VendorRateCalculator() {
@@ -249,7 +254,7 @@ function VendorRateCalculator() {
         const data = await response.json();
         let result;
         
-        // For SHIPSHOPY BLUE DART - only serviceable pincodes
+        // For SHIPSHOPY BLUE DART - only serviceable pincodes (NO ODA)
         if (vendor.vendor_name === "SHIPSHOPY BLUE DART") {
           if (data.is_serviceable === true) {
             result = {
@@ -269,30 +274,59 @@ function VendorRateCalculator() {
             };
           }
         } 
-        // For vendors that use PD LOGISTICS or VXPRESS pincodes
-        else {
+        // For vendors that use PD LOGISTICS pincodes (TRUCX, SHIPSHOPY DELIVERY)
+        else if (VENDOR_PINCODE_SOURCE[vendor.vendor_name] === "PD LOGISTICS") {
           if (data.is_oda === true) {
-            // Pincode is ODA
-            const minCharge = 500;
             result = {
               isServiceable: true,
               isODA: true,
-              charge: parseFloat(data.oda_charge_per_kg) || 0,
-              minCharge: parseFloat(data.oda_min_charge) || minCharge,
-              category: data.oda_category || 'DEFAULT'
+              charge: parseFloat(data.oda_charge_per_kg) || 4,
+              minCharge: parseFloat(data.oda_min_charge) || 500,
+              category: data.oda_category || 'B'
             };
-          } else if (data.is_serviceable === true) {
-            // Pincode is serviceable but not ODA (for VXPRESS/PD)
+          } else {
             result = {
-              isServiceable: true,
+              isServiceable: false,
               isODA: false,
               charge: 0,
               minCharge: 0,
               category: null
             };
+          }
+        }
+        // For vendors that use VXPRESS pincodes (SHIVANI VX)
+        else if (VENDOR_PINCODE_SOURCE[vendor.vendor_name] === "VXPRESS") {
+          if (data.is_oda === true) {
+            result = {
+              isServiceable: true,
+              isODA: true,
+              charge: parseFloat(data.oda_charge_per_kg) || 2,
+              minCharge: parseFloat(data.oda_min_charge) || 500,
+              category: data.oda_category || 'A'
+            };
           } else {
             result = {
               isServiceable: false,
+              isODA: false,
+              charge: 0,
+              minCharge: 0,
+              category: null
+            };
+          }
+        }
+        // For vendors that have their OWN pincodes (RIVIGO, PD LOGISTICS, VXPRESS, etc.)
+        else {
+          if (data.is_oda === true) {
+            result = {
+              isServiceable: true,
+              isODA: true,
+              charge: parseFloat(data.oda_charge_per_kg) || 0,
+              minCharge: parseFloat(data.oda_min_charge) || 500,
+              category: data.oda_category || 'DEFAULT'
+            };
+          } else {
+            result = {
+              isServiceable: true,
               isODA: false,
               charge: 0,
               minCharge: 0,
@@ -306,6 +340,7 @@ function VendorRateCalculator() {
       }
     } catch (err) {
       if (err.name === 'AbortError') return null;
+      console.error(`Error checking pincode for ${vendor.vendor_name}:`, err);
     }
     
     // Default fallback
@@ -451,16 +486,10 @@ function VendorRateCalculator() {
           finalODACharge = Math.max(calculatedODA, pincodeInfo.minCharge || 500);
         }
         
-        const isBlueDart = vendorName === "SHIPSHOPY BLUE DART";
-        const isShipshopyDelivery = vendorName === "SHIPSHOPY DELIVERY";
-        const isPD = vendorName === "PD LOGISTICS";
-        const isRivigo = vendorName === "RIVIGO";
-        const isDelhivery = vendorName === "DELHIVERY";
-        const isVXpress = vendorName === "VXPRESS" || vendorName === "SHIVANI VX";
-        const isTrucx = vendorName.includes("TRUCX");
+        const hasCFTSupport = CFT_SUPPORTED_VENDORS.includes(vendorName);
+        const isGati = vendorName === "GATI";
         
-        // For CFT support vendors (RIVIGO, PD LOGISTICS, DELHIVERY, TRUCX)
-        if (isPD || isRivigo || isDelhivery || isTrucx) {
+        if (hasCFTSupport) {
           // 6 CFT
           const { volumetricWeight: volWeight6 } = calculateVolumetricWeight('6CFT');
           const chargedWeight6 = Math.max(actualWeight, volWeight6);
@@ -482,20 +511,6 @@ function VendorRateCalculator() {
           if (rateStd && rateStd.rate_per_kg > 0) calculatedResults.push(rateStd);
           
         } 
-        // For Shipshopy vendors
-        else if (isBlueDart || isShipshopyDelivery || isVXpress) {
-          const { volumetricWeight: volWeight, volumeCFT: volCFT } = calculateVolumetricWeight('STANDARD', vendorDivisor);
-          const chargedWt = Math.max(actualWeight, volWeight);
-          
-          if (volCFT > 0) {
-            setVolumeCFT(volCFT);
-            setChargedWeight(chargedWt);
-          }
-          
-          const rate = calculateRateForVendor(vendor, fromZone, toZone, chargedWt, finalODACharge, "Standard", pincodeInfo);
-          if (rate && rate.rate_per_kg > 0) calculatedResults.push(rate);
-        } 
-        // For other vendors (GATI, etc.)
         else {
           const { volumetricWeight: volWeightStd, volumeCFT: volCFTStd } = calculateVolumetricWeight('STANDARD', vendorDivisor);
           const chargedWeightStd = Math.max(actualWeight, volWeightStd);
@@ -786,7 +801,7 @@ function VendorRateCalculator() {
                 <div className="results-list">
                   {results.map((vendor, idx) => {
                     const isCFTVendor = CFT_SUPPORTED_VENDORS.includes(vendor.vendor_name);
-                    if (isCFTVendor && !vendor.cft_type) return null;
+                    if (isCFTVendor && !vendor.cft_type && vendor.vendor_name !== "PD LOGISTICS" && vendor.vendor_name !== "RIVIGO") return null;
                     
                     return (
                       <div 
