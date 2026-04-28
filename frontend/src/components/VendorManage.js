@@ -85,8 +85,23 @@ function VendorManage() {
             charges.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
           }
           
+          // For RIVIGO, ensure min ODA is ₹500
+          if (vendor.vendor_name === "RIVIGO" && (!charges.oda_min_charge || charges.oda_min_charge === 0)) {
+            charges.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
+          }
+          
           // For SHIPSHOPY DELIVERY, ensure min ODA is ₹500
           if (vendor.vendor_name === "SHIPSHOPY DELIVERY" && (!charges.oda_min_charge || charges.oda_min_charge === 0)) {
+            charges.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
+          }
+          
+          // For VXPRESS, ensure min ODA is ₹500
+          if (vendor.vendor_name === "VXPRESS" && (!charges.oda_min_charge || charges.oda_min_charge === 0)) {
+            charges.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
+          }
+          
+          // For SHIVANI VX, ensure min ODA is ₹500
+          if (vendor.vendor_name === "SHIVANI VX" && (!charges.oda_min_charge || charges.oda_min_charge === 0)) {
             charges.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
           }
           
@@ -217,7 +232,7 @@ function VendorManage() {
         setShowInvoiceModal(false);
         setInvoiceFile(null);
         setInvoiceData(null);
-        fetchVendors(); // Refresh vendors to update ODA min charge
+        fetchVendors();
       } else {
         const error = await response.json();
         showNotification(`❌ Upload failed: ${error.error || "Unknown error"}`, "error");
@@ -244,7 +259,6 @@ function VendorManage() {
       'is_serviceable'
     ];
     
-    // Vendor-specific sample data with min ODA ₹500
     let sampleData = [
       ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
       ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
@@ -252,7 +266,6 @@ function VendorManage() {
       ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
     ];
     
-    // Customize for vendors
     if (vendorName === 'SHIPSHOPY BLUE DART') {
       sampleData = [
         ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '5', String(BLUE_DART_ODA_MIN_CHARGE), 'TRUE'],
@@ -266,6 +279,12 @@ function VendorManage() {
         ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
       ];
     } else if (vendorName === 'PD LOGISTICS') {
+      sampleData = [
+        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
+        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
+        ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
+      ];
+    } else if (vendorName === 'RIVIGO') {
       sampleData = [
         ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
         ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
@@ -488,7 +507,6 @@ function VendorManage() {
       
       const method = editMode ? "PUT" : "POST";
       
-      // Ensure ODA min charge is set
       const chargesToSave = { ...formData.charges };
       const isBlueDart = formData.vendor_name === "SHIPSHOPY BLUE DART";
       if (!chargesToSave.oda_min_charge || chargesToSave.oda_min_charge === 0) {
@@ -509,7 +527,7 @@ function VendorManage() {
       if (response.ok) {
         showNotification(`✅ ${formData.vendor_name} rates ${editMode ? 'updated' : 'created'} successfully!`, "success");
         setShowModal(false);
-        fetchVendors(); // Refresh to get updated ODA values
+        fetchVendors();
       } else {
         const errorData = await response.json();
         showNotification("❌ Error: " + (errorData.error || "Failed to save"), "error");
@@ -720,16 +738,19 @@ function VendorManage() {
     const isShipshopyDelivery = csvVendor?.vendor_name === 'SHIPSHOPY DELIVERY';
     const isShivaniVX = csvVendor?.vendor_name === 'SHIVANI VX';
     const isPd = csvVendor?.vendor_name === 'PD LOGISTICS';
+    const isRivigo = csvVendor?.vendor_name === 'RIVIGO';
     
     let odaHint = "";
     if (isBlueDart) {
       odaHint = `Blue Dart ODA: ₹5/kg (Min ₹${BLUE_DART_ODA_MIN_CHARGE})`;
     } else if (isShipshopyDelivery) {
-      odaHint = `Delhivery ODA: ₹3/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
+      odaHint = `Shipshopy Delhivery ODA: ₹3/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
     } else if (isShivaniVX) {
       odaHint = `Shivani VX: Standard rates, Min ODA ₹${DEFAULT_ODA_MIN_CHARGE}`;
     } else if (isPd) {
       odaHint = `PD Logistics ODA: ₹4/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
+    } else if (isRivigo) {
+      odaHint = `RIVIGO ODA: ₹4/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
     } else {
       odaHint = `Default ODA Min Charge: ₹${DEFAULT_ODA_MIN_CHARGE}`;
     }
@@ -1074,7 +1095,6 @@ function VendorManage() {
     const showCsvButton = isVxpress || isRivigo || isBlueDart || isShipshopyDelivery || isShivaniVX || isPd;
     const showInvoiceButton = true;
     
-    // Get ODA min charge display
     const odaMinCharge = vendor.charges?.oda_min_charge || DEFAULT_ODA_MIN_CHARGE;
     const isBlueDartVendor = isBlueDart;
     const odaDisplay = isBlueDartVendor 

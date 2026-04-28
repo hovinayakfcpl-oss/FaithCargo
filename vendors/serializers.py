@@ -43,7 +43,7 @@ class VendorPincodeSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# VENDOR RATE SERIALIZER (UPDATED - includes all vendors)
+# VENDOR RATE SERIALIZER (UPDATED)
 # ============================================
 
 class VendorRateSerializer(serializers.ModelSerializer):
@@ -67,13 +67,13 @@ class VendorRateSerializer(serializers.ModelSerializer):
         vendor_name = obj.vendor_name
         
         if vendor_name == 'SHIVANI VX':
-            return 'vxpress'
+            return 'shivani_vx'
         elif 'TRUCX' in vendor_name:
             return 'trucx'
         elif vendor_name == 'SHIPSHOPY BLUE DART':
             return 'bluedart'
         elif vendor_name == 'SHIPSHOPY DELIVERY':
-            return 'delhivery_b2b'
+            return 'shipshopy_delivery'
         elif vendor_name == 'DELHIVERY':
             return 'delhivery'
         elif vendor_name == 'PD LOGISTICS':
@@ -88,40 +88,26 @@ class VendorRateSerializer(serializers.ModelSerializer):
             return 'standard'
     
     def validate_rates(self, value):
-        """Validate rates structure"""
         if not isinstance(value, dict):
             raise serializers.ValidationError("Rates must be a dictionary")
-        
-        # Validate zone structure
         for from_zone, to_zones in value.items():
             if not isinstance(to_zones, dict):
                 raise serializers.ValidationError(f"Rates for zone {from_zone} must be a dictionary")
-        
         return value
     
     def validate_delhivery_6cft(self, value):
-        """Validate 6CFT rates for vendors that support it"""
         if value and not isinstance(value, dict):
             raise serializers.ValidationError("6CFT rates must be a dictionary")
         return value
     
     def validate_delhivery_10cft(self, value):
-        """Validate 10CFT rates for vendors that support it"""
         if value and not isinstance(value, dict):
             raise serializers.ValidationError("10CFT rates must be a dictionary")
         return value
     
     def validate_charges(self, value):
-        """Validate charges structure"""
         if not isinstance(value, dict):
             raise serializers.ValidationError("Charges must be a dictionary")
-        
-        # Recommended fields
-        recommended_fields = ['docket_charge', 'fsc', 'gst', 'min_freight', 'min_weight']
-        for field in recommended_fields:
-            if field not in value:
-                pass  # Warning only, not error
-        
         return value
 
 
@@ -130,8 +116,6 @@ class VendorRateSerializer(serializers.ModelSerializer):
 # ============================================
 
 class RateHistorySerializer(serializers.ModelSerializer):
-    """Serializer for RateHistory model - audit trail"""
-    
     vendor_name = serializers.CharField(source='vendor.vendor_name', read_only=True)
     
     class Meta:
@@ -150,8 +134,6 @@ class RateHistorySerializer(serializers.ModelSerializer):
 # ============================================
 
 class ZoneMasterSerializer(serializers.ModelSerializer):
-    """Serializer for ZoneMaster model"""
-    
     zone_display = serializers.CharField(source='get_zone_code_display', read_only=True)
     pincode_count = serializers.SerializerMethodField(read_only=True)
     
@@ -161,7 +143,6 @@ class ZoneMasterSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
     
     def get_pincode_count(self, obj):
-        """Get number of pincodes in this zone"""
         return len(obj.pincodes) if obj.pincodes else 0
 
 
@@ -170,8 +151,6 @@ class ZoneMasterSerializer(serializers.ModelSerializer):
 # ============================================
 
 class B2BRateSerializer(serializers.ModelSerializer):
-    """Serializer for B2BRate model"""
-    
     mode_display = serializers.CharField(source='get_mode_display', read_only=True)
     
     class Meta:
@@ -189,8 +168,6 @@ class B2BRateSerializer(serializers.ModelSerializer):
 # ============================================
 
 class VendorServiceRateSerializer(serializers.ModelSerializer):
-    """Serializer for VendorServiceRate model"""
-    
     service_display = serializers.CharField(source='get_service_type_display', read_only=True)
     vendor_name = serializers.CharField(source='vendor.vendor_name', read_only=True)
     
@@ -209,9 +186,6 @@ class VendorServiceRateSerializer(serializers.ModelSerializer):
 # ============================================
 
 class VendorRateCalculatorSerializer(serializers.Serializer):
-    """Serializer for rate calculation request/response"""
-    
-    # Request fields
     origin_pincode = serializers.CharField(max_length=10, required=True)
     destination_pincode = serializers.CharField(max_length=10, required=True)
     weight = serializers.FloatField(required=True, min_value=0)
@@ -223,7 +197,6 @@ class VendorRateCalculatorSerializer(serializers.Serializer):
     invoice_value = serializers.FloatField(required=False, allow_null=True)
     mode = serializers.CharField(required=False, default='Prepaid')
     
-    # Response fields
     vendor_rates = serializers.DictField(read_only=True)
     calculated_at = serializers.DateTimeField(read_only=True)
 
@@ -233,22 +206,16 @@ class VendorRateCalculatorSerializer(serializers.Serializer):
 # ============================================
 
 class BulkRateUploadSerializer(serializers.Serializer):
-    """Serializer for bulk rate upload"""
-    
     vendor_name = serializers.CharField(required=True)
     rates_data = serializers.JSONField(required=True)
     replace_existing = serializers.BooleanField(default=False)
     
     def validate_rates_data(self, value):
-        """Validate bulk rates data structure"""
         if not isinstance(value, dict):
             raise serializers.ValidationError("Rates data must be a dictionary")
-        
-        # Check for required structure
         for from_zone, to_zones in value.items():
             if not isinstance(to_zones, dict):
                 raise serializers.ValidationError(f"Invalid structure for zone {from_zone}")
-        
         return value
 
 
@@ -257,14 +224,11 @@ class BulkRateUploadSerializer(serializers.Serializer):
 # ============================================
 
 class BulkPincodeUploadSerializer(serializers.Serializer):
-    """Serializer for bulk pincode upload"""
-    
     vendor_name = serializers.CharField(required=True)
     pincodes = serializers.ListField(required=True, child=serializers.DictField())
     replace_existing = serializers.BooleanField(default=False)
     
     def validate_pincodes(self, value):
-        """Validate pincodes data structure"""
         for item in value:
             if 'pincode' not in item:
                 raise serializers.ValidationError("Each pincode must have 'pincode' field")
@@ -281,8 +245,6 @@ class BulkPincodeUploadSerializer(serializers.Serializer):
 # ============================================
 
 class VendorComparisonSerializer(serializers.Serializer):
-    """Serializer for comparing rates across vendors"""
-    
     origin_pincode = serializers.CharField(max_length=10)
     destination_pincode = serializers.CharField(max_length=10)
     weight = serializers.FloatField(min_value=0)
@@ -293,7 +255,6 @@ class VendorComparisonSerializer(serializers.Serializer):
     invoice_value = serializers.FloatField(required=False, allow_null=True)
     mode = serializers.CharField(required=False, default='Prepaid')
     
-    # Response
     comparisons = serializers.ListField(read_only=True)
     best_vendor = serializers.CharField(read_only=True)
     best_cft_type = serializers.CharField(read_only=True)
@@ -301,24 +262,20 @@ class VendorComparisonSerializer(serializers.Serializer):
 
 
 # ============================================
-# SIMPLE VENDOR RATE SERIALIZER (for dropdowns)
+# SIMPLE VENDOR RATE SERIALIZER
 # ============================================
 
 class SimpleVendorRateSerializer(serializers.ModelSerializer):
-    """Simplified serializer for dropdown and quick views"""
-    
     class Meta:
         model = VendorRate
         fields = ['id', 'vendor_name', 'is_active']
 
 
 # ============================================
-# VENDOR ODA STATUS SERIALIZER (UPDATED)
+# VENDOR ODA STATUS SERIALIZER
 # ============================================
 
 class VendorODAStatusSerializer(serializers.Serializer):
-    """Serializer for ODA status check response"""
-    
     success = serializers.BooleanField(default=True)
     pincode = serializers.CharField()
     vendor_name = serializers.CharField()
@@ -331,21 +288,17 @@ class VendorODAStatusSerializer(serializers.Serializer):
     state = serializers.CharField(allow_blank=True)
     
     def to_representation(self, instance):
-        """Custom representation"""
         data = super().to_representation(instance)
-        # Ensure all fields are present
         if data.get('oda_category') is None:
             data['oda_category'] = ''
         return data
 
 
 # ============================================
-# PINCODE LOCATION SERIALIZER (UPDATED)
+# PINCODE LOCATION SERIALIZER
 # ============================================
 
 class PincodeLocationSerializer(serializers.Serializer):
-    """Serializer for pincode location response"""
-    
     success = serializers.BooleanField(default=True)
     pincode = serializers.CharField()
     city = serializers.CharField(allow_blank=True)
@@ -356,12 +309,10 @@ class PincodeLocationSerializer(serializers.Serializer):
 
 
 # ============================================
-# VENDOR PINCODE STATS SERIALIZER (UPDATED)
+# VENDOR PINCODE STATS SERIALIZER
 # ============================================
 
 class VendorPincodeStatsSerializer(serializers.Serializer):
-    """Serializer for vendor pincode statistics"""
-    
     success = serializers.BooleanField(default=True)
     vendor = serializers.CharField()
     total_pincodes = serializers.IntegerField()
@@ -371,24 +322,18 @@ class VendorPincodeStatsSerializer(serializers.Serializer):
     category_stats = serializers.DictField(required=False)
     
     def to_representation(self, data):
-        """Custom representation with formatted output"""
         representation = super().to_representation(data)
-        
-        # Add summary message
         if representation.get('total_pincodes', 0) > 0:
             oda_percentage = (representation.get('oda_pincodes', 0) / representation.get('total_pincodes', 1)) * 100
             representation['oda_percentage'] = round(oda_percentage, 2)
-        
         return representation
 
 
 # ============================================
-# SHIPSHOPY VENDOR RATE SERIALIZER (NEW)
+# SHIPSHOPY VENDOR RATE SERIALIZER
 # ============================================
 
 class ShipshopyVendorRateSerializer(serializers.ModelSerializer):
-    """Serializer specifically for SHIPSHOPY vendors"""
-    
     vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
     divisor = serializers.SerializerMethodField(read_only=True)
     min_freight = serializers.SerializerMethodField(read_only=True)
@@ -402,17 +347,14 @@ class ShipshopyVendorRateSerializer(serializers.ModelSerializer):
         ]
     
     def get_divisor(self, obj):
-        """Get divisor from charges"""
         charges = obj.charges or {}
         return charges.get('divisor', 5000)
     
     def get_min_freight(self, obj):
-        """Get minimum freight from charges"""
         charges = obj.charges or {}
         return charges.get('min_freight', 350)
     
     def get_oda_details(self, obj):
-        """Get ODA details from charges"""
         charges = obj.charges or {}
         return {
             'charge_per_kg': charges.get('oda_charge', 0),
@@ -421,12 +363,10 @@ class ShipshopyVendorRateSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# BLUE DART RATE SERIALIZER (NEW)
+# BLUE DART RATE SERIALIZER
 # ============================================
 
 class BlueDartRateSerializer(serializers.ModelSerializer):
-    """Serializer for Blue Dart specific rates"""
-    
     vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
     
     class Meta:
@@ -438,12 +378,10 @@ class BlueDartRateSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# DELHIVERY B2B RATE SERIALIZER (NEW)
+# DELHIVERY B2B RATE SERIALIZER
 # ============================================
 
 class DelhiveryB2BRateSerializer(serializers.ModelSerializer):
-    """Serializer for Delhivery B2B specific rates"""
-    
     vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
     
     class Meta:
@@ -455,12 +393,10 @@ class DelhiveryB2BRateSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# SHIVANI VX RATE SERIALIZER (NEW)
+# SHIVANI VX RATE SERIALIZER
 # ============================================
 
 class ShivaniVXRateSerializer(serializers.ModelSerializer):
-    """Serializer for SHIVANI VX (V-XPRESS) specific rates"""
-    
     vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
     oda_categories = serializers.SerializerMethodField(read_only=True)
     fsc_details = serializers.SerializerMethodField(read_only=True)
@@ -473,12 +409,10 @@ class ShivaniVXRateSerializer(serializers.ModelSerializer):
         ]
     
     def get_oda_categories(self, obj):
-        """Get ODA categories from charges"""
         charges = obj.charges or {}
         return charges.get('oda_categories', {})
     
     def get_fsc_details(self, obj):
-        """Get FSC details from charges"""
         charges = obj.charges or {}
         return {
             'fsc_percent': charges.get('fsc', '7%'),
@@ -488,12 +422,10 @@ class ShivaniVXRateSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# TRUCX DLH RATE SERIALIZER (NEW)
+# TRUCX DLH RATE SERIALIZER
 # ============================================
 
 class TrucxDLHRateSerializer(serializers.ModelSerializer):
-    """Serializer for TRUCX DLH variants (Lite, Dense, Cargo)"""
-    
     vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
     variant_type = serializers.SerializerMethodField(read_only=True)
     
@@ -505,7 +437,6 @@ class TrucxDLHRateSerializer(serializers.ModelSerializer):
         ]
     
     def get_variant_type(self, obj):
-        """Determine TRUCX variant type"""
         vendor_name = obj.vendor_name
         if 'Lite' in vendor_name:
             return 'lite'
@@ -517,11 +448,36 @@ class TrucxDLHRateSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# PD LOGISTICS RATE SERIALIZER (NEW)
+# PD LOGISTICS RATE SERIALIZER
 # ============================================
 
 class PDLogisticsRateSerializer(serializers.ModelSerializer):
-    """Serializer for PD LOGISTICS specific rates"""
+    vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
+    cft_rates_available = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = VendorRate
+        fields = [
+            'id', 'vendor_name', 'vendor_display', 'rates',
+            'delhivery_6cft', 'delhivery_10cft', 'charges', 
+            'is_active', 'cft_rates_available'
+        ]
+    
+    def get_cft_rates_available(self, obj):
+        has_6cft = bool(obj.delhivery_6cft and any(obj.delhivery_6cft.values()))
+        has_10cft = bool(obj.delhivery_10cft and any(obj.delhivery_10cft.values()))
+        return {
+            '6cft': has_6cft,
+            '10cft': has_10cft
+        }
+
+
+# ============================================
+# RIVIGO RATE SERIALIZER (NEW)
+# ============================================
+
+class RivigoRateSerializer(serializers.ModelSerializer):
+    """Serializer for RIVIGO specific rates"""
     
     vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
     cft_rates_available = serializers.SerializerMethodField(read_only=True)
@@ -535,7 +491,6 @@ class PDLogisticsRateSerializer(serializers.ModelSerializer):
         ]
     
     def get_cft_rates_available(self, obj):
-        """Check if CFT rates are available"""
         has_6cft = bool(obj.delhivery_6cft and any(obj.delhivery_6cft.values()))
         has_10cft = bool(obj.delhivery_10cft and any(obj.delhivery_10cft.values()))
         return {
@@ -545,7 +500,7 @@ class PDLogisticsRateSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# ALL VENDORS LIST SERIALIZER (NEW)
+# ALL VENDORS LIST SERIALIZER (UPDATED)
 # ============================================
 
 class AllVendorsListSerializer(serializers.ModelSerializer):
@@ -563,7 +518,6 @@ class AllVendorsListSerializer(serializers.ModelSerializer):
         ]
     
     def get_vendor_type(self, obj):
-        """Get vendor type classification"""
         vendor_name = obj.vendor_name
         
         if 'SHIVANI VX' in vendor_name:
@@ -573,7 +527,7 @@ class AllVendorsListSerializer(serializers.ModelSerializer):
         elif 'SHIPSHOPY BLUE DART' in vendor_name:
             return 'BLUE DART'
         elif 'SHIPSHOPY DELIVERY' in vendor_name:
-            return 'DELHIVERY B2B'
+            return 'SHIPSHOPY DELIVERY'
         elif vendor_name == 'DELHIVERY':
             return 'DELHIVERY'
         elif vendor_name == 'PD LOGISTICS':
@@ -588,13 +542,13 @@ class AllVendorsListSerializer(serializers.ModelSerializer):
             return 'STANDARD'
     
     def get_has_cft_support(self, obj):
-        """Check if vendor has CFT support"""
+        """Only RIVIGO and PD LOGISTICS have CFT support"""
         vendor_name = obj.vendor_name
-        cft_vendors = ['DELHIVERY', 'RIVIGO', 'PD LOGISTICS', 'TRUCX DLH Lite', 'TRUCX DLH Dense', 'TRUCX DLH Cargo']
+        cft_vendors = ['RIVIGO', 'PD LOGISTICS']
         return vendor_name in cft_vendors
     
     def get_has_oda_support(self, obj):
         """Check if vendor has ODA support"""
         vendor_name = obj.vendor_name
-        oda_vendors = ['VXPRESS', 'PD LOGISTICS', 'SHIPSHOPY BLUE DART', 'SHIPSHOPY DELIVERY']
+        oda_vendors = ['VXPRESS', 'PD LOGISTICS', 'RIVIGO', 'SHIPSHOPY DELIVERY', 'TRUCX DLH Lite', 'TRUCX DLH Dense', 'TRUCX DLH Cargo', 'SHIVANI VX']
         return vendor_name in oda_vendors

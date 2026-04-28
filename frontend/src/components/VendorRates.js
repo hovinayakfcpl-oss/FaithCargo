@@ -19,7 +19,7 @@ const ODA_CATEGORIES = {
   'DEFAULT': { rate: 4, min: 500, name: 'ODA Default (₹4/kg, Min ₹500)', color: '#6b7280' }
 };
 
-// Vendors that support CFT rates (Only RIVIGO and PD LOGISTICS - NO TRUCX)
+// Vendors that support CFT rates (Only RIVIGO and PD LOGISTICS)
 const CFT_SUPPORTED_VENDORS = ["RIVIGO", "PD LOGISTICS"];
 
 // TRUCX vendors (NO CFT support - only standard rates)
@@ -41,21 +41,15 @@ const DEFAULT_VENDOR_RATES = {
 };
 
 // Vendor pincode source mapping
-// Vendors NOT in this list will use their OWN pincodes
 const VENDOR_PINCODE_SOURCE = {
   "SHIPSHOPY DELIVERY": "PD LOGISTICS",
   "TRUCX DLH Lite": "PD LOGISTICS",
   "TRUCX DLH Dense": "PD LOGISTICS",
   "TRUCX DLH Cargo": "PD LOGISTICS",
   "SHIVANI VX": "VXPRESS"
-  // RIVIGO uses its OWN pincodes
-  // PD LOGISTICS uses its OWN pincodes
-  // VXPRESS uses its OWN pincodes
-  // SHIPSHOPY BLUE DART uses its OWN serviceable pincodes
 };
 
 function VendorRateCalculator() {
-  // State declarations
   const [pickup, setPickup] = useState("");
   const [destination, setDestination] = useState("");
   const [mode, setMode] = useState("Prepaid");
@@ -80,7 +74,6 @@ function VendorRateCalculator() {
   
   const abortControllerRef = useRef(null);
 
-  // Dimension functions
   const addDimension = () => {
     setDimensions([...dimensions, { qty: 1, length: "", width: "", height: "" }]);
   };
@@ -96,12 +89,10 @@ function VendorRateCalculator() {
     setDimensions(newDims);
   };
 
-  // Fetch vendors on mount
   useEffect(() => {
     fetchVendors();
   }, []);
 
-  // Fetch location and zone on pincode change
   useEffect(() => {
     if (pickup && pickup.length === 6) {
       fetchPincodeLocation(pickup, "origin");
@@ -113,7 +104,6 @@ function VendorRateCalculator() {
     }
   }, [pickup, destination]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
@@ -127,7 +117,6 @@ function VendorRateCalculator() {
       const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/`);
       if (response.ok) {
         const data = await response.json();
-        console.log("Fetched vendors:", data.map(v => v.vendor_name));
         setVendors(data);
         setSelectedVendors(data.map(v => v.vendor_name));
       } else {
@@ -185,7 +174,6 @@ function VendorRateCalculator() {
     return pincode && pincode.length === 6 && /^\d+$/.test(pincode);
   };
 
-  // Calculate volumetric weight
   const calculateVolumetricWeight = useCallback((cftType = 'STANDARD', vendorDivisor = null) => {
     let totalVolKg = 0;
     let totalVolCFT = 0;
@@ -211,7 +199,6 @@ function VendorRateCalculator() {
     return { volumetricWeight: totalVolKg, volumeCFT: totalVolCFT };
   }, [dimensions]);
 
-  // Zone mapping for 17 zones
   const getZoneFromPincode = useCallback((pincode) => {
     const pincodeStr = String(pincode);
     const firstDigit = pincodeStr.charAt(0);
@@ -223,7 +210,6 @@ function VendorRateCalculator() {
       '9': 'S1'
     };
     
-    // Special handling for South, East, NE zones
     if (pincodeStr.startsWith('30')) return 'S2';
     if (pincodeStr.startsWith('31')) return 'S3';
     if (pincodeStr.startsWith('32')) return 'S4';
@@ -236,9 +222,7 @@ function VendorRateCalculator() {
     return zoneMap[firstDigit] || 'N1';
   }, []);
 
-  // Check pincode status for a vendor
   const checkPincodeForVendor = useCallback(async (vendor, pincode) => {
-    // Determine which vendor's pincodes to check
     let sourceVendorName = vendor.vendor_name;
     if (VENDOR_PINCODE_SOURCE[vendor.vendor_name]) {
       sourceVendorName = VENDOR_PINCODE_SOURCE[vendor.vendor_name];
@@ -260,7 +244,6 @@ function VendorRateCalculator() {
         const data = await response.json();
         let result;
         
-        // For SHIPSHOPY BLUE DART - serviceable pincodes only (NO ODA)
         if (vendor.vendor_name === "SHIPSHOPY BLUE DART") {
           if (data.is_serviceable === true) {
             result = {
@@ -279,9 +262,7 @@ function VendorRateCalculator() {
               category: null
             };
           }
-        } 
-        // For all other vendors - check ODA
-        else {
+        } else {
           if (data.is_oda === true) {
             result = {
               isServiceable: true,
@@ -309,19 +290,16 @@ function VendorRateCalculator() {
       console.error(`Error checking pincode for ${vendor.vendor_name}:`, err);
     }
     
-    // Default fallback
     if (vendor.vendor_name === "SHIPSHOPY BLUE DART") {
       return { isServiceable: false, isODA: false, charge: 0, minCharge: 0, category: null };
     }
     return { isServiceable: true, isODA: false, charge: 0, minCharge: 0, category: null };
   }, [pincodeCache]);
 
-  // Get rate from vendor rates (same as VendorManage.js logic)
   const getRateFromVendor = useCallback((vendor, fromZone, toZone, cftType) => {
     let rate = 0;
     const vendorName = vendor.vendor_name;
     
-    // For RIVIGO and PD LOGISTICS - check CFT rates
     if (CFT_SUPPORTED_VENDORS.includes(vendorName)) {
       if (cftType === "6CFT" && vendor.delhivery_6cft) {
         rate = vendor.delhivery_6cft[fromZone]?.[toZone] || 0;
@@ -329,51 +307,37 @@ function VendorRateCalculator() {
         rate = vendor.delhivery_10cft[fromZone]?.[toZone] || 0;
       } else {
         rate = vendor.rates[fromZone]?.[toZone] || 0;
+        if (rate === 0 && vendor.delhivery_6cft) {
+          rate = vendor.delhivery_6cft[fromZone]?.[toZone] || 0;
+        }
       }
-    } 
-    // For TRUCX vendors - NO CFT support, only standard rates
-    else if (TRUCX_VENDORS.includes(vendorName)) {
+    } else if (TRUCX_VENDORS.includes(vendorName)) {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
-    }
-    // For other vendors - standard rates only
-    else {
-      rate = vendor.rates[fromZone]?.[toZone] || 0;
-    }
-    
-    // Log for debugging
-    if (rate === 0) {
-      console.log(`No rate found for ${vendorName} ${cftType}: ${fromZone}→${toZone}`);
     } else {
-      console.log(`Rate for ${vendorName} ${cftType}: ${fromZone}→${toZone} = ₹${rate}/kg`);
+      rate = vendor.rates[fromZone]?.[toZone] || 0;
     }
     
     return rate;
   }, []);
 
-  // Calculate rate for a single vendor
   const calculateRateForVendor = useCallback((vendor, fromZone, toZone, weight, finalODACharge, cftSize, pincodeInfo) => {
     const vendorName = vendor.vendor_name;
     const charges = vendor.charges || {};
     
-    // Get rate from vendor's rate matrix
     let ratePerKg = getRateFromVendor(vendor, fromZone, toZone, cftSize);
     
-    // Use fallback rate if still 0
     if (ratePerKg === 0) {
       ratePerKg = DEFAULT_VENDOR_RATES[vendorName] || 22;
     }
     
-    // Get charges
     const docketCharge = parseFloat(charges.docket_charge) || 100;
     const fscPercent = parseFloat(String(charges.fsc || "10%").replace("%", "")) || 10;
     const gstPercent = parseFloat(String(charges.gst || "18%").replace("%", "")) || 18;
     const minFreight = parseFloat(charges.min_freight) || 350;
     const minWeight = parseFloat(charges.min_weight) || 20;
     
-    // Calculate effective weight
     let effectiveWeight = Math.max(weight, minWeight);
     
-    // Add volumetric weight if applicable
     const isCFTVendor = CFT_SUPPORTED_VENDORS.includes(vendorName);
     
     if (isCFTVendor && cftSize === "6CFT") {
@@ -428,12 +392,10 @@ function VendorRateCalculator() {
   }, [mode, invoiceValue, calculateVolumetricWeight, getRateFromVendor]);
 
   const handleCalculate = async () => {
-    // Cancel previous request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     
-    // Validation
     if (!pickup || !destination || !weight) {
       alert("❌ Please fill mandatory fields: Origin, Destination, and Weight!");
       return;
@@ -465,8 +427,6 @@ function VendorRateCalculator() {
       const fromZone = originZone || getZoneFromPincode(pickup);
       const toZone = destZone || getZoneFromPincode(destination);
       
-      console.log(`Calculating rates: ${pickup}(${fromZone}) → ${destination}(${toZone})`);
-      
       const activeVendors = vendors.filter(v => 
         (showAllVendors || selectedVendors.includes(v.vendor_name)) && v.is_active !== false
       );
@@ -474,61 +434,48 @@ function VendorRateCalculator() {
       const calculatedResults = [];
       const actualWeight = parseFloat(weight);
       
-      // Check pincode status for all vendors in parallel
       const pincodePromises = activeVendors.map(vendor => checkPincodeForVendor(vendor, destination));
       const pincodeResults = await Promise.all(pincodePromises);
       
       for (let i = 0; i < activeVendors.length; i++) {
         const vendor = activeVendors[i];
         const vendorName = vendor.vendor_name;
-        const charges = vendor.charges || {};
         const pincodeInfo = pincodeResults[i];
         
         if (!pincodeInfo || pincodeInfo.isServiceable === false) {
-          console.log(`${vendorName} not serviceable for pincode ${destination}`);
           continue;
         }
         
-        // Calculate ODA charge only if pincode is ODA
         let finalODACharge = 0;
         if (pincodeInfo.isODA === true && pincodeInfo.charge > 0) {
           const calculatedODA = actualWeight * pincodeInfo.charge;
           finalODACharge = Math.max(calculatedODA, pincodeInfo.minCharge || 500);
-          console.log(`ODA Applied for ${vendorName}: ${pincodeInfo.charge}/kg × ${actualWeight}kg = ${calculatedODA}, Min ₹${pincodeInfo.minCharge}, Final: ₹${finalODACharge}`);
         }
         
         const isCFTVendor = CFT_SUPPORTED_VENDORS.includes(vendorName);
         const isTrucx = TRUCX_VENDORS.includes(vendorName);
         
-        // For CFT support vendors (RIVIGO, PD LOGISTICS) - show 6CFT, 10CFT, and Standard
         if (isCFTVendor) {
-          // 6 CFT Rate
           const rate6CFT = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "6CFT", pincodeInfo);
           if (rate6CFT && rate6CFT.rate_per_kg > 0) {
             calculatedResults.push(rate6CFT);
           }
           
-          // 10 CFT Rate
           const rate10CFT = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "10CFT", pincodeInfo);
           if (rate10CFT && rate10CFT.rate_per_kg > 0) {
             calculatedResults.push(rate10CFT);
           }
           
-          // Standard Rate
           const rateStd = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "Standard", pincodeInfo);
           if (rateStd && rateStd.rate_per_kg > 0) {
             calculatedResults.push(rateStd);
           }
-        } 
-        // For TRUCX vendors - NO CFT support, only standard rate
-        else if (isTrucx) {
+        } else if (isTrucx) {
           const rate = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "Standard", pincodeInfo);
           if (rate && rate.rate_per_kg > 0) {
             calculatedResults.push(rate);
           }
-        }
-        // For other vendors - standard rate only
-        else {
+        } else {
           const rate = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "Standard", pincodeInfo);
           if (rate && rate.rate_per_kg > 0) {
             calculatedResults.push(rate);
@@ -536,10 +483,7 @@ function VendorRateCalculator() {
         }
       }
       
-      // Sort by total freight
       calculatedResults.sort((a, b) => a.total_freight - b.total_freight);
-      
-      console.log(`Calculated ${calculatedResults.length} results`);
       
       setResults(calculatedResults);
       setCalculationDetails({
@@ -551,7 +495,6 @@ function VendorRateCalculator() {
       
     } catch (error) {
       if (error.name === 'AbortError') {
-        console.log("Request cancelled");
         return;
       }
       console.error("Calculation error:", error);
@@ -610,7 +553,6 @@ function VendorRateCalculator() {
 
       <div className="big-card">
         <div className="calculator-container">
-          {/* Input Form */}
           <div className="form-card">
             <h3>📋 Shipment Details</h3>
             
@@ -714,7 +656,6 @@ function VendorRateCalculator() {
               </button>
             </div>
 
-            {/* Vendor Filter */}
             <div className="vendor-filter">
               <label className="filter-label">
                 <input 
@@ -752,7 +693,6 @@ function VendorRateCalculator() {
             </div>
           </div>
 
-          {/* Results Section */}
           <div className="main-result-card">
             <div className="results-header">
               <h3>📊 Rate Comparison</h3>
@@ -790,7 +730,6 @@ function VendorRateCalculator() {
               </div>
             ) : (
               <>
-                {/* Best Vendor Highlight */}
                 {bestVendor && (
                   <div className="best-vendor-highlight">
                     <div className="best-badge">🏆 BEST RATE</div>
@@ -810,7 +749,6 @@ function VendorRateCalculator() {
                   </div>
                 )}
 
-                {/* Results List */}
                 <div className="results-list">
                   {results.map((vendor, idx) => (
                     <div 
