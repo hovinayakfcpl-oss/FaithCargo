@@ -4,10 +4,14 @@ import "./VendorRateCalculator.css";
 // API Base URL - CORRECT with /api/vendors prefix
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://faithcargo.onrender.com";
 
-// Zones list
+// Zones list - FIXED to match database zones
 const ZONES = [
-  "N1", "N2", "N3", "N4", "C1", "C2", "W1", "W2", 
-  "S1", "S2", "S3", "S4", "E1", "E2", "NE1", "NE2", "NE3"
+  "N1", "N2", "N3",      // North zones
+  "C1",                  // Central zones
+  "W1", "W2", "W3",      // West zones (W3 exists in RIVIGO)
+  "S1", "S2",            // South zones
+  "E1",                  // East zones
+  "NE1", "NE2"           // North East zones
 ];
 
 // ODA Categories
@@ -20,12 +24,8 @@ const ODA_CATEGORIES = {
 };
 
 // FIXED: Vendors that support CFT rates
-// PD LOGISTICS - ONLY CFT (6CFT and 10CFT), NO Standard
-// RIVIGO - Has both CFT and Standard rates
 const PD_LOGISTICS = "PD LOGISTICS";
 const RIVIGO = "RIVIGO";
-const CFT_ONLY_VENDORS = [PD_LOGISTICS];  // Only CFT, no standard
-const CFT_AND_STANDARD_VENDORS = [RIVIGO];  // Both CFT and standard
 
 // TRUCX vendors (NO CFT support - only standard rates)
 const TRUCX_VENDORS = ["TRUCX DLH Lite", "TRUCX DLH Dense", "TRUCX DLH Cargo"];
@@ -183,27 +183,54 @@ function VendorRateCalculator() {
     return { volumetricWeight: totalVolKg, volumeCFT: totalVolCFT };
   }, [dimensions]);
 
+  // FIXED: Zone mapping to match database zones
   const getZoneFromPincode = useCallback((pincode) => {
     const pincodeStr = String(pincode);
     const firstDigit = pincodeStr.charAt(0);
     
-    const zoneMap = {
-      '1': 'N1', '2': 'N2', '3': 'N3', '4': 'N4',
-      '5': 'C1', '6': 'C2',
-      '7': 'W1', '8': 'W2',
-      '9': 'S1'
-    };
+    // North zones
+    if (firstDigit === '1') return 'N1';
+    if (firstDigit === '2') return 'N2';
+    if (firstDigit === '3') return 'N3';
+    if (firstDigit === '4') return 'N4';
     
-    if (pincodeStr.startsWith('30')) return 'S2';
-    if (pincodeStr.startsWith('31')) return 'S3';
-    if (pincodeStr.startsWith('32')) return 'S4';
+    // Central zones
+    if (firstDigit === '5') return 'C1';
+    if (firstDigit === '6') return 'C2';
+    
+    // West zones - special handling for W3
+    if (firstDigit === '7') return 'W1';
+    if (firstDigit === '8') {
+      // Pincodes starting with 38, 39 go to W3
+      if (pincodeStr.startsWith('38') || pincodeStr.startsWith('39')) {
+        return 'W3';
+      }
+      return 'W2';
+    }
+    
+    // South zones
+    if (firstDigit === '9') {
+      if (pincodeStr.startsWith('30')) return 'S2';
+      if (pincodeStr.startsWith('31')) return 'S3';
+      if (pincodeStr.startsWith('32')) return 'S4';
+      return 'S1';
+    }
+    
+    // East zones
     if (pincodeStr.startsWith('10')) return 'E1';
     if (pincodeStr.startsWith('11')) return 'E2';
+    
+    // North East zones
     if (pincodeStr.startsWith('12')) return 'NE1';
     if (pincodeStr.startsWith('13')) return 'NE2';
     if (pincodeStr.startsWith('14')) return 'NE3';
     
-    return zoneMap[firstDigit] || 'N1';
+    // Special W3 mapping for other pincodes
+    if (pincodeStr.startsWith('38') || pincodeStr.startsWith('39')) {
+      return 'W3';
+    }
+    
+    return 'N1';
   }, []);
 
   const checkPincodeForVendor = useCallback(async (vendor, pincode) => {
@@ -280,7 +307,7 @@ function VendorRateCalculator() {
     return { isServiceable: true, isODA: false, charge: 0, minCharge: 500, category: null };
   }, [pincodeCache]);
 
-  // FIXED: Get rate from vendor based on vendor type
+  // Get rate from vendor based on vendor type
   const getRateFromVendor = useCallback((vendor, fromZone, toZone, cftType) => {
     let rate = 0;
     const vendorName = vendor.vendor_name;
@@ -347,7 +374,7 @@ function VendorRateCalculator() {
       // Use fallback only for non-PD vendors
       if (vendorName !== PD_LOGISTICS) {
         console.warn(`⚠️ No rate found for ${vendorName}, using fallback`);
-        const fallbackRates = { "DELHIVERY": 28, "GATI": 25, "SHIPSHOPY BLUE DART": 25, "SHIPSHOPY DELIVERY": 22, "RIVIGO": 24 };
+        const fallbackRates = { "DELHIVERY": 28, "GATI": 25, "SHIPSHOPY BLUE DART": 25, "SHIPSHOPY DELIVERY": 22, "RIVIGO": 24, "VXPRESS": 20, "TRUCX DLH Lite": 22 };
         ratePerKg = fallbackRates[vendorName] || 22;
       } else {
         return null;
@@ -499,7 +526,7 @@ function VendorRateCalculator() {
           console.log(`🔥 ODA for ${vendorName}: ${pincodeInfo.charge}/kg × ${actualWeight}kg = ${calculatedODA}, Min ₹${pincodeInfo.minCharge}, Final: ₹${finalODACharge}`);
         }
         
-        // FIXED: Separate logic for PD Logistics, RIVIGO, and others
+        // Separate logic for PD Logistics, RIVIGO, and others
         if (vendorName === PD_LOGISTICS) {
           // PD Logistics - ONLY 6CFT and 10CFT, NO Standard
           const rate6CFT = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "6CFT", pincodeInfo);
@@ -511,7 +538,6 @@ function VendorRateCalculator() {
           if (rate10CFT && rate10CFT.rate_per_kg > 0) {
             calculatedResults.push(rate10CFT);
           }
-          // ❌ NO Standard rate for PD Logistics
         } 
         else if (vendorName === RIVIGO) {
           // RIVIGO - Has both CFT and Standard
@@ -783,11 +809,14 @@ function VendorRateCalculator() {
                 <p>📦 Enter shipment details and click "Calculate Rates"</p>
                 <div className="example-inputs">
                   <p>💡 Try these examples:</p>
-                  <button onClick={() => { setPickup("110001"); setDestination("212217"); setWeight("100"); }} className="example-btn">
-                    Delhi → Allahabad (ODA Test)
+                  <button onClick={() => { setPickup("110001"); setDestination("400001"); setWeight("100"); }} className="example-btn">
+                    Delhi → Mumbai
                   </button>
                   <button onClick={() => { setPickup("400001"); setDestination("500001"); setWeight("50"); }} className="example-btn">
                     Mumbai → Hyderabad
+                  </button>
+                  <button onClick={() => { setPickup("110001"); setDestination("700001"); setWeight("200"); }} className="example-btn">
+                    Delhi → Kolkata
                   </button>
                 </div>
               </div>

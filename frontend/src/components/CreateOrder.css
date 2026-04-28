@@ -1,7 +1,8 @@
 /* ============================================
-   FAITH CARGO - CREATE ORDER PAGE v12.0
+   FAITH CARGO - CREATE ORDER PAGE v13.0
    WITH CLIENT AUTHENTICATION & CUSTOM RATES
    ULTIMATE PREMIUM UI DESIGN - FULLY OPTIMIZED
+   MODERN GLASSMORPHISM + NEUBRUTALISM DESIGN
    DEVELOPED BY DEVORA TECHNOLOGIES
    ============================================ */
 
@@ -9,25 +10,31 @@
    1. ROOT VARIABLES & RESET
    -------------------------------------------- */
 :root {
-  --primary-red: #d32f2f;
-  --primary-red-dark: #b71c1c;
-  --primary-red-light: #ffebed;
-  --primary-red-glow: rgba(211, 47, 47, 0.15);
-  --primary-blue: #2563eb;
-  --primary-blue-dark: #1d4ed8;
+  --primary-red: #dc2626;
+  --primary-red-dark: #b91c1c;
+  --primary-red-light: #fee2e2;
+  --primary-red-glow: rgba(220, 38, 38, 0.15);
+  --primary-red-glow-strong: rgba(220, 38, 38, 0.3);
+  --primary-blue: #3b82f6;
+  --primary-blue-dark: #2563eb;
   --primary-blue-light: #dbeafe;
-  --primary-blue-glow: rgba(37, 99, 235, 0.15);
+  --primary-blue-glow: rgba(59, 130, 246, 0.15);
   --primary-purple: #8b5cf6;
   --primary-purple-light: #ede9fe;
+  --primary-purple-glow: rgba(139, 92, 246, 0.15);
   --primary-green: #10b981;
-  --primary-green-dark: #059669;
+  --primary-green-light: #d1fae5;
+  --primary-green-glow: rgba(16, 185, 129, 0.15);
   --primary-orange: #f59e0b;
+  --primary-orange-light: #fef3c7;
+  --primary-orange-glow: rgba(245, 158, 11, 0.15);
   --dark-bg: #0f172a;
   --dark-bg-light: #1e293b;
   --text-dark: #0f172a;
   --text-gray: #64748b;
   --text-light: #94a3b8;
   --border-color: #e2e8f0;
+  --border-light: #f1f5f9;
   --bg-gray: #f8fafc;
   --bg-light: #f1f5f9;
   --success: #10b981;
@@ -36,26 +43,29 @@
   --warning-light: #fef3c7;
   --info: #3b82f6;
   --info-light: #dbeafe;
-  --purple: #8b5cf6;
-  --purple-light: #ede9fe;
-  --pink: #ec4898;
-  --pink-light: #fce7f3;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --error: #ef4444;
+  --error-light: #fee2e2;
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
   --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-  --shadow-blue: 0 10px 25px -5px rgba(37, 99, 235, 0.2);
-  --shadow-red: 0 10px 25px -5px rgba(211, 47, 47, 0.3);
+  --shadow-red: 0 10px 25px -5px rgba(220, 38, 38, 0.3);
+  --shadow-blue: 0 10px 25px -5px rgba(59, 130, 246, 0.3);
   --shadow-purple: 0 10px 25px -5px rgba(139, 92, 246, 0.3);
   --shadow-green: 0 10px 25px -5px rgba(16, 185, 129, 0.3);
+  --radius-xs: 4px;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 20px;
   --radius-2xl: 24px;
+  --radius-3xl: 32px;
+  --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 * {
@@ -72,7 +82,7 @@ body {
 }
 
 /* --------------------------------------------
-   2. SCROLLBAR STYLES - PREMIUM
+   2. PREMIUM SCROLLBAR
    -------------------------------------------- */
 ::-webkit-scrollbar {
   width: 8px;
@@ -95,7 +105,7 @@ body {
 }
 
 /* --------------------------------------------
-   3. MAIN LAYOUT
+   3. MAIN LAYOUT - MODERN DASHBOARD
    -------------------------------------------- */
 .create-order-page {
   display: flex;
@@ -104,7 +114,7 @@ body {
 }
 
 /* --------------------------------------------
-   4. SIDEBAR STYLES - PREMIUM GLASSMORPHISM
+   4. SIDEBAR - PREMIUM GLASSMORPHISM
    -------------------------------------------- */
 .order-sidebar {
   width: 280px;
@@ -162,12 +172,7 @@ body {
   animation: pulse 2s infinite;
 }
 
-@keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.3); opacity: 0.7; }
-}
-
-/* Client Info Sidebar - NEW */
+/* Client Info Sidebar */
 .client-info-sidebar {
   display: flex;
   align-items: center;
@@ -201,26 +206,7 @@ body {
   color: var(--text-light);
 }
 
-.logout-sidebar-btn {
-  background: rgba(239, 68, 68, 0.2);
-  border: none;
-  padding: 8px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  color: #f87171;
-  transition: var(--transition);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.logout-sidebar-btn:hover {
-  background: #ef4444;
-  color: white;
-  transform: scale(1.05);
-}
-
-/* Sidebar Rates Info - NEW */
+/* Sidebar Rates Info */
 .sidebar-rates-info {
   background: linear-gradient(135deg, var(--primary-purple-light), rgba(139, 92, 246, 0.1));
   padding: 14px 16px;
@@ -238,11 +224,7 @@ body {
   margin-bottom: 5px;
 }
 
-.sidebar-rates-info small {
-  font-size: 10px;
-  color: var(--text-light);
-}
-
+/* Sidebar Navigation */
 .sidebar-navigation {
   flex: 1;
 }
@@ -269,7 +251,7 @@ body {
   top: 0;
   width: 0;
   height: 100%;
-  background: linear-gradient(90deg, rgba(211, 47, 47, 0.2), transparent);
+  background: linear-gradient(90deg, rgba(220, 38, 38, 0.2), transparent);
   transition: var(--transition);
   z-index: -1;
 }
@@ -287,13 +269,10 @@ body {
 .nav-link.active {
   background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
   color: white;
-  box-shadow: 0 4px 15px rgba(211, 47, 47, 0.4);
+  box-shadow: var(--shadow-red);
 }
 
-.nav-link.active::before {
-  display: none;
-}
-
+/* Sidebar Help */
 .sidebar-help {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
   padding: 20px;
@@ -308,19 +287,23 @@ body {
 .sidebar-help:hover {
   transform: translateY(-3px);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
-  border-color: rgba(255, 255, 255, 0.15);
 }
 
-.sidebar-help p {
-  font-size: 12px;
-  margin: 8px 0;
-  color: var(--text-light);
+/* Logout Button */
+.logout-sidebar-btn {
+  background: rgba(239, 68, 68, 0.2);
+  border: none;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: #f87171;
+  transition: var(--transition);
 }
 
-.sidebar-help span {
-  font-weight: 700;
-  font-size: 14px;
+.logout-sidebar-btn:hover {
+  background: #ef4444;
   color: white;
+  transform: scale(1.05);
 }
 
 /* --------------------------------------------
@@ -353,13 +336,7 @@ body {
   animation: spin 1s linear infinite;
 }
 
-.loading-container p {
-  font-size: 14px;
-  color: var(--text-gray);
-  font-weight: 500;
-}
-
-/* Page Header - Premium */
+/* Page Header */
 .page-title-section {
   display: flex;
   justify-content: space-between;
@@ -387,12 +364,6 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-}
-
-.page-title-section p {
-  color: var(--text-gray);
-  font-size: 14px;
-  margin-top: 6px;
 }
 
 .stats-badges {
@@ -426,7 +397,7 @@ body {
   border-left: 3px solid var(--primary-red);
 }
 
-.badge.custom-rate-badge {
+.custom-rate-badge {
   background: linear-gradient(135deg, var(--primary-purple-light), white);
   color: var(--primary-purple);
   border-left: 3px solid var(--primary-purple);
@@ -445,18 +416,6 @@ body {
   font-weight: 500;
   border-left: 4px solid #dc2626;
   animation: slideDown 0.3s ease;
-  box-shadow: var(--shadow-sm);
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* --------------------------------------------
@@ -475,17 +434,16 @@ body {
 }
 
 /* --------------------------------------------
-   7. FORM CARDS - PREMIUM GLASS DESIGN
+   7. FORM CARDS - MODERN GLASS DESIGN
    -------------------------------------------- */
 .form-section {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  background: white;
   border-radius: var(--radius-xl);
   overflow: hidden;
   margin-bottom: 24px;
   box-shadow: var(--shadow-md);
   transition: var(--transition);
-  border: 1px solid rgba(226, 232, 240, 0.6);
+  border: 1px solid var(--border-color);
 }
 
 .form-section:hover {
@@ -516,7 +474,7 @@ body {
   padding: 24px;
 }
 
-/* Form Fields - Premium */
+/* Form Fields */
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -553,7 +511,6 @@ body {
   transition: var(--transition);
   background: var(--bg-gray);
   font-family: inherit;
-  color: var(--text-dark);
 }
 
 .form-field input:focus,
@@ -571,7 +528,7 @@ body {
 }
 
 /* --------------------------------------------
-   8. SAVED ADDRESSES STYLES - PREMIUM
+   8. SAVED ADDRESSES STYLES
    -------------------------------------------- */
 .saved-addresses-container {
   margin-bottom: 24px;
@@ -603,7 +560,6 @@ body {
   border-color: var(--primary-red);
   background: var(--primary-red-light);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
 }
 
 .address-list-dropdown {
@@ -615,7 +571,6 @@ body {
   max-height: 320px;
   overflow-y: auto;
   animation: fadeIn 0.3s ease;
-  box-shadow: var(--shadow-md);
 }
 
 .address-list-dropdown h4 {
@@ -660,7 +615,6 @@ body {
 
 .saved-address-info strong {
   font-size: 14px;
-  color: var(--text-dark);
 }
 
 .saved-address-info span {
@@ -690,7 +644,6 @@ body {
 
 .use-address-btn:hover {
   transform: scale(1.05);
-  box-shadow: var(--shadow-sm);
 }
 
 .delete-address-btn {
@@ -700,17 +653,15 @@ body {
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  display: flex;
-  align-items: center;
   transition: var(--transition);
 }
 
 .delete-address-btn:hover {
   background: #ef4444;
   color: white;
-  transform: scale(1.05);
 }
 
+/* Save Address Modal */
 .save-address-modal-overlay {
   position: fixed;
   top: 0;
@@ -742,7 +693,6 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: var(--text-dark);
 }
 
 .address-name-input {
@@ -798,7 +748,7 @@ body {
 }
 
 /* --------------------------------------------
-   9. MODE SELECTOR - PREMIUM
+   9. MODE SELECTOR
    -------------------------------------------- */
 .mode-selector {
   margin-bottom: 24px;
@@ -811,7 +761,6 @@ body {
   text-transform: uppercase;
   display: block;
   margin-bottom: 12px;
-  letter-spacing: 0.5px;
 }
 
 .mode-options {
@@ -833,14 +782,12 @@ body {
   font-size: 13px;
   font-weight: 600;
   transition: var(--transition);
-  color: var(--text-dark);
 }
 
 .mode-option:hover {
   border-color: var(--primary-red);
   background: var(--primary-red-light);
   transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
 }
 
 .mode-option.active {
@@ -851,7 +798,7 @@ body {
 }
 
 /* --------------------------------------------
-   10. ENHANCED DIMENSION PANEL WITH QUANTITY - PREMIUM
+   10. DIMENSION PANEL
    -------------------------------------------- */
 .dimension-panel-enhanced {
   background: linear-gradient(135deg, var(--bg-gray) 0%, var(--bg-light) 100%);
@@ -876,7 +823,6 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--text-dark);
 }
 
 .add-dimension-btn {
@@ -949,7 +895,6 @@ body {
 .remove-group-btn:hover {
   background: #ef4444;
   color: white;
-  transform: scale(1.05);
 }
 
 .dimension-group-inputs {
@@ -978,7 +923,6 @@ body {
   border-radius: var(--radius-md);
   font-size: 13px;
   transition: var(--transition);
-  color: var(--text-dark);
 }
 
 .dimension-group-inputs input:focus {
@@ -995,7 +939,6 @@ body {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  font-size: 14px;
   background: white;
   border-radius: var(--radius-lg);
 }
@@ -1042,17 +985,6 @@ body {
   animation: fadeIn 0.3s ease;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateX(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 .invoice-input-row input {
   padding: 12px 14px;
   border: 2px solid var(--border-color);
@@ -1060,7 +992,6 @@ body {
   background: var(--bg-gray);
   font-size: 14px;
   transition: var(--transition);
-  color: var(--text-dark);
 }
 
 .invoice-input-row input:focus {
@@ -1085,7 +1016,6 @@ body {
 .remove-invoice-btn:hover {
   background: #ef4444;
   color: white;
-  transform: scale(1.05);
 }
 
 .add-invoice-btn {
@@ -1109,7 +1039,7 @@ body {
 }
 
 /* --------------------------------------------
-   12. UPLOAD AREA - PREMIUM
+   12. UPLOAD AREA
    -------------------------------------------- */
 .upload-container {
   margin-top: 20px;
@@ -1145,10 +1075,6 @@ body {
   font-size: 14px;
 }
 
-.upload-label-btn small {
-  font-size: 11px;
-}
-
 .file-list-preview {
   margin-top: 16px;
   background: var(--bg-gray);
@@ -1159,7 +1085,6 @@ body {
 .file-list-preview h4 {
   font-size: 13px;
   margin-bottom: 12px;
-  color: var(--text-dark);
 }
 
 .file-preview-item {
@@ -1181,63 +1106,48 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-.file-preview-item .file-thumbnail {
+.file-thumbnail {
   width: 36px;
   height: 36px;
   object-fit: cover;
   border-radius: 6px;
 }
 
-.file-preview-item .file-name {
-  flex: 1;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.file-preview-item .file-size {
-  font-size: 10px;
-  color: var(--text-gray);
-}
-
-.file-preview-item .file-actions {
+.file-actions {
   display: flex;
   gap: 8px;
 }
 
-.file-preview-item .download-file {
-  background: #e0e7ff;
+.download-file, .remove-file {
   border: none;
   border-radius: 6px;
   padding: 6px;
   cursor: pointer;
-  color: #2563eb;
   transition: var(--transition);
 }
 
-.file-preview-item .download-file:hover {
+.download-file {
+  background: #e0e7ff;
+  color: #2563eb;
+}
+
+.download-file:hover {
   background: #2563eb;
   color: white;
-  transform: scale(1.05);
 }
 
-.file-preview-item .remove-file {
+.remove-file {
   background: #fee2e2;
-  border: none;
-  border-radius: 6px;
-  padding: 6px;
-  cursor: pointer;
   color: #ef4444;
-  transition: var(--transition);
 }
 
-.file-preview-item .remove-file:hover {
+.remove-file:hover {
   background: #ef4444;
   color: white;
-  transform: scale(1.05);
 }
 
 /* --------------------------------------------
-   13. FREIGHT CARD - PREMIUM WITH CUSTOM RATE BADGE
+   13. FREIGHT CARD
    -------------------------------------------- */
 .freight-card {
   margin-top: 20px;
@@ -1245,7 +1155,6 @@ body {
   background: linear-gradient(135deg, var(--warning-light) 0%, #fffbeb 100%);
   border-radius: var(--radius-lg);
   border-left: 4px solid var(--warning);
-  box-shadow: var(--shadow-sm);
 }
 
 .freight-card-header {
@@ -1266,27 +1175,6 @@ body {
   font-size: 10px;
   font-weight: 700;
   margin-left: auto;
-}
-
-.loading-badge {
-  font-size: 11px;
-  margin-left: auto;
-  animation: pulse 1s infinite;
-}
-
-.freight-error-msg {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  background: #fee2e2;
-  border-radius: var(--radius-md);
-  color: #dc2626;
-  font-size: 12px;
-}
-
-.freight-card-body {
-  margin-top: 12px;
 }
 
 .route-info {
@@ -1336,7 +1224,7 @@ body {
 }
 
 /* --------------------------------------------
-   14. E-WAY ALERT - PREMIUM
+   14. E-WAY ALERT
    -------------------------------------------- */
 .eway-alert {
   margin-top: 20px;
@@ -1367,7 +1255,6 @@ body {
   font-weight: 700;
   background: white;
   transition: var(--transition);
-  color: var(--text-dark);
 }
 
 .eway-input-field:focus {
@@ -1407,7 +1294,6 @@ body {
   font-weight: 700;
   color: var(--text-gray);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .toggle-switch {
@@ -1421,7 +1307,6 @@ body {
   font-weight: 600;
   padding: 5px 12px;
   border-radius: 30px;
-  transition: var(--transition);
 }
 
 .toggle-switch.on {
@@ -1440,16 +1325,10 @@ body {
   text-align: center;
   background: white;
   transition: var(--transition);
-  color: var(--text-dark);
-}
-
-.manual-lr-input:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--primary-red-glow);
 }
 
 /* --------------------------------------------
-   16. GENERATE BUTTON - PREMIUM
+   16. GENERATE BUTTON
    -------------------------------------------- */
 .generate-btn {
   width: 100%;
@@ -1494,20 +1373,10 @@ body {
 .generate-btn.loading-state {
   opacity: 0.7;
   cursor: wait;
-  transform: none;
-}
-
-.spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 
 /* --------------------------------------------
-   17. MODAL STYLES - PREMIUM
+   17. MODAL STYLES
    -------------------------------------------- */
 .modal-overlay {
   position: fixed;
@@ -1520,15 +1389,6 @@ body {
   justify-content: center;
   padding: 30px;
   animation: fadeInModal 0.3s ease;
-}
-
-@keyframes fadeInModal {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 .modal-dialog {
@@ -1544,17 +1404,6 @@ body {
   box-shadow: var(--shadow-2xl);
 }
 
-@keyframes zoomIn {
-  from {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
 .modal-icon {
   margin-bottom: 20px;
 }
@@ -1562,7 +1411,6 @@ body {
 .modal-dialog h2 {
   font-size: 28px;
   font-weight: 800;
-  color: var(--text-dark);
   margin-bottom: 16px;
 }
 
@@ -1614,7 +1462,6 @@ body {
 .print-btn:hover {
   background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
   transform: translateY(-3px);
-  box-shadow: var(--shadow-red);
 }
 
 .view-btn {
@@ -1626,7 +1473,6 @@ body {
 .view-btn:hover {
   background: var(--dark-bg);
   color: white;
-  transform: translateY(-3px);
 }
 
 .new-btn {
@@ -1640,7 +1486,7 @@ body {
 }
 
 /* --------------------------------------------
-   18. ENHANCED TRACKING SECTION - PREMIUM
+   18. TRACKING SECTION
    -------------------------------------------- */
 .tracking-section-enhanced {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -1680,7 +1526,6 @@ body {
   font-weight: 800;
   margin: 0;
   flex: 1;
-  letter-spacing: -0.5px;
 }
 
 .close-tracking {
@@ -1720,7 +1565,6 @@ body {
   box-shadow: var(--shadow-lg);
   transition: var(--transition);
   min-width: 200px;
-  color: var(--text-dark);
 }
 
 .tracking-input-group input:focus {
@@ -1750,21 +1594,11 @@ body {
   box-shadow: var(--shadow-red);
 }
 
-.tracking-input-group button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 .tracking-result-enhanced {
   margin-top: 28px;
   animation: slideUp 0.5s ease;
   position: relative;
   z-index: 1;
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(40px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 .tracking-result-header {
@@ -1823,7 +1657,6 @@ body {
 .route-point div p {
   font-size: 14px;
   font-weight: 700;
-  color: var(--text-dark);
 }
 
 .tracking-details-grid {
@@ -1852,7 +1685,6 @@ body {
 .tracking-details-grid strong {
   font-size: 16px;
   font-weight: 800;
-  color: var(--text-dark);
 }
 
 .tracking-timeline-enhanced {
@@ -1899,11 +1731,6 @@ body {
   animation: pulseGlow 2s infinite;
 }
 
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.5); }
-  50% { box-shadow: 0 0 0 15px rgba(211, 47, 47, 0); }
-}
-
 .step-icon-enhanced {
   font-size: 22px;
 }
@@ -1912,7 +1739,6 @@ body {
   font-size: 12px;
   font-weight: 700;
   margin-bottom: 4px;
-  color: var(--text-dark);
 }
 
 .timeline-step-enhanced.completed .step-label-enhanced {
@@ -1928,22 +1754,8 @@ body {
   color: var(--text-gray);
 }
 
-.timeline-line-enhanced {
-  position: absolute;
-  top: 25px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--border-color);
-  z-index: 0;
-}
-
-.timeline-line-enhanced.completed {
-  background: linear-gradient(90deg, var(--success), var(--success));
-}
-
 /* --------------------------------------------
-   19. ENHANCED DOCKET HEADER WITH BARCODE - FIXED
+   19. DOCKET HEADER WITH BARCODE
    -------------------------------------------- */
 .docket-header-new {
   display: flex;
@@ -1970,8 +1782,7 @@ body {
   margin-bottom: 6px;
 }
 
-/* Barcode Styles - Fixed */
-.barcode-canvas {
+.barcode-canvas, .barcode-image {
   margin: 8px 0;
   background: white;
   display: block;
@@ -1983,20 +1794,6 @@ body {
   padding: 5px;
 }
 
-.barcode-image {
-  margin: 8px 0;
-  background: white;
-  display: block;
-  width: 100%;
-  max-width: 300px;
-  height: auto;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 5px;
-  box-shadow: var(--shadow-sm);
-}
-
-/* Barcode Placeholder */
 .barcode-placeholder {
   width: 280px;
   height: 60px;
@@ -2011,7 +1808,6 @@ body {
   margin: 8px 0;
 }
 
-/* Client ID Docket - NEW */
 .client-id-docket {
   margin-top: 8px;
   font-size: 9px;
@@ -2047,7 +1843,6 @@ body {
 .awb-value-bold {
   font-size: 15px;
   font-weight: 800;
-  color: var(--text-dark);
 }
 
 .status-badge-docket {
@@ -2083,7 +1878,6 @@ body {
   font-size: 15px;
   font-weight: 900;
   margin: 0;
-  color: var(--text-dark);
 }
 
 .company-details p {
@@ -2102,23 +1896,8 @@ body {
   gap: 3px;
 }
 
-/* Print Barcode Styles */
-@media print {
-  .barcode-canvas,
-  .barcode-image {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-    filter: none;
-    background: white;
-  }
-  
-  .barcode-placeholder {
-    display: none;
-  }
-}
-
 /* --------------------------------------------
-   20. STAMP IMAGE STYLES - PREMIUM WITH FALLBACK
+   20. STAMP IMAGE STYLES
    -------------------------------------------- */
 .stamp-signature-wrapper-new {
   display: flex;
@@ -2150,7 +1929,6 @@ body {
   filter: drop-shadow(0 2px 5px rgba(0,0,0,0.1));
 }
 
-/* Stamp Fallback Styles */
 .official-stamp-fallback {
   width: 100px;
   height: 100px;
@@ -2255,20 +2033,12 @@ body {
 }
 
 /* --------------------------------------------
-   21. RESPONSIVE DESIGN - ENHANCED
+   21. RESPONSIVE DESIGN
    -------------------------------------------- */
 @media print {
-  .no-print,
-  .order-sidebar,
-  .page-title-section,
-  .two-column-form,
-  .modal-overlay,
-  .generate-btn,
-  .error-notice,
-  .sidebar-navigation,
-  .sidebar-help,
-  .tracking-section-enhanced,
-  .client-info-sidebar,
+  .no-print, .order-sidebar, .page-title-section, .two-column-form,
+  .modal-overlay, .generate-btn, .error-notice, .sidebar-navigation,
+  .sidebar-help, .tracking-section-enhanced, .client-info-sidebar,
   .sidebar-rates-info {
     display: none !important;
   }
@@ -2281,291 +2051,93 @@ body {
     width: 100%;
   }
   
-  body {
-    background: white;
-    margin: 0;
-    padding: 0;
-  }
+  body { background: white; margin: 0; padding: 0; }
   
-  @page {
-    size: A4;
-    margin: 8mm;
-  }
+  @page { size: A4; margin: 8mm; }
   
-  .official-stamp-image,
-  .official-stamp-fallback,
-  .barcode-image,
-  .barcode-canvas {
+  .official-stamp-image, .official-stamp-fallback, .barcode-image, .barcode-canvas {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
 }
 
 @media (max-width: 1024px) {
-  .tracking-details-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .tracking-timeline-enhanced {
-    flex-direction: column;
-    gap: 20px;
-  }
-  
-  .timeline-line-enhanced {
-    display: none;
-  }
-  
-  .timeline-step-enhanced {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    text-align: left;
-  }
-  
-  .timeline-icon-enhanced {
-    margin: 0;
-  }
-  
-  .dimension-group-inputs {
-    grid-template-columns: 80px 1fr 1fr 1fr;
-  }
-  
-  .order-main-content {
-    padding: 24px;
-  }
+  .tracking-details-grid { grid-template-columns: repeat(2, 1fr); }
+  .tracking-timeline-enhanced { flex-direction: column; gap: 20px; }
+  .timeline-line-enhanced { display: none; }
+  .timeline-step-enhanced { display: flex; align-items: center; gap: 15px; text-align: left; }
+  .timeline-icon-enhanced { margin: 0; }
+  .dimension-group-inputs { grid-template-columns: 80px 1fr 1fr 1fr; }
+  .order-main-content { padding: 24px; }
 }
 
 @media (max-width: 768px) {
-  .create-order-page {
-    flex-direction: column;
-  }
-  
-  .order-sidebar {
-    width: 100%;
-    height: auto;
-    position: relative;
-    padding: 20px;
-  }
-  
-  .order-main-content {
-    padding: 20px;
-  }
-  
-  .page-title-section {
-    flex-direction: column;
-    text-align: center;
-    padding: 16px 20px;
-  }
-  
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-  
-  .mode-options {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .dimension-group-inputs {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  
-  .dim-quantity, .dim-lwh {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .dim-quantity label, .dim-lwh label {
-    width: 45px;
-  }
-  
-  .tracking-route {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .tracking-details-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .tracking-result-header {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .stamp-signature-wrapper-new {
-    flex-direction: column;
-    gap: 25px;
-    align-items: center;
-  }
-  
-  .modal-dialog {
-    padding: 24px;
-  }
-  
-  .modal-lr-number {
-    font-size: 28px;
-  }
-  
-  .modal-buttons {
-    flex-direction: column;
-  }
-  
-  .modal-btn {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .tracking-input-group {
-    flex-direction: column;
-  }
-  
-  .tracking-header-enhanced {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .address-actions-bar {
-    flex-direction: column;
-  }
-  
-  .saved-address-card {
-    flex-direction: column;
-    text-align: center;
-    gap: 12px;
-  }
-  
-  .two-column-form {
-    gap: 20px;
-  }
-  
-  /* Mobile barcode adjustments */
-  .barcode-image,
-  .barcode-canvas {
-    max-width: 250px;
-  }
-  
-  .lr-number-bold {
-    font-size: 20px;
-  }
-  
-  .header-left-section {
-    margin-right: 10px;
-  }
-  
-  .brand-logo-large {
-    height: 50px;
-  }
-  
-  .company-details h2 {
-    font-size: 12px;
-  }
-  
-  .docket-header-new {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .header-right-section {
-    text-align: center;
-  }
+  .create-order-page { flex-direction: column; }
+  .order-sidebar { width: 100%; height: auto; position: relative; padding: 20px; }
+  .order-main-content { padding: 20px; }
+  .page-title-section { flex-direction: column; text-align: center; }
+  .form-row { grid-template-columns: 1fr; }
+  .mode-options { grid-template-columns: repeat(2, 1fr); }
+  .dimension-group-inputs { grid-template-columns: 1fr; gap: 12px; }
+  .dim-quantity, .dim-lwh { flex-direction: row; justify-content: space-between; align-items: center; }
+  .tracking-route { flex-direction: column; text-align: center; }
+  .tracking-details-grid { grid-template-columns: 1fr; }
+  .tracking-result-header { flex-direction: column; text-align: center; }
+  .stamp-signature-wrapper-new { flex-direction: column; gap: 25px; align-items: center; }
+  .modal-dialog { padding: 24px; }
+  .modal-lr-number { font-size: 28px; }
+  .modal-buttons { flex-direction: column; }
+  .modal-btn { width: 100%; justify-content: center; }
+  .tracking-input-group { flex-direction: column; }
+  .address-actions-bar { flex-direction: column; }
+  .saved-address-card { flex-direction: column; text-align: center; }
+  .two-column-form { gap: 20px; }
+  .docket-header-new { flex-direction: column; text-align: center; }
+  .header-right-section { text-align: center; }
+  .signature-area { flex-direction: column; gap: 20px; align-items: center; }
 }
 
 @media (max-width: 480px) {
-  .order-main-content {
-    padding: 15px;
-  }
-  
-  .stats-badges {
-    flex-direction: column;
-    width: 100%;
-  }
-  
-  .badge {
-    justify-content: center;
-  }
-  
-  .mode-options {
-    grid-template-columns: 1fr;
-  }
-  
-  .invoice-input-row {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .invoice-input-row button {
-    grid-column: span 2;
-  }
-  
-  .dimension-header-enhanced {
-    flex-direction: column;
-  }
-  
-  .tracking-header-enhanced h3 {
-    font-size: 20px;
-  }
-  
-  .tracking-lr {
-    font-size: 16px;
-    padding: 4px 12px;
-  }
-  
-  .route-point {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .route-point svg {
-    margin-bottom: 5px;
-  }
-  
-  /* Mobile barcode adjustments */
-  .barcode-image,
-  .barcode-canvas {
-    max-width: 200px;
-  }
-  
-  .lr-number-bold {
-    font-size: 18px;
-  }
-  
-  .awb-label,
-  .awb-value-bold {
-    font-size: 11px;
-  }
-  
-  .signature-area {
-    flex-direction: column;
-    gap: 20px;
-    align-items: center;
-  }
-  
-  .tracking-timeline-enhanced {
-    gap: 15px;
-  }
-  
-  .timeline-step-enhanced {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
+  .order-main-content { padding: 15px; }
+  .stats-badges { flex-direction: column; width: 100%; }
+  .badge { justify-content: center; }
+  .mode-options { grid-template-columns: 1fr; }
+  .invoice-input-row { grid-template-columns: 1fr 1fr; }
+  .invoice-input-row button { grid-column: span 2; }
+  .dimension-header-enhanced { flex-direction: column; }
+  .tracking-header-enhanced h3 { font-size: 20px; }
+  .tracking-lr { font-size: 16px; padding: 4px 12px; }
+  .route-point { flex-direction: column; text-align: center; }
+  .barcode-image, .barcode-canvas { max-width: 200px; }
+  .lr-number-bold { font-size: 18px; }
 }
 
-/* Utilities */
-.text-center { text-align: center; }
-.text-left { text-align: left; }
-.text-red { color: var(--primary-red); }
-.text-purple { color: var(--primary-purple); }
+/* --------------------------------------------
+   22. ANIMATIONS & UTILITIES
+   -------------------------------------------- */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.7; }
+}
 
-/* Animations */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(30px); }
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5); }
+  50% { box-shadow: 0 0 0 15px rgba(220, 38, 38, 0); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(30px); }
-  to { opacity: 1; transform: translateX(0); }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeIn {
@@ -2573,24 +2145,30 @@ body {
   to { opacity: 1; }
 }
 
-/* Loading Animation */
-.loading-spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-/* Success Animation */
-@keyframes checkmark {
-  0% { transform: scale(0); opacity: 0; }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); opacity: 1; }
+@keyframes zoomIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
-/* Hover Effects */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-red { color: var(--primary-red); }
+.text-purple { color: var(--primary-purple); }
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
 .hover-lift {
   transition: var(--transition);
 }
@@ -2600,7 +2178,6 @@ body {
   box-shadow: var(--shadow-lg);
 }
 
-/* Glass Morphism Effect */
 .glass-effect {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);

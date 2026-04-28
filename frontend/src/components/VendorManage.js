@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import "./VendorManage.css";
 
-// Zones for rate matrix
+// Zones for rate matrix - FIXED to match database zones
 const ZONES = [
-  "N1", "N2", "N3", "N4", "C1", "C2", "W1", "W2", 
-  "S1", "S2", "S3", "S4", "E1", "E2", "NE1", "NE2", "NE3"
+  "N1", "N2", "N3",      // North zones
+  "C1",                  // Central zones
+  "W1", "W2", "W3",      // West zones (W3 exists in DB)
+  "S1", "S2",            // South zones
+  "E1",                  // East zones
+  "NE1", "NE2"           // North East zones
 ];
 
 // API Base URL - CORRECT with /api/vendors prefix
