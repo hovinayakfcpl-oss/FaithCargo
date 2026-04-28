@@ -37,7 +37,7 @@ const VOLUMETRIC_DIVISOR = {
   '10CFT': 10000
 };
 
-// Vendor pincode source mapping
+// Vendor pincode source mapping (for ODA checking)
 const VENDOR_PINCODE_SOURCE = {
   "SHIPSHOPY DELIVERY": "PD LOGISTICS",
   "TRUCX DLH Lite": "PD LOGISTICS",
@@ -192,16 +192,13 @@ function VendorRateCalculator() {
     if (firstDigit === '1') return 'N1';
     if (firstDigit === '2') return 'N2';
     if (firstDigit === '3') return 'N3';
-    if (firstDigit === '4') return 'N4';
     
     // Central zones
     if (firstDigit === '5') return 'C1';
-    if (firstDigit === '6') return 'C2';
     
     // West zones - special handling for W3
     if (firstDigit === '7') return 'W1';
     if (firstDigit === '8') {
-      // Pincodes starting with 38, 39 go to W3
       if (pincodeStr.startsWith('38') || pincodeStr.startsWith('39')) {
         return 'W3';
       }
@@ -209,23 +206,17 @@ function VendorRateCalculator() {
     }
     
     // South zones
-    if (firstDigit === '9') {
-      if (pincodeStr.startsWith('30')) return 'S2';
-      if (pincodeStr.startsWith('31')) return 'S3';
-      if (pincodeStr.startsWith('32')) return 'S4';
-      return 'S1';
-    }
+    if (firstDigit === '9') return 'S1';
+    if (pincodeStr.startsWith('30')) return 'S2';
     
     // East zones
     if (pincodeStr.startsWith('10')) return 'E1';
-    if (pincodeStr.startsWith('11')) return 'E2';
     
     // North East zones
     if (pincodeStr.startsWith('12')) return 'NE1';
     if (pincodeStr.startsWith('13')) return 'NE2';
-    if (pincodeStr.startsWith('14')) return 'NE3';
     
-    // Special W3 mapping for other pincodes
+    // Special W3 mapping
     if (pincodeStr.startsWith('38') || pincodeStr.startsWith('39')) {
       return 'W3';
     }
@@ -374,7 +365,18 @@ function VendorRateCalculator() {
       // Use fallback only for non-PD vendors
       if (vendorName !== PD_LOGISTICS) {
         console.warn(`⚠️ No rate found for ${vendorName}, using fallback`);
-        const fallbackRates = { "DELHIVERY": 28, "GATI": 25, "SHIPSHOPY BLUE DART": 25, "SHIPSHOPY DELIVERY": 22, "RIVIGO": 24, "VXPRESS": 20, "TRUCX DLH Lite": 22 };
+        const fallbackRates = { 
+          "DELHIVERY": 28, 
+          "GATI": 25, 
+          "SHIPSHOPY BLUE DART": 25, 
+          "SHIPSHOPY DELIVERY": 22, 
+          "RIVIGO": 24, 
+          "VXPRESS": 20, 
+          "SHIVANI VX": 20,
+          "TRUCX DLH Lite": 22,
+          "TRUCX DLH Dense": 22,
+          "TRUCX DLH Cargo": 22
+        };
         ratePerKg = fallbackRates[vendorName] || 22;
       } else {
         return null;

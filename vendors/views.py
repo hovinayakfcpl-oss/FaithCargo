@@ -50,18 +50,22 @@ def get_zone_from_pincode(pincode):
     elif pincode_str.startswith('14'):
         return 'NE3'
     
+    # W3 zone mapping for pincodes starting with 38, 39
+    if pincode_str.startswith('38') or pincode_str.startswith('39'):
+        return 'W3'
+    
     return zone_map.get(first_digit, 'N1')
 
 
 def is_pincode_serviceable_for_vendor(vendor, pincode):
     """
     Check if pincode is serviceable for a vendor
-    FIXED: Blue Dart uses is_serviceable flag, others use is_oda flag
+    FIXED: Only serviceable if pincode exists in database with proper flag
     """
     pincode_str = str(pincode).strip()
     vendor_name = vendor.vendor_name
     
-    # SHIPSHOPY BLUE DART - ONLY serviceable pincodes (use is_serviceable flag)
+    # SHIPSHOPY BLUE DART - serviceable only if in database with is_serviceable=True
     if vendor_name == 'SHIPSHOPY BLUE DART':
         pincode_obj = VendorPincode.objects.filter(
             vendor=vendor, 
@@ -71,37 +75,7 @@ def is_pincode_serviceable_for_vendor(vendor, pincode):
         logger.info(f"Blue Dart serviceable check for {pincode_str}: {pincode_obj is not None}")
         return pincode_obj is not None
     
-    # VXPRESS - serviceable only if ODA pincode exists
-    if vendor_name == 'VXPRESS':
-        pincode_obj = VendorPincode.objects.filter(
-            vendor=vendor, 
-            pincode=pincode_str,
-            is_oda=True
-        ).first()
-        return pincode_obj is not None
-    
-    # SHIVANI VX - uses VXPRESS pincodes (same as VXPRESS)
-    if vendor_name == 'SHIVANI VX':
-        vxpress_vendor = VendorRate.objects.filter(vendor_name='VXPRESS').first()
-        if vxpress_vendor:
-            pincode_obj = VendorPincode.objects.filter(
-                vendor=vxpress_vendor, 
-                pincode=pincode_str,
-                is_oda=True
-            ).first()
-            return pincode_obj is not None
-        return False
-    
-    # RIVIGO - serviceable only if ODA pincode exists (has its own ODA pincodes)
-    if vendor_name == 'RIVIGO':
-        pincode_obj = VendorPincode.objects.filter(
-            vendor=vendor, 
-            pincode=pincode_str,
-            is_oda=True
-        ).first()
-        return pincode_obj is not None
-    
-    # PD LOGISTICS - serviceable only if ODA pincode exists
+    # PD LOGISTICS - serviceable only if ODA pincode exists in database
     if vendor_name == 'PD LOGISTICS':
         pincode_obj = VendorPincode.objects.filter(
             vendor=vendor, 
@@ -134,6 +108,36 @@ def is_pincode_serviceable_for_vendor(vendor, pincode):
             return pincode_obj is not None
         return False
     
+    # SHIVANI VX - uses VXPRESS pincodes
+    if vendor_name == 'SHIVANI VX':
+        vxpress_vendor = VendorRate.objects.filter(vendor_name='VXPRESS').first()
+        if vxpress_vendor:
+            pincode_obj = VendorPincode.objects.filter(
+                vendor=vxpress_vendor, 
+                pincode=pincode_str,
+                is_oda=True
+            ).first()
+            return pincode_obj is not None
+        return False
+    
+    # VXPRESS - serviceable only if ODA pincode exists
+    if vendor_name == 'VXPRESS':
+        pincode_obj = VendorPincode.objects.filter(
+            vendor=vendor, 
+            pincode=pincode_str,
+            is_oda=True
+        ).first()
+        return pincode_obj is not None
+    
+    # RIVIGO - serviceable only if ODA pincode exists
+    if vendor_name == 'RIVIGO':
+        pincode_obj = VendorPincode.objects.filter(
+            vendor=vendor, 
+            pincode=pincode_str,
+            is_oda=True
+        ).first()
+        return pincode_obj is not None
+    
     # All other vendors (DELHIVERY, GATI) - Always serviceable
     return True
 
@@ -141,7 +145,7 @@ def is_pincode_serviceable_for_vendor(vendor, pincode):
 def check_oda_for_vendor(vendor, pincode):
     """
     Check if pincode is ODA for a vendor
-    FIXED: Proper ODA detection for all vendors
+    FIXED: ODA only applies if pincode is marked as ODA in database with is_oda=True
     """
     pincode_str = str(pincode).strip()
     vendor_name = vendor.vendor_name
@@ -171,14 +175,15 @@ def check_oda_for_vendor(vendor, pincode):
             'state': ''
         }
     
-    # VXPRESS - check its own ODA pincodes
-    if vendor_name == 'VXPRESS':
+    # PD LOGISTICS - check if pincode is ODA in database
+    if vendor_name == 'PD LOGISTICS':
         pincode_obj = VendorPincode.objects.filter(
             vendor=vendor, 
             pincode=pincode_str,
             is_oda=True
         ).first()
         if pincode_obj and pincode_obj.is_oda:
+            logger.info(f"✅ PD LOGISTICS: {pincode_str} is ODA (Category: {pincode_obj.oda_category})")
             return {
                 'is_oda': True,
                 'is_serviceable': True,
@@ -188,6 +193,7 @@ def check_oda_for_vendor(vendor, pincode):
                 'city': pincode_obj.city or '',
                 'state': pincode_obj.state or ''
             }
+        logger.info(f"❌ PD LOGISTICS: {pincode_str} is NOT ODA")
         return {
             'is_oda': False,
             'is_serviceable': True,
@@ -198,16 +204,17 @@ def check_oda_for_vendor(vendor, pincode):
             'state': ''
         }
     
-    # SHIVANI VX - uses VXPRESS pincodes (same as VXPRESS)
-    if vendor_name == 'SHIVANI VX':
-        vxpress_vendor = VendorRate.objects.filter(vendor_name='VXPRESS').first()
-        if vxpress_vendor:
+    # SHIPSHOPY DELIVERY - uses PD LOGISTICS pincodes (ODA applies same as PD)
+    if vendor_name == 'SHIPSHOPY DELIVERY':
+        pd_vendor = VendorRate.objects.filter(vendor_name='PD LOGISTICS').first()
+        if pd_vendor:
             pincode_obj = VendorPincode.objects.filter(
-                vendor=vxpress_vendor, 
+                vendor=pd_vendor, 
                 pincode=pincode_str,
                 is_oda=True
             ).first()
             if pincode_obj and pincode_obj.is_oda:
+                logger.info(f"✅ SHIPSHOPY DELIVERY: {pincode_str} is ODA via PD LOGISTICS")
                 return {
                     'is_oda': True,
                     'is_serviceable': True,
@@ -217,6 +224,98 @@ def check_oda_for_vendor(vendor, pincode):
                     'city': pincode_obj.city or '',
                     'state': pincode_obj.state or ''
                 }
+        logger.info(f"❌ SHIPSHOPY DELIVERY: {pincode_str} is NOT ODA")
+        return {
+            'is_oda': False,
+            'is_serviceable': True,
+            'charge_per_kg': 0,
+            'min_charge': 0,
+            'category': None,
+            'city': '',
+            'state': ''
+        }
+    
+    # TRUCX variants - use PD LOGISTICS pincodes
+    if vendor_name in ['TRUCX DLH Lite', 'TRUCX DLH Dense', 'TRUCX DLH Cargo']:
+        pd_vendor = VendorRate.objects.filter(vendor_name='PD LOGISTICS').first()
+        if pd_vendor:
+            pincode_obj = VendorPincode.objects.filter(
+                vendor=pd_vendor, 
+                pincode=pincode_str,
+                is_oda=True
+            ).first()
+            if pincode_obj and pincode_obj.is_oda:
+                logger.info(f"✅ {vendor_name}: {pincode_str} is ODA via PD LOGISTICS")
+                return {
+                    'is_oda': True,
+                    'is_serviceable': True,
+                    'charge_per_kg': float(pincode_obj.oda_charge_per_kg),
+                    'min_charge': float(pincode_obj.oda_min_charge),
+                    'category': pincode_obj.oda_category,
+                    'city': pincode_obj.city or '',
+                    'state': pincode_obj.state or ''
+                }
+        logger.info(f"❌ {vendor_name}: {pincode_str} is NOT ODA")
+        return {
+            'is_oda': False,
+            'is_serviceable': True,
+            'charge_per_kg': 0,
+            'min_charge': 0,
+            'category': None,
+            'city': '',
+            'state': ''
+        }
+    
+    # VXPRESS - check its own ODA pincodes
+    if vendor_name == 'VXPRESS':
+        pincode_obj = VendorPincode.objects.filter(
+            vendor=vendor, 
+            pincode=pincode_str,
+            is_oda=True
+        ).first()
+        if pincode_obj and pincode_obj.is_oda:
+            logger.info(f"✅ VXPRESS: {pincode_str} is ODA")
+            return {
+                'is_oda': True,
+                'is_serviceable': True,
+                'charge_per_kg': float(pincode_obj.oda_charge_per_kg),
+                'min_charge': float(pincode_obj.oda_min_charge),
+                'category': pincode_obj.oda_category,
+                'city': pincode_obj.city or '',
+                'state': pincode_obj.state or ''
+            }
+        logger.info(f"❌ VXPRESS: {pincode_str} is NOT ODA")
+        return {
+            'is_oda': False,
+            'is_serviceable': True,
+            'charge_per_kg': 0,
+            'min_charge': 0,
+            'category': None,
+            'city': '',
+            'state': ''
+        }
+    
+    # SHIVANI VX - uses VXPRESS pincodes
+    if vendor_name == 'SHIVANI VX':
+        vxpress_vendor = VendorRate.objects.filter(vendor_name='VXPRESS').first()
+        if vxpress_vendor:
+            pincode_obj = VendorPincode.objects.filter(
+                vendor=vxpress_vendor, 
+                pincode=pincode_str,
+                is_oda=True
+            ).first()
+            if pincode_obj and pincode_obj.is_oda:
+                logger.info(f"✅ SHIVANI VX: {pincode_str} is ODA via VXPRESS")
+                return {
+                    'is_oda': True,
+                    'is_serviceable': True,
+                    'charge_per_kg': float(pincode_obj.oda_charge_per_kg),
+                    'min_charge': float(pincode_obj.oda_min_charge),
+                    'category': pincode_obj.oda_category,
+                    'city': pincode_obj.city or '',
+                    'state': pincode_obj.state or ''
+                }
+        logger.info(f"❌ SHIVANI VX: {pincode_str} is NOT ODA")
         return {
             'is_oda': False,
             'is_serviceable': True,
@@ -235,6 +334,7 @@ def check_oda_for_vendor(vendor, pincode):
             is_oda=True
         ).first()
         if pincode_obj and pincode_obj.is_oda:
+            logger.info(f"✅ RIVIGO: {pincode_str} is ODA")
             return {
                 'is_oda': True,
                 'is_serviceable': True,
@@ -244,6 +344,7 @@ def check_oda_for_vendor(vendor, pincode):
                 'city': pincode_obj.city or '',
                 'state': pincode_obj.state or ''
             }
+        logger.info(f"❌ RIVIGO: {pincode_str} is NOT ODA")
         return {
             'is_oda': False,
             'is_serviceable': True,
@@ -253,63 +354,6 @@ def check_oda_for_vendor(vendor, pincode):
             'city': '',
             'state': ''
         }
-    
-    # PD LOGISTICS - check its own ODA pincodes (but no ODA charge - handled separately)
-    if vendor_name == 'PD LOGISTICS':
-        pincode_obj = VendorPincode.objects.filter(
-            vendor=vendor, 
-            pincode=pincode_str,
-            is_oda=True
-        ).first()
-        if pincode_obj and pincode_obj.is_oda:
-            # PD Logistics has ODA but we handle charges differently
-            return {
-                'is_oda': True,
-                'is_serviceable': True,
-                'charge_per_kg': float(pincode_obj.oda_charge_per_kg),
-                'min_charge': float(pincode_obj.oda_min_charge),
-                'category': pincode_obj.oda_category,
-                'city': pincode_obj.city or '',
-                'state': pincode_obj.state or ''
-            }
-        return {
-            'is_oda': False,
-            'is_serviceable': True,
-            'charge_per_kg': 0,
-            'min_charge': 0,
-            'category': None,
-            'city': '',
-            'state': ''
-        }
-    
-    # For vendors that use PD LOGISTICS pincodes
-    if vendor_name in ['TRUCX DLH Lite', 'TRUCX DLH Dense', 'TRUCX DLH Cargo', 'SHIPSHOPY DELIVERY']:
-        pd_vendor = VendorRate.objects.filter(vendor_name='PD LOGISTICS').first()
-        if pd_vendor:
-            pincode_obj = VendorPincode.objects.filter(
-                vendor=pd_vendor, 
-                pincode=pincode_str,
-                is_oda=True
-            ).first()
-            if pincode_obj and pincode_obj.is_oda:
-                return {
-                    'is_oda': True,
-                    'is_serviceable': True,
-                    'charge_per_kg': float(pincode_obj.oda_charge_per_kg),
-                    'min_charge': float(pincode_obj.oda_min_charge),
-                    'category': pincode_obj.oda_category,
-                    'city': pincode_obj.city or '',
-                    'state': pincode_obj.state or ''
-                }
-            return {
-                'is_oda': False,
-                'is_serviceable': True,
-                'charge_per_kg': 0,
-                'min_charge': 0,
-                'category': None,
-                'city': '',
-                'state': ''
-            }
     
     # For all other vendors - No ODA (DELHIVERY, GATI)
     return {
@@ -346,7 +390,6 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
     is_gati = vendor_name == 'GATI'
     
     # Get appropriate rates
-    # FIXED: PD LOGISTICS - ONLY CFT rates (6CFT and 10CFT), NO Standard
     if is_pd:
         # PD Logistics - ONLY CFT rates
         if cft_type == '6cft':
@@ -362,7 +405,6 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
             logger.info(f"PD Logistics: skipping standard rate calculation")
             return None
     
-    # RIVIGO - Has both CFT and Standard rates
     elif is_rivigo:
         if cft_type == '6cft':
             rates = vendor.delhivery_6cft or {}
@@ -377,7 +419,6 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
             rate_per_kg = rates.get(from_zone, {}).get(to_zone, 0)
             display_cft_type = 'Standard'
     
-    # DELHIVERY - Has CFT support but we only use standard for now
     elif is_delhivery:
         if cft_type == '6cft':
             rates = vendor.delhivery_6cft or {}
@@ -392,15 +433,13 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
             rate_per_kg = rates.get(from_zone, {}).get(to_zone, 0)
             display_cft_type = 'Standard'
     
-    # Other vendors - standard rates only
     else:
         rates = vendor.rates or {}
         rate_per_kg = rates.get(from_zone, {}).get(to_zone, 0)
         display_cft_type = 'Standard'
     
-    # Fallback rates if no rate found (only for non-PD vendors)
+    # Fallback rates if no rate found
     if rate_per_kg == 0:
-        # For PD Logistics, don't use fallback
         if is_pd:
             logger.warning(f"No rate found for {vendor_name} {cft_type} from {from_zone} to {to_zone}")
             return None
@@ -435,7 +474,7 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
     # Fuel surcharge
     fsc_amount = base_freight * (fsc_percent / 100)
     
-    # ODA charges
+    # ODA charges - ONLY if is_oda is True from database
     oda_charge = 0
     oda_applicable = False
     oda_category = None
@@ -447,7 +486,9 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
         oda_min = oda_info.get('min_charge', 500)
         oda_calc = effective_weight * oda_charge_per_kg
         oda_charge = max(oda_calc, oda_min)
-        logger.info(f"ODA Charge for {vendor_name}: ₹{oda_charge} ({oda_category})")
+        logger.info(f"✅ ODA APPLIED for {vendor_name}: ₹{oda_charge} ({oda_category})")
+    else:
+        logger.info(f"❌ NO ODA for {vendor_name}")
     
     # GST
     gst_amount = (base_freight + fsc_amount + docket_charge + oda_charge) * (gst_percent / 100)
@@ -480,12 +521,12 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
 
 
 # ============================================
-# VENDOR RATE MANAGEMENT - FULLY FIXED (Manual Response)
+# VENDOR RATE MANAGEMENT
 # ============================================
 
 @api_view(["GET", "POST", "PUT", "DELETE"])
 def manage_vendor_rate(request, vendor_name=None):
-    """Complete vendor rate management - MANUAL RESPONSE (bypasses serializer issues)"""
+    """Complete vendor rate management - MANUAL RESPONSE"""
     
     if request.method == "GET":
         try:
@@ -1053,7 +1094,7 @@ def calculate_all_vendor_rates(request):
             
             vendor_name = vendor.vendor_name
             
-            # FIXED: PD LOGISTICS - only 6CFT and 10CFT, NO Standard
+            # PD LOGISTICS - only 6CFT and 10CFT, NO Standard
             if vendor_name == 'PD LOGISTICS':
                 # 6 CFT
                 rate_6cft = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, '6cft', oda_info)
@@ -1064,7 +1105,6 @@ def calculate_all_vendor_rates(request):
                 rate_10cft = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, '10cft', oda_info)
                 if rate_10cft and rate_10cft.get('rate_per_kg', 0) > 0:
                     results.append(rate_10cft)
-                # NO Standard rate for PD Logistics
             
             # RIVIGO - has both CFT and Standard
             elif vendor_name == 'RIVIGO':
