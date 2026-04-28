@@ -32,6 +32,14 @@ const VOLUMETRIC_DIVISOR = {
   '10CFT': 10000
 };
 
+// Default fallback rates (used only if API rate is 0)
+const DEFAULT_VENDOR_RATES = {
+  "DELHIVERY": 28, "GATI": 25, "PD LOGISTICS": 22,
+  "RIVIGO": 24, "VXPRESS": 20, "SHIVANI VX": 20,
+  "TRUCX DLH Lite": 22, "TRUCX DLH Dense": 22, "TRUCX DLH Cargo": 22,
+  "SHIPSHOPY BLUE DART": 25, "SHIPSHOPY DELIVERY": 22
+};
+
 // Vendor pincode source mapping
 const VENDOR_PINCODE_SOURCE = {
   "SHIPSHOPY DELIVERY": "PD LOGISTICS",
@@ -111,8 +119,9 @@ function VendorRateCalculator() {
         const data = await response.json();
         console.log("Fetched vendors:", data.map(v => ({ 
           name: v.vendor_name, 
-          has6CFT: Object.keys(v.delhivery_6cft || {}).length > 0,
-          has10CFT: Object.keys(v.delhivery_10cft || {}).length > 0
+          ratesCount: Object.keys(v.rates || {}).length,
+          cft6Count: Object.keys(v.delhivery_6cft || {}).length,
+          cft10Count: Object.keys(v.delhivery_10cft || {}).length
         })));
         setVendors(data);
         setSelectedVendors(data.map(v => v.vendor_name));
@@ -284,6 +293,7 @@ function VendorRateCalculator() {
       }
     } catch (err) {
       if (err.name === 'AbortError') return null;
+      console.error(`Error checking pincode for ${vendor.vendor_name}:`, err);
     }
     
     if (vendor.vendor_name === "SHIPSHOPY BLUE DART") {
@@ -292,41 +302,42 @@ function VendorRateCalculator() {
     return { isServiceable: true, isODA: false, charge: 0, minCharge: 500, category: null };
   }, [pincodeCache]);
 
-  // FIXED: Get rate from vendor rates properly
+  // FIXED: Get rate from vendor rates properly - PRIORITIZE CFT RATES FOR RIVIGO & PD
   const getRateFromVendor = useCallback((vendor, fromZone, toZone, cftType) => {
     let rate = 0;
     const vendorName = vendor.vendor_name;
     
     console.log(`Getting rate for ${vendorName}, ${cftType}, ${fromZone}→${toZone}`);
     
-    // For RIVIGO and PD LOGISTICS - check CFT rates
+    // For RIVIGO and PD LOGISTICS - prioritize CFT rates
     if (CFT_SUPPORTED_VENDORS.includes(vendorName)) {
+      // For CFT types, get from specific CFT fields
       if (cftType === "6CFT" && vendor.delhivery_6cft) {
         rate = vendor.delhivery_6cft[fromZone]?.[toZone] || 0;
-        console.log(`  Checked 6CFT: ${rate}`);
+        console.log(`  ✅ 6CFT rate: ${rate}`);
       } 
-      if (cftType === "10CFT" && vendor.delhivery_10cft) {
+      else if (cftType === "10CFT" && vendor.delhivery_10cft) {
         rate = vendor.delhivery_10cft[fromZone]?.[toZone] || 0;
-        console.log(`  Checked 10CFT: ${rate}`);
+        console.log(`  ✅ 10CFT rate: ${rate}`);
       }
-      // For Standard rate, check rates first, then fallback to 6CFT
-      if (cftType === "Standard") {
+      // For Standard rate, try rates first, then 6CFT
+      else if (cftType === "Standard") {
         rate = vendor.rates[fromZone]?.[toZone] || 0;
         if (rate === 0 && vendor.delhivery_6cft) {
           rate = vendor.delhivery_6cft[fromZone]?.[toZone] || 0;
         }
-        console.log(`  Checked Standard: ${rate}`);
+        console.log(`  ✅ Standard rate: ${rate}`);
       }
     } 
     // For TRUCX vendors - standard rates only
     else if (TRUCX_VENDORS.includes(vendorName)) {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
-      console.log(`  TRUCX Standard rate: ${rate}`);
+      console.log(`  ✅ TRUCX Standard rate: ${rate}`);
     }
     // For other vendors - standard rates only
     else {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
-      console.log(`  ${vendorName} Standard rate: ${rate}`);
+      console.log(`  ✅ ${vendorName} Standard rate: ${rate}`);
     }
     
     return rate;
@@ -339,30 +350,18 @@ function VendorRateCalculator() {
     // Get rate from vendor's rate matrix
     let ratePerKg = getRateFromVendor(vendor, fromZone, toZone, cftSize);
     
-    // If still 0, try direct lookup in rates
-    if (ratePerKg === 0 && vendor.rates && vendor.rates[fromZone]) {
-      ratePerKg = vendor.rates[fromZone][toZone] || 0;
-      console.log(`  Direct lookup in rates: ${ratePerKg}`);
+    // If still 0, try one more fallback
+    if (ratePerKg === 0) {
+      // For RIVIGO and PD, try rates field one more time
+      if (CFT_SUPPORTED_VENDORS.includes(vendorName) && vendor.rates && vendor.rates[fromZone]) {
+        ratePerKg = vendor.rates[fromZone][toZone] || 0;
+      }
     }
     
-    // If still 0, use fallback (but log warning)
+    // If still 0, use fallback
     if (ratePerKg === 0) {
-      console.warn(`⚠️ No rate found for ${vendorName} ${cftSize}: ${fromZone}→${toZone}, using fallback`);
-      // Use different fallbacks based on vendor
-      const fallbacks = {
-        "PD LOGISTICS": 22,
-        "RIVIGO": 24,
-        "TRUCX DLH Lite": 22,
-        "TRUCX DLH Dense": 22,
-        "TRUCX DLH Cargo": 22,
-        "DELHIVERY": 28,
-        "GATI": 25,
-        "VXPRESS": 20,
-        "SHIVANI VX": 20,
-        "SHIPSHOPY BLUE DART": 25,
-        "SHIPSHOPY DELIVERY": 22
-      };
-      ratePerKg = fallbacks[vendorName] || 22;
+      console.warn(`⚠️ No rate found for ${vendorName} ${cftSize}: ${fromZone}→${toZone}, using fallback ₹${DEFAULT_VENDOR_RATES[vendorName] || 22}`);
+      ratePerKg = DEFAULT_VENDOR_RATES[vendorName] || 22;
     }
     
     const docketCharge = parseFloat(charges.docket_charge) || 100;

@@ -61,6 +61,12 @@ function VendorManage() {
       const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/`);
       if (response.ok) {
         const data = await response.json();
+        console.log("Fetched vendors:", data.map(v => ({ 
+          name: v.vendor_name, 
+          ratesCount: Object.keys(v.rates || {}).length,
+          cft6Count: Object.keys(v.delhivery_6cft || {}).length 
+        })));
+        
         const updatedData = data.map(vendor => {
           const charges = vendor.charges || {};
           const isBlueDart = vendor.vendor_name === "SHIPSHOPY BLUE DART";
@@ -68,22 +74,10 @@ function VendorManage() {
           if (!charges.oda_min_charge || charges.oda_min_charge === 0) {
             charges.oda_min_charge = isBlueDart ? BLUE_DART_ODA_MIN_CHARGE : DEFAULT_ODA_MIN_CHARGE;
           }
-          
           vendor.charges = charges;
-          
-          // For RIVIGO and PD LOGISTICS, ensure rates are visible in standard tab
-          // by merging CFT rates into rates for display purposes
-          if (vendor.vendor_name === "RIVIGO" || vendor.vendor_name === "PD LOGISTICS") {
-            if (vendor.delhivery_6cft && Object.keys(vendor.delhivery_6cft).length > 0) {
-              // For display, use CFT rates as standard rates
-              if (!vendor.rates || Object.keys(vendor.rates).length === 0) {
-                vendor.rates = vendor.delhivery_6cft;
-              }
-            }
-          }
-          
           return vendor;
         });
+        
         setVendors(updatedData);
         updateStats(updatedData);
       } else {
@@ -401,11 +395,28 @@ function VendorManage() {
   };
 
   const handleEditVendor = (vendor) => {
+    console.log("Editing vendor:", vendor.vendor_name);
+    console.log("Rates data:", vendor.rates);
+    console.log("6CFT data:", vendor.delhivery_6cft);
+    
+    // For RIVIGO and PD LOGISTICS, use CFT rates for standard display if rates empty
+    let rates = vendor.rates || {};
+    let delhivery_6cft = vendor.delhivery_6cft || {};
+    let delhivery_10cft = vendor.delhivery_10cft || {};
+    
+    // If standard rates are empty but CFT rates exist, copy for display
+    if ((vendor.vendor_name === "RIVIGO" || vendor.vendor_name === "PD LOGISTICS") && 
+        Object.keys(rates).length === 0 && 
+        Object.keys(delhivery_6cft).length > 0) {
+      rates = delhivery_6cft;
+      console.log("Using 6CFT rates for standard display");
+    }
+    
     setFormData({
       vendor_name: vendor.vendor_name,
-      rates: vendor.rates || {},
-      delhivery_6cft: vendor.delhivery_6cft || {},
-      delhivery_10cft: vendor.delhivery_10cft || {},
+      rates: rates,
+      delhivery_6cft: delhivery_6cft,
+      delhivery_10cft: delhivery_10cft,
       charges: vendor.charges || {},
       is_active: vendor.is_active !== false
     });
@@ -543,7 +554,11 @@ function VendorManage() {
   };
 
   const getRateValue = (rates, fromZone, toZone) => {
-    return rates?.[fromZone]?.[toZone] || "";
+    const value = rates?.[fromZone]?.[toZone];
+    // Return empty string for 0 or undefined, but keep actual values
+    if (value === undefined || value === null) return "";
+    // Return the actual number (could be 0, but that's fine)
+    return value;
   };
 
   const copyRatesToClipboard = () => {
@@ -843,21 +858,27 @@ function VendorManage() {
             </thead>
             <tbody>
               {ZONES.map(fromZone => {
+                const rowRates = rates[fromZone] || {};
                 return (
                   <tr key={fromZone}>
                     <td className="zone-cell from-zone">{fromZone}</td>
-                    {ZONES.map(toZone => (
-                      <td key={toZone}>
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="rate-input"
-                          value={getRateValue(rates, fromZone, toZone)}
-                          onChange={(e) => handleRateChange(rateType, fromZone, toZone, e.target.value)}
-                          placeholder="0.00"
-                        />
-                      </td>
-                    ))}
+                    {ZONES.map(toZone => {
+                      const rateValue = rowRates[toZone];
+                      // Display actual value if exists, otherwise empty
+                      const displayValue = (rateValue !== undefined && rateValue !== null) ? rateValue : "";
+                      return (
+                        <td key={toZone}>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="rate-input"
+                            value={displayValue}
+                            onChange={(e) => handleRateChange(rateType, fromZone, toZone, e.target.value)}
+                            placeholder="0.00"
+                          />
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })}
