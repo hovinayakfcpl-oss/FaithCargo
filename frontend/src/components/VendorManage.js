@@ -1,1322 +1,864 @@
-import React, { useState, useEffect, useCallback } from "react";
-import "./VendorManage.css";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import "./VendorRateCalculator.css";
 
-// Zones for rate matrix
+// API Base URL - FIXED (removed /api/vendors)
+const API_BASE_URL = process.env.REACT_APP_API_URL || "https://faithcargo.onrender.com";
+
+// Zones list
 const ZONES = [
   "N1", "N2", "N3", "N4", "C1", "C2", "W1", "W2", 
   "S1", "S2", "S3", "S4", "E1", "E2", "NE1", "NE2", "NE3"
 ];
 
-// API Base URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || "https://faithcargo.onrender.com";
+// ODA Categories
+const ODA_CATEGORIES = {
+  'A': { rate: 2, min: 500, name: 'ODA A (₹2/kg, Min ₹500)', color: '#10b981' },
+  'B': { rate: 4, min: 500, name: 'ODA B (₹4/kg, Min ₹500)', color: '#f59e0b' },
+  'C': { rate: 7, min: 500, name: 'ODA C (₹7/kg, Min ₹500)', color: '#ef4444' },
+  'D': { rate: 10, min: 500, name: 'ODA D (₹10/kg, Min ₹500)', color: '#8b5cf6' },
+  'DEFAULT': { rate: 4, min: 500, name: 'ODA Default (₹4/kg, Min ₹500)', color: '#6b7280' }
+};
 
-const DEFAULT_ODA_MIN_CHARGE = 500;
-const BLUE_DART_ODA_MIN_CHARGE = 3000;
+// Vendors that support CFT rates (Only RIVIGO and PD LOGISTICS) - NO STANDARD RATES
+const CFT_SUPPORTED_VENDORS = ["RIVIGO", "PD LOGISTICS"];
 
-function VendorManage() {
+// TRUCX vendors (NO CFT support - only standard rates)
+const TRUCX_VENDORS = ["TRUCX DLH Lite", "TRUCX DLH Dense", "TRUCX DLH Cargo"];
+
+// Volumetric constants
+const VOLUMETRIC_DIVISOR = {
+  'STANDARD': 5000,
+  '6CFT': 4500,
+  '10CFT': 10000
+};
+
+// Default fallback rates (used only if API rate is 0)
+const DEFAULT_VENDOR_RATES = {
+  "DELHIVERY": 28, "GATI": 25, "PD LOGISTICS": 22,
+  "RIVIGO": 24, "VXPRESS": 20, "SHIVANI VX": 20,
+  "TRUCX DLH Lite": 22, "TRUCX DLH Dense": 22, "TRUCX DLH Cargo": 22,
+  "SHIPSHOPY BLUE DART": 25, "SHIPSHOPY DELIVERY": 22
+};
+
+// Vendor pincode source mapping
+const VENDOR_PINCODE_SOURCE = {
+  "SHIPSHOPY DELIVERY": "PD LOGISTICS",
+  "TRUCX DLH Lite": "PD LOGISTICS",
+  "TRUCX DLH Dense": "PD LOGISTICS",
+  "TRUCX DLH Cargo": "PD LOGISTICS",
+  "SHIVANI VX": "VXPRESS"
+};
+
+function VendorRateCalculator() {
+  const [pickup, setPickup] = useState("");
+  const [destination, setDestination] = useState("");
+  const [mode, setMode] = useState("Prepaid");
+  const [weight, setWeight] = useState("");
+  const [invoiceValue, setInvoiceValue] = useState("");
+  const [dimensions, setDimensions] = useState([{ qty: 1, length: "", width: "", height: "" }]);
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [vendors, setVendors] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedVendor, setSelectedVendor] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [formData, setFormData] = useState({
-    vendor_name: "",
-    rates: {},
-    delhivery_6cft: {},
-    delhivery_10cft: {},
-    charges: {},
-    is_active: true
-  });
-  const [activeTab, setActiveTab] = useState("standard");
-  const [saveLoading, setSaveLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 });
-  const [notification, setNotification] = useState({ show: false, message: "", type: "" });
+  const [selectedVendors, setSelectedVendors] = useState([]);
+  const [showAllVendors, setShowAllVendors] = useState(true);
+  const [calculationDetails, setCalculationDetails] = useState(null);
+  const [originLocation, setOriginLocation] = useState("");
+  const [destLocation, setDestLocation] = useState("");
+  const [pincodeCache, setPincodeCache] = useState({});
+  const [expandedVendor, setExpandedVendor] = useState(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [chargedWeight, setChargedWeight] = useState(0);
+  const [originZone, setOriginZone] = useState("");
+  const [destZone, setDestZone] = useState("");
+  const [volumeCFT, setVolumeCFT] = useState(0);
   
-  const [showCsvModal, setShowCsvModal] = useState(false);
-  const [csvVendor, setCsvVendor] = useState(null);
-  const [csvFile, setCsvFile] = useState(null);
-  const [csvPreview, setCsvPreview] = useState([]);
-  const [csvUploading, setCsvUploading] = useState(false);
+  const abortControllerRef = useRef(null);
 
-  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
-  const [invoiceVendor, setInvoiceVendor] = useState(null);
-  const [invoiceFile, setInvoiceFile] = useState(null);
-  const [invoiceData, setInvoiceData] = useState(null);
-  const [invoiceUploading, setInvoiceUploading] = useState(false);
+  const addDimension = () => {
+    setDimensions([...dimensions, { qty: 1, length: "", width: "", height: "" }]);
+  };
+
+  const removeDimension = (index) => {
+    const newDims = dimensions.filter((_, i) => i !== index);
+    setDimensions(newDims);
+  };
+
+  const updateDimension = (index, field, value) => {
+    const newDims = [...dimensions];
+    newDims[index][field] = value;
+    setDimensions(newDims);
+  };
 
   useEffect(() => {
     fetchVendors();
   }, []);
 
-  const showNotification = (message, type = "success") => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => setNotification({ show: false, message: "", type: "" }), 3000);
-  };
+  useEffect(() => {
+    if (pickup && pickup.length === 6) {
+      fetchPincodeLocation(pickup, "origin");
+      setOriginZone(getZoneFromPincode(pickup));
+    }
+    if (destination && destination.length === 6) {
+      fetchPincodeLocation(destination, "dest");
+      setDestZone(getZoneFromPincode(destination));
+    }
+  }, [pickup, destination]);
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const fetchVendors = async () => {
-    setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/`);
+      // FIXED: Removed /api/vendors prefix
+      const response = await fetch(`${API_BASE_URL}/vendor-rates/`);
       if (response.ok) {
         const data = await response.json();
         console.log("Fetched vendors:", data.map(v => ({ 
           name: v.vendor_name, 
           ratesCount: Object.keys(v.rates || {}).length,
-          cft6Count: Object.keys(v.delhivery_6cft || {}).length 
+          cft6Count: Object.keys(v.delhivery_6cft || {}).length,
+          cft10Count: Object.keys(v.delhivery_10cft || {}).length
         })));
-        
-        const updatedData = data.map(vendor => {
-          const charges = vendor.charges || {};
-          const isBlueDart = vendor.vendor_name === "SHIPSHOPY BLUE DART";
-          
-          if (!charges.oda_min_charge || charges.oda_min_charge === 0) {
-            charges.oda_min_charge = isBlueDart ? BLUE_DART_ODA_MIN_CHARGE : DEFAULT_ODA_MIN_CHARGE;
-          }
-          vendor.charges = charges;
-          return vendor;
-        });
-        
-        setVendors(updatedData);
-        updateStats(updatedData);
+        setVendors(data);
+        setSelectedVendors(data.map(v => v.vendor_name));
       } else {
-        loadLocalData();
+        console.error("API failed, using empty vendors list");
+        setVendors([]);
+        setSelectedVendors([]);
       }
     } catch (err) {
       console.error("Error fetching vendors:", err);
-      loadLocalData();
-    } finally {
-      setLoading(false);
+      setVendors([]);
+      setSelectedVendors([]);
     }
   };
 
-  const updateStats = (vendorData) => {
-    const total = vendorData.length;
-    const active = vendorData.filter(v => v.is_active !== false).length;
-    const inactive = total - active;
-    setStats({ total, active, inactive });
-  };
-
-  const hasCFTSupport = (vendorName) => {
-    return vendorName === "RIVIGO" || vendorName === "PD LOGISTICS";
-  };
-
-  const loadLocalData = () => {
-    const defaultVendors = [
-      { id: 1, vendor_name: "DELHIVERY", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, fov: 100, min_weight: 20, oda_charge: 2, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
-      { id: 2, vendor_name: "GATI", rates: {}, charges: { docket_charge: 100, fsc: "15%", gst: "18%", min_freight: 350, fov: 100, min_weight: 20, oda_charge: 3, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
-      { id: 3, vendor_name: "PD LOGISTICS", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, fov: 100, min_weight: 20, oda_charge: 4, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
-      { id: 4, vendor_name: "RIVIGO", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 85, fsc: "12%", gst: "18%", min_freight: 380, fov: 90, min_weight: 20, oda_charge: 4, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
-      { id: 5, vendor_name: "VXPRESS", rates: {}, charges: { docket_charge: 50, fsc: "8%", gst: "18%", min_freight: 450, fov: 50, min_weight: 20, oda_charge: 2, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
-      { id: 6, vendor_name: "SHIVANI VX", rates: {}, charges: { docket_charge: 50, fsc: "7%", gst: "18%", min_freight: 800, min_weight: 20, divisor: 5000, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
-      { id: 7, vendor_name: "TRUCX DLH Lite", rates: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 4500, oda_charge: 3, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
-      { id: 8, vendor_name: "TRUCX DLH Dense", rates: {}, charges: { docket_charge: 75, fsc: "12%", gst: "18%", min_freight: 300, min_weight: 20, divisor: 2700, oda_charge: 3, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
-      { id: 9, vendor_name: "TRUCX DLH Cargo", rates: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 3540, oda_charge: 3, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
-      { id: 10, vendor_name: "SHIPSHOPY BLUE DART", rates: {}, charges: { docket_charge: 50, fsc: "20%", gst: "18%", min_freight: 400, min_weight: 20, divisor: 4500, oda_charge: 5, oda_min_charge: BLUE_DART_ODA_MIN_CHARGE }, is_active: true },
-      { id: 11, vendor_name: "SHIPSHOPY DELIVERY", rates: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 4500, oda_charge: 3, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
-    ];
-    setVendors(defaultVendors);
-    updateStats(defaultVendors);
-  };
-
-  const openInvoiceModal = (vendor) => {
-    setInvoiceVendor(vendor);
-    setInvoiceFile(null);
-    setInvoiceData(null);
-    setShowInvoiceModal(true);
-  };
-
-  const handleInvoiceFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file && (file.type === 'application/json' || file.name.endsWith('.json'))) {
-      setInvoiceFile(file);
-      previewInvoiceData(file);
-    } else {
-      showNotification("Please upload a valid JSON file", "error");
-    }
-  };
-
-  const previewInvoiceData = (file) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const data = JSON.parse(event.target.result);
-        setInvoiceData(data);
-        showNotification("✅ Invoice data loaded successfully", "success");
-      } catch (err) {
-        showNotification("❌ Invalid JSON format", "error");
-        setInvoiceData(null);
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const uploadInvoiceData = async () => {
-    if (!invoiceFile || !invoiceVendor) {
-      showNotification("Please select a JSON file", "error");
-      return;
-    }
-
-    if (!invoiceData) {
-      showNotification("Invalid invoice data", "error");
-      return;
-    }
-
-    setInvoiceUploading(true);
-
+  const fetchPincodeLocation = async (pincode, type) => {
+    if (!pincode || pincode.length !== 6) return;
+    
     try {
-      const getResponse = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(invoiceVendor.vendor_name)}/`);
-      let currentData = {};
-      
-      if (getResponse.ok) {
-        currentData = await getResponse.json();
-      }
-
-      const updatedCharges = {
-        ...currentData.charges,
-        ...invoiceData
-      };
-      
-      const isBlueDart = invoiceVendor.vendor_name === "SHIPSHOPY BLUE DART";
-      if (!updatedCharges.oda_min_charge || updatedCharges.oda_min_charge === 0) {
-        updatedCharges.oda_min_charge = isBlueDart ? BLUE_DART_ODA_MIN_CHARGE : DEFAULT_ODA_MIN_CHARGE;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(invoiceVendor.vendor_name)}/`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...currentData,
-          charges: updatedCharges
-        })
-      });
-
-      if (response.ok) {
-        showNotification(`✅ Invoice uploaded successfully for ${invoiceVendor.vendor_name}!`, "success");
-        setShowInvoiceModal(false);
-        setInvoiceFile(null);
-        setInvoiceData(null);
-        fetchVendors();
-      } else {
-        const error = await response.json();
-        showNotification(`❌ Upload failed: ${error.error || "Unknown error"}`, "error");
-      }
-    } catch (err) {
-      showNotification(`❌ Network error: ${err.message}`, "error");
-    } finally {
-      setInvoiceUploading(false);
-    }
-  };
-
-  const downloadCsvTemplate = (vendorName) => {
-    const headers = [
-      'pincode',
-      'city',
-      'state',
-      'is_oda',
-      'oda_category',
-      'oda_charge_per_kg',
-      'oda_min_charge',
-      'is_serviceable'
-    ];
-    
-    let sampleData = [
-      ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
-      ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
-      ['124105', 'Jhajjar', 'Haryana', 'TRUE', 'A', '2', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
-      ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
-    ];
-    
-    if (vendorName === 'SHIPSHOPY BLUE DART') {
-      sampleData = [
-        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '5', String(BLUE_DART_ODA_MIN_CHARGE), 'TRUE'],
-        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '5', String(BLUE_DART_ODA_MIN_CHARGE), 'TRUE'],
-        ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
-      ];
-    } else if (vendorName === 'SHIPSHOPY DELIVERY') {
-      sampleData = [
-        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '3', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
-        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '3', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
-        ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
-      ];
-    } else if (vendorName === 'PD LOGISTICS') {
-      sampleData = [
-        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
-        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
-        ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
-      ];
-    } else if (vendorName === 'RIVIGO') {
-      sampleData = [
-        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
-        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
-        ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
-      ];
-    } else if (vendorName === 'SHIVANI VX') {
-      sampleData = [
-        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4.5', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
-        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '3.5', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
-        ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
-      ];
-    }
-    
-    const csvContent = [
-      headers.join(','),
-      ...sampleData.map(row => row.join(','))
-    ].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${vendorName}_pincodes_template.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    showNotification(`📥 CSV template downloaded for ${vendorName}`, "success");
-  };
-
-  const openCsvModal = (vendor) => {
-    setCsvVendor(vendor);
-    setCsvFile(null);
-    setCsvPreview([]);
-    setShowCsvModal(true);
-  };
-
-  const handleCsvFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type === 'text/csv') {
-      setCsvFile(file);
-      previewCsvData(file);
-    } else {
-      showNotification("Please upload a valid CSV file", "error");
-    }
-  };
-
-  const previewCsvData = (file) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target.result;
-      const lines = text.split('\n');
-      const headers = lines[0].split(',');
-      const previewData = [];
-      
-      for (let i = 1; i < Math.min(lines.length, 11); i++) {
-        if (lines[i].trim()) {
-          const values = lines[i].split(',');
-          const row = {};
-          headers.forEach((header, idx) => {
-            row[header.trim()] = values[idx]?.trim() || '';
-          });
-          previewData.push(row);
+      const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+      const data = await response.json();
+      if (data?.[0]?.Status === "Success") {
+        const postOffice = data[0].PostOffice[0];
+        const location = `${postOffice.District}, ${postOffice.State}`;
+        if (type === "origin") {
+          setOriginLocation(location);
+        } else {
+          setDestLocation(location);
         }
       }
-      setCsvPreview(previewData);
-    };
-    reader.readAsText(file);
+    } catch (err) {
+      console.error("Error fetching location:", err);
+    }
   };
 
-  const uploadCsvData = async () => {
-    if (!csvFile || !csvVendor) {
-      showNotification("Please select a CSV file", "error");
-      return;
+  const isValidPincode = (pincode) => {
+    return pincode && pincode.length === 6 && /^\d+$/.test(pincode);
+  };
+
+  const calculateVolumetricWeight = useCallback((cftType = 'STANDARD', vendorDivisor = null) => {
+    let totalVolKg = 0;
+    let totalVolCFT = 0;
+    
+    let divisor = VOLUMETRIC_DIVISOR[cftType] || VOLUMETRIC_DIVISOR.STANDARD;
+    if (vendorDivisor && vendorDivisor > 0) {
+      divisor = vendorDivisor;
     }
     
-    setCsvUploading(true);
+    dimensions.forEach((dim) => {
+      const qty = Number(dim.qty) || 0;
+      const l = Number(dim.length) || 0;
+      const w = Number(dim.width) || 0;
+      const h = Number(dim.height) || 0;
+      
+      if (l > 0 && w > 0 && h > 0 && qty > 0) {
+        const volumeCm3 = l * w * h * qty;
+        totalVolKg += volumeCm3 / divisor;
+        totalVolCFT += volumeCm3 / (30.48 * 30.48 * 30.48);
+      }
+    });
     
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const text = event.target.result;
-      const lines = text.split('\n');
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    return { volumetricWeight: totalVolKg, volumeCFT: totalVolCFT };
+  }, [dimensions]);
+
+  const getZoneFromPincode = useCallback((pincode) => {
+    const pincodeStr = String(pincode);
+    const firstDigit = pincodeStr.charAt(0);
+    
+    const zoneMap = {
+      '1': 'N1', '2': 'N2', '3': 'N3', '4': 'N4',
+      '5': 'C1', '6': 'C2',
+      '7': 'W1', '8': 'W2',
+      '9': 'S1'
+    };
+    
+    if (pincodeStr.startsWith('30')) return 'S2';
+    if (pincodeStr.startsWith('31')) return 'S3';
+    if (pincodeStr.startsWith('32')) return 'S4';
+    if (pincodeStr.startsWith('10')) return 'E1';
+    if (pincodeStr.startsWith('11')) return 'E2';
+    if (pincodeStr.startsWith('12')) return 'NE1';
+    if (pincodeStr.startsWith('13')) return 'NE2';
+    if (pincodeStr.startsWith('14')) return 'NE3';
+    
+    return zoneMap[firstDigit] || 'N1';
+  }, []);
+
+  const checkPincodeForVendor = useCallback(async (vendor, pincode) => {
+    let sourceVendorName = vendor.vendor_name;
+    if (VENDOR_PINCODE_SOURCE[vendor.vendor_name]) {
+      sourceVendorName = VENDOR_PINCODE_SOURCE[vendor.vendor_name];
+    }
+    
+    const cacheKey = `${sourceVendorName}_${pincode}`;
+    
+    if (pincodeCache[cacheKey]) {
+      return pincodeCache[cacheKey];
+    }
+    
+    try {
+      // FIXED: Removed /api/vendors prefix
+      const response = await fetch(
+        `${API_BASE_URL}/check-oda/${encodeURIComponent(sourceVendorName)}/${pincode}/`,
+        { signal: abortControllerRef.current?.signal }
+      );
       
-      const pincodes = [];
+      if (response.ok) {
+        const data = await response.json();
+        let result;
+        
+        if (vendor.vendor_name === "SHIPSHOPY BLUE DART") {
+          if (data.is_serviceable === true) {
+            result = {
+              isServiceable: true,
+              isODA: false,
+              charge: 0,
+              minCharge: 0,
+              category: null
+            };
+          } else {
+            result = {
+              isServiceable: false,
+              isODA: false,
+              charge: 0,
+              minCharge: 0,
+              category: null
+            };
+          }
+        } else {
+          if (data.is_oda === true) {
+            result = {
+              isServiceable: true,
+              isODA: true,
+              charge: parseFloat(data.oda_charge_per_kg) || 0,
+              minCharge: parseFloat(data.oda_min_charge) || 500,
+              category: data.oda_category || 'DEFAULT'
+            };
+          } else {
+            result = {
+              isServiceable: true,
+              isODA: false,
+              charge: 0,
+              minCharge: 0,
+              category: null
+            };
+          }
+        }
+        
+        setPincodeCache(prev => ({ ...prev, [cacheKey]: result }));
+        return result;
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') return null;
+      console.error(`Error checking pincode for ${vendor.vendor_name}:`, err);
+    }
+    
+    if (vendor.vendor_name === "SHIPSHOPY BLUE DART") {
+      return { isServiceable: false, isODA: false, charge: 0, minCharge: 0, category: null };
+    }
+    return { isServiceable: true, isODA: false, charge: 0, minCharge: 500, category: null };
+  }, [pincodeCache]);
+
+  // FIXED: Get rate from vendor rates - ONLY CFT for PD LOGISTICS & RIVIGO
+  const getRateFromVendor = useCallback((vendor, fromZone, toZone, cftType) => {
+    let rate = 0;
+    const vendorName = vendor.vendor_name;
+    
+    console.log(`Getting rate for ${vendorName}, ${cftType}, ${fromZone}→${toZone}`);
+    
+    // For RIVIGO and PD LOGISTICS - ONLY CFT rates (Standard rates are NOT used)
+    if (CFT_SUPPORTED_VENDORS.includes(vendorName)) {
+      // For CFT types, get from specific CFT fields
+      if (cftType === "6CFT" && vendor.delhivery_6cft) {
+        rate = vendor.delhivery_6cft[fromZone]?.[toZone] || 0;
+        console.log(`  ✅ 6CFT rate: ${rate}`);
+      } 
+      else if (cftType === "10CFT" && vendor.delhivery_10cft) {
+        rate = vendor.delhivery_10cft[fromZone]?.[toZone] || 0;
+        console.log(`  ✅ 10CFT rate: ${rate}`);
+      }
+      else {
+        // Standard rate - NOT USED for CFT vendors, return 0
+        console.log(`  ⚠️ ${vendorName} does not use Standard rates, skipping`);
+        return 0;
+      }
+    } 
+    // For TRUCX vendors - standard rates only
+    else if (TRUCX_VENDORS.includes(vendorName)) {
+      rate = vendor.rates[fromZone]?.[toZone] || 0;
+      console.log(`  ✅ TRUCX Standard rate: ${rate}`);
+    }
+    // For other vendors - standard rates only
+    else {
+      rate = vendor.rates[fromZone]?.[toZone] || 0;
+      console.log(`  ✅ ${vendorName} Standard rate: ${rate}`);
+    }
+    
+    return rate;
+  }, []);
+
+  const calculateRateForVendor = useCallback((vendor, fromZone, toZone, weight, finalODACharge, cftSize, pincodeInfo) => {
+    const vendorName = vendor.vendor_name;
+    const charges = vendor.charges || {};
+    
+    // Get rate from vendor's rate matrix
+    let ratePerKg = getRateFromVendor(vendor, fromZone, toZone, cftSize);
+    
+    // For CFT vendors, if rate is 0, skip (don't use fallback)
+    if (ratePerKg === 0) {
+      if (CFT_SUPPORTED_VENDORS.includes(vendorName)) {
+        console.log(`⏭️ Skipping ${vendorName} ${cftSize} - no rate found`);
+        return null;
+      }
+      // Use fallback only for non-CFT vendors
+      ratePerKg = DEFAULT_VENDOR_RATES[vendorName] || 22;
+    }
+    
+    const docketCharge = parseFloat(charges.docket_charge) || 100;
+    const fscPercent = parseFloat(String(charges.fsc || "10%").replace("%", "")) || 10;
+    const gstPercent = parseFloat(String(charges.gst || "18%").replace("%", "")) || 18;
+    const minFreight = parseFloat(charges.min_freight) || 350;
+    const minWeight = parseFloat(charges.min_weight) || 20;
+    
+    let effectiveWeight = Math.max(weight, minWeight);
+    
+    const isCFTVendor = CFT_SUPPORTED_VENDORS.includes(vendorName);
+    
+    if (isCFTVendor && cftSize === "6CFT") {
+      const { volumetricWeight } = calculateVolumetricWeight('6CFT');
+      effectiveWeight = Math.max(effectiveWeight, volumetricWeight);
+    } else if (isCFTVendor && cftSize === "10CFT") {
+      const { volumetricWeight } = calculateVolumetricWeight('10CFT');
+      effectiveWeight = Math.max(effectiveWeight, volumetricWeight);
+    } else {
+      const divisor = charges.divisor || 5000;
+      const { volumetricWeight } = calculateVolumetricWeight('STANDARD', divisor);
+      effectiveWeight = Math.max(effectiveWeight, volumetricWeight);
+    }
+    
+    const baseFreight = effectiveWeight * ratePerKg;
+    const fscAmount = baseFreight * (fscPercent / 100);
+    const gstAmount = (baseFreight + fscAmount + docketCharge + finalODACharge) * (gstPercent / 100);
+    
+    let modeCharge = 0;
+    if (mode === "COD") modeCharge = 125;
+    if (mode === "ToPay") modeCharge = 200;
+    
+    let fovCharge = 0;
+    if (invoiceValue && invoiceValue > 0) {
+      fovCharge = Math.max(invoiceValue * 0.001, 100);
+    }
+    
+    let totalFreight = baseFreight + fscAmount + docketCharge + gstAmount + modeCharge + fovCharge + finalODACharge;
+    totalFreight = Math.max(totalFreight, minFreight);
+    
+    console.log(`✅ ${vendorName} ${cftSize}: Rate=${ratePerKg}, EffectiveWt=${effectiveWeight.toFixed(2)}, Base=${baseFreight.toFixed(2)}, ODA=${finalODACharge.toFixed(2)}, Total=${totalFreight.toFixed(2)}`);
+    
+    return {
+      vendor_name: vendorName,
+      rate_per_kg: ratePerKg,
+      cft_type: (isCFTVendor && cftSize !== "Standard") ? cftSize : null,
+      effective_weight: effectiveWeight,
+      base_freight: baseFreight,
+      docket_charge: docketCharge,
+      fsc_percent: fscPercent,
+      fsc_amount: fscAmount,
+      gst_percent: gstPercent,
+      gst_amount: gstAmount,
+      mode_charge: modeCharge,
+      fov_charge: fovCharge,
+      oda_charge: finalODACharge,
+      oda_applicable: pincodeInfo?.isODA === true && pincodeInfo.charge > 0,
+      oda_category: pincodeInfo?.category,
+      oda_rate_per_kg: pincodeInfo?.charge || 0,
+      oda_min_charge: pincodeInfo?.minCharge || 500,
+      min_freight: minFreight,
+      total_freight: totalFreight
+    };
+  }, [mode, invoiceValue, calculateVolumetricWeight, getRateFromVendor]);
+
+  const handleCalculate = async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    if (!pickup || !destination || !weight) {
+      alert("❌ Please fill mandatory fields: Origin, Destination, and Weight!");
+      return;
+    }
+
+    if (!isValidPincode(pickup)) {
+      alert("❌ Please enter a valid 6-digit origin pincode!");
+      return;
+    }
+
+    if (!isValidPincode(destination)) {
+      alert("❌ Please enter a valid 6-digit destination pincode!");
+      return;
+    }
+
+    if (parseFloat(weight) <= 0) {
+      alert("❌ Weight must be greater than 0!");
+      return;
+    }
+
+    if (isCalculating) return;
+    
+    setIsCalculating(true);
+    setLoading(true);
+    
+    abortControllerRef.current = new AbortController();
+    
+    try {
+      const fromZone = originZone || getZoneFromPincode(pickup);
+      const toZone = destZone || getZoneFromPincode(destination);
       
-      for (let i = 1; i < lines.length; i++) {
-        if (lines[i].trim()) {
-          const values = lines[i].split(',');
-          const pincodeData = {};
+      console.log(`📊 Calculating: ${pickup}(${fromZone}) → ${destination}(${toZone}), Weight: ${weight}kg`);
+      
+      const activeVendors = vendors.filter(v => 
+        (showAllVendors || selectedVendors.includes(v.vendor_name)) && v.is_active !== false
+      );
+      
+      const calculatedResults = [];
+      const actualWeight = parseFloat(weight);
+      
+      const pincodePromises = activeVendors.map(vendor => checkPincodeForVendor(vendor, destination));
+      const pincodeResults = await Promise.all(pincodePromises);
+      
+      for (let i = 0; i < activeVendors.length; i++) {
+        const vendor = activeVendors[i];
+        const vendorName = vendor.vendor_name;
+        const pincodeInfo = pincodeResults[i];
+        
+        if (!pincodeInfo || pincodeInfo.isServiceable === false) {
+          console.log(`⏭️ ${vendorName} not serviceable for ${destination}`);
+          continue;
+        }
+        
+        let finalODACharge = 0;
+        if (pincodeInfo.isODA === true && pincodeInfo.charge > 0) {
+          const calculatedODA = actualWeight * pincodeInfo.charge;
+          finalODACharge = Math.max(calculatedODA, pincodeInfo.minCharge || 500);
+          console.log(`🔥 ODA for ${vendorName}: ${pincodeInfo.charge}/kg × ${actualWeight}kg = ${calculatedODA}, Min ₹${pincodeInfo.minCharge}, Final: ₹${finalODACharge}`);
+        }
+        
+        const isCFTVendor = CFT_SUPPORTED_VENDORS.includes(vendorName);
+        const isTrucx = TRUCX_VENDORS.includes(vendorName);
+        
+        // FIXED: For CFT vendors, ONLY calculate 6CFT and 10CFT - NO STANDARD
+        if (isCFTVendor) {
+          // 6 CFT only
+          const rate6CFT = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "6CFT", pincodeInfo);
+          if (rate6CFT && rate6CFT.rate_per_kg > 0) {
+            calculatedResults.push(rate6CFT);
+          }
           
-          headers.forEach((header, idx) => {
-            let value = values[idx]?.trim() || '';
-            
-            if (header === 'is_oda' || header === 'is_serviceable') {
-              value = value.toLowerCase() === 'true' || value === '1' || value.toLowerCase() === 'yes';
-            }
-            if (header === 'oda_charge_per_kg' || header === 'oda_min_charge') {
-              value = parseFloat(value) || 0;
-            }
-            
-            pincodeData[header] = value;
-          });
+          // 10 CFT only
+          const rate10CFT = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "10CFT", pincodeInfo);
+          if (rate10CFT && rate10CFT.rate_per_kg > 0) {
+            calculatedResults.push(rate10CFT);
+          }
           
-          if (pincodeData.pincode && String(pincodeData.pincode).length === 6) {
-            pincodes.push(pincodeData);
+          // ❌ NO STANDARD RATES FOR CFT VENDORS
+        } else if (isTrucx) {
+          const rate = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "Standard", pincodeInfo);
+          if (rate && rate.rate_per_kg > 0) {
+            calculatedResults.push(rate);
+          }
+        } else {
+          const rate = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "Standard", pincodeInfo);
+          if (rate && rate.rate_per_kg > 0) {
+            calculatedResults.push(rate);
           }
         }
       }
       
-      if (pincodes.length === 0) {
-        showNotification("No valid pincodes found in CSV", "error");
-        setCsvUploading(false);
+      calculatedResults.sort((a, b) => a.total_freight - b.total_freight);
+      
+      // Calculate total volume
+      const { volumeCFT: totalVolumeCFT } = calculateVolumetricWeight('STANDARD');
+      setVolumeCFT(totalVolumeCFT);
+      
+      console.log(`✅ Total ${calculatedResults.length} results calculated`);
+      
+      setResults(calculatedResults);
+      setCalculationDetails({
+        from_zone: fromZone,
+        to_zone: toZone,
+        charged_weight: chargedWeight,
+        volume_cft: totalVolumeCFT
+      });
+      
+    } catch (error) {
+      if (error.name === 'AbortError') {
         return;
       }
-      
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-pincodes/bulk-upload/${encodeURIComponent(csvVendor.vendor_name)}/`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            pincodes: pincodes,
-            replace_existing: true
-          })
-        });
-        
-        if (response.ok) {
-          const result = await response.json();
-          showNotification(`✅ Uploaded ${result.created} new, updated ${result.updated} pincodes for ${csvVendor.vendor_name}`, "success");
-          setShowCsvModal(false);
-          setCsvFile(null);
-          setCsvPreview([]);
-        } else {
-          const error = await response.json();
-          showNotification(`❌ Upload failed: ${error.error || "Unknown error"}`, "error");
-        }
-      } catch (err) {
-        showNotification(`❌ Network error: ${err.message}`, "error");
-      } finally {
-        setCsvUploading(false);
-      }
-    };
-    
-    reader.readAsText(csvFile);
-  };
-
-  const handleEditVendor = (vendor) => {
-    console.log("Editing vendor:", vendor.vendor_name);
-    console.log("Rates data:", vendor.rates);
-    console.log("6CFT data:", vendor.delhivery_6cft);
-    
-    // For RIVIGO and PD LOGISTICS, use CFT rates for standard display if rates empty
-    let rates = vendor.rates || {};
-    let delhivery_6cft = vendor.delhivery_6cft || {};
-    let delhivery_10cft = vendor.delhivery_10cft || {};
-    
-    // If standard rates are empty but CFT rates exist, copy for display
-    if ((vendor.vendor_name === "RIVIGO" || vendor.vendor_name === "PD LOGISTICS") && 
-        Object.keys(rates).length === 0 && 
-        Object.keys(delhivery_6cft).length > 0) {
-      rates = delhivery_6cft;
-      console.log("Using 6CFT rates for standard display");
-    }
-    
-    setFormData({
-      vendor_name: vendor.vendor_name,
-      rates: rates,
-      delhivery_6cft: delhivery_6cft,
-      delhivery_10cft: delhivery_10cft,
-      charges: vendor.charges || {},
-      is_active: vendor.is_active !== false
-    });
-    setEditMode(true);
-    setShowModal(true);
-    setActiveTab("standard");
-  };
-
-  const handleAddVendor = () => {
-    setSelectedVendor(null);
-    setFormData({
-      vendor_name: "",
-      rates: {},
-      delhivery_6cft: {},
-      delhivery_10cft: {},
-      charges: {
-        docket_charge: 100,
-        fsc: "10%",
-        gst: "18%",
-        min_freight: 350,
-        fov: 75,
-        min_weight: 20,
-        oda_charge: 2,
-        oda_min_charge: DEFAULT_ODA_MIN_CHARGE,
-        divisor: 5000
-      },
-      is_active: true
-    });
-    setEditMode(false);
-    setShowModal(true);
-    setActiveTab("standard");
-  };
-
-  const handleRateChange = (rateType, fromZone, toZone, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [rateType]: {
-        ...prev[rateType],
-        [fromZone]: {
-          ...prev[rateType][fromZone],
-          [toZone]: parseFloat(value) || 0
-        }
-      }
-    }));
-  };
-
-  const handleChargeChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      charges: {
-        ...prev.charges,
-        [field]: value
-      }
-    }));
-  };
-
-  const handleSave = async () => {
-    setSaveLoading(true);
-    try {
-      const url = editMode 
-        ? `${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(formData.vendor_name)}/`
-        : `${API_BASE_URL}/api/vendors/vendor-rates/`;
-      
-      const method = editMode ? "PUT" : "POST";
-      
-      const chargesToSave = { ...formData.charges };
-      const isBlueDart = formData.vendor_name === "SHIPSHOPY BLUE DART";
-      if (!chargesToSave.oda_min_charge || chargesToSave.oda_min_charge === 0) {
-        chargesToSave.oda_min_charge = isBlueDart ? BLUE_DART_ODA_MIN_CHARGE : DEFAULT_ODA_MIN_CHARGE;
-      }
-      
-      const dataToSave = {
-        ...formData,
-        charges: chargesToSave
-      };
-      
-      const response = await fetch(url, {
-        method: method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dataToSave)
-      });
-      
-      if (response.ok) {
-        showNotification(`✅ ${formData.vendor_name} rates ${editMode ? 'updated' : 'created'} successfully!`, "success");
-        setShowModal(false);
-        fetchVendors();
-      } else {
-        const errorData = await response.json();
-        showNotification("❌ Error: " + (errorData.error || "Failed to save"), "error");
-      }
-    } catch (err) {
-      showNotification("❌ Network error: " + err.message, "error");
+      console.error("Calculation error:", error);
+      alert("An error occurred while calculating rates. Please try again.");
     } finally {
-      setSaveLoading(false);
+      setLoading(false);
+      setIsCalculating(false);
     }
   };
 
-  const handleDeleteVendor = async (vendor) => {
-    if (window.confirm(`⚠️ Are you sure you want to delete ${vendor.vendor_name}? This action cannot be undone.`)) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(vendor.vendor_name)}/`, {
-          method: "DELETE"
-        });
-        
-        if (response.ok) {
-          showNotification(`✅ ${vendor.vendor_name} deleted successfully!`, "success");
-          fetchVendors();
-        } else {
-          showNotification("❌ Failed to delete vendor", "error");
-        }
-      } catch (err) {
-        showNotification("❌ Network error: " + err.message, "error");
-      }
-    }
+  const handleReset = () => {
+    setPickup("");
+    setDestination("");
+    setMode("Prepaid");
+    setWeight("");
+    setInvoiceValue("");
+    setDimensions([{ qty: 1, length: "", width: "", height: "" }]);
+    setResults([]);
+    setCalculationDetails(null);
+    setOriginLocation("");
+    setDestLocation("");
+    setPincodeCache({});
+    setExpandedVendor(null);
+    setChargedWeight(0);
+    setVolumeCFT(0);
+    setOriginZone("");
+    setDestZone("");
   };
 
-  const handleToggleStatus = async (vendor) => {
-    const updatedVendor = { ...vendor, is_active: !vendor.is_active };
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(vendor.vendor_name)}/`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedVendor)
-      });
-      
-      if (response.ok) {
-        showNotification(`${vendor.vendor_name} ${updatedVendor.is_active ? 'activated' : 'deactivated'}`, "success");
-        fetchVendors();
-      } else {
-        showNotification("Failed to update status", "error");
-      }
-    } catch (err) {
-      showNotification("Network error: " + err.message, "error");
-    }
-  };
-
-  const getRateValue = (rates, fromZone, toZone) => {
-    const value = rates?.[fromZone]?.[toZone];
-    // Return empty string for 0 or undefined, but keep actual values
-    if (value === undefined || value === null) return "";
-    // Return the actual number (could be 0, but that's fine)
-    return value;
-  };
-
-  const copyRatesToClipboard = () => {
-    let rates = {};
-    if (activeTab === "standard") {
-      rates = formData.rates;
-    } else if (activeTab === "6cft") {
-      rates = formData.delhivery_6cft;
-    } else if (activeTab === "10cft") {
-      rates = formData.delhivery_10cft;
-    }
-    
-    let text = "From\\To\t" + ZONES.join("\t") + "\n";
-    ZONES.forEach(fromZone => {
-      text += fromZone + "\t";
-      ZONES.forEach(toZone => {
-        text += (rates[fromZone]?.[toZone] || "0") + "\t";
-      });
-      text += "\n";
-    });
-    navigator.clipboard.writeText(text);
-    showNotification("Rates copied to clipboard!", "success");
-  };
-
-  const filteredVendors = vendors.filter(vendor => 
-    vendor.vendor_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const renderInvoiceModal = () => {
-    if (!showInvoiceModal) return null;
-    
-    const isBlueDart = invoiceVendor?.vendor_name === 'SHIPSHOPY BLUE DART';
-    const isShipshopyDelivery = invoiceVendor?.vendor_name === 'SHIPSHOPY DELIVERY';
-    const isShivaniVX = invoiceVendor?.vendor_name === 'SHIVANI VX';
-    const isTrucx = invoiceVendor?.vendor_name?.includes('TRUCX');
-    
-    let exampleJson = {
-      "docket_charge": 100,
-      "fsc": "12%",
-      "gst": "18%",
-      "min_freight": 380,
-      "min_weight": 20,
-      "oda_charge": 4,
-      "oda_min_charge": DEFAULT_ODA_MIN_CHARGE,
-      "divisor": 4500
-    };
-    
-    if (isBlueDart) {
-      exampleJson = {
-        "docket_charge": 50,
-        "fsc": "20%",
-        "min_freight": 400,
-        "oda_charge": 5,
-        "oda_min_charge": BLUE_DART_ODA_MIN_CHARGE,
-        "divisor": 4500
-      };
-    } else if (isShipshopyDelivery) {
-      exampleJson = {
-        "docket_charge": 50,
-        "fsc": "10%",
-        "min_freight": 350,
-        "oda_charge": 3,
-        "oda_min_charge": DEFAULT_ODA_MIN_CHARGE,
-        "divisor": 4500
-      };
-    } else if (isShivaniVX) {
-      exampleJson = {
-        "docket_charge": 50,
-        "fsc": "7%",
-        "min_freight": 800,
-        "oda_min_charge": DEFAULT_ODA_MIN_CHARGE,
-        "divisor": 5000
-      };
-    } else if (isTrucx) {
-      exampleJson = {
-        "docket_charge": 50,
-        "fsc": "10%",
-        "min_freight": 350,
-        "oda_charge": 3,
-        "oda_min_charge": DEFAULT_ODA_MIN_CHARGE,
-        "divisor": 4500
-      };
-    }
-    
-    return (
-      <div className="modal-overlay" onClick={() => setShowInvoiceModal(false)}>
-        <div className="modal-container invoice-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header">
-            <h2>📄 Invoice Upload - {invoiceVendor?.vendor_name}</h2>
-            <button className="close-btn" onClick={() => setShowInvoiceModal(false)}>×</button>
-          </div>
-          
-          <div className="modal-body">
-            <div className="invoice-info-section">
-              <h4>📋 Invoice JSON Format Instructions:</h4>
-              <div className="json-format-box">
-                <code>
-                  {JSON.stringify(exampleJson, null, 2)}
-                </code>
-              </div>
-              <div className="invoice-tips">
-                <strong>💡 Tips:</strong>
-                <ul>
-                  <li>Upload JSON file with vendor charges</li>
-                  <li>Only include fields you want to update</li>
-                  <li>Existing charges will be merged</li>
-                  <li><strong>Default ODA Min Charge: ₹{DEFAULT_ODA_MIN_CHARGE}</strong> for all vendors (except Blue Dart: ₹{BLUE_DART_ODA_MIN_CHARGE})</li>
-                  {isBlueDart && <li>Blue Dart uses divisor 4500 for volumetric calculation</li>}
-                  {isShipshopyDelivery && <li>Shipshopy Delhivery uses divisor 4500 for volumetric calculation</li>}
-                  {isTrucx && <li>TRUCX DLH has different divisors: Lite=4500, Dense=2700, Cargo=3540</li>}
-                  {isShivaniVX && <li>Shivani VX uses divisor 5000 for volumetric calculation</li>}
-                </ul>
-              </div>
-            </div>
-            
-            <div className="invoice-upload-section">
-              <div className="file-upload-area">
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleInvoiceFileChange}
-                  id="invoice-file-input"
-                  style={{ display: 'none' }}
-                />
-                <label htmlFor="invoice-file-input" className="file-upload-label">
-                  📁 {invoiceFile ? invoiceFile.name : "Choose JSON Invoice File"}
-                </label>
-              </div>
-              
-              {invoiceData && (
-                <div className="invoice-preview">
-                  <h4>Preview Invoice Data:</h4>
-                  <div className="preview-table-wrapper">
-                    <pre className="json-preview">
-                      {JSON.stringify(invoiceData, null, 2)}
-                    </pre>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="modal-footer">
-            <button className="cancel-btn" onClick={() => setShowInvoiceModal(false)}>Cancel</button>
-            <button className="upload-btn" onClick={uploadInvoiceData} disabled={!invoiceFile || invoiceUploading}>
-              {invoiceUploading ? "⏳ Uploading..." : "📤 Upload Invoice"}
-            </button>
-          </div>
-        </div>
-      </div>
+  const toggleVendorSelection = (vendorName) => {
+    setSelectedVendors(prev => 
+      prev.includes(vendorName) 
+        ? prev.filter(v => v !== vendorName)
+        : [...prev, vendorName]
     );
   };
 
-  const renderCsvModal = () => {
-    if (!showCsvModal) return null;
-    
-    const isBlueDart = csvVendor?.vendor_name === 'SHIPSHOPY BLUE DART';
-    const isShipshopyDelivery = csvVendor?.vendor_name === 'SHIPSHOPY DELIVERY';
-    const isShivaniVX = csvVendor?.vendor_name === 'SHIVANI VX';
-    const isPd = csvVendor?.vendor_name === 'PD LOGISTICS';
-    const isRivigo = csvVendor?.vendor_name === 'RIVIGO';
-    
-    let odaHint = "";
-    if (isBlueDart) {
-      odaHint = `Blue Dart ODA: ₹5/kg (Min ₹${BLUE_DART_ODA_MIN_CHARGE})`;
-    } else if (isShipshopyDelivery) {
-      odaHint = `Shipshopy Delhivery ODA: ₹3/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
-    } else if (isShivaniVX) {
-      odaHint = `Shivani VX: Standard rates, Min ODA ₹${DEFAULT_ODA_MIN_CHARGE}`;
-    } else if (isPd) {
-      odaHint = `PD Logistics ODA: ₹4/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
-    } else if (isRivigo) {
-      odaHint = `RIVIGO ODA: ₹4/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
-    } else {
-      odaHint = `Default ODA Min Charge: ₹${DEFAULT_ODA_MIN_CHARGE}`;
-    }
-    
-    return (
-      <div className="modal-overlay" onClick={() => setShowCsvModal(false)}>
-        <div className="modal-container csv-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header">
-            <h2>📊 CSV Upload - {csvVendor?.vendor_name}</h2>
-            <button className="close-btn" onClick={() => setShowCsvModal(false)}>×</button>
-          </div>
-          
-          <div className="modal-body">
-            <div className="csv-info-section">
-              <h4>📋 CSV Format Instructions:</h4>
-              <div className="csv-format-box">
-                <code>
-                  pincode,city,state,is_oda,oda_category,oda_charge_per_kg,oda_min_charge,is_serviceable
-                </code>
-                <br/>
-                <code>212217,Allahabad,UP,TRUE,B,4,{DEFAULT_ODA_MIN_CHARGE},TRUE</code>
-                <br/>
-                <code>122502,Gurgaon,Haryana,TRUE,A,2,{DEFAULT_ODA_MIN_CHARGE},TRUE</code>
-                <br/>
-                <code>110001,New Delhi,Delhi,FALSE,,0,0,TRUE</code>
-              </div>
-              {odaHint && (
-                <div className="oda-hint" style={{marginTop: '10px', padding: '8px', background: '#fef3c7', borderRadius: '8px'}}>
-                  <strong>⚠️ Note:</strong> {odaHint}
-                </div>
-              )}
-              <div className="oda-categories-info">
-                <strong>ODA Categories:</strong>
-                <ul>
-                  <li><span className="oda-cat-a">A</span> - ₹2/kg, Min ₹200</li>
-                  <li><span className="oda-cat-b">B</span> - ₹4/kg, Min ₹400</li>
-                  <li><span className="oda-cat-c">C</span> - ₹7/kg, Min ₹700</li>
-                  <li><span className="oda-cat-d">D</span> - ₹10/kg, Min ₹1000</li>
-                </ul>
-                <p style={{marginTop: '8px', fontSize: '11px', color: '#666'}}>
-                  <strong>Note:</strong> Default Min ODA Charge for all vendors is <strong>₹{DEFAULT_ODA_MIN_CHARGE}</strong>
-                </p>
-              </div>
-            </div>
-            
-            <div className="csv-upload-section">
-              <button className="download-template-btn" onClick={() => downloadCsvTemplate(csvVendor?.vendor_name)}>
-                📥 Download Template CSV
-              </button>
-              
-              <div className="file-upload-area">
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleCsvFileChange}
-                  id="csv-file-input"
-                  style={{ display: 'none' }}
-                />
-                <label htmlFor="csv-file-input" className="file-upload-label">
-                  📁 {csvFile ? csvFile.name : "Choose CSV File"}
-                </label>
-              </div>
-              
-              {csvPreview.length > 0 && (
-                <div className="csv-preview">
-                  <h4>Preview (First 10 rows):</h4>
-                  <div className="preview-table-wrapper">
-                    <table className="preview-table">
-                      <thead>
-                        <tr>
-                          {Object.keys(csvPreview[0] || {}).map(key => (
-                            <th key={key}>{key}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {csvPreview.map((row, idx) => (
-                          <tr key={idx}>
-                            {Object.values(row).map((val, i) => (
-                              <td key={i}>{val}</td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="modal-footer">
-            <button className="cancel-btn" onClick={() => setShowCsvModal(false)}>Cancel</button>
-            <button className="upload-btn" onClick={uploadCsvData} disabled={!csvFile || csvUploading}>
-              {csvUploading ? "⏳ Uploading..." : "📤 Upload CSV"}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+  const toggleExpanded = (index) => {
+    setExpandedVendor(expandedVendor === index ? null : index);
   };
 
-  const renderRateMatrix = (rateType, title) => {
-    const rates = formData[rateType] || {};
-    
-    return (
-      <div className="rate-matrix-container">
-        <div className="matrix-header">
-          <h3>{title}</h3>
-          <div className="matrix-actions">
-            <span className="matrix-note">* All rates are in ₹ per kg</span>
-            <button className="copy-btn" onClick={copyRatesToClipboard} title="Copy to clipboard">
-              📋 Copy
-            </button>
-          </div>
-        </div>
-        <div className="table-wrapper">
-          <table className="rate-matrix-table">
-            <thead>
-              <tr>
-                <th className="from-zone-cell">From \\ To</th>
-                {ZONES.map(zone => <th key={zone}>{zone}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {ZONES.map(fromZone => {
-                const rowRates = rates[fromZone] || {};
-                return (
-                  <tr key={fromZone}>
-                    <td className="zone-cell from-zone">{fromZone}</td>
-                    {ZONES.map(toZone => {
-                      const rateValue = rowRates[toZone];
-                      // Display actual value if exists, otherwise empty
-                      const displayValue = (rateValue !== undefined && rateValue !== null) ? rateValue : "";
-                      return (
-                        <td key={toZone}>
-                          <input
-                            type="number"
-                            step="0.01"
-                            className="rate-input"
-                            value={displayValue}
-                            onChange={(e) => handleRateChange(rateType, fromZone, toZone, e.target.value)}
-                            placeholder="0.00"
-                          />
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
-
-  const renderChargesSection = () => {
-    const charges = formData.charges || {};
-    const isDelhivery = formData.vendor_name === "DELHIVERY";
-    const isRivigo = formData.vendor_name === "RIVIGO";
-    const isVxpress = formData.vendor_name === "VXPRESS";
-    const isShivaniVX = formData.vendor_name === "SHIVANI VX";
-    const isPd = formData.vendor_name === "PD LOGISTICS";
-    const isBlueDart = formData.vendor_name === "SHIPSHOPY BLUE DART";
-    const isShipshopyDelivery = formData.vendor_name === "SHIPSHOPY DELIVERY";
-    const isTrucx = formData.vendor_name?.includes('TRUCX');
-    
-    const hasCFTSupport = isRivigo || isPd;
-    
-    return (
-      <div className="charges-section">
-        <h3>📋 Additional Charges & Settings</h3>
-        <div className="charges-grid">
-          <div className="charge-card">
-            <div className="charge-icon">📄</div>
-            <div className="charge-field">
-              <label>Docket Charge (₹)</label>
-              <input
-                type="number"
-                className="charge-input"
-                value={charges.docket_charge || 0}
-                onChange={(e) => handleChargeChange("docket_charge", parseFloat(e.target.value))}
-              />
-            </div>
-          </div>
-          
-          <div className="charge-card">
-            <div className="charge-icon">⛽</div>
-            <div className="charge-field">
-              <label>Fuel Surcharge (%)</label>
-              <input
-                type="text"
-                className="charge-input"
-                value={charges.fsc || "10%"}
-                onChange={(e) => handleChargeChange("fsc", e.target.value)}
-              />
-            </div>
-          </div>
-          
-          <div className="charge-card">
-            <div className="charge-icon">💰</div>
-            <div className="charge-field">
-              <label>GST (%)</label>
-              <input
-                type="text"
-                className="charge-input"
-                value={charges.gst || "18%"}
-                onChange={(e) => handleChargeChange("gst", e.target.value)}
-              />
-            </div>
-          </div>
-          
-          <div className="charge-card">
-            <div className="charge-icon">📦</div>
-            <div className="charge-field">
-              <label>Minimum Freight (₹)</label>
-              <input
-                type="number"
-                className="charge-input"
-                value={charges.min_freight || 350}
-                onChange={(e) => handleChargeChange("min_freight", parseFloat(e.target.value))}
-              />
-            </div>
-          </div>
-          
-          <div className="charge-card">
-            <div className="charge-icon">⚖️</div>
-            <div className="charge-field">
-              <label>Minimum Weight (kg)</label>
-              <input
-                type="number"
-                className="charge-input"
-                value={charges.min_weight || 20}
-                onChange={(e) => handleChargeChange("min_weight", parseFloat(e.target.value))}
-              />
-            </div>
-          </div>
-          
-          <div className="charge-card">
-            <div className="charge-icon">🛡️</div>
-            <div className="charge-field">
-              <label>FOV/Insurance (₹)</label>
-              <input
-                type="number"
-                className="charge-input"
-                value={charges.fov || 75}
-                onChange={(e) => handleChargeChange("fov", parseFloat(e.target.value))}
-              />
-            </div>
-          </div>
-          
-          <div className="charge-card">
-            <div className="charge-icon">🌍</div>
-            <div className="charge-field">
-              <label>ODA Charges (₹/kg)</label>
-              <input
-                type="number"
-                step="0.01"
-                className="charge-input"
-                value={charges.oda_charge || 2}
-                onChange={(e) => handleChargeChange("oda_charge", parseFloat(e.target.value))}
-              />
-            </div>
-          </div>
-          
-          <div className="charge-card">
-            <div className="charge-icon">📐</div>
-            <div className="charge-field">
-              <label>Divisor (Volumetric)</label>
-              <input
-                type="number"
-                className="charge-input"
-                value={charges.divisor || 5000}
-                onChange={(e) => handleChargeChange("divisor", parseFloat(e.target.value))}
-              />
-            </div>
-          </div>
-          
-          <div className="charge-card">
-            <div className="charge-icon">⚠️</div>
-            <div className="charge-field">
-              <label>ODA Min Charge (₹)</label>
-              <input
-                type="number"
-                className="charge-input"
-                value={charges.oda_min_charge || DEFAULT_ODA_MIN_CHARGE}
-                onChange={(e) => handleChargeChange("oda_min_charge", parseFloat(e.target.value))}
-              />
-              <small className="input-hint">Default: ₹{DEFAULT_ODA_MIN_CHARGE} (Blue Dart: ₹{BLUE_DART_ODA_MIN_CHARGE})</small>
-            </div>
-          </div>
-        </div>
-        
-        {hasCFTSupport && (
-          <div className="info-note">
-            <span className="info-icon">📦</span>
-            <span>This vendor supports 6 CFT and 10 CFT rate slabs. Switch tabs above to edit them.</span>
-          </div>
-        )}
-        
-        {(isVxpress || isShivaniVX) && (
-          <div className="info-note special">
-            <span className="info-icon">⭐</span>
-            <span>This vendor uses standard volumetric calculation with divisor = {charges.divisor || 5000}.</span>
-          </div>
-        )}
-        
-        {(isBlueDart || isShipshopyDelivery || isTrucx) && (
-          <div className="info-note">
-            <span className="info-icon">📦</span>
-            <span>Volumetric calculation uses divisor = {charges.divisor || 4500} (L×W×H ÷ divisor) for chargeable weight.</span>
-          </div>
-        )}
-        
-        {isTrucx && (
-          <div className="info-note">
-            <span className="info-icon">🚚</span>
-            <span>TRUCX DLH Variant: {formData.vendor_name.replace('TRUCX DLH ', '')} with divisor {charges.divisor}</span>
-          </div>
-        )}
-        
-        {isDelhivery && (
-          <div className="info-note">
-            <span className="info-icon">🚚</span>
-            <span>Delhivery uses standard rates only. No CFT slabs available.</span>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderVendorCard = (vendor) => {
-    const isDelhivery = vendor.vendor_name === "DELHIVERY";
-    const has6CFT = vendor.delhivery_6cft && Object.keys(vendor.delhivery_6cft).length > 0;
-    const has10CFT = vendor.delhivery_10cft && Object.keys(vendor.delhivery_10cft).length > 0;
-    const isVxpress = vendor.vendor_name === "VXPRESS";
-    const isShivaniVX = vendor.vendor_name === "SHIVANI VX";
-    const isRivigo = vendor.vendor_name === "RIVIGO";
-    const isBlueDart = vendor.vendor_name === "SHIPSHOPY BLUE DART";
-    const isShipshopyDelivery = vendor.vendor_name === "SHIPSHOPY DELIVERY";
-    const isPd = vendor.vendor_name === "PD LOGISTICS";
-    const isTrucx = vendor.vendor_name?.includes('TRUCX');
-    
-    const showCFTBadges = isRivigo || isPd;
-    const showCsvButton = isVxpress || isRivigo || isBlueDart || isShipshopyDelivery || isShivaniVX || isPd;
-    const showInvoiceButton = true;
-    
-    const odaMinCharge = vendor.charges?.oda_min_charge || DEFAULT_ODA_MIN_CHARGE;
-    const isBlueDartVendor = isBlueDart;
-    const odaDisplay = isBlueDartVendor 
-      ? `₹${vendor.charges?.oda_charge || 5}/kg (Min ₹${odaMinCharge})`
-      : `₹${vendor.charges?.oda_charge || 2}/kg (Min ₹${odaMinCharge})`;
-    
-    return (
-      <div className={`vendor-card ${!vendor.is_active ? 'inactive-card' : ''}`} key={vendor.id}>
-        <div className="vendor-card-header">
-          <div className="vendor-name-section">
-            <div className={`vendor-icon ${!vendor.is_active ? 'inactive-icon' : ''}`}>
-              {vendor.vendor_name.charAt(0)}
-            </div>
-            <h3>{vendor.vendor_name}</h3>
-          </div>
-          <div className="vendor-card-actions">
-            <button className="edit-btn" onClick={() => handleEditVendor(vendor)} title="Edit Vendor">
-              ✏️
-            </button>
-            {showInvoiceButton && (
-              <button className="invoice-btn" onClick={() => openInvoiceModal(vendor)} title="Upload Invoice">
-                📄
-              </button>
-            )}
-            {showCsvButton && (
-              <button className="csv-btn" onClick={() => openCsvModal(vendor)} title="Manage ODA Pincodes">
-                📊
-              </button>
-            )}
-            <button className="status-toggle-btn" onClick={() => handleToggleStatus(vendor)} title={vendor.is_active ? "Deactivate" : "Activate"}>
-              {vendor.is_active ? "🔴" : "🟢"}
-            </button>
-            <button className="delete-btn" onClick={() => handleDeleteVendor(vendor)} title="Delete Vendor">
-              🗑️
-            </button>
-          </div>
-        </div>
-        
-        <div className="vendor-card-body">
-          <div className="vendor-stats">
-            <div className="stat">
-              <span>Docket</span>
-              <strong>₹{vendor.charges?.docket_charge || 100}</strong>
-            </div>
-            <div className="stat">
-              <span>FSC</span>
-              <strong>{vendor.charges?.fsc || "10%"}</strong>
-            </div>
-            <div className="stat">
-              <span>GST</span>
-              <strong>{vendor.charges?.gst || "18%"}</strong>
-            </div>
-            <div className="stat">
-              <span>Min Freight</span>
-              <strong>₹{vendor.charges?.min_freight || 350}</strong>
-            </div>
-            <div className="stat">
-              <span>ODA</span>
-              <strong>{odaDisplay}</strong>
-            </div>
-          </div>
-          
-          <div className="vendor-badges">
-            {isDelhivery && <span className="badge delhivery-badge">🚚 Delhivery Partner</span>}
-            {showCFTBadges && has6CFT && <span className="badge cft-badge">📦 6 CFT Support</span>}
-            {showCFTBadges && has10CFT && <span className="badge cft-badge">📦 10 CFT Support</span>}
-            {isVxpress && <span className="badge vxpress-badge">⭐ V-Xpress ODA Ready</span>}
-            {isShivaniVX && <span className="badge shivani-badge">🟣 Shivani VX</span>}
-            {isRivigo && !has6CFT && <span className="badge rivigo-badge">🚛 Rivigo</span>}
-            {isBlueDart && <span className="badge bluedart-badge">🔵 Shipshopy Blue Dart</span>}
-            {isShipshopyDelivery && <span className="badge delhivery-badge">📦 Shipshopy Delhivery</span>}
-            {isPd && <span className="badge pd-badge">🚚 PD Logistics</span>}
-            {isTrucx && <span className="badge trucx-badge">🚛 TRUCX DLH</span>}
-          </div>
-          
-          <div className="vendor-status">
-            <span className={`status-badge ${vendor.is_active ? "active" : "inactive"}`}>
-              {vendor.is_active ? "● Active" : "○ Inactive"}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderModal = () => {
-    if (!showModal) return null;
-    
-    const showCFTTabs = formData.vendor_name === "RIVIGO" || formData.vendor_name === "PD LOGISTICS";
-    
-    return (
-      <div className="modal-overlay" onClick={() => setShowModal(false)}>
-        <div className="modal-container" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header">
-            <h2>{editMode ? `✏️ Edit ${formData.vendor_name} Rates` : "➕ Add New Vendor"}</h2>
-            <button className="close-btn" onClick={() => setShowModal(false)}>×</button>
-          </div>
-          
-          <div className="modal-body">
-            {!editMode && (
-              <div className="form-group">
-                <label>Vendor Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={formData.vendor_name}
-                  onChange={(e) => setFormData({...formData, vendor_name: e.target.value.toUpperCase()})}
-                  placeholder="Enter vendor name (e.g., DELHIVERY, SHIPSHOPY BLUE DART, TRUCX DLH Lite, SHIVANI VX)"
-                />
-              </div>
-            )}
-            
-            <div className="tabs">
-              <button className={`tab ${activeTab === "standard" ? "active" : ""}`} onClick={() => setActiveTab("standard")}>
-                📊 Standard Rates
-              </button>
-              {showCFTTabs && (
-                <>
-                  <button className={`tab ${activeTab === "6cft" ? "active" : ""}`} onClick={() => setActiveTab("6cft")}>
-                    📦 6 CFT Rates
-                  </button>
-                  <button className={`tab ${activeTab === "10cft" ? "active" : ""}`} onClick={() => setActiveTab("10cft")}>
-                    📦 10 CFT Rates
-                  </button>
-                </>
-              )}
-              <button className={`tab ${activeTab === "charges" ? "active" : ""}`} onClick={() => setActiveTab("charges")}>
-                ⚙️ Charges
-              </button>
-            </div>
-            
-            <div className="tab-content">
-              {activeTab === "standard" && renderRateMatrix("rates", "Zone to Zone Rates (₹/kg)")}
-              {activeTab === "6cft" && renderRateMatrix("delhivery_6cft", "6 CFT Rates (₹/kg)")}
-              {activeTab === "10cft" && renderRateMatrix("delhivery_10cft", "10 CFT Rates (₹/kg)")}
-              {activeTab === "charges" && renderChargesSection()}
-            </div>
-          </div>
-          
-          <div className="modal-footer">
-            <button className="cancel-btn" onClick={() => setShowModal(false)}>Cancel</button>
-            <button className="save-btn" onClick={handleSave} disabled={saveLoading}>
-              {saveLoading ? "💾 Saving..." : "💾 Save Changes"}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const getBestVendor = () => results.length > 0 ? results[0] : null;
+  const bestVendor = getBestVendor();
 
   return (
-    <div className="vendor-manage-page">
-      {notification.show && (
-        <div className={`notification ${notification.type}`}>
-          {notification.message}
-        </div>
-      )}
-      
-      <div className="page-header">
-        <div className="header-content">
-          <h1>🚚 Vendor Rate Management</h1>
-          <p>Manage zone-to-zone rates, CFT rates, ODA charges, and upload invoices for all logistics vendors</p>
-        </div>
-        <button className="add-vendor-btn" onClick={handleAddVendor}>
-          + Add New Vendor
-        </button>
-      </div>
-      
-      <div className="stats-container">
-        <div className="stat-card total">
-          <div className="stat-icon">📦</div>
-          <div className="stat-info">
-            <h3>{stats.total}</h3>
-            <p>Total Vendors</p>
+    <div className="vendor-rate-page">
+      <div className="page-header-calc">
+        <h1>🚚 Vendor Rate Calculator</h1>
+        <p>Compare rates across multiple logistics vendors in real-time</p>
+        {destination && (
+          <div className="oda-status-info">
+            🔍 Checking pincode: <strong>{destination}</strong>
           </div>
-        </div>
-        <div className="stat-card active">
-          <div className="stat-icon">✅</div>
-          <div className="stat-info">
-            <h3>{stats.active}</h3>
-            <p>Active Vendors</p>
-          </div>
-        </div>
-        <div className="stat-card inactive">
-          <div className="stat-icon">⏸️</div>
-          <div className="stat-info">
-            <h3>{stats.inactive}</h3>
-            <p>Inactive Vendors</p>
-          </div>
-        </div>
+        )}
       </div>
-      
-      <div className="filters-bar">
-        <div className="search-box">
-          <span className="search-icon">🔍</span>
-          <input
-            type="text"
-            placeholder="Search vendors..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="stats-info">
-          <span>Showing {filteredVendors.length} of {vendors.length} vendors</span>
-        </div>
-        <button className="refresh-btn" onClick={fetchVendors} title="Refresh">
-          🔄
-        </button>
-      </div>
-      
-      {loading ? (
-        <div className="loading-state">
-          <div className="spinner"></div>
-          <p>Loading vendor rates...</p>
-        </div>
-      ) : error ? (
-        <div className="error-state">
-          <p>⚠️ {error}</p>
-          <button onClick={fetchVendors}>Retry</button>
-        </div>
-      ) : (
-        <div className="vendors-grid">
-          {filteredVendors.length === 0 ? (
-            <div className="no-results">
-              <p>No vendors found matching "{searchTerm}"</p>
+
+      <div className="big-card">
+        <div className="calculator-container">
+          <div className="form-card">
+            <h3>📋 Shipment Details</h3>
+            
+            <div className="form-row">
+              <div className="form-group">
+                <label>Origin Pincode *</label>
+                <input 
+                  type="text" 
+                  maxLength="6"
+                  placeholder="e.g., 110001" 
+                  value={pickup} 
+                  onChange={(e) => setPickup(e.target.value.replace(/\D/g, ''))} 
+                />
+                {originLocation && <small className="location-hint">📍 {originLocation}</small>}
+                {originZone && <small className="zone-hint">Zone: {originZone}</small>}
+              </div>
+              <div className="form-group">
+                <label>Destination Pincode *</label>
+                <input 
+                  type="text" 
+                  maxLength="6"
+                  placeholder="e.g., 212217" 
+                  value={destination} 
+                  onChange={(e) => setDestination(e.target.value.replace(/\D/g, ''))} 
+                />
+                {destLocation && <small className="location-hint">📍 {destLocation}</small>}
+                {destZone && <small className="zone-hint">Zone: {destZone}</small>}
+              </div>
             </div>
-          ) : (
-            filteredVendors.map(vendor => renderVendorCard(vendor))
-          )}
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Payment Mode</label>
+                <select value={mode} onChange={(e) => setMode(e.target.value)}>
+                  <option value="Prepaid">Prepaid</option>
+                  <option value="COD">COD (+₹125)</option>
+                  <option value="ToPay">ToPay (+₹200)</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Actual Weight (kg) *</label>
+                <input 
+                  type="number" 
+                  step="0.1"
+                  placeholder="0.00" 
+                  value={weight} 
+                  onChange={(e) => setWeight(e.target.value)} 
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Invoice Value (₹)</label>
+              <input 
+                type="number" 
+                placeholder="0" 
+                value={invoiceValue} 
+                onChange={(e) => setInvoiceValue(e.target.value)} 
+              />
+              <small className="input-hint">FOV: 0.1% (Min ₹100)</small>
+            </div>
+
+            <div className="dimensions-section">
+              <label>Package Dimensions (cm)</label>
+              <div className="dimension-hint">
+                <small>💡 Volumetric: 6CFT÷4500, 10CFT÷10000, Standard÷5000</small>
+              </div>
+              {dimensions.map((dim, idx) => (
+                <div key={idx} className="dimension-row">
+                  <input 
+                    type="number" 
+                    placeholder="Qty" 
+                    value={dim.qty} 
+                    onChange={(e) => updateDimension(idx, "qty", e.target.value)} 
+                  />
+                  <input 
+                    type="number" 
+                    placeholder="L (cm)" 
+                    value={dim.length} 
+                    onChange={(e) => updateDimension(idx, "length", e.target.value)} 
+                  />
+                  <input 
+                    type="number" 
+                    placeholder="W (cm)" 
+                    value={dim.width} 
+                    onChange={(e) => updateDimension(idx, "width", e.target.value)} 
+                  />
+                  <input 
+                    type="number" 
+                    placeholder="H (cm)" 
+                    value={dim.height} 
+                    onChange={(e) => updateDimension(idx, "height", e.target.value)} 
+                  />
+                  {dimensions.length > 1 && (
+                    <button className="remove-dim-btn" onClick={() => removeDimension(idx)}>✕</button>
+                  )}
+                </div>
+              ))}
+              <button className="add-dim-btn" onClick={addDimension}>
+                + Add Package
+              </button>
+            </div>
+
+            <div className="vendor-filter">
+              <label className="filter-label">
+                <input 
+                  type="checkbox" 
+                  checked={showAllVendors} 
+                  onChange={(e) => setShowAllVendors(e.target.checked)} 
+                />
+                Show All Vendors
+              </label>
+              {!showAllVendors && (
+                <div className="vendor-selector">
+                  {vendors.map(vendor => (
+                    <label key={vendor.vendor_name}>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedVendors.includes(vendor.vendor_name)} 
+                        onChange={() => toggleVendorSelection(vendor.vendor_name)} 
+                      />
+                      {vendor.vendor_name}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="btn-group">
+              <button 
+                className="calc-btn" 
+                onClick={handleCalculate} 
+                disabled={loading || isCalculating}
+              >
+                {loading ? "⏳ Calculating..." : "🔍 Calculate Rates"}
+              </button>
+              <button className="reset-btn" onClick={handleReset}>🔄 Reset</button>
+            </div>
+          </div>
+
+          <div className="main-result-card">
+            <div className="results-header">
+              <h3>📊 Rate Comparison</h3>
+              {calculationDetails && (
+                <div className="calc-info">
+                  <span>📍 {originLocation || pickup} → {destLocation || destination}</span>
+                  <span>Zone: <strong>{calculationDetails.from_zone} → {calculationDetails.to_zone}</strong></span>
+                  {volumeCFT > 0 && (
+                    <span>Volume: <strong>{volumeCFT.toFixed(2)} CFT</strong></span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {loading ? (
+              <div className="loading-state">
+                <div className="loading-spinner"></div>
+                <p>Calculating rates...</p>
+              </div>
+            ) : results.length === 0 ? (
+              <div className="empty-state">
+                <p>📦 Enter shipment details and click "Calculate Rates"</p>
+                <div className="example-inputs">
+                  <p>💡 Try these examples:</p>
+                  <button onClick={() => { setPickup("110001"); setDestination("212217"); setWeight("100"); }} className="example-btn">
+                    Delhi → Allahabad (ODA Test)
+                  </button>
+                  <button onClick={() => { setPickup("400001"); setDestination("500001"); setWeight("50"); }} className="example-btn">
+                    Mumbai → Hyderabad
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {bestVendor && (
+                  <div className="best-vendor-highlight">
+                    <div className="best-badge">🏆 BEST RATE</div>
+                    <div className="best-content">
+                      <div className="best-vendor">{bestVendor.vendor_name}</div>
+                      <div className="best-price">₹{bestVendor.total_freight?.toFixed(2)}</div>
+                      <div className="best-rate">₹{bestVendor.rate_per_kg?.toFixed(2)}/kg</div>
+                      {bestVendor.cft_type && (
+                        <div className="best-cft-badge">{bestVendor.cft_type}</div>
+                      )}
+                      {bestVendor.oda_applicable && (
+                        <div className="oda-highlight-badge">
+                          🚚 ODA {bestVendor.oda_category || 'Applied'} (Min ₹500) +₹{bestVendor.oda_charge?.toFixed(2)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="results-list">
+                  {results.map((vendor, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`vendor-result ${bestVendor?.vendor_name === vendor.vendor_name ? 'is-best' : ''}`}
+                    >
+                      <div className="vendor-result-header" onClick={() => toggleExpanded(idx)}>
+                        <div className="vendor-name">
+                          {vendor.vendor_name}
+                          {vendor.cft_type && (
+                            <span className="cft-badge">{vendor.cft_type}</span>
+                          )}
+                          {vendor.oda_applicable ? (
+                            <span className="oda-badge oda-yes">
+                              🚚 ODA {vendor.oda_category || 'Yes'} (Min ₹500) +₹{vendor.oda_charge?.toFixed(2)}
+                            </span>
+                          ) : (
+                            <span className="oda-badge oda-no">✅ No ODA</span>
+                          )}
+                        </div>
+                        <div className="vendor-total">₹{vendor.total_freight?.toFixed(2)}</div>
+                      </div>
+                      
+                      <div className={`vendor-breakdown ${expandedVendor === idx ? 'expanded' : ''}`}>
+                        <div className="breakdown-row">
+                          <span>Rate/kg:</span>
+                          <strong>₹{vendor.rate_per_kg?.toFixed(2)}</strong>
+                        </div>
+                        <div className="breakdown-row">
+                          <span>Effective Weight:</span>
+                          <span>{vendor.effective_weight?.toFixed(2)} kg</span>
+                        </div>
+                        <div className="breakdown-row">
+                          <span>Base Freight:</span>
+                          <span>₹{vendor.base_freight?.toFixed(2)}</span>
+                        </div>
+                        <div className="breakdown-row">
+                          <span>Docket Charge:</span>
+                          <span>₹{vendor.docket_charge?.toFixed(2)}</span>
+                        </div>
+                        <div className="breakdown-row">
+                          <span>FSC ({vendor.fsc_percent}%):</span>
+                          <span>₹{vendor.fsc_amount?.toFixed(2)}</span>
+                        </div>
+                        {vendor.oda_applicable && (
+                          <div className="breakdown-row oda-highlight">
+                            <span>ODA {vendor.oda_category ? `${vendor.oda_category} (${vendor.oda_rate_per_kg}/kg, Min ₹${vendor.oda_min_charge}):` : 'Charge (Min ₹500):'}</span>
+                            <span>₹{vendor.oda_charge?.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="breakdown-row">
+                          <span>GST ({vendor.gst_percent}%):</span>
+                          <span>₹{vendor.gst_amount?.toFixed(2)}</span>
+                        </div>
+                        {vendor.mode_charge > 0 && (
+                          <div className="breakdown-row">
+                            <span>Mode Charge:</span>
+                            <span>₹{vendor.mode_charge?.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {vendor.fov_charge > 0 && (
+                          <div className="breakdown-row">
+                            <span>FOV/Insurance:</span>
+                            <span>₹{vendor.fov_charge?.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="breakdown-row total">
+                          <span>Total Freight:</span>
+                          <strong>₹{vendor.total_freight?.toFixed(2)}</strong>
+                        </div>
+                      </div>
+                      
+                      {expandedVendor !== idx && (
+                        <div className="expand-hint" onClick={() => toggleExpanded(idx)}>
+                          <span>▼ Click to expand</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="disclaimer">
+                  <small>* Rates are indicative. ODA charges: Min ₹500 for all vendors. PD Logistics & RIVIGO: Only 6 CFT and 10 CFT rates apply (No Standard rates). Volumetric weight: 6CFT÷4500, 10CFT÷10000, Standard÷5000</small>
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      )}
-      
-      {renderModal()}
-      {renderCsvModal()}
-      {renderInvoiceModal()}
+      </div>
     </div>
   );
 }
 
-export default VendorManage;
+export default VendorRateCalculator;
