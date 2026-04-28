@@ -12,11 +12,11 @@ const ZONES = [
 
 // ODA Categories 
 const ODA_CATEGORIES = {
-  'A': { rate: 2, min: 200, name: 'ODA A (₹2/kg, Min ₹200)', color: '#10b981' },
-  'B': { rate: 4, min: 400, name: 'ODA B (₹4/kg, Min ₹400)', color: '#f59e0b' },
-  'C': { rate: 7, min: 700, name: 'ODA C (₹7/kg, Min ₹700)', color: '#ef4444' },
-  'D': { rate: 10, min: 1000, name: 'ODA D (₹10/kg, Min ₹1000)', color: '#8b5cf6' },
-  'DEFAULT': { rate: 4, min: 400, name: 'ODA Default (₹4/kg, Min ₹400)', color: '#6b7280' }
+  'A': { rate: 2, min: 500, name: 'ODA A (₹2/kg, Min ₹500)', color: '#10b981' },
+  'B': { rate: 4, min: 500, name: 'ODA B (₹4/kg, Min ₹500)', color: '#f59e0b' },
+  'C': { rate: 7, min: 500, name: 'ODA C (₹7/kg, Min ₹500)', color: '#ef4444' },
+  'D': { rate: 10, min: 500, name: 'ODA D (₹10/kg, Min ₹500)', color: '#8b5cf6' },
+  'DEFAULT': { rate: 4, min: 500, name: 'ODA Default (₹4/kg, Min ₹500)', color: '#6b7280' }
 };
 
 // Vendors that support CFT rates (Only RIVIGO and PD LOGISTICS)
@@ -25,7 +25,7 @@ const CFT_SUPPORTED_VENDORS = ["RIVIGO", "PD LOGISTICS"];
 // Shipshopy vendors
 const SHIPSHOPY_VENDORS = ["SHIPSHOPY BLUE DART", "SHIPSHOPY DELIVERY"];
 
-// V-Xpress vendors (SHIVANI VX uses same ODA pincodes as VXPRESS)
+// V-Xpress vendors (SHIVANI VX uses same logic)
 const VXPRESS_VENDORS = ["VXPRESS", "SHIVANI VX"];
 
 // TRUCX vendors
@@ -38,7 +38,7 @@ const VOLUMETRIC_DIVISOR = {
   '10CFT': 10000
 };
 
-// Default fallback rates (UPDATED)
+// Default fallback rates
 const DEFAULT_VENDOR_RATES = {
   "DELHIVERY": 28, "GATI": 25, "PD LOGISTICS": 22,
   "RIVIGO": 24, "VXPRESS": 20, "SHIVANI VX": 20,
@@ -69,7 +69,6 @@ function VendorRateCalculator() {
   const [originZone, setOriginZone] = useState("");
   const [destZone, setDestZone] = useState("");
   const [volumeCFT, setVolumeCFT] = useState(0);
-  const [isPrefetching, setIsPrefetching] = useState(false);
   
   const abortControllerRef = useRef(null);
 
@@ -93,13 +92,6 @@ function VendorRateCalculator() {
   useEffect(() => {
     fetchVendors();
   }, []);
-
-  // Pre-fetch ODA data when destination changes
-  useEffect(() => {
-    if (destination && destination.length === 6 && vendors.length > 0) {
-      prefetchODAData(destination);
-    }
-  }, [destination, vendors]);
 
   // Fetch location and zone on pincode change
   useEffect(() => {
@@ -180,83 +172,6 @@ function VendorRateCalculator() {
     }
   };
 
-  // Pre-fetch ODA data for all vendors (including SHIVANI VX via VXPRESS pattern)
-  const prefetchODAData = async (pincode) => {
-    if (!pincode || pincode.length !== 6 || vendors.length === 0) return;
-    if (isPrefetching) return;
-    
-    setIsPrefetching(true);
-    
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-    
-    try {
-      const vendorList = vendors.length > 0 ? vendors : [
-        { vendor_name: "DELHIVERY" }, { vendor_name: "GATI" }, 
-        { vendor_name: "PD LOGISTICS" }, { vendor_name: "RIVIGO" }, 
-        { vendor_name: "VXPRESS" }, { vendor_name: "SHIVANI VX" },
-        { vendor_name: "TRUCX DLH Lite" }, { vendor_name: "TRUCX DLH Dense" },
-        { vendor_name: "TRUCX DLH Cargo" }, { vendor_name: "SHIPSHOPY BLUE DART" },
-        { vendor_name: "SHIPSHOPY DELIVERY" }
-      ];
-      
-      const promises = vendorList.map(async (vendor) => {
-        const cacheKey = `${vendor.vendor_name}_${pincode}`;
-        
-        if (odaCache[cacheKey]) {
-          return { vendorName: vendor.vendor_name, result: odaCache[cacheKey] };
-        }
-        
-        try {
-          const response = await fetch(
-            `${API_BASE_URL}/api/vendors/check-oda/${encodeURIComponent(vendor.vendor_name)}/${pincode}/`,
-            { signal: abortController.signal }
-          );
-          
-          if (response.ok) {
-            const data = await response.json();
-            let result;
-            
-            if (data.is_serviceable === false) {
-              result = { isODA: false, charge: 0, minCharge: 0, category: null, isServiceable: false };
-            } else if (data.is_oda === true) {
-              result = {
-                isODA: true,
-                charge: parseFloat(data.oda_charge_per_kg) || 0,
-                minCharge: parseFloat(data.oda_min_charge) || 0,
-                category: data.oda_category,
-                isServiceable: true
-              };
-            } else if (data.oda_charge_per_kg > 0) {
-              result = {
-                isODA: true,
-                charge: parseFloat(data.oda_charge_per_kg) || 0,
-                minCharge: parseFloat(data.oda_min_charge) || 0,
-                category: 'DEFAULT',
-                isServiceable: true
-              };
-            } else {
-              result = { isODA: false, charge: 0, minCharge: 0, category: null, isServiceable: true };
-            }
-            
-            setOdaCache(prev => ({ ...prev, [cacheKey]: result }));
-            return { vendorName: vendor.vendor_name, result };
-          }
-        } catch (err) {
-          if (err.name === 'AbortError') return null;
-        }
-        
-        return { vendorName: vendor.vendor_name, result: { isODA: false, charge: 0, minCharge: 0, category: null, isServiceable: true } };
-      });
-      
-      await Promise.all(promises);
-    } catch (err) {
-      console.error("Error prefetching ODA:", err);
-    } finally {
-      setIsPrefetching(false);
-    }
-  };
-
   const isValidPincode = (pincode) => {
     return pincode && pincode.length === 6 && /^\d+$/.test(pincode);
   };
@@ -309,6 +224,59 @@ function VendorRateCalculator() {
     return zoneMap[key] || 'N1';
   }, []);
 
+  // Check ODA for a vendor - ONLY returns true if pincode exists in database
+  const checkODAForVendor = useCallback(async (vendor, pincode) => {
+    const cacheKey = `${vendor.vendor_name}_${pincode}`;
+    
+    // Check cache first
+    if (odaCache[cacheKey]) {
+      return odaCache[cacheKey];
+    }
+    
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/vendors/check-oda/${encodeURIComponent(vendor.vendor_name)}/${pincode}/`,
+        { signal: abortControllerRef.current?.signal }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        let result;
+        
+        // IMPORTANT: ODA tabhi true hoga jab database mein pincode exist karta hai
+        if (data.is_oda === true) {
+          // Pincode ODA list mein hai
+          const minCharge = vendor.vendor_name === "SHIPSHOPY BLUE DART" ? 3000 : 500;
+          result = {
+            isODA: true,
+            charge: parseFloat(data.oda_charge_per_kg) || 0,
+            minCharge: parseFloat(data.oda_min_charge) || minCharge,
+            category: data.oda_category || 'DEFAULT',
+            isServiceable: true
+          };
+        } else {
+          // Pincode ODA list mein nahi hai - NO ODA
+          result = {
+            isODA: false,
+            charge: 0,
+            minCharge: 0,
+            category: null,
+            isServiceable: true
+          };
+        }
+        
+        setOdaCache(prev => ({ ...prev, [cacheKey]: result }));
+        return result;
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') return null;
+      console.error(`Error checking ODA for ${vendor.vendor_name}:`, err);
+    }
+    
+    // Default - No ODA
+    return { isODA: false, charge: 0, minCharge: 0, category: null, isServiceable: true };
+  }, [odaCache]);
+
   // Calculate rate for a single vendor
   const calculateRateForVendor = useCallback((vendor, fromZone, toZone, weight, finalODACharge, cftSize, odaInfo) => {
     const vendorName = vendor.vendor_name;
@@ -317,8 +285,6 @@ function VendorRateCalculator() {
     let rates = vendor.rates || {};
     
     const hasCFTSupport = CFT_SUPPORTED_VENDORS.includes(vendorName);
-    
-    if (odaInfo && odaInfo.isServiceable === false) return null;
     
     if (hasCFTSupport) {
       if (cftSize === "6CFT" && vendor.delhivery_6cft) {
@@ -425,56 +391,8 @@ function VendorRateCalculator() {
       const calculatedResults = [];
       const actualWeight = parseFloat(weight);
       
-      // Use cached ODA data if available, otherwise fetch
-      const odaPromises = activeVendors.map(async (vendor) => {
-        const cacheKey = `${vendor.vendor_name}_${destination}`;
-        
-        if (odaCache[cacheKey]) {
-          return odaCache[cacheKey];
-        }
-        
-        try {
-          const response = await fetch(
-            `${API_BASE_URL}/api/vendors/check-oda/${encodeURIComponent(vendor.vendor_name)}/${destination}/`,
-            { signal: abortControllerRef.current?.signal }
-          );
-          
-          if (response.ok) {
-            const data = await response.json();
-            let result;
-            
-            if (data.is_serviceable === false) {
-              result = { isODA: false, charge: 0, minCharge: 0, category: null, isServiceable: false };
-            } else if (data.is_oda === true) {
-              result = {
-                isODA: true,
-                charge: parseFloat(data.oda_charge_per_kg) || 0,
-                minCharge: parseFloat(data.oda_min_charge) || 0,
-                category: data.oda_category,
-                isServiceable: true
-              };
-            } else if (data.oda_charge_per_kg > 0) {
-              result = {
-                isODA: true,
-                charge: parseFloat(data.oda_charge_per_kg) || 0,
-                minCharge: parseFloat(data.oda_min_charge) || 0,
-                category: 'DEFAULT',
-                isServiceable: true
-              };
-            } else {
-              result = { isODA: false, charge: 0, minCharge: 0, category: null, isServiceable: true };
-            }
-            
-            setOdaCache(prev => ({ ...prev, [cacheKey]: result }));
-            return result;
-          }
-        } catch (err) {
-          if (err.name === 'AbortError') return null;
-        }
-        
-        return { isODA: false, charge: 0, minCharge: 0, category: null, isServiceable: true };
-      });
-      
+      // Check ODA for all vendors in parallel
+      const odaPromises = activeVendors.map(vendor => checkODAForVendor(vendor, destination));
       const odaResults = await Promise.all(odaPromises);
       
       for (let i = 0; i < activeVendors.length; i++) {
@@ -484,11 +402,14 @@ function VendorRateCalculator() {
         const vendorDivisor = charges.divisor || null;
         const odaInfo = odaResults[i];
         
-        if (!odaInfo || odaInfo.isServiceable === false) continue;
+        if (!odaInfo) continue;
         
+        // Calculate ODA charge - ONLY if pincode is ODA
         let finalODACharge = 0;
-        if (odaInfo.isODA && odaInfo.charge > 0) {
-          finalODACharge = Math.max(actualWeight * odaInfo.charge, odaInfo.minCharge || 500);
+        if (odaInfo.isODA === true && odaInfo.charge > 0) {
+          const calculatedODA = actualWeight * odaInfo.charge;
+          finalODACharge = Math.max(calculatedODA, odaInfo.minCharge || 500);
+          console.log(`ODA Applied for ${vendorName}: ${odaInfo.charge}/kg × ${actualWeight}kg = ${calculatedODA}, Min ₹${odaInfo.minCharge}, Final: ₹${finalODACharge}`);
         }
         
         const isShipshopy = SHIPSHOPY_VENDORS.includes(vendorName);
@@ -551,6 +472,7 @@ function VendorRateCalculator() {
         }
       }
       
+      // Sort by total freight
       calculatedResults.sort((a, b) => a.total_freight - b.total_freight);
       
       setResults(calculatedResults);
@@ -616,7 +538,6 @@ function VendorRateCalculator() {
         {destination && (
           <div className="oda-status-info">
             🔍 Checking pincode: <strong>{destination}</strong>
-            {isPrefetching && <span className="oda-loading"> (Loading...)</span>}
           </div>
         )}
       </div>
@@ -911,7 +832,7 @@ function VendorRateCalculator() {
                 </div>
                 
                 <div className="disclaimer">
-                  <small>* Rates are indicative. ODA charges: Min ₹500 for most vendors. Volumetric weight: 6CFT÷4500, 10CFT÷10000, Standard÷5000</small>
+                  <small>* Rates are indicative. ODA charges (Min ₹500) apply only for pincodes marked as ODA in the database.</small>
                 </div>
               </>
             )}
