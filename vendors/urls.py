@@ -16,7 +16,7 @@ urlpatterns = [
     path('vendor-pincodes/bulk-upload/<str:vendor_name>/', views.bulk_upload_pincodes, name='bulk-upload-pincodes'),
     
     # ============================================
-    # LOCATION AND ODA CHECK (UPDATED)
+    # LOCATION AND ODA CHECK
     # ============================================
     path('pincode-location/<str:pincode>/', views.get_pincode_location, name='pincode-location'),
     path('check-oda/<str:vendor_name>/<str:pincode>/', views.check_oda_status, name='check-oda'),
@@ -24,7 +24,7 @@ urlpatterns = [
     path('vendor-pincode-stats/<str:vendor_name>/', views.get_vendor_pincode_stats, name='vendor-pincode-stats'),
     
     # ============================================
-    # DOWNLOAD PINCODE TEMPLATE (NEW)
+    # DOWNLOAD PINCODE TEMPLATE
     # ============================================
     path('download-pincode-template/<str:vendor_name>/', views.download_pincode_template, name='download-pincode-template'),
     
@@ -66,7 +66,7 @@ urlpatterns = [
     path('vendor-service-rates/<int:service_id>/', views.manage_vendor_service_rates, name='vendor-service-rate-detail'),
     
     # ============================================
-    # TEST API ENDPOINT (NEW)
+    # TEST API ENDPOINT
     # ============================================
     path('test/', views.test_api, name='test_api'),
 ]

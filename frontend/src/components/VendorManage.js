@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import "./VendorManage.css";
 
-// Zones for rate matrix (UPDATED with all zones)
+// Zones for rate matrix
 const ZONES = [
   "N1", "N2", "N3", "N4", "C1", "C2", "W1", "W2", 
   "S1", "S2", "S3", "S4", "E1", "E2", "NE1", "NE2", "NE3"
@@ -10,7 +10,6 @@ const ZONES = [
 // API Base URL
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://faithcargo.onrender.com";
 
-// Default ODA Min Charges (Min ₹500 for all except Blue Dart)
 const DEFAULT_ODA_MIN_CHARGE = 500;
 const BLUE_DART_ODA_MIN_CHARGE = 3000;
 
@@ -35,21 +34,18 @@ function VendorManage() {
   const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 });
   const [notification, setNotification] = useState({ show: false, message: "", type: "" });
   
-  // CSV Upload States
   const [showCsvModal, setShowCsvModal] = useState(false);
   const [csvVendor, setCsvVendor] = useState(null);
   const [csvFile, setCsvFile] = useState(null);
   const [csvPreview, setCsvPreview] = useState([]);
   const [csvUploading, setCsvUploading] = useState(false);
 
-  // Invoice Upload States
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceVendor, setInvoiceVendor] = useState(null);
   const [invoiceFile, setInvoiceFile] = useState(null);
   const [invoiceData, setInvoiceData] = useState(null);
   const [invoiceUploading, setInvoiceUploading] = useState(false);
 
-  // Fetch all vendors on load
   useEffect(() => {
     fetchVendors();
   }, []);
@@ -65,44 +61,12 @@ function VendorManage() {
       const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/`);
       if (response.ok) {
         const data = await response.json();
-        // Ensure all vendors have min ODA charge set
         const updatedData = data.map(vendor => {
           const charges = vendor.charges || {};
           const isBlueDart = vendor.vendor_name === "SHIPSHOPY BLUE DART";
           
-          // Set default ODA min charge if not present
           if (!charges.oda_min_charge || charges.oda_min_charge === 0) {
             charges.oda_min_charge = isBlueDart ? BLUE_DART_ODA_MIN_CHARGE : DEFAULT_ODA_MIN_CHARGE;
-          }
-          
-          // For TRUCX variants, ensure min ODA is ₹500
-          if (vendor.vendor_name?.includes('TRUCX') && (!charges.oda_min_charge || charges.oda_min_charge === 0)) {
-            charges.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
-          }
-          
-          // For PD LOGISTICS, ensure min ODA is ₹500
-          if (vendor.vendor_name === "PD LOGISTICS" && (!charges.oda_min_charge || charges.oda_min_charge === 0)) {
-            charges.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
-          }
-          
-          // For RIVIGO, ensure min ODA is ₹500
-          if (vendor.vendor_name === "RIVIGO" && (!charges.oda_min_charge || charges.oda_min_charge === 0)) {
-            charges.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
-          }
-          
-          // For SHIPSHOPY DELIVERY, ensure min ODA is ₹500
-          if (vendor.vendor_name === "SHIPSHOPY DELIVERY" && (!charges.oda_min_charge || charges.oda_min_charge === 0)) {
-            charges.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
-          }
-          
-          // For VXPRESS, ensure min ODA is ₹500
-          if (vendor.vendor_name === "VXPRESS" && (!charges.oda_min_charge || charges.oda_min_charge === 0)) {
-            charges.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
-          }
-          
-          // For SHIVANI VX, ensure min ODA is ₹500
-          if (vendor.vendor_name === "SHIVANI VX" && (!charges.oda_min_charge || charges.oda_min_charge === 0)) {
-            charges.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
           }
           
           vendor.charges = charges;
@@ -128,7 +92,6 @@ function VendorManage() {
     setStats({ total, active, inactive });
   };
 
-  // Function to check if vendor supports CFT rates (Only RIVIGO and PD LOGISTICS)
   const hasCFTSupport = (vendorName) => {
     return vendorName === "RIVIGO" || vendorName === "PD LOGISTICS";
   };
@@ -151,9 +114,6 @@ function VendorManage() {
     updateStats(defaultVendors);
   };
 
-  // ============================================
-  // INVOICE UPLOAD FUNCTIONS
-  // ============================================
   const openInvoiceModal = (vendor) => {
     setInvoiceVendor(vendor);
     setInvoiceFile(null);
@@ -212,7 +172,6 @@ function VendorManage() {
         ...invoiceData
       };
       
-      // Ensure ODA min charge is set correctly
       const isBlueDart = invoiceVendor.vendor_name === "SHIPSHOPY BLUE DART";
       if (!updatedCharges.oda_min_charge || updatedCharges.oda_min_charge === 0) {
         updatedCharges.oda_min_charge = isBlueDart ? BLUE_DART_ODA_MIN_CHARGE : DEFAULT_ODA_MIN_CHARGE;
@@ -244,9 +203,6 @@ function VendorManage() {
     }
   };
 
-  // ============================================
-  // CSV DOWNLOAD FUNCTION
-  // ============================================
   const downloadCsvTemplate = (vendorName) => {
     const headers = [
       'pincode',
@@ -316,9 +272,6 @@ function VendorManage() {
     showNotification(`📥 CSV template downloaded for ${vendorName}`, "success");
   };
 
-  // ============================================
-  // CSV UPLOAD FUNCTIONS
-  // ============================================
   const openCsvModal = (vendor) => {
     setCsvVendor(vendor);
     setCsvFile(null);
@@ -583,7 +536,15 @@ function VendorManage() {
   };
 
   const copyRatesToClipboard = () => {
-    const rates = formData.rates;
+    let rates = {};
+    if (activeTab === "standard") {
+      rates = formData.rates;
+    } else if (activeTab === "6cft") {
+      rates = formData.delhivery_6cft;
+    } else if (activeTab === "10cft") {
+      rates = formData.delhivery_10cft;
+    }
+    
     let text = "From\\To\t" + ZONES.join("\t") + "\n";
     ZONES.forEach(fromZone => {
       text += fromZone + "\t";
@@ -600,9 +561,6 @@ function VendorManage() {
     vendor.vendor_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // ============================================
-  // INVOICE MODAL RENDER
-  // ============================================
   const renderInvoiceModal = () => {
     if (!showInvoiceModal) return null;
     
@@ -728,9 +686,6 @@ function VendorManage() {
     );
   };
 
-  // ============================================
-  // CSV MODAL RENDER
-  // ============================================
   const renderCsvModal = () => {
     if (!showCsvModal) return null;
     
@@ -876,23 +831,27 @@ function VendorManage() {
               </tr>
             </thead>
             <tbody>
-              {ZONES.map(fromZone => (
-                <tr key={fromZone}>
-                  <td className="zone-cell from-zone">{fromZone}</td>
-                  {ZONES.map(toZone => (
-                    <td key={toZone}>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="rate-input"
-                        value={getRateValue(rates, fromZone, toZone)}
-                        onChange={(e) => handleRateChange(rateType, fromZone, toZone, e.target.value)}
-                        placeholder="0.00"
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))}
+              {ZONES.map(fromZone => {
+                // Skip if no zones data
+                const hasData = rates[fromZone] && Object.keys(rates[fromZone]).length > 0;
+                return (
+                  <tr key={fromZone}>
+                    <td className="zone-cell from-zone">{fromZone}</td>
+                    {ZONES.map(toZone => (
+                      <td key={toZone}>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="rate-input"
+                          value={getRateValue(rates, fromZone, toZone)}
+                          onChange={(e) => handleRateChange(rateType, fromZone, toZone, e.target.value)}
+                          placeholder={hasData ? "0.00" : "0.00"}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -911,7 +870,6 @@ function VendorManage() {
     const isShipshopyDelivery = formData.vendor_name === "SHIPSHOPY DELIVERY";
     const isTrucx = formData.vendor_name?.includes('TRUCX');
     
-    // Only RIVIGO and PD LOGISTICS have CFT support
     const hasCFTSupport = isRivigo || isPd;
     
     return (
@@ -1038,7 +996,6 @@ function VendorManage() {
           </div>
         </div>
         
-        {/* Only show CFT info for RIVIGO and PD LOGISTICS */}
         {hasCFTSupport && (
           <div className="info-note">
             <span className="info-icon">📦</span>
@@ -1089,9 +1046,7 @@ function VendorManage() {
     const isPd = vendor.vendor_name === "PD LOGISTICS";
     const isTrucx = vendor.vendor_name?.includes('TRUCX');
     
-    // Only RIVIGO and PD LOGISTICS show CFT badges
     const showCFTBadges = isRivigo || isPd;
-    
     const showCsvButton = isVxpress || isRivigo || isBlueDart || isShipshopyDelivery || isShivaniVX || isPd;
     const showInvoiceButton = true;
     
@@ -1183,7 +1138,6 @@ function VendorManage() {
   const renderModal = () => {
     if (!showModal) return null;
     
-    // Only RIVIGO and PD LOGISTICS show CFT tabs
     const showCFTTabs = formData.vendor_name === "RIVIGO" || formData.vendor_name === "PD LOGISTICS";
     
     return (
