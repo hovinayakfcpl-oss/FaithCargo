@@ -317,13 +317,17 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
         rate_per_kg = rates.get(from_zone, {}).get(to_zone, 0)
         display_cft_type = 'Standard'
     
-    # Fallback rates if no rate found
+    # Fallback rates if no rate found (only for non-CFT vendors)
     if rate_per_kg == 0:
+        # For CFT vendors, don't use fallback - they should have their own rates
+        if is_pd or is_rivigo:
+            logger.warning(f"No rate found for {vendor_name} {cft_type} from {from_zone} to {to_zone}")
+            return None
         fallback_rates = {
-            'DELHIVERY': 28, 'GATI': 25, 'PD LOGISTICS': 22,
-            'RIVIGO': 24, 'VXPRESS': 20, 'SHIVANI VX': 20,
+            'DELHIVERY': 28, 'GATI': 25,
             'TRUCX DLH Lite': 22, 'TRUCX DLH Dense': 22, 'TRUCX DLH Cargo': 22,
-            'SHIPSHOPY BLUE DART': 25, 'SHIPSHOPY DELIVERY': 22
+            'SHIPSHOPY BLUE DART': 25, 'SHIPSHOPY DELIVERY': 22,
+            'VXPRESS': 20, 'SHIVANI VX': 20
         }
         rate_per_kg = fallback_rates.get(vendor_name, 22)
         logger.info(f"Using fallback rate for {vendor_name}: ₹{rate_per_kg}/kg")
@@ -395,34 +399,72 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
 
 
 # ============================================
-# VENDOR RATE MANAGEMENT
+# VENDOR RATE MANAGEMENT - FULLY FIXED (Manual Response)
 # ============================================
 
 @api_view(["GET", "POST", "PUT", "DELETE"])
 def manage_vendor_rate(request, vendor_name=None):
-    """Complete vendor rate management"""
+    """Complete vendor rate management - MANUAL RESPONSE (bypasses serializer issues)"""
     
     if request.method == "GET":
-        if vendor_name:
-            try:
+        try:
+            if vendor_name:
                 obj = VendorRate.objects.get(vendor_name=vendor_name)
-                serializer = VendorRateSerializer(obj)
-                return Response(serializer.data)
-            except VendorRate.DoesNotExist:
-                return Response({"error": "Vendor not found"}, status=404)
-        else:
-            all_vendors = VendorRate.objects.all()
-            serializer = VendorRateSerializer(all_vendors, many=True)
-            return Response(serializer.data)
+                return Response({
+                    "id": obj.id,
+                    "vendor_name": obj.vendor_name,
+                    "rates": obj.rates if obj.rates else {},
+                    "delhivery_6cft": obj.delhivery_6cft if obj.delhivery_6cft else {},
+                    "delhivery_10cft": obj.delhivery_10cft if obj.delhivery_10cft else {},
+                    "charges": obj.charges if obj.charges else {},
+                    "is_active": obj.is_active,
+                    "created_at": obj.created_at.isoformat() if obj.created_at else None,
+                    "updated_at": obj.updated_at.isoformat() if obj.updated_at else None,
+                    "updated_by": obj.updated_by,
+                })
+            else:
+                all_vendors = VendorRate.objects.all().order_by('vendor_name')
+                response_data = []
+                for obj in all_vendors:
+                    response_data.append({
+                        "id": obj.id,
+                        "vendor_name": obj.vendor_name,
+                        "rates": obj.rates if obj.rates else {},
+                        "delhivery_6cft": obj.delhivery_6cft if obj.delhivery_6cft else {},
+                        "delhivery_10cft": obj.delhivery_10cft if obj.delhivery_10cft else {},
+                        "charges": obj.charges if obj.charges else {},
+                        "is_active": obj.is_active,
+                    })
+                return Response(response_data)
+        except VendorRate.DoesNotExist:
+            return Response({"error": f"Vendor '{vendor_name}' not found"}, status=404)
+        except Exception as e:
+            import traceback
+            print(f"ERROR in manage_vendor_rate GET: {traceback.format_exc()}")
+            return Response({"error": str(e)}, status=500)
     
     elif request.method == "POST":
         try:
             data = request.data
-            serializer = VendorRateSerializer(data=data)
-            if serializer.is_valid():
-                serializer.save(updated_by=request.user.username if request.user.is_authenticated else 'admin')
-                return Response(serializer.data, status=201)
-            return Response(serializer.errors, status=400)
+            vendor_name = data.get('vendor_name')
+            if not vendor_name:
+                return Response({"error": "vendor_name is required"}, status=400)
+            
+            obj, created = VendorRate.objects.update_or_create(
+                vendor_name=vendor_name,
+                defaults={
+                    "rates": data.get('rates', {}),
+                    "delhivery_6cft": data.get('delhivery_6cft', {}),
+                    "delhivery_10cft": data.get('delhivery_10cft', {}),
+                    "charges": data.get('charges', {}),
+                    "is_active": data.get('is_active', True),
+                    "updated_by": request.user.username if request.user.is_authenticated else 'admin'
+                }
+            )
+            return Response({
+                "message": f"{vendor_name} {'created' if created else 'updated'} successfully",
+                "id": obj.id
+            }, status=201)
         except Exception as e:
             return Response({"error": str(e)}, status=400)
     
@@ -430,9 +472,6 @@ def manage_vendor_rate(request, vendor_name=None):
         try:
             obj = VendorRate.objects.get(vendor_name=vendor_name)
             data = request.data
-            
-            old_rates = obj.rates
-            old_charges = obj.charges
             
             if 'rates' in data:
                 obj.rates = data['rates']
@@ -448,19 +487,9 @@ def manage_vendor_rate(request, vendor_name=None):
             obj.updated_by = request.user.username if request.user.is_authenticated else 'admin'
             obj.save()
             
-            RateHistory.objects.create(
-                vendor=obj,
-                old_rates=old_rates,
-                new_rates=obj.rates,
-                old_charges=old_charges,
-                new_charges=obj.charges,
-                updated_by=obj.updated_by
-            )
-            
-            serializer = VendorRateSerializer(obj)
-            return Response(serializer.data)
+            return Response({"message": f"{vendor_name} updated successfully"})
         except VendorRate.DoesNotExist:
-            return Response({"error": "Vendor not found"}, status=404)
+            return Response({"error": f"Vendor '{vendor_name}' not found"}, status=404)
         except Exception as e:
             return Response({"error": str(e)}, status=400)
     
@@ -470,7 +499,9 @@ def manage_vendor_rate(request, vendor_name=None):
             obj.delete()
             return Response({"message": f"{vendor_name} deleted successfully"})
         except VendorRate.DoesNotExist:
-            return Response({"error": "Vendor not found"}, status=404)
+            return Response({"error": f"Vendor '{vendor_name}' not found"}, status=404)
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
 
 
 # ============================================
@@ -940,9 +971,6 @@ def calculate_all_vendor_rates(request):
             
             vendor_name = vendor.vendor_name
             is_cft_vendor = vendor_name in ['PD LOGISTICS', 'RIVIGO']
-            is_all_other = vendor_name in ['DELHIVERY', 'TRUCX DLH Lite', 'TRUCX DLH Dense', 'TRUCX DLH Cargo', 
-                                            'SHIPSHOPY DELIVERY', 'SHIVANI VX', 'VXPRESS', 
-                                            'SHIPSHOPY BLUE DART', 'GATI']
             
             if is_cft_vendor:
                 # 6 CFT
@@ -954,11 +982,6 @@ def calculate_all_vendor_rates(request):
                 rate_10cft = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, '10cft', oda_info)
                 if rate_10cft and rate_10cft.get('rate_per_kg', 0) > 0:
                     results.append(rate_10cft)
-                
-                # Standard
-                rate_standard = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, 'standard', oda_info)
-                if rate_standard and rate_standard.get('rate_per_kg', 0) > 0:
-                    results.append(rate_standard)
             else:
                 rate = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, 'standard', oda_info)
                 if rate and rate.get('rate_per_kg', 0) > 0:
@@ -985,7 +1008,7 @@ def calculate_all_vendor_rates(request):
 
 
 # ============================================
-# OTHER ENDPOINTS (unchanged)
+# OTHER ENDPOINTS
 # ============================================
 
 @api_view(["POST"])

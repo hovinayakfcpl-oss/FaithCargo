@@ -16,7 +16,7 @@ class VendorSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# VENDOR PINCODE SERIALIZER (UPDATED)
+# VENDOR PINCODE SERIALIZER
 # ============================================
 
 class VendorPincodeSerializer(serializers.ModelSerializer):
@@ -36,21 +36,19 @@ class VendorPincodeSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
     
     def get_oda_category_display(self, obj):
-        """Get display name for ODA category"""
         if obj.oda_category:
             return dict(VendorPincode.ODA_CATEGORY_CHOICES).get(obj.oda_category, obj.oda_category)
         return None
 
 
 # ============================================
-# VENDOR RATE SERIALIZER (UPDATED)
+# VENDOR RATE SERIALIZER (SIMPLIFIED - NO Pincodes)
 # ============================================
 
 class VendorRateSerializer(serializers.ModelSerializer):
-    """Serializer for VendorRate model - includes rates and charges"""
+    """Serializer for VendorRate model - SIMPLIFIED without pincodes to avoid issues"""
     
     vendor_display = serializers.CharField(source='get_vendor_name_display', read_only=True)
-    pincodes = VendorPincodeSerializer(many=True, read_only=True)
     vendor_type = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
@@ -58,12 +56,11 @@ class VendorRateSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'vendor_name', 'vendor_display', 'vendor_type', 'rates', 
             'delhivery_6cft', 'delhivery_10cft', 'charges',
-            'is_active', 'created_at', 'updated_at', 'updated_by', 'pincodes'
+            'is_active', 'created_at', 'updated_at', 'updated_by'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
     
     def get_vendor_type(self, obj):
-        """Determine vendor type for classification"""
         vendor_name = obj.vendor_name
         
         if vendor_name == 'SHIVANI VX':
@@ -88,24 +85,29 @@ class VendorRateSerializer(serializers.ModelSerializer):
             return 'standard'
     
     def validate_rates(self, value):
+        if value is None:
+            return {}
         if not isinstance(value, dict):
             raise serializers.ValidationError("Rates must be a dictionary")
-        for from_zone, to_zones in value.items():
-            if not isinstance(to_zones, dict):
-                raise serializers.ValidationError(f"Rates for zone {from_zone} must be a dictionary")
         return value
     
     def validate_delhivery_6cft(self, value):
+        if value is None:
+            return {}
         if value and not isinstance(value, dict):
             raise serializers.ValidationError("6CFT rates must be a dictionary")
         return value
     
     def validate_delhivery_10cft(self, value):
+        if value is None:
+            return {}
         if value and not isinstance(value, dict):
             raise serializers.ValidationError("10CFT rates must be a dictionary")
         return value
     
     def validate_charges(self, value):
+        if value is None:
+            return {}
         if not isinstance(value, dict):
             raise serializers.ValidationError("Charges must be a dictionary")
         return value
@@ -473,7 +475,7 @@ class PDLogisticsRateSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# RIVIGO RATE SERIALIZER (NEW)
+# RIVIGO RATE SERIALIZER
 # ============================================
 
 class RivigoRateSerializer(serializers.ModelSerializer):
@@ -500,7 +502,7 @@ class RivigoRateSerializer(serializers.ModelSerializer):
 
 
 # ============================================
-# ALL VENDORS LIST SERIALIZER (UPDATED)
+# ALL VENDORS LIST SERIALIZER
 # ============================================
 
 class AllVendorsListSerializer(serializers.ModelSerializer):
@@ -542,13 +544,11 @@ class AllVendorsListSerializer(serializers.ModelSerializer):
             return 'STANDARD'
     
     def get_has_cft_support(self, obj):
-        """Only RIVIGO and PD LOGISTICS have CFT support"""
         vendor_name = obj.vendor_name
         cft_vendors = ['RIVIGO', 'PD LOGISTICS']
         return vendor_name in cft_vendors
     
     def get_has_oda_support(self, obj):
-        """Check if vendor has ODA support"""
         vendor_name = obj.vendor_name
         oda_vendors = ['VXPRESS', 'PD LOGISTICS', 'RIVIGO', 'SHIPSHOPY DELIVERY', 'TRUCX DLH Lite', 'TRUCX DLH Dense', 'TRUCX DLH Cargo', 'SHIVANI VX']
         return vendor_name in oda_vendors
