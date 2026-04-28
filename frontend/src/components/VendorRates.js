@@ -19,8 +19,13 @@ const ODA_CATEGORIES = {
   'DEFAULT': { rate: 4, min: 500, name: 'ODA Default (₹4/kg, Min ₹500)', color: '#6b7280' }
 };
 
-// Vendors that support CFT rates (Only RIVIGO and PD LOGISTICS) - NO STANDARD RATES
-const CFT_SUPPORTED_VENDORS = ["RIVIGO", "PD LOGISTICS"];
+// FIXED: Vendors that support CFT rates
+// PD LOGISTICS - ONLY CFT (6CFT and 10CFT), NO Standard
+// RIVIGO - Has both CFT and Standard rates
+const PD_LOGISTICS = "PD LOGISTICS";
+const RIVIGO = "RIVIGO";
+const CFT_ONLY_VENDORS = [PD_LOGISTICS];  // Only CFT, no standard
+const CFT_AND_STANDARD_VENDORS = [RIVIGO];  // Both CFT and standard
 
 // TRUCX vendors (NO CFT support - only standard rates)
 const TRUCX_VENDORS = ["TRUCX DLH Lite", "TRUCX DLH Dense", "TRUCX DLH Cargo"];
@@ -106,7 +111,6 @@ function VendorRateCalculator() {
 
   const fetchVendors = async () => {
     try {
-      // ✅ CORRECT URL with /api/vendors prefix
       const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/`);
       if (response.ok) {
         const data = await response.json();
@@ -215,7 +219,6 @@ function VendorRateCalculator() {
     }
     
     try {
-      // ✅ CORRECT URL with /api/vendors prefix
       const response = await fetch(
         `${API_BASE_URL}/api/vendors/check-oda/${encodeURIComponent(sourceVendorName)}/${pincode}/`,
         { signal: abortControllerRef.current?.signal }
@@ -277,34 +280,49 @@ function VendorRateCalculator() {
     return { isServiceable: true, isODA: false, charge: 0, minCharge: 500, category: null };
   }, [pincodeCache]);
 
-  // Get rate from vendor rates - ONLY CFT for PD LOGISTICS & RIVIGO
+  // FIXED: Get rate from vendor based on vendor type
   const getRateFromVendor = useCallback((vendor, fromZone, toZone, cftType) => {
     let rate = 0;
     const vendorName = vendor.vendor_name;
     
     console.log(`🔍 Getting rate for ${vendorName}, ${cftType}, ${fromZone}→${toZone}`);
     
-    // For RIVIGO and PD LOGISTICS - ONLY CFT rates
-    if (CFT_SUPPORTED_VENDORS.includes(vendorName)) {
+    // PD LOGISTICS - ONLY CFT rates (6CFT and 10CFT)
+    if (vendorName === PD_LOGISTICS) {
       if (cftType === "6CFT" && vendor.delhivery_6cft) {
         rate = vendor.delhivery_6cft[fromZone]?.[toZone] || 0;
-        console.log(`  📦 6CFT rate: ₹${rate}/kg`);
+        console.log(`  📦 PD Logistics 6CFT rate: ₹${rate}/kg`);
       } 
       else if (cftType === "10CFT" && vendor.delhivery_10cft) {
         rate = vendor.delhivery_10cft[fromZone]?.[toZone] || 0;
-        console.log(`  📦 10CFT rate: ₹${rate}/kg`);
+        console.log(`  📦 PD Logistics 10CFT rate: ₹${rate}/kg`);
       }
       else {
-        console.log(`  ⚠️ ${vendorName} does not use Standard rates, skipping`);
+        console.log(`  ⚠️ PD Logistics does not use Standard rates, skipping`);
         return 0;
       }
-    } 
-    // For TRUCX vendors - standard rates only
+    }
+    // RIVIGO - Has both CFT and Standard rates
+    else if (vendorName === RIVIGO) {
+      if (cftType === "6CFT" && vendor.delhivery_6cft) {
+        rate = vendor.delhivery_6cft[fromZone]?.[toZone] || 0;
+        console.log(`  📦 RIVIGO 6CFT rate: ₹${rate}/kg`);
+      } 
+      else if (cftType === "10CFT" && vendor.delhivery_10cft) {
+        rate = vendor.delhivery_10cft[fromZone]?.[toZone] || 0;
+        console.log(`  📦 RIVIGO 10CFT rate: ₹${rate}/kg`);
+      }
+      else {
+        rate = vendor.rates[fromZone]?.[toZone] || 0;
+        console.log(`  ✅ RIVIGO Standard rate: ₹${rate}/kg`);
+      }
+    }
+    // TRUCX vendors - standard rates only
     else if (TRUCX_VENDORS.includes(vendorName)) {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
       console.log(`  🚚 TRUCX Standard rate: ₹${rate}/kg`);
     }
-    // For other vendors - standard rates only
+    // Other vendors - standard rates only
     else {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
       console.log(`  ✅ ${vendorName} Standard rate: ₹${rate}/kg`);
@@ -320,16 +338,20 @@ function VendorRateCalculator() {
     // Get rate from vendor's rate matrix
     let ratePerKg = getRateFromVendor(vendor, fromZone, toZone, cftSize);
     
-    // For CFT vendors, if rate is 0, skip (don't use fallback)
+    // For PD Logistics, if rate is 0, skip (don't use fallback)
     if (ratePerKg === 0) {
-      if (CFT_SUPPORTED_VENDORS.includes(vendorName)) {
+      if (vendorName === PD_LOGISTICS) {
         console.log(`⏭️ Skipping ${vendorName} ${cftSize} - no rate found in DB`);
         return null;
       }
-      // Use fallback only for non-CFT vendors (should not happen if DB has data)
-      console.warn(`⚠️ No rate found for ${vendorName}, using fallback`);
-      const fallbackRates = { "DELHIVERY": 28, "GATI": 25, "SHIPSHOPY BLUE DART": 25, "SHIPSHOPY DELIVERY": 22 };
-      ratePerKg = fallbackRates[vendorName] || 22;
+      // Use fallback only for non-PD vendors
+      if (vendorName !== PD_LOGISTICS) {
+        console.warn(`⚠️ No rate found for ${vendorName}, using fallback`);
+        const fallbackRates = { "DELHIVERY": 28, "GATI": 25, "SHIPSHOPY BLUE DART": 25, "SHIPSHOPY DELIVERY": 22, "RIVIGO": 24 };
+        ratePerKg = fallbackRates[vendorName] || 22;
+      } else {
+        return null;
+      }
     }
     
     const docketCharge = parseFloat(charges.docket_charge) || 100;
@@ -340,12 +362,19 @@ function VendorRateCalculator() {
     
     let effectiveWeight = Math.max(weight, minWeight);
     
-    const isCFTVendor = CFT_SUPPORTED_VENDORS.includes(vendorName);
+    const isPD = vendorName === PD_LOGISTICS;
+    const isRIVIGO = vendorName === RIVIGO;
     
-    if (isCFTVendor && cftSize === "6CFT") {
+    if (isPD && cftSize === "6CFT") {
       const { volumetricWeight } = calculateVolumetricWeight('6CFT');
       effectiveWeight = Math.max(effectiveWeight, volumetricWeight);
-    } else if (isCFTVendor && cftSize === "10CFT") {
+    } else if (isPD && cftSize === "10CFT") {
+      const { volumetricWeight } = calculateVolumetricWeight('10CFT');
+      effectiveWeight = Math.max(effectiveWeight, volumetricWeight);
+    } else if (isRIVIGO && cftSize === "6CFT") {
+      const { volumetricWeight } = calculateVolumetricWeight('6CFT');
+      effectiveWeight = Math.max(effectiveWeight, volumetricWeight);
+    } else if (isRIVIGO && cftSize === "10CFT") {
       const { volumetricWeight } = calculateVolumetricWeight('10CFT');
       effectiveWeight = Math.max(effectiveWeight, volumetricWeight);
     } else {
@@ -375,7 +404,7 @@ function VendorRateCalculator() {
     return {
       vendor_name: vendorName,
       rate_per_kg: ratePerKg,
-      cft_type: (isCFTVendor && cftSize !== "Standard") ? cftSize : null,
+      cft_type: (isPD || isRIVIGO) && cftSize !== "Standard" ? cftSize : null,
       effective_weight: effectiveWeight,
       base_freight: baseFreight,
       docket_charge: docketCharge,
@@ -470,11 +499,9 @@ function VendorRateCalculator() {
           console.log(`🔥 ODA for ${vendorName}: ${pincodeInfo.charge}/kg × ${actualWeight}kg = ${calculatedODA}, Min ₹${pincodeInfo.minCharge}, Final: ₹${finalODACharge}`);
         }
         
-        const isCFTVendor = CFT_SUPPORTED_VENDORS.includes(vendorName);
-        const isTrucx = TRUCX_VENDORS.includes(vendorName);
-        
-        if (isCFTVendor) {
-          // Only 6 CFT and 10 CFT - NO Standard rates
+        // FIXED: Separate logic for PD Logistics, RIVIGO, and others
+        if (vendorName === PD_LOGISTICS) {
+          // PD Logistics - ONLY 6CFT and 10CFT, NO Standard
           const rate6CFT = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "6CFT", pincodeInfo);
           if (rate6CFT && rate6CFT.rate_per_kg > 0) {
             calculatedResults.push(rate6CFT);
@@ -484,12 +511,32 @@ function VendorRateCalculator() {
           if (rate10CFT && rate10CFT.rate_per_kg > 0) {
             calculatedResults.push(rate10CFT);
           }
-        } else if (isTrucx) {
+          // ❌ NO Standard rate for PD Logistics
+        } 
+        else if (vendorName === RIVIGO) {
+          // RIVIGO - Has both CFT and Standard
+          const rate6CFT = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "6CFT", pincodeInfo);
+          if (rate6CFT && rate6CFT.rate_per_kg > 0) {
+            calculatedResults.push(rate6CFT);
+          }
+          
+          const rate10CFT = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "10CFT", pincodeInfo);
+          if (rate10CFT && rate10CFT.rate_per_kg > 0) {
+            calculatedResults.push(rate10CFT);
+          }
+          
+          const rateStandard = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "Standard", pincodeInfo);
+          if (rateStandard && rateStandard.rate_per_kg > 0) {
+            calculatedResults.push(rateStandard);
+          }
+        }
+        else if (TRUCX_VENDORS.includes(vendorName)) {
           const rate = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "Standard", pincodeInfo);
           if (rate && rate.rate_per_kg > 0) {
             calculatedResults.push(rate);
           }
-        } else {
+        } 
+        else {
           const rate = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "Standard", pincodeInfo);
           if (rate && rate.rate_per_kg > 0) {
             calculatedResults.push(rate);
@@ -847,7 +894,7 @@ function VendorRateCalculator() {
                 </div>
                 
                 <div className="disclaimer">
-                  <small>* Rates are indicative. ODA charges: Min ₹500 for all vendors. PD Logistics & RIVIGO: Only 6 CFT and 10 CFT rates apply (No Standard rates). Volumetric weight: 6CFT÷4500, 10CFT÷10000, Standard÷5000</small>
+                  <small>* Rates are indicative. ODA charges: Min ₹500 for all vendors. PD Logistics: Only 6 CFT and 10 CFT rates apply (No Standard rates). RIVIGO: Both CFT and Standard rates available. Volumetric weight: 6CFT÷4500, 10CFT÷10000, Standard÷5000</small>
                 </div>
               </>
             )}
