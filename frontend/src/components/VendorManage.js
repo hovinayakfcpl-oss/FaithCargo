@@ -7,7 +7,7 @@ const ZONES = [
   "S1", "S2", "S3", "S4", "E1", "E2", "NE1", "NE2", "NE3"
 ];
 
-// API Base URL - FIXED (removed /api/vendors)
+// API Base URL - CORRECT with /api/vendors prefix
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://faithcargo.onrender.com";
 
 const DEFAULT_ODA_MIN_CHARGE = 500;
@@ -61,11 +61,11 @@ function VendorManage() {
   const fetchVendors = async () => {
     setLoading(true);
     try {
-      // FIXED: Removed /api/vendors prefix
-      const response = await fetch(`${API_BASE_URL}/vendor-rates/`);
+      // ✅ CORRECT URL with /api/vendors prefix
+      const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/`);
       if (response.ok) {
         const data = await response.json();
-        console.log("Fetched vendors:", data.map(v => ({ 
+        console.log("✅ Fetched vendors from DB:", data.map(v => ({ 
           name: v.vendor_name, 
           ratesCount: Object.keys(v.rates || {}).length,
           cft6Count: Object.keys(v.delhivery_6cft || {}).length 
@@ -85,12 +85,14 @@ function VendorManage() {
         setVendors(updatedData);
         updateStats(updatedData);
       } else {
-        console.error("API failed, using empty state");
+        console.error("❌ API failed with status:", response.status);
+        setError(`API Error: ${response.status}`);
         setVendors([]);
         updateStats([]);
       }
     } catch (err) {
-      console.error("Error fetching vendors:", err);
+      console.error("❌ Error fetching vendors:", err);
+      setError(err.message);
       setVendors([]);
       updateStats([]);
     } finally {
@@ -155,8 +157,8 @@ function VendorManage() {
     setInvoiceUploading(true);
 
     try {
-      // FIXED: Removed /api/vendors prefix
-      const getResponse = await fetch(`${API_BASE_URL}/vendor-rates/${encodeURIComponent(invoiceVendor.vendor_name)}/`);
+      // ✅ CORRECT URL with /api/vendors prefix
+      const getResponse = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(invoiceVendor.vendor_name)}/`);
       let currentData = {};
       
       if (getResponse.ok) {
@@ -173,7 +175,7 @@ function VendorManage() {
         updatedCharges.oda_min_charge = isBlueDart ? BLUE_DART_ODA_MIN_CHARGE : DEFAULT_ODA_MIN_CHARGE;
       }
 
-      const response = await fetch(`${API_BASE_URL}/vendor-rates/${encodeURIComponent(invoiceVendor.vendor_name)}/`, {
+      const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(invoiceVendor.vendor_name)}/`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -355,8 +357,8 @@ function VendorManage() {
       }
       
       try {
-        // FIXED: Removed /api/vendors prefix
-        const response = await fetch(`${API_BASE_URL}/vendor-pincodes/bulk-upload/${encodeURIComponent(csvVendor.vendor_name)}/`, {
+        // ✅ CORRECT URL with /api/vendors prefix
+        const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-pincodes/bulk-upload/${encodeURIComponent(csvVendor.vendor_name)}/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -387,8 +389,9 @@ function VendorManage() {
 
   const handleEditVendor = (vendor) => {
     console.log("Editing vendor:", vendor.vendor_name);
+    console.log("Vendor rates from DB:", vendor.rates);
+    console.log("Vendor 6CFT from DB:", vendor.delhivery_6cft);
     
-    // For CFT vendors, keep CFT rates separate
     let rates = vendor.rates || {};
     let delhivery_6cft = vendor.delhivery_6cft || {};
     let delhivery_10cft = vendor.delhivery_10cft || {};
@@ -457,10 +460,10 @@ function VendorManage() {
   const handleSave = async () => {
     setSaveLoading(true);
     try {
-      // FIXED: Removed /api/vendors prefix
+      // ✅ CORRECT URL with /api/vendors prefix
       const url = editMode 
-        ? `${API_BASE_URL}/vendor-rates/${encodeURIComponent(formData.vendor_name)}/`
-        : `${API_BASE_URL}/vendor-rates/`;
+        ? `${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(formData.vendor_name)}/`
+        : `${API_BASE_URL}/api/vendors/vendor-rates/`;
       
       const method = editMode ? "PUT" : "POST";
       
@@ -499,8 +502,8 @@ function VendorManage() {
   const handleDeleteVendor = async (vendor) => {
     if (window.confirm(`⚠️ Are you sure you want to delete ${vendor.vendor_name}? This action cannot be undone.`)) {
       try {
-        // FIXED: Removed /api/vendors prefix
-        const response = await fetch(`${API_BASE_URL}/vendor-rates/${encodeURIComponent(vendor.vendor_name)}/`, {
+        // ✅ CORRECT URL with /api/vendors prefix
+        const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(vendor.vendor_name)}/`, {
           method: "DELETE"
         });
         
@@ -519,8 +522,8 @@ function VendorManage() {
   const handleToggleStatus = async (vendor) => {
     const updatedVendor = { ...vendor, is_active: !vendor.is_active };
     try {
-      // FIXED: Removed /api/vendors prefix
-      const response = await fetch(`${API_BASE_URL}/vendor-rates/${encodeURIComponent(vendor.vendor_name)}/`, {
+      // ✅ CORRECT URL with /api/vendors prefix
+      const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(vendor.vendor_name)}/`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedVendor)
@@ -815,7 +818,6 @@ function VendorManage() {
   const renderRateMatrix = (rateType, title) => {
     const rates = formData[rateType] || {};
     
-    // For CFT vendors, show message if standard rates are empty
     const isCFTVendor = CFT_SUPPORTED_VENDORS.includes(formData.vendor_name);
     const isStandardTab = rateType === "rates";
     
@@ -887,14 +889,8 @@ function VendorManage() {
 
   const renderChargesSection = () => {
     const charges = formData.charges || {};
-    const isDelhivery = formData.vendor_name === "DELHIVERY";
     const isRivigo = formData.vendor_name === "RIVIGO";
-    const isVxpress = formData.vendor_name === "VXPRESS";
-    const isShivaniVX = formData.vendor_name === "SHIVANI VX";
     const isPd = formData.vendor_name === "PD LOGISTICS";
-    const isBlueDart = formData.vendor_name === "SHIPSHOPY BLUE DART";
-    const isShipshopyDelivery = formData.vendor_name === "SHIPSHOPY DELIVERY";
-    const isTrucx = formData.vendor_name?.includes('TRUCX');
     
     const hasCFTSupport = isRivigo || isPd;
     

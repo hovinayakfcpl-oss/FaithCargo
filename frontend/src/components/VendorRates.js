@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import "./VendorRateCalculator.css";
 
-// API Base URL - FIXED (removed /api/vendors)
+// API Base URL - CORRECT with /api/vendors prefix
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://faithcargo.onrender.com";
 
 // Zones list
@@ -30,14 +30,6 @@ const VOLUMETRIC_DIVISOR = {
   'STANDARD': 5000,
   '6CFT': 4500,
   '10CFT': 10000
-};
-
-// Default fallback rates (used only if API rate is 0)
-const DEFAULT_VENDOR_RATES = {
-  "DELHIVERY": 28, "GATI": 25, "PD LOGISTICS": 22,
-  "RIVIGO": 24, "VXPRESS": 20, "SHIVANI VX": 20,
-  "TRUCX DLH Lite": 22, "TRUCX DLH Dense": 22, "TRUCX DLH Cargo": 22,
-  "SHIPSHOPY BLUE DART": 25, "SHIPSHOPY DELIVERY": 22
 };
 
 // Vendor pincode source mapping
@@ -114,11 +106,11 @@ function VendorRateCalculator() {
 
   const fetchVendors = async () => {
     try {
-      // FIXED: Removed /api/vendors prefix
-      const response = await fetch(`${API_BASE_URL}/vendor-rates/`);
+      // ✅ CORRECT URL with /api/vendors prefix
+      const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/`);
       if (response.ok) {
         const data = await response.json();
-        console.log("Fetched vendors:", data.map(v => ({ 
+        console.log("✅ Fetched vendors from DB:", data.map(v => ({ 
           name: v.vendor_name, 
           ratesCount: Object.keys(v.rates || {}).length,
           cft6Count: Object.keys(v.delhivery_6cft || {}).length,
@@ -127,12 +119,12 @@ function VendorRateCalculator() {
         setVendors(data);
         setSelectedVendors(data.map(v => v.vendor_name));
       } else {
-        console.error("API failed, using empty vendors list");
+        console.error("❌ API failed with status:", response.status);
         setVendors([]);
         setSelectedVendors([]);
       }
     } catch (err) {
-      console.error("Error fetching vendors:", err);
+      console.error("❌ Error fetching vendors:", err);
       setVendors([]);
       setSelectedVendors([]);
     }
@@ -223,9 +215,9 @@ function VendorRateCalculator() {
     }
     
     try {
-      // FIXED: Removed /api/vendors prefix
+      // ✅ CORRECT URL with /api/vendors prefix
       const response = await fetch(
-        `${API_BASE_URL}/check-oda/${encodeURIComponent(sourceVendorName)}/${pincode}/`,
+        `${API_BASE_URL}/api/vendors/check-oda/${encodeURIComponent(sourceVendorName)}/${pincode}/`,
         { signal: abortControllerRef.current?.signal }
       );
       
@@ -285,26 +277,24 @@ function VendorRateCalculator() {
     return { isServiceable: true, isODA: false, charge: 0, minCharge: 500, category: null };
   }, [pincodeCache]);
 
-  // FIXED: Get rate from vendor rates - ONLY CFT for PD LOGISTICS & RIVIGO
+  // Get rate from vendor rates - ONLY CFT for PD LOGISTICS & RIVIGO
   const getRateFromVendor = useCallback((vendor, fromZone, toZone, cftType) => {
     let rate = 0;
     const vendorName = vendor.vendor_name;
     
-    console.log(`Getting rate for ${vendorName}, ${cftType}, ${fromZone}→${toZone}`);
+    console.log(`🔍 Getting rate for ${vendorName}, ${cftType}, ${fromZone}→${toZone}`);
     
-    // For RIVIGO and PD LOGISTICS - ONLY CFT rates (Standard rates are NOT used)
+    // For RIVIGO and PD LOGISTICS - ONLY CFT rates
     if (CFT_SUPPORTED_VENDORS.includes(vendorName)) {
-      // For CFT types, get from specific CFT fields
       if (cftType === "6CFT" && vendor.delhivery_6cft) {
         rate = vendor.delhivery_6cft[fromZone]?.[toZone] || 0;
-        console.log(`  ✅ 6CFT rate: ${rate}`);
+        console.log(`  📦 6CFT rate: ₹${rate}/kg`);
       } 
       else if (cftType === "10CFT" && vendor.delhivery_10cft) {
         rate = vendor.delhivery_10cft[fromZone]?.[toZone] || 0;
-        console.log(`  ✅ 10CFT rate: ${rate}`);
+        console.log(`  📦 10CFT rate: ₹${rate}/kg`);
       }
       else {
-        // Standard rate - NOT USED for CFT vendors, return 0
         console.log(`  ⚠️ ${vendorName} does not use Standard rates, skipping`);
         return 0;
       }
@@ -312,12 +302,12 @@ function VendorRateCalculator() {
     // For TRUCX vendors - standard rates only
     else if (TRUCX_VENDORS.includes(vendorName)) {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
-      console.log(`  ✅ TRUCX Standard rate: ${rate}`);
+      console.log(`  🚚 TRUCX Standard rate: ₹${rate}/kg`);
     }
     // For other vendors - standard rates only
     else {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
-      console.log(`  ✅ ${vendorName} Standard rate: ${rate}`);
+      console.log(`  ✅ ${vendorName} Standard rate: ₹${rate}/kg`);
     }
     
     return rate;
@@ -333,11 +323,13 @@ function VendorRateCalculator() {
     // For CFT vendors, if rate is 0, skip (don't use fallback)
     if (ratePerKg === 0) {
       if (CFT_SUPPORTED_VENDORS.includes(vendorName)) {
-        console.log(`⏭️ Skipping ${vendorName} ${cftSize} - no rate found`);
+        console.log(`⏭️ Skipping ${vendorName} ${cftSize} - no rate found in DB`);
         return null;
       }
-      // Use fallback only for non-CFT vendors
-      ratePerKg = DEFAULT_VENDOR_RATES[vendorName] || 22;
+      // Use fallback only for non-CFT vendors (should not happen if DB has data)
+      console.warn(`⚠️ No rate found for ${vendorName}, using fallback`);
+      const fallbackRates = { "DELHIVERY": 28, "GATI": 25, "SHIPSHOPY BLUE DART": 25, "SHIPSHOPY DELIVERY": 22 };
+      ratePerKg = fallbackRates[vendorName] || 22;
     }
     
     const docketCharge = parseFloat(charges.docket_charge) || 100;
@@ -378,7 +370,7 @@ function VendorRateCalculator() {
     let totalFreight = baseFreight + fscAmount + docketCharge + gstAmount + modeCharge + fovCharge + finalODACharge;
     totalFreight = Math.max(totalFreight, minFreight);
     
-    console.log(`✅ ${vendorName} ${cftSize}: Rate=${ratePerKg}, EffectiveWt=${effectiveWeight.toFixed(2)}, Base=${baseFreight.toFixed(2)}, ODA=${finalODACharge.toFixed(2)}, Total=${totalFreight.toFixed(2)}`);
+    console.log(`✅ ${vendorName} ${cftSize}: Rate=${ratePerKg}, EffectiveWt=${effectiveWeight.toFixed(2)}, Base=${baseFreight.toFixed(2)}, Total=${totalFreight.toFixed(2)}`);
     
     return {
       vendor_name: vendorName,
@@ -441,9 +433,19 @@ function VendorRateCalculator() {
       
       console.log(`📊 Calculating: ${pickup}(${fromZone}) → ${destination}(${toZone}), Weight: ${weight}kg`);
       
+      if (vendors.length === 0) {
+        console.error("❌ No vendors loaded from DB");
+        alert("No vendors found. Please check API connection.");
+        setLoading(false);
+        setIsCalculating(false);
+        return;
+      }
+      
       const activeVendors = vendors.filter(v => 
         (showAllVendors || selectedVendors.includes(v.vendor_name)) && v.is_active !== false
       );
+      
+      console.log(`📋 Active vendors: ${activeVendors.length}`);
       
       const calculatedResults = [];
       const actualWeight = parseFloat(weight);
@@ -471,21 +473,17 @@ function VendorRateCalculator() {
         const isCFTVendor = CFT_SUPPORTED_VENDORS.includes(vendorName);
         const isTrucx = TRUCX_VENDORS.includes(vendorName);
         
-        // FIXED: For CFT vendors, ONLY calculate 6CFT and 10CFT - NO STANDARD
         if (isCFTVendor) {
-          // 6 CFT only
+          // Only 6 CFT and 10 CFT - NO Standard rates
           const rate6CFT = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "6CFT", pincodeInfo);
           if (rate6CFT && rate6CFT.rate_per_kg > 0) {
             calculatedResults.push(rate6CFT);
           }
           
-          // 10 CFT only
           const rate10CFT = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "10CFT", pincodeInfo);
           if (rate10CFT && rate10CFT.rate_per_kg > 0) {
             calculatedResults.push(rate10CFT);
           }
-          
-          // ❌ NO STANDARD RATES FOR CFT VENDORS
         } else if (isTrucx) {
           const rate = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "Standard", pincodeInfo);
           if (rate && rate.rate_per_kg > 0) {
@@ -501,7 +499,6 @@ function VendorRateCalculator() {
       
       calculatedResults.sort((a, b) => a.total_freight - b.total_freight);
       
-      // Calculate total volume
       const { volumeCFT: totalVolumeCFT } = calculateVolumetricWeight('STANDARD');
       setVolumeCFT(totalVolumeCFT);
       
