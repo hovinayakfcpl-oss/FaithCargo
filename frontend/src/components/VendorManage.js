@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./VendorManage.css";
 
 // Zones for rate matrix (UPDATED with all zones)
@@ -9,6 +9,10 @@ const ZONES = [
 
 // API Base URL
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://faithcargo.onrender.com";
+
+// Default ODA Min Charges (Min ₹500 for all except Blue Dart)
+const DEFAULT_ODA_MIN_CHARGE = 500;
+const BLUE_DART_ODA_MIN_CHARGE = 3000;
 
 function VendorManage() {
   const [vendors, setVendors] = useState([]);
@@ -61,8 +65,36 @@ function VendorManage() {
       const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/`);
       if (response.ok) {
         const data = await response.json();
-        setVendors(data);
-        updateStats(data);
+        // Ensure all vendors have min ODA charge set
+        const updatedData = data.map(vendor => {
+          const charges = vendor.charges || {};
+          const isBlueDart = vendor.vendor_name === "SHIPSHOPY BLUE DART";
+          
+          // Set default ODA min charge if not present
+          if (!charges.oda_min_charge || charges.oda_min_charge === 0) {
+            charges.oda_min_charge = isBlueDart ? BLUE_DART_ODA_MIN_CHARGE : DEFAULT_ODA_MIN_CHARGE;
+          }
+          
+          // For TRUCX variants, ensure min ODA is ₹500
+          if (vendor.vendor_name?.includes('TRUCX') && (!charges.oda_min_charge || charges.oda_min_charge === 0)) {
+            charges.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
+          }
+          
+          // For PD LOGISTICS, ensure min ODA is ₹500
+          if (vendor.vendor_name === "PD LOGISTICS" && (!charges.oda_min_charge || charges.oda_min_charge === 0)) {
+            charges.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
+          }
+          
+          // For SHIPSHOPY DELIVERY, ensure min ODA is ₹500
+          if (vendor.vendor_name === "SHIPSHOPY DELIVERY" && (!charges.oda_min_charge || charges.oda_min_charge === 0)) {
+            charges.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
+          }
+          
+          vendor.charges = charges;
+          return vendor;
+        });
+        setVendors(updatedData);
+        updateStats(updatedData);
       } else {
         loadLocalData();
       }
@@ -88,17 +120,17 @@ function VendorManage() {
 
   const loadLocalData = () => {
     const defaultVendors = [
-      { id: 1, vendor_name: "DELHIVERY", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, fov: 100, min_weight: 20, oda_charge: 2 }, is_active: true },
-      { id: 2, vendor_name: "GATI", rates: {}, charges: { docket_charge: 100, fsc: "15%", gst: "18%", min_freight: 350, fov: 100, min_weight: 20, oda_charge: 3 }, is_active: true },
-      { id: 3, vendor_name: "PD LOGISTICS", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, fov: 100, min_weight: 20, oda_charge: 4, oda_min_charge: 600 }, is_active: true },
-      { id: 4, vendor_name: "RIVIGO", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 85, fsc: "12%", gst: "18%", min_freight: 380, fov: 90, min_weight: 20, oda_charge: 4 }, is_active: true },
-      { id: 5, vendor_name: "VXPRESS", rates: {}, charges: { docket_charge: 50, fsc: "8%", gst: "18%", min_freight: 450, fov: 50, min_weight: 20, oda_charge: 2 }, is_active: true },
-      { id: 6, vendor_name: "SHIVANI VX", rates: {}, charges: { docket_charge: 50, fsc: "7%", gst: "18%", min_freight: 800, min_weight: 20, divisor: 5000 }, is_active: true },
-      { id: 7, vendor_name: "TRUCX DLH Lite", rates: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 4500, oda_charge: 3, oda_min_charge: 500 }, is_active: true },
-      { id: 8, vendor_name: "TRUCX DLH Dense", rates: {}, charges: { docket_charge: 75, fsc: "12%", gst: "18%", min_freight: 300, min_weight: 20, divisor: 2700, oda_charge: 3, oda_min_charge: 500 }, is_active: true },
-      { id: 9, vendor_name: "TRUCX DLH Cargo", rates: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 3540, oda_charge: 3, oda_min_charge: 500 }, is_active: true },
-      { id: 10, vendor_name: "SHIPSHOPY BLUE DART", rates: {}, charges: { docket_charge: 50, fsc: "20%", gst: "18%", min_freight: 400, min_weight: 20, divisor: 4500, oda_charge: 5, oda_min_charge: 3000 }, is_active: true },
-      { id: 11, vendor_name: "SHIPSHOPY DELIVERY", rates: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 4500, oda_charge: 3, oda_min_charge: 500 }, is_active: true },
+      { id: 1, vendor_name: "DELHIVERY", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, fov: 100, min_weight: 20, oda_charge: 2, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
+      { id: 2, vendor_name: "GATI", rates: {}, charges: { docket_charge: 100, fsc: "15%", gst: "18%", min_freight: 350, fov: 100, min_weight: 20, oda_charge: 3, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
+      { id: 3, vendor_name: "PD LOGISTICS", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 75, fsc: "10%", gst: "18%", min_freight: 400, fov: 100, min_weight: 20, oda_charge: 4, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
+      { id: 4, vendor_name: "RIVIGO", rates: {}, delhivery_6cft: {}, delhivery_10cft: {}, charges: { docket_charge: 85, fsc: "12%", gst: "18%", min_freight: 380, fov: 90, min_weight: 20, oda_charge: 4, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
+      { id: 5, vendor_name: "VXPRESS", rates: {}, charges: { docket_charge: 50, fsc: "8%", gst: "18%", min_freight: 450, fov: 50, min_weight: 20, oda_charge: 2, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
+      { id: 6, vendor_name: "SHIVANI VX", rates: {}, charges: { docket_charge: 50, fsc: "7%", gst: "18%", min_freight: 800, min_weight: 20, divisor: 5000, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
+      { id: 7, vendor_name: "TRUCX DLH Lite", rates: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 4500, oda_charge: 3, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
+      { id: 8, vendor_name: "TRUCX DLH Dense", rates: {}, charges: { docket_charge: 75, fsc: "12%", gst: "18%", min_freight: 300, min_weight: 20, divisor: 2700, oda_charge: 3, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
+      { id: 9, vendor_name: "TRUCX DLH Cargo", rates: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 3540, oda_charge: 3, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
+      { id: 10, vendor_name: "SHIPSHOPY BLUE DART", rates: {}, charges: { docket_charge: 50, fsc: "20%", gst: "18%", min_freight: 400, min_weight: 20, divisor: 4500, oda_charge: 5, oda_min_charge: BLUE_DART_ODA_MIN_CHARGE }, is_active: true },
+      { id: 11, vendor_name: "SHIPSHOPY DELIVERY", rates: {}, charges: { docket_charge: 50, fsc: "10%", gst: "18%", min_freight: 350, min_weight: 20, divisor: 4500, oda_charge: 3, oda_min_charge: DEFAULT_ODA_MIN_CHARGE }, is_active: true },
     ];
     setVendors(defaultVendors);
     updateStats(defaultVendors);
@@ -164,6 +196,12 @@ function VendorManage() {
         ...currentData.charges,
         ...invoiceData
       };
+      
+      // Ensure ODA min charge is set correctly
+      const isBlueDart = invoiceVendor.vendor_name === "SHIPSHOPY BLUE DART";
+      if (!updatedCharges.oda_min_charge || updatedCharges.oda_min_charge === 0) {
+        updatedCharges.oda_min_charge = isBlueDart ? BLUE_DART_ODA_MIN_CHARGE : DEFAULT_ODA_MIN_CHARGE;
+      }
 
       const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(invoiceVendor.vendor_name)}/`, {
         method: "PUT",
@@ -179,7 +217,7 @@ function VendorManage() {
         setShowInvoiceModal(false);
         setInvoiceFile(null);
         setInvoiceData(null);
-        fetchVendors();
+        fetchVendors(); // Refresh vendors to update ODA min charge
       } else {
         const error = await response.json();
         showNotification(`❌ Upload failed: ${error.error || "Unknown error"}`, "error");
@@ -206,37 +244,37 @@ function VendorManage() {
       'is_serviceable'
     ];
     
-    // Vendor-specific sample data
+    // Vendor-specific sample data with min ODA ₹500
     let sampleData = [
-      ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', '400', 'TRUE'],
-      ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', '200', 'TRUE'],
-      ['124105', 'Jhajjar', 'Haryana', 'TRUE', 'A', '2', '200', 'TRUE'],
+      ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
+      ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
+      ['124105', 'Jhajjar', 'Haryana', 'TRUE', 'A', '2', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
       ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
     ];
     
     // Customize for vendors
     if (vendorName === 'SHIPSHOPY BLUE DART') {
       sampleData = [
-        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '5', '3000', 'TRUE'],
-        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '5', '3000', 'TRUE'],
+        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '5', String(BLUE_DART_ODA_MIN_CHARGE), 'TRUE'],
+        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '5', String(BLUE_DART_ODA_MIN_CHARGE), 'TRUE'],
         ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
       ];
     } else if (vendorName === 'SHIPSHOPY DELIVERY') {
       sampleData = [
-        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '3', '500', 'TRUE'],
-        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '3', '500', 'TRUE'],
+        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '3', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
+        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '3', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
         ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
       ];
     } else if (vendorName === 'PD LOGISTICS') {
       sampleData = [
-        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', '600', 'TRUE'],
-        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', '200', 'TRUE'],
+        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
+        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
         ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
       ];
     } else if (vendorName === 'SHIVANI VX') {
       sampleData = [
-        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4.5', '1000', 'TRUE'],
-        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '3.5', '800', 'TRUE'],
+        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4.5', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
+        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '3.5', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
         ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
       ];
     }
@@ -408,6 +446,7 @@ function VendorManage() {
         fov: 75,
         min_weight: 20,
         oda_charge: 2,
+        oda_min_charge: DEFAULT_ODA_MIN_CHARGE,
         divisor: 5000
       },
       is_active: true
@@ -449,16 +488,28 @@ function VendorManage() {
       
       const method = editMode ? "PUT" : "POST";
       
+      // Ensure ODA min charge is set
+      const chargesToSave = { ...formData.charges };
+      const isBlueDart = formData.vendor_name === "SHIPSHOPY BLUE DART";
+      if (!chargesToSave.oda_min_charge || chargesToSave.oda_min_charge === 0) {
+        chargesToSave.oda_min_charge = isBlueDart ? BLUE_DART_ODA_MIN_CHARGE : DEFAULT_ODA_MIN_CHARGE;
+      }
+      
+      const dataToSave = {
+        ...formData,
+        charges: chargesToSave
+      };
+      
       const response = await fetch(url, {
         method: method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToSave)
       });
       
       if (response.ok) {
         showNotification(`✅ ${formData.vendor_name} rates ${editMode ? 'updated' : 'created'} successfully!`, "success");
         setShowModal(false);
-        fetchVendors();
+        fetchVendors(); // Refresh to get updated ODA values
       } else {
         const errorData = await response.json();
         showNotification("❌ Error: " + (errorData.error || "Failed to save"), "error");
@@ -537,7 +588,6 @@ function VendorManage() {
   const renderInvoiceModal = () => {
     if (!showInvoiceModal) return null;
     
-    // Show vendor-specific instructions
     const isBlueDart = invoiceVendor?.vendor_name === 'SHIPSHOPY BLUE DART';
     const isShipshopyDelivery = invoiceVendor?.vendor_name === 'SHIPSHOPY DELIVERY';
     const isShivaniVX = invoiceVendor?.vendor_name === 'SHIVANI VX';
@@ -550,7 +600,7 @@ function VendorManage() {
       "min_freight": 380,
       "min_weight": 20,
       "oda_charge": 4,
-      "oda_min_charge": 400,
+      "oda_min_charge": DEFAULT_ODA_MIN_CHARGE,
       "divisor": 4500
     };
     
@@ -560,7 +610,7 @@ function VendorManage() {
         "fsc": "20%",
         "min_freight": 400,
         "oda_charge": 5,
-        "oda_min_charge": 3000,
+        "oda_min_charge": BLUE_DART_ODA_MIN_CHARGE,
         "divisor": 4500
       };
     } else if (isShipshopyDelivery) {
@@ -569,7 +619,7 @@ function VendorManage() {
         "fsc": "10%",
         "min_freight": 350,
         "oda_charge": 3,
-        "oda_min_charge": 500,
+        "oda_min_charge": DEFAULT_ODA_MIN_CHARGE,
         "divisor": 4500
       };
     } else if (isShivaniVX) {
@@ -577,6 +627,7 @@ function VendorManage() {
         "docket_charge": 50,
         "fsc": "7%",
         "min_freight": 800,
+        "oda_min_charge": DEFAULT_ODA_MIN_CHARGE,
         "divisor": 5000
       };
     } else if (isTrucx) {
@@ -585,7 +636,7 @@ function VendorManage() {
         "fsc": "10%",
         "min_freight": 350,
         "oda_charge": 3,
-        "oda_min_charge": 500,
+        "oda_min_charge": DEFAULT_ODA_MIN_CHARGE,
         "divisor": 4500
       };
     }
@@ -612,6 +663,7 @@ function VendorManage() {
                   <li>Upload JSON file with vendor charges</li>
                   <li>Only include fields you want to update</li>
                   <li>Existing charges will be merged</li>
+                  <li><strong>Default ODA Min Charge: ₹{DEFAULT_ODA_MIN_CHARGE}</strong> for all vendors (except Blue Dart: ₹{BLUE_DART_ODA_MIN_CHARGE})</li>
                   {isBlueDart && <li>Blue Dart uses divisor 4500 for volumetric calculation</li>}
                   {isShipshopyDelivery && <li>Shipshopy Delhivery uses divisor 4500 for volumetric calculation</li>}
                   {isTrucx && <li>TRUCX DLH has different divisors: Lite=4500, Dense=2700, Cargo=3540</li>}
@@ -671,13 +723,15 @@ function VendorManage() {
     
     let odaHint = "";
     if (isBlueDart) {
-      odaHint = "Blue Dart ODA: ₹5/kg (Min ₹3000)";
+      odaHint = `Blue Dart ODA: ₹5/kg (Min ₹${BLUE_DART_ODA_MIN_CHARGE})`;
     } else if (isShipshopyDelivery) {
-      odaHint = "Delhivery ODA: ₹3/kg (Min ₹500)";
+      odaHint = `Delhivery ODA: ₹3/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
     } else if (isShivaniVX) {
-      odaHint = "Shivani VX: Standard rates, no ODA categories";
+      odaHint = `Shivani VX: Standard rates, Min ODA ₹${DEFAULT_ODA_MIN_CHARGE}`;
     } else if (isPd) {
-      odaHint = "PD Logistics ODA: ₹4/kg (Min ₹600)";
+      odaHint = `PD Logistics ODA: ₹4/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
+    } else {
+      odaHint = `Default ODA Min Charge: ₹${DEFAULT_ODA_MIN_CHARGE}`;
     }
     
     return (
@@ -696,9 +750,9 @@ function VendorManage() {
                   pincode,city,state,is_oda,oda_category,oda_charge_per_kg,oda_min_charge,is_serviceable
                 </code>
                 <br/>
-                <code>212217,Allahabad,UP,TRUE,B,4,400,TRUE</code>
+                <code>212217,Allahabad,UP,TRUE,B,4,{DEFAULT_ODA_MIN_CHARGE},TRUE</code>
                 <br/>
-                <code>122502,Gurgaon,Haryana,TRUE,A,2,200,TRUE</code>
+                <code>122502,Gurgaon,Haryana,TRUE,A,2,{DEFAULT_ODA_MIN_CHARGE},TRUE</code>
                 <br/>
                 <code>110001,New Delhi,Delhi,FALSE,,0,0,TRUE</code>
               </div>
@@ -715,6 +769,9 @@ function VendorManage() {
                   <li><span className="oda-cat-c">C</span> - ₹7/kg, Min ₹700</li>
                   <li><span className="oda-cat-d">D</span> - ₹10/kg, Min ₹1000</li>
                 </ul>
+                <p style={{marginTop: '8px', fontSize: '11px', color: '#666'}}>
+                  <strong>Note:</strong> Default Min ODA Charge for all vendors is <strong>₹{DEFAULT_ODA_MIN_CHARGE}</strong>
+                </p>
               </div>
             </div>
             
@@ -945,20 +1002,19 @@ function VendorManage() {
             </div>
           </div>
           
-          {(isBlueDart || isShipshopyDelivery || isPd) && (
-            <div className="charge-card">
-              <div className="charge-icon">⚠️</div>
-              <div className="charge-field">
-                <label>ODA Min Charge (₹)</label>
-                <input
-                  type="number"
-                  className="charge-input"
-                  value={charges.oda_min_charge || 0}
-                  onChange={(e) => handleChargeChange("oda_min_charge", parseFloat(e.target.value))}
-                />
-              </div>
+          <div className="charge-card">
+            <div className="charge-icon">⚠️</div>
+            <div className="charge-field">
+              <label>ODA Min Charge (₹)</label>
+              <input
+                type="number"
+                className="charge-input"
+                value={charges.oda_min_charge || DEFAULT_ODA_MIN_CHARGE}
+                onChange={(e) => handleChargeChange("oda_min_charge", parseFloat(e.target.value))}
+              />
+              <small className="input-hint">Default: ₹{DEFAULT_ODA_MIN_CHARGE} (Blue Dart: ₹{BLUE_DART_ODA_MIN_CHARGE})</small>
             </div>
-          )}
+          </div>
         </div>
         
         {/* Only show CFT info for RIVIGO and PD LOGISTICS */}
@@ -1018,6 +1074,13 @@ function VendorManage() {
     const showCsvButton = isVxpress || isRivigo || isBlueDart || isShipshopyDelivery || isShivaniVX || isPd;
     const showInvoiceButton = true;
     
+    // Get ODA min charge display
+    const odaMinCharge = vendor.charges?.oda_min_charge || DEFAULT_ODA_MIN_CHARGE;
+    const isBlueDartVendor = isBlueDart;
+    const odaDisplay = isBlueDartVendor 
+      ? `₹${vendor.charges?.oda_charge || 5}/kg (Min ₹${odaMinCharge})`
+      : `₹${vendor.charges?.oda_charge || 2}/kg (Min ₹${odaMinCharge})`;
+    
     return (
       <div className={`vendor-card ${!vendor.is_active ? 'inactive-card' : ''}`} key={vendor.id}>
         <div className="vendor-card-header">
@@ -1070,7 +1133,7 @@ function VendorManage() {
             </div>
             <div className="stat">
               <span>ODA</span>
-              <strong>₹{vendor.charges?.oda_charge || 2}/kg</strong>
+              <strong>{odaDisplay}</strong>
             </div>
           </div>
           
