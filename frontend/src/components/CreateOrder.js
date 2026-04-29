@@ -7,179 +7,74 @@ import {
   Upload, File, Image, X, TrendingUp, Clock, Train, Plane,
   Save, Download, Eye, Award, Gem, Crown, Settings, 
   ToggleLeft, ToggleRight, Building, Hash, Tag, FileSpreadsheet,
-  Barcode, Layers, CheckSquare, Square, PrinterIcon,
+  Barcode, Layers, CheckSquare, Square, Printer as PrinterIcon,
   ArrowRight, Warehouse, Building2, Phone, Mail, Globe,
   Percent, DollarSign, Scale, Weight, Ruler, User, Users,
   Stamp, Circle, Star, HelpCircle, Search, Filter,
   RefreshCw, Activity, CheckCircle2, XCircle, Timer, Map, PhoneCall,
   Bookmark, SaveAll, Copy, Edit, Trash, Check, ChevronDown, ChevronUp, 
-  FolderOpen, LogOut, UserCircle
+  FolderOpen, UserPlus, Users as UsersIcon, Mail as MailIcon,
+  Phone as PhoneIcon, MapPin as MapPinIcon, Building as BuildingIcon
 } from "lucide-react";
 import logo from "../assets/logo.png";
+import stampImage from "../assets/stamp.png";
 import "./CreateOrder.css";
 
 // ============================================
-// 🔐 AUTHENTICATION CHECK (Both Admin & Client)
+// 💰 REAL FREIGHT CALCULATOR
 // ============================================
-const useAuth = () => {
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState(null);
-  const [clientRates, setClientRates] = useState(null);
-  const [clientPolicy, setClientPolicy] = useState(null);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const clientToken = localStorage.getItem("clientToken");
-    const userRoleStorage = localStorage.getItem("userRole");
-    const username = localStorage.getItem("username");
-    const clientId = localStorage.getItem("clientId");
-    
-    if (token && token !== "undefined" && token !== "null" && token !== "") {
-      setIsAuthenticated(true);
-      setUserRole(userRoleStorage === "admin" ? "admin" : "staff");
-      setUser({ 
-        username: username || "Admin", 
-        role: userRoleStorage === "admin" ? "admin" : "staff",
-        clientId: null 
-      });
-      setLoading(false);
-      return;
-    }
-    
-    if (clientToken && clientToken !== "undefined" && clientToken !== "null" && clientId) {
-      console.log("✅ Client authenticated from localStorage:", clientId);
-      
-      const clientData = {
-        clientId: clientId,
-        companyName: localStorage.getItem("clientName") || username || "Client",
-        username: localStorage.getItem("username") || clientId.toLowerCase(),
-        email: localStorage.getItem("clientEmail") || "",
-        phone: localStorage.getItem("clientPhone") || ""
-      };
-      
-      setUser(clientData);
-      setUserRole("client");
-      setIsAuthenticated(true);
-      
-      const fetchRates = async () => {
-        try {
-          const ratesRes = await fetch(`https://faithcargo.onrender.com/api/rates/client/${clientId}/`);
-          if (ratesRes.ok) {
-            const ratesData = await ratesRes.json();
-            setClientRates(ratesData.zone_rates || []);
-            setClientPolicy(ratesData.policy || null);
-          }
-        } catch (err) {
-          console.error("Rates fetch error:", err);
-        }
-      };
-      fetchRates();
-      setLoading(false);
-      return;
-    }
-    
-    setLoading(false);
-  }, []);
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("clientToken");
-    localStorage.removeItem("clientId");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("username");
-    localStorage.removeItem("clientName");
-    localStorage.removeItem("clientEmail");
-    localStorage.removeItem("clientPhone");
-    setUser(null);
-    setIsAuthenticated(false);
-    window.location.href = "/";
-  };
-
-  return { user, isAuthenticated, loading, userRole, clientRates, clientPolicy, logout };
-};
-
-// ============================================
-// 💰 FREIGHT CALCULATOR
-// ============================================
-const FreightCalculator = ({ weight, origin, destination, bookingMode, clientPolicy, clientRates, userRole, onCalculate }) => {
+const RealTimeFreightCalculator = ({ weight, origin, destination, bookingMode, onCalculate }) => {
   const [freight, setFreight] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  const getZoneFromPincode = (pincode) => {
-    const firstDigit = pincode?.charAt(0);
-    const zoneMap = {
-      '1': 'N1', '2': 'N2', '3': 'N3',
-      '4': 'C1', '5': 'W1', '6': 'W2',
-      '7': 'S1', '8': 'S2', '9': 'E1',
-      '0': 'NE1'
-    };
-    return zoneMap[firstDigit] || 'NE2';
-  };
-
-  const getRate = (originZone, destZone) => {
-    if (userRole === "client" && clientRates && clientRates.length > 0) {
-      const rate = clientRates.find(r => r.from_zone === originZone && r.to_zone === destZone);
-      if (rate) return rate.rate;
-    }
-    switch(bookingMode) {
-      case 'air': return 45;
-      case 'express': return 25;
-      case 'rail': return 15;
-      default: return 18;
-    }
-  };
 
   useEffect(() => {
     const calculateFreight = async () => {
       if (weight > 0 && origin && destination && origin.length === 6 && destination.length === 6) {
         setLoading(true);
         setError(null);
-        
-        const originZone = getZoneFromPincode(origin);
-        const destZone = getZoneFromPincode(destination);
-        const ratePerKg = getRate(originZone, destZone);
-        
-        const charges = (userRole === "client" && clientPolicy) ? clientPolicy : {
-          minFreight: 650,
-          docketCharge: 100,
-          fuelPercent: 10,
-          fovCharge: 75,
-          gstPercent: 18
-        };
-        
-        const baseFreight = weight * ratePerKg;
-        const fuelSurcharge = baseFreight * (charges.fuelPercent / 100);
-        const gst = baseFreight * (charges.gstPercent / 100);
-        const docketCharge = charges.docketCharge || 100;
-        const fovCharge = charges.fovCharge || 75;
-        
-        let total = baseFreight + fuelSurcharge + gst + docketCharge + fovCharge;
-        if (total < charges.minFreight) total = charges.minFreight;
-        
-        const freightResult = {
-          baseFreight: Math.round(baseFreight),
-          fuelSurcharge: Math.round(fuelSurcharge),
-          gst: Math.round(gst),
-          docketCharge,
-          fovCharge,
-          total: Math.round(total),
-          ratePerKg: ratePerKg.toFixed(2),
-          fromZone: originZone,
-          toZone: destZone,
-          isCustomRate: userRole === "client" && clientRates?.length > 0
-        };
-        
-        setFreight(freightResult);
-        if (onCalculate) onCalculate(freightResult);
-        setLoading(false);
+        try {
+          const response = await fetch("https://faithcargo.onrender.com/api/shipments/calculate-freight/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ origin, destination, weight: parseFloat(weight) })
+          });
+          const data = await response.json();
+          
+          if (data.success) {
+            const multiplier = bookingMode === 'air' ? 1.5 : bookingMode === 'express' ? 1.3 : bookingMode === 'rail' ? 0.8 : 1;
+            const baseFreight = data.freight_charge * multiplier;
+            const fuelSurcharge = baseFreight * 0.10;
+            const gst = baseFreight * 0.18;
+            const docketCharge = 100;
+            const fovCharge = 75;
+            let total = baseFreight + fuelSurcharge + gst + docketCharge + fovCharge;
+            if (total < 650) total = 650;
+            
+            const freightResult = {
+              baseFreight: Math.round(baseFreight),
+              fuelSurcharge: Math.round(fuelSurcharge),
+              gst: Math.round(gst),
+              docketCharge, fovCharge,
+              total: Math.round(total),
+              ratePerKg: (baseFreight / weight).toFixed(2),
+              fromZone: data.from_zone,
+              toZone: data.to_zone
+            };
+            setFreight(freightResult);
+            if (onCalculate) onCalculate(freightResult);
+          } else {
+            setError(data.error || "Rate not found");
+          }
+        } catch (err) {
+          setError("Network error");
+        } finally {
+          setLoading(false);
+        }
       }
     };
-    
     calculateFreight();
-  }, [weight, origin, destination, bookingMode, clientPolicy, clientRates, userRole]);
+  }, [weight, origin, destination, bookingMode]);
 
   if (!origin || !destination || weight === 0) return null;
 
@@ -188,8 +83,6 @@ const FreightCalculator = ({ weight, origin, destination, bookingMode, clientPol
       <div className="freight-card-header">
         <Calculator size={18} />
         <span>Freight Calculator</span>
-        {freight?.isCustomRate && <span className="custom-rate-badge">⭐ Custom Rate</span>}
-        {userRole === "admin" && <span className="admin-badge">Admin Rate</span>}
         {loading && <span className="loading-badge">Calculating...</span>}
       </div>
       {error && <div className="freight-error-msg"><AlertCircle size={14} /> {error}</div>}
@@ -204,11 +97,11 @@ const FreightCalculator = ({ weight, origin, destination, bookingMode, clientPol
             <span>₹{freight.baseFreight.toLocaleString()}</span>
           </div>
           <div className="freight-row">
-            <span>Fuel Surcharge</span>
+            <span>Fuel Surcharge (10%)</span>
             <span>₹{freight.fuelSurcharge.toLocaleString()}</span>
           </div>
           <div className="freight-row">
-            <span>GST</span>
+            <span>GST (18%)</span>
             <span>₹{freight.gst.toLocaleString()}</span>
           </div>
           <div className="freight-row">
@@ -226,11 +119,10 @@ const FreightCalculator = ({ weight, origin, destination, bookingMode, clientPol
 };
 
 // ============================================
-// 🎨 DOCKET COMPONENT
+// 🎨 DOCKET COMPONENT - UPGRADED WITH LR/AWB LEFT, LOGO RIGHT, STAMP IMAGE
 // ============================================
-const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData, status, uploadedInvoices, clientId, userRole }, ref) => {
+const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData, status, uploadedInvoices }, ref) => {
   const barcodeRef = useRef(null);
-  const [barcodeImageUrl, setBarcodeImageUrl] = useState("");
   
   useEffect(() => {
     if (lrNumber && barcodeRef.current) {
@@ -242,19 +134,16 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         JsBarcode(canvas, lrNumber, {
           format: "CODE128",
           width: 2,
-          height: 50,
+          height: 45,
           displayValue: true,
-          fontSize: 14,
+          fontSize: 12,
           font: "monospace",
-          margin: 10,
+          margin: 5,
           textAlign: "center",
-          textMargin: 5,
+          textMargin: 3,
           background: "#ffffff",
           lineColor: "#000000"
         });
-        
-        const imageUrl = canvas.toDataURL("image/png");
-        setBarcodeImageUrl(imageUrl);
       } catch (err) {
         console.error("Barcode error:", err);
       }
@@ -280,13 +169,6 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
     }
   };
 
-  const getDimensionsText = () => {
-    if (!data?.orderDetails?.dimensions || data.orderDetails.dimensions.length === 0) return "—";
-    return data.orderDetails.dimensions.map(d => 
-      `${d.quantity} x (${d.length}×${d.width}×${d.height})`
-    ).join(", ");
-  };
-
   const safeData = {
     pickup: data?.pickup || { name: "", address: "", pincode: "", contact: "", city: "", state: "", gstin: "" },
     delivery: data?.delivery || { name: "", address: "", pincode: "", contact: "", city: "", state: "", gstin: "" },
@@ -296,26 +178,29 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
     chargedWeight: data?.chargedWeight || 0
   };
 
+  // Format dimensions for display
+  const getDimensionsText = () => {
+    if (!safeData.orderDetails.dimensions || safeData.orderDetails.dimensions.length === 0) return "—";
+    return safeData.orderDetails.dimensions.map(d => 
+      `${d.quantity} x (${d.length}×${d.width}×${d.height})`
+    ).join(", ");
+  };
+
   return (
     <div ref={ref} className="print-docket">
       <div className="docket-watermark">FCPL</div>
       <div className="docket-inner-border"></div>
-      <canvas ref={barcodeRef} style={{ display: 'none' }} width="350" height="80"></canvas>
+      
+      {/* Professional Header - LR & AWB Left Side with Bold Barcode, Logo & Company Right Side */}
       <div className="docket-header-new">
         <div className="header-left-section">
           <div className="lr-label">CONSIGNMENT NOTE</div>
-          {barcodeImageUrl ? (
-            <img src={barcodeImageUrl} alt="Barcode" className="barcode-image" />
-          ) : (
-            <div className="barcode-placeholder">Generating barcode...</div>
-          )}
+          <canvas ref={barcodeRef} className="barcode-canvas" width="280" height="70"></canvas>
           <div className="lr-number-bold">{lrNumber || "DRAFT"}</div>
           <div className="awb-section">
-            <span className="awb-label">AWB:</span>
+            <span className="awb-label">AWB NUMBER:</span>
             <span className="awb-value-bold">{awbNumber || "N/A"}</span>
           </div>
-          {clientId && <div className="client-id-docket">Client: {clientId}</div>}
-          {userRole === "admin" && <div className="admin-badge-docket">Admin</div>}
           <div className="status-badge-docket">{getStatusText()}</div>
           <div className="date-value-docket">{new Date().toLocaleDateString('en-IN')}</div>
         </div>
@@ -333,6 +218,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </div>
       </div>
 
+      {/* Sender & Receiver Section */}
       <div className="parties-container">
         <div className="party sender">
           <div className="party-title">
@@ -369,6 +255,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </div>
       </div>
 
+      {/* Shipment Details Table with Dimensions */}
       <div className="shipment-wrapper">
         <table className="shipment-data-table">
           <thead>
@@ -389,6 +276,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </table>
       </div>
 
+      {/* Invoice & Freight Section */}
       <div className="billing-wrapper">
         <div className="invoice-section">
           <div className="section-header">INVOICE DETAILS</div>
@@ -405,8 +293,8 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
             <div className="section-header">FREIGHT BREAKDOWN</div>
             <div className="freight-items">
               <div className="freight-row-line"><span>Base Freight:</span><span>₹{freightData.baseFreight?.toLocaleString()}</span></div>
-              <div className="freight-row-line"><span>Fuel Surcharge:</span><span>₹{freightData.fuelSurcharge?.toLocaleString()}</span></div>
-              <div className="freight-row-line"><span>GST:</span><span>₹{freightData.gst?.toLocaleString()}</span></div>
+              <div className="freight-row-line"><span>Fuel Surcharge (10%):</span><span>₹{freightData.fuelSurcharge?.toLocaleString()}</span></div>
+              <div className="freight-row-line"><span>GST (18%):</span><span>₹{freightData.gst?.toLocaleString()}</span></div>
               <div className="freight-row-line"><span>Docket Charge:</span><span>₹{freightData.docketCharge || 100}</span></div>
               <div className="freight-row-line total-freight"><span>TOTAL:</span><span className="total-price">₹{freightData.total?.toLocaleString()}</span></div>
               <div className="rate-note">Rate: ₹{freightData.ratePerKg}/kg | {freightData.fromZone} → {freightData.toZone}</div>
@@ -415,14 +303,18 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         )}
       </div>
 
+      {/* Stamp Image */}
       <div className="stamp-signature-wrapper-new">
-        <StampImage />
+        <div className="stamp-image-container">
+          <img src={stampImage} alt="Company Stamp" className="official-stamp-image" />
+        </div>
         <div className="signature-area">
           <div className="signature-line-item"><div className="sign-line"></div><p>Receiver's Signature</p></div>
           <div className="signature-line-item"><div className="stamp-box">FOR FAITH CARGO PVT LTD</div><p>Authorized Signatory</p></div>
         </div>
       </div>
 
+      {/* Company Instructions */}
       <div className="company-instructions">
         <h4>📋 IMPORTANT INSTRUCTIONS</h4>
         <div className="instructions-grid">
@@ -433,6 +325,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </div>
       </div>
 
+      {/* Terms & Conditions */}
       <div className="terms-wrapper">
         <h4>TERMS & CONDITIONS</h4>
         <ul>
@@ -443,6 +336,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
         </ul>
       </div>
 
+      {/* Footer */}
       <div className="docket-footer">
         <div className="footer-copies"><span>📄 ORIGINAL - CONSIGNOR</span><span>📄 DUPLICATE - CONSIGNEE</span><span>📄 TRIPLICATE - OFFICE</span></div>
         <div className="footer-website"><span>🌐 www.faithcargo.com</span><span>📞 9818641504</span><span>✉️ care@faithcargo.com</span></div>
@@ -452,40 +346,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
 });
 
 // ============================================
-// 🏷️ STAMP IMAGE COMPONENT
-// ============================================
-const StampImage = () => {
-  const [imgError, setImgError] = useState(false);
-  
-  if (imgError) {
-    return (
-      <div className="official-stamp-fallback">
-        <div className="stamp-circle">
-          <div className="stamp-outer-ring">
-            <div className="stamp-inner-content">
-              <span className="stamp-title">FAITH CARGO</span>
-              <span className="stamp-sub">PVT LTD</span>
-              <div className="stamp-line"></div>
-              <span className="stamp-auth">AUTHORIZED</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
-  return (
-    <img 
-      src={require("../assets/stamp.png")} 
-      alt="Company Stamp" 
-      className="official-stamp-image"
-      onError={() => setImgError(true)}
-    />
-  );
-};
-
-// ============================================
-// 📎 INVOICE UPLOAD COMPONENT
+// 📎 INVOICE UPLOAD WITH PREVIEW & DOWNLOAD
 // ============================================
 const InvoiceUpload = ({ onUpload, uploadedFiles = [], setUploadedFiles }) => {
   const [dragging, setDragging] = useState(false);
@@ -563,7 +424,7 @@ const InvoiceUpload = ({ onUpload, uploadedFiles = [], setUploadedFiles }) => {
 };
 
 // ============================================
-// 📦 DIMENSION INPUT COMPONENT
+// 📦 DIMENSION INPUT WITH QUANTITY OPTION
 // ============================================
 const DimensionInput = ({ dimensions, setDimensions, setTotalBoxes }) => {
   const [dimensionGroups, setDimensionGroups] = useState(dimensions || []);
@@ -638,7 +499,7 @@ const DimensionInput = ({ dimensions, setDimensions, setTotalBoxes }) => {
 };
 
 // ============================================
-// 💾 SAVED ADDRESSES COMPONENT
+// 💾 SAVED ADDRESSES COMPONENT FOR SHIPPER (FIXED)
 // ============================================
 const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
   const [savedAddresses, setSavedAddresses] = useState([]);
@@ -703,12 +564,20 @@ const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
   return (
     <div className="saved-addresses-container">
       <div className="address-actions-bar">
-        <button type="button" className="address-action-btn saved-list-btn" onClick={() => setShowAddressList(!showAddressList)}>
-          <FolderOpen size={16} />
+        <button 
+          type="button" 
+          className="address-action-btn saved-list-btn"
+          onClick={() => setShowAddressList(!showAddressList)}
+        >
+          <FolderOpen size={16} />  {/* Using FolderOpen instead of AddressBook */}
           {showAddressList ? "Hide Saved Addresses" : "Show Saved Addresses"}
           {showAddressList ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
-        <button type="button" className="address-action-btn save-current-btn" onClick={() => setShowSaveModal(true)}>
+        <button 
+          type="button" 
+          className="address-action-btn save-current-btn"
+          onClick={() => setShowSaveModal(true)}
+        >
           <SaveAll size={16} />
           Save Current Address
         </button>
@@ -743,7 +612,13 @@ const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
         <div className="save-address-modal-overlay" onClick={() => setShowSaveModal(false)}>
           <div className="save-address-modal" onClick={e => e.stopPropagation()}>
             <h3><SaveAll size={20} /> Save Consignor Address</h3>
-            <input type="text" placeholder="Enter address name (e.g., Office Delhi, Warehouse Mumbai)" value={addressName} onChange={e => setAddressName(e.target.value)} className="address-name-input" />
+            <input 
+              type="text" 
+              placeholder="Enter address name (e.g., Office Delhi, Warehouse Mumbai)" 
+              value={addressName}
+              onChange={e => setAddressName(e.target.value)}
+              className="address-name-input"
+            />
             <div className="modal-buttons">
               <button className="cancel-btn" onClick={() => setShowSaveModal(false)}>Cancel</button>
               <button className="save-btn" onClick={saveAddressToLocal}>Save Address</button>
@@ -756,101 +631,9 @@ const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
 };
 
 // ============================================
-// 📍 TRACKING TIMELINE COMPONENT
-// ============================================
-const getTrackingTimeline = (currentStatus) => {
-  const steps = [
-    { key: 'booked', label: 'Booked', icon: '📝', desc: 'Order confirmed' },
-    { key: 'picked', label: 'Picked Up', icon: '🚚', desc: 'Shipment collected' },
-    { key: 'in_transit', label: 'In Transit', icon: '🚛', desc: 'On the way' },
-    { key: 'out_for_delivery', label: 'Out for Delivery', icon: '📦', desc: 'Near destination' },
-    { key: 'delivered', label: 'Delivered', icon: '✅', desc: 'Successfully delivered' }
-  ];
-  const currentIndex = steps.findIndex(s => s.key === currentStatus);
-  
-  return (
-    <div className="tracking-timeline-enhanced">
-      {steps.map((step, idx) => {
-        const isCompleted = idx <= currentIndex;
-        const isCurrent = idx === currentIndex;
-        return (
-          <div key={step.key} className={`timeline-step-enhanced ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}`}>
-            <div className="timeline-icon-enhanced">
-              {isCompleted ? <CheckCircle2 size={22} /> : <span className="step-icon-enhanced">{step.icon}</span>}
-            </div>
-            <div className="timeline-content-enhanced">
-              <div className="step-label-enhanced">{step.label}</div>
-              <div className="step-desc-enhanced">{step.desc}</div>
-            </div>
-            {idx < steps.length - 1 && <div className={`timeline-line-enhanced ${isCompleted ? 'completed' : ''}`}></div>}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-// ============================================
-// 🔔 SEND NOTIFICATION FUNCTION (Frontend)
-// ============================================
-// ============================================
-// 🔔 SEND SMS NOTIFICATION (ACTUAL BACKEND API CALL)
-// ============================================
-const sendOrderNotification = async (orderData) => {
-  console.log("📱 Sending SMS notification to backend...", orderData);
-  
-  // Validate phone numbers
-  if (!orderData.pickupContact || orderData.pickupContact.length !== 10) {
-    console.log("⚠️ Invalid sender phone number:", orderData.pickupContact);
-  }
-  if (!orderData.deliveryContact || orderData.deliveryContact.length !== 10) {
-    console.log("⚠️ Invalid receiver phone number:", orderData.deliveryContact);
-  }
-  
-  try {
-    const response = await fetch("https://faithcargo.onrender.com/api/shipments/send-notification/", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        lrNumber: orderData.lrNumber,
-        awb: orderData.awb,
-        pickupPincode: orderData.pickupPincode,
-        deliveryPincode: orderData.deliveryPincode,
-        weight: orderData.weight,
-        totalValue: orderData.totalValue,
-        pickupContact: orderData.pickupContact,
-        deliveryContact: orderData.deliveryContact,
-        pickupName: orderData.pickupName,
-        deliveryName: orderData.deliveryName,
-      })
-    });
-    
-    console.log("📡 Response status:", response.status);
-    
-    const result = await response.json();
-    console.log("📦 Response data:", result);
-    
-    if (result.success) {
-      console.log("✅ SMS sent successfully!");
-    } else {
-      console.log("⚠️ SMS failed:", result.error);
-    }
-  } catch (error) {
-    console.error("❌ SMS notification error:", error);
-    console.error("Error message:", error.message);
-  }
-  
-  // Show success message to user (order is already created)
-  alert(`✅ Order Created Successfully!\n\n📋 LR Number: ${orderData.lrNumber}\n✈️ AWB: ${orderData.awb}\n\n📱 SMS sent to Sender & Receiver!`);
-};
-// ============================================
-// 🚀 MAIN CREATE ORDER COMPONENT
+// 🚀 MAIN COMPONENT
 // ============================================
 export default function CreateOrder() {
-  const { user, isAuthenticated, loading: authLoading, userRole, clientPolicy, clientRates, logout } = useAuth();
-  
   const [dimensions, setDimensions] = useState([]);
   const [totalPackages, setTotalPackages] = useState(0);
   const [showLR, setShowLR] = useState(false);
@@ -874,161 +657,6 @@ export default function CreateOrder() {
   
   const printDocketRef = useRef(null);
 
-  const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gstin: "" });
-  const [delivery, setDelivery] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gstin: "" });
-  const [orderDetails, setOrderDetails] = useState({ material: "", weight: "", hsnCode: "1234" });
-  const [invoices, setInvoices] = useState([{ id: Date.now(), no: "", value: "" }]);
-
-  const totalInvoiceValue = useMemo(() => invoices.reduce((s, inv) => s + (parseFloat(inv.value) || 0), 0), [invoices]);
-  
-  const volWeight = useMemo(() => {
-    let totalVol = 0;
-    dimensions.forEach(dim => {
-      const qty = parseInt(dim.quantity) || 0;
-      const l = parseFloat(dim.length) || 0;
-      const w = parseFloat(dim.width) || 0;
-      const h = parseFloat(dim.height) || 0;
-      totalVol += (l * w * h) / 4000 * qty;
-    });
-    return totalVol.toFixed(2);
-  }, [dimensions]);
-  
-  const chargedWeight = Math.max(parseFloat(orderDetails.weight || 0), parseFloat(volWeight));
-  const needsEwayBill = totalInvoiceValue >= 50000;
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      window.location.href = "/";
-    }
-  }, [authLoading, isAuthenticated]);
-
-  const fetchLocation = async (pin, type) => {
-    if (pin?.length === 6) {
-      try {
-        const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
-        const data = await res.json();
-        if (data?.[0]?.Status === "Success") {
-          const po = data[0].PostOffice[0];
-          const loc = { state: po.State, city: po.District };
-          type === "pickup" ? setPickup(p => ({ ...p, ...loc })) : setDelivery(d => ({ ...d, ...loc }));
-        }
-      } catch (err) {}
-    }
-  };
-
-  const handleSelectSavedAddress = (address) => {
-    setPickup(address);
-  };
-
-  const handleCreateOrder = async () => {
-    if (!isAuthenticated) {
-      alert("Please login first!");
-      window.location.href = "/";
-      return;
-    }
-    
-    if (needsEwayBill && !ewayBill) return alert("E-Way Bill required for invoice > ₹50,000");
-    if (!pickup.name || !delivery.name || !orderDetails.weight) return alert("Fill all mandatory fields");
-    if (!pickup.pincode || !delivery.pincode) return alert("Enter valid 6-digit pincodes");
-    if (isManualLR && !manualLRNumber) return alert("Enter Manual LR Number");
-
-    setLoading(true);
-    setApiError("");
-
-    const calculatedFreight = freightData?.total || 0;
-    
-    console.log("=== Creating Order ===");
-    console.log("Freight Data:", freightData);
-    console.log("Calculated Freight:", calculatedFreight);
-
-    const orderData = {
-      clientId: userRole === "client" ? user?.clientId : null,
-      freight_amount: calculatedFreight,
-      pickupName: pickup.name,
-      pickupAddress: pickup.address,
-      pickupPincode: pickup.pincode,
-      pickupContact: pickup.contact,
-      pickupGstin: pickup.gstin,
-      deliveryName: delivery.name,
-      deliveryAddress: delivery.address,
-      deliveryPincode: delivery.pincode,
-      deliveryContact: delivery.contact,
-      deliveryGstin: delivery.gstin,
-      material: orderDetails.material || "General Cargo",
-      hsn: orderDetails.hsnCode,
-      boxes: totalPackages,
-      weight: parseFloat(chargedWeight),
-      actual_weight: parseFloat(orderDetails.weight || 0),
-      volumetric_weight: parseFloat(volWeight),
-      total_value: totalInvoiceValue,
-      eway_bill: needsEwayBill ? ewayBill : "",
-      booking_mode: bookingMode,
-      dimensions: dimensions,
-      invoices: invoices.filter(inv => inv.no && inv.value).map(inv => ({ 
-        invoice_no: inv.no, 
-        invoice_value: parseFloat(inv.value) 
-      }))
-    };
-
-    console.log("Order Data being sent:", orderData);
-
-    try {
-      const response = await fetch("https://faithcargo.onrender.com/api/shipments/create-order/", {
-        method: "POST", 
-        headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify(orderData)
-      });
-      const result = await response.json();
-
-      if (result.success) {
-        setLrNumber(result.lr_number);
-        setAwbNumber(result.awb);
-        setShipmentStatus("booked");
-        setShowLR(true);
-        
-        const storageKey = userRole === "client" ? `shipments_${user?.clientId}` : "all_shipments";
-        const allShipments = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        allShipments.unshift({
-          lr: isManualLR ? manualLRNumber : result.lr_number, 
-          awb: result.awb,
-          route: `${pickup.pincode} → ${delivery.pincode}`, 
-          value: totalInvoiceValue,
-          freight: calculatedFreight,
-          status: 'booked', 
-          date: new Date().toISOString(),
-          invoices: invoices.filter(inv => inv.no && inv.value),
-          uploadedFiles: uploadedFiles,
-          clientId: userRole === "client" ? user?.clientId : null,
-          createdBy: userRole === "admin" ? "Admin" : user?.username
-        });
-        localStorage.setItem(storageKey, JSON.stringify(allShipments.slice(0, 50)));
-        
-        const notificationData = {
-          lrNumber: result.lr_number,
-          awb: result.awb,
-          pickupPincode: pickup.pincode,
-          deliveryPincode: delivery.pincode,
-          weight: chargedWeight,
-          totalValue: totalInvoiceValue,
-          pickupContact: pickup.contact,
-          deliveryContact: delivery.contact,
-          pickupName: pickup.name,
-          deliveryName: delivery.name
-        };
-        sendOrderNotification(notificationData);
-        
-      } else {
-        setApiError(result.error || "Failed");
-        alert("Error: " + result.error);
-      }
-    } catch (error) {
-      setApiError("Network error");
-      alert("Network error! Try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handlePrintDocket = () => {
     const printContent = printDocketRef.current;
     if (printContent) {
@@ -1044,9 +672,13 @@ export default function CreateOrder() {
           .docket-header-new { display: flex; justify-content: space-between; padding: 15px 20px; border-bottom: 3px solid #d32f2f; background: white; position: relative; z-index: 2; }
           .header-left-section { text-align: left; }
           .lr-label { font-size: 10px; font-weight: bold; color: #64748b; letter-spacing: 1px; margin-bottom: 5px; }
-          .barcode-image { margin: 5px 0; background: white; width: 280px; height: auto; display: block; }
+          .barcode-canvas { margin: 5px 0; background: white; }
           .lr-number-bold { font-size: 24px; font-weight: 900; color: #d32f2f; font-family: monospace; letter-spacing: 2px; }
+          .awb-section { margin-top: 8px; }
+          .awb-label { font-size: 10px; font-weight: 600; color: #475569; margin-right: 8px; text-transform: uppercase; }
+          .awb-value-bold { font-size: 14px; font-weight: 800; color: #1e293b; }
           .status-badge-docket { display: inline-block; margin-top: 10px; padding: 4px 14px; border-radius: 20px; font-size: 9px; font-weight: bold; background: #10b981; color: white; }
+          .date-value-docket { font-size: 8px; color: #64748b; margin-top: 8px; }
           .header-right-section { text-align: right; }
           .brand-logo-large { height: 60px; width: auto; margin-bottom: 8px; }
           .company-details h2 { font-size: 14px; font-weight: 900; margin: 0; color: #1a1a2e; }
@@ -1055,6 +687,8 @@ export default function CreateOrder() {
           .parties-container { display: flex; gap: 20px; padding: 15px 20px; background: #f8fafc; position: relative; z-index: 2; }
           .party { flex: 1; background: white; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
           .party-title { background: #f1f5f9; padding: 8px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #e2e8f0; }
+          .party-icon { width: 28px; height: 28px; background: #ffebed; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+          .party-title h3 { font-size: 11px; margin: 0; }
           .party-content { padding: 12px; }
           .party-content h4 { font-size: 11px; margin-bottom: 6px; }
           .address-text { font-size: 9px; color: #475569; margin-bottom: 8px; }
@@ -1063,13 +697,17 @@ export default function CreateOrder() {
           .shipment-data-table { width: 100%; border-collapse: collapse; font-size: 9px; }
           .shipment-data-table th { background: #f1f5f9; padding: 8px; font-weight: bold; border: 1px solid #e2e8f0; }
           .shipment-data-table td { padding: 8px; border: 1px solid #e2e8f0; text-align: center; }
+          .small-text { font-size: 7px; }
           .billing-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 0 20px; margin-bottom: 15px; position: relative; z-index: 2; }
           .invoice-section, .freight-section { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
           .section-header { background: #f8fafc; padding: 8px 12px; font-size: 9px; font-weight: bold; border-bottom: 1px solid #e2e8f0; }
           .invoice-items, .freight-items { padding: 10px; }
+          .invoice-row-line, .freight-row-line { display: flex; justify-content: space-between; font-size: 8px; padding: 4px 0; }
           .stamp-signature-wrapper-new { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; margin: 15px 0; position: relative; z-index: 2; }
           .stamp-image-container { width: 120px; height: 120px; }
           .official-stamp-image { width: 100%; height: auto; object-fit: contain; }
+          .sign-line { width: 80px; border-top: 1px solid #0f172a; margin-bottom: 4px; }
+          .stamp-box { border: 1px dashed #d32f2f; padding: 5px 10px; font-size: 7px; font-weight: bold; background: #fff1f2; border-radius: 4px; }
           .company-instructions { margin: 0 20px 15px 20px; padding: 12px; background: #f0fdf4; border-radius: 8px; border-left: 3px solid #10b981; position: relative; z-index: 2; }
           .instructions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
           .instruction-item { display: flex; gap: 8px; font-size: 7px; }
@@ -1077,7 +715,7 @@ export default function CreateOrder() {
           .terms-wrapper h4 { font-size: 8px; margin-bottom: 5px; }
           .terms-wrapper ul { padding-left: 15px; font-size: 6px; }
           .docket-footer { padding: 10px 20px; background: #0f172a; color: white; display: flex; justify-content: space-between; font-size: 7px; position: relative; z-index: 2; }
-          @media print { body { margin: 0; padding: 0; } }
+          @media print { body { margin: 0; padding: 0; } .docket-watermark { print-color-adjust: exact; } }
         </style>
         </head><body>${printContent.outerHTML}</body></html>
       `);
@@ -1086,18 +724,6 @@ export default function CreateOrder() {
       printWindow.print();
       printWindow.close();
     }
-  };
-
-  const getStatusBadge = (status) => {
-    const statusMap = {
-      'booked': { text: '📝 Booked', class: 'status-booked', color: '#f59e0b' },
-      'picked': { text: '🚚 Picked Up', class: 'status-picked', color: '#3b82f6' },
-      'in_transit': { text: '🚛 In Transit', class: 'status-transit', color: '#8b5cf6' },
-      'out_for_delivery': { text: '📦 Out for Delivery', class: 'status-out', color: '#ec4898' },
-      'delivered': { text: '✅ Delivered', class: 'status-delivered', color: '#10b981' }
-    };
-    const s = statusMap[status] || statusMap.booked;
-    return <span className={`status-badge ${s.class}`} style={{ backgroundColor: `${s.color}15`, color: s.color, borderLeftColor: s.color }}>{s.text}</span>;
   };
 
   const handleTrackShipment = async () => {
@@ -1137,71 +763,166 @@ export default function CreateOrder() {
     }
   };
 
-  if (authLoading) {
+  const [pickup, setPickup] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gstin: "" });
+  const [delivery, setDelivery] = useState({ name: "", contact: "", address: "", pincode: "", state: "", city: "", gstin: "" });
+  const [orderDetails, setOrderDetails] = useState({ material: "", weight: "", hsnCode: "1234" });
+  const [invoices, setInvoices] = useState([{ id: Date.now(), no: "", value: "" }]);
+
+  const totalInvoiceValue = useMemo(() => invoices.reduce((s, inv) => s + (parseFloat(inv.value) || 0), 0), [invoices]);
+  
+  const volWeight = useMemo(() => {
+    let totalVol = 0;
+    dimensions.forEach(dim => {
+      const qty = parseInt(dim.quantity) || 0;
+      const l = parseFloat(dim.length) || 0;
+      const w = parseFloat(dim.width) || 0;
+      const h = parseFloat(dim.height) || 0;
+      totalVol += (l * w * h) / 4000 * qty;
+    });
+    return totalVol.toFixed(2);
+  }, [dimensions]);
+  
+  const chargedWeight = Math.max(parseFloat(orderDetails.weight || 0), parseFloat(volWeight));
+  const needsEwayBill = totalInvoiceValue >= 50000;
+
+  const fetchLocation = async (pin, type) => {
+    if (pin?.length === 6) {
+      try {
+        const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+        const data = await res.json();
+        if (data?.[0]?.Status === "Success") {
+          const po = data[0].PostOffice[0];
+          const loc = { state: po.State, city: po.District };
+          type === "pickup" ? setPickup(p => ({ ...p, ...loc })) : setDelivery(d => ({ ...d, ...loc }));
+        }
+      } catch (err) {}
+    }
+  };
+
+  const handleSelectSavedAddress = (address) => {
+    setPickup(address);
+  };
+
+  const handleCreateOrder = async () => {
+    if (needsEwayBill && !ewayBill) return alert("E-Way Bill required for invoice > ₹50,000");
+    if (!pickup.name || !delivery.name || !orderDetails.weight) return alert("Fill all mandatory fields");
+    if (!pickup.pincode || !delivery.pincode) return alert("Enter valid 6-digit pincodes");
+    if (isManualLR && !manualLRNumber) return alert("Enter Manual LR Number");
+
+    setLoading(true);
+    setApiError("");
+
+    const orderData = {
+      pickupName: pickup.name, pickupAddress: pickup.address, pickupPincode: pickup.pincode,
+      pickupContact: pickup.contact, pickupGstin: pickup.gstin,
+      deliveryName: delivery.name, deliveryAddress: delivery.address, deliveryPincode: delivery.pincode,
+      deliveryContact: delivery.contact, deliveryGstin: delivery.gstin,
+      material: orderDetails.material || "General Cargo", hsn: orderDetails.hsnCode,
+      boxes: totalPackages, weight: parseFloat(chargedWeight),
+      actual_weight: parseFloat(orderDetails.weight || 0), volumetric_weight: parseFloat(volWeight),
+      total_value: totalInvoiceValue, eway_bill: needsEwayBill ? ewayBill : "",
+      booking_mode: bookingMode,
+      dimensions: dimensions,
+      invoices: invoices.filter(inv => inv.no && inv.value).map(inv => ({ invoice_no: inv.no, invoice_value: parseFloat(inv.value) }))
+    };
+
+    try {
+      const response = await fetch("https://faithcargo.onrender.com/api/shipments/create-order/", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(orderData)
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        setLrNumber(result.lr_number);
+        setAwbNumber(result.awb);
+        setShipmentStatus("booked");
+        setShowLR(true);
+        
+        const allShipments = JSON.parse(localStorage.getItem('allShipments') || '[]');
+        allShipments.unshift({
+          lr: isManualLR ? manualLRNumber : result.lr_number, 
+          awb: result.awb,
+          route: `${pickup.pincode} → ${delivery.pincode}`, 
+          value: totalInvoiceValue,
+          status: 'booked', 
+          date: new Date().toISOString(),
+          invoices: invoices.filter(inv => inv.no && inv.value),
+          uploadedFiles: uploadedFiles
+        });
+        localStorage.setItem('allShipments', JSON.stringify(allShipments.slice(0, 50)));
+      } else {
+        setApiError(result.error || "Failed");
+        alert("Error: " + result.error);
+      }
+    } catch (error) {
+      setApiError("Network error");
+      alert("Network error! Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      'booked': { text: '📝 Booked', class: 'status-booked', color: '#f59e0b' },
+      'picked': { text: '🚚 Picked Up', class: 'status-picked', color: '#3b82f6' },
+      'in_transit': { text: '🚛 In Transit', class: 'status-transit', color: '#8b5cf6' },
+      'out_for_delivery': { text: '📦 Out for Delivery', class: 'status-out', color: '#ec4898' },
+      'delivered': { text: '✅ Delivered', class: 'status-delivered', color: '#10b981' }
+    };
+    const s = statusMap[status] || statusMap.booked;
+    return <span className={`status-badge ${s.class}`} style={{ backgroundColor: `${s.color}15`, color: s.color, borderLeftColor: s.color }}>{s.text}</span>;
+  };
+
+  const getTrackingTimeline = (currentStatus) => {
+    const steps = [
+      { key: 'booked', label: 'Booked', icon: '📝', desc: 'Order confirmed' },
+      { key: 'picked', label: 'Picked Up', icon: '🚚', desc: 'Shipment collected' },
+      { key: 'in_transit', label: 'In Transit', icon: '🚛', desc: 'On the way' },
+      { key: 'out_for_delivery', label: 'Out for Delivery', icon: '📦', desc: 'Near destination' },
+      { key: 'delivered', label: 'Delivered', icon: '✅', desc: 'Successfully delivered' }
+    ];
+    const currentIndex = steps.findIndex(s => s.key === currentStatus);
+    
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Authenticating...</p>
+      <div className="tracking-timeline-enhanced">
+        {steps.map((step, idx) => {
+          const isCompleted = idx <= currentIndex;
+          const isCurrent = idx === currentIndex;
+          return (
+            <div key={step.key} className={`timeline-step-enhanced ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}`}>
+              <div className="timeline-icon-enhanced">
+                {isCompleted ? <CheckCircle2 size={22} /> : <span className="step-icon-enhanced">{step.icon}</span>}
+              </div>
+              <div className="timeline-content-enhanced">
+                <div className="step-label-enhanced">{step.label}</div>
+                <div className="step-desc-enhanced">{step.desc}</div>
+              </div>
+              {idx < steps.length - 1 && <div className={`timeline-line-enhanced ${isCompleted ? 'completed' : ''}`}></div>}
+            </div>
+          );
+        })}
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  const displayName = userRole === "admin" ? "Admin" : (user?.companyName || user?.username);
+  };
 
   return (
     <div className="create-order-page">
       <aside className="order-sidebar">
-        <div className="sidebar-logo">
-          <img src={logo} alt="FCPL" />
-          <div className="online-indicator"></div>
-        </div>
-        <div className="client-info-sidebar">
-          <UserCircle size={20} />
-          <div>
-            <span>{displayName}</span>
-            <small>{userRole === "admin" ? "Administrator" : user?.clientId}</small>
-          </div>
-          <button className="logout-sidebar-btn" onClick={logout}>
-            <LogOut size={14} />
-          </button>
-        </div>
+        <div className="sidebar-logo"><img src={logo} alt="FCPL" /><div className="online-indicator"></div></div>
         <nav className="sidebar-navigation">
           <div className="nav-link active"><Plus size={18} /> Create Booking</div>
           <div className="nav-link" onClick={() => { setShowTracking(!showTracking); if (!showTracking) setTrackingResult(null); }}><Search size={18} /> Live Tracking</div>
-          <div className="nav-link" onClick={() => window.location.href='/shipments'}><FileText size={18} /> My Dockets</div>
+          <div className="nav-link" onClick={() => window.location.href='/shipments'}><FileText size={18} /> All Dockets</div>
           <div className="nav-link"><CreditCard size={18} /> Payments</div>
         </nav>
-        {userRole === "client" && clientPolicy && (
-          <div className="sidebar-rates-info">
-            <div className="rate-badge-sidebar">⭐ Custom Rates Active</div>
-            <small>Your negotiated rates are applied</small>
-          </div>
-        )}
-        {userRole === "admin" && (
-          <div className="sidebar-rates-info">
-            <div className="rate-badge-sidebar">👑 Admin Access</div>
-            <small>Full system access</small>
-          </div>
-        )}
         <div className="sidebar-help"><Award size={24} color="#d32f2f" /><p>Support 24/7</p><span>📞 9818641504</span></div>
       </aside>
 
       <main className="order-main-content">
         <div className="page-title-section">
-          <div>
-            <h1>Create Shipment</h1>
-            <p>Welcome, {displayName}!</p>
-          </div>
-          <div className="stats-badges">
-            <div className="badge">⚡ Charged: {chargedWeight} Kg</div>
-            <div className="badge red">💰 Value: ₹{totalInvoiceValue.toLocaleString()}</div>
-            {userRole === "client" && clientPolicy && <div className="badge custom-rate-badge">⭐ Custom Rate Applied</div>}
-            {userRole === "admin" && <div className="badge admin-badge">👑 Admin Mode</div>}
-          </div>
+          <div><h1>Create Shipment</h1><p>Enter consignment details for LR generation</p></div>
+          <div className="stats-badges"><div className="badge">⚡ Charged: {chargedWeight} Kg</div><div className="badge red">💰 Value: ₹{totalInvoiceValue.toLocaleString()}</div></div>
         </div>
 
         {apiError && <div className="error-notice"><AlertCircle size={18} /> {apiError}</div>}
@@ -1209,45 +930,88 @@ export default function CreateOrder() {
         {showTracking && (
           <div className="tracking-section-enhanced">
             <div className="tracking-header-enhanced">
-              <h3><Navigation size={20} /> Live Shipment Tracking</h3>
-              <button className="close-tracking" onClick={() => setShowTracking(false)}><X size={18} /></button>
+              <Activity size={24} color="#d32f2f" />
+              <h3>Live Shipment Tracking</h3>
+              <span className="tracking-badge-enhanced">Real-Time Updates</span>
             </div>
-            <div className="tracking-input-group">
-              <input type="text" placeholder="Enter LR Number or AWB Number" value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)} />
-              <button onClick={handleTrackShipment} disabled={trackingLoading}>{trackingLoading ? "Tracking..." : "Track Now"}</button>
+            <div className="tracking-input-group-enhanced">
+              <input type="text" placeholder="Enter LR Number (e.g., FCPL0016) or AWB Number" value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())} onKeyPress={(e) => e.key === 'Enter' && handleTrackShipment()} />
+              <button onClick={handleTrackShipment} disabled={trackingLoading}>
+                {trackingLoading ? <RefreshCw size={18} className="spin" /> : <Search size={18} />}
+                {trackingLoading ? "Tracking..." : "Track Shipment"}
+              </button>
             </div>
             {trackingResult && (
               <div className="tracking-result-enhanced">
-                <div className="tracking-result-header">
-                  <span className="tracking-lr">{trackingResult.lr}</span>
-                  {getStatusBadge(trackingResult.status)}
-                </div>
-                <div className="tracking-route">
-                  <div className="route-point">
-                    <MapPin size={16} />
-                    <div><strong>From</strong><p>{trackingResult.pickupName}<br/>{trackingResult.pickupPincode}</p></div>
+                <div className="tracking-card-enhanced">
+                  <div className="tracking-card-header-enhanced">
+                    <div className="tracking-numbers">
+                      <span className="tracking-lr-enhanced">{trackingResult.lr}</span>
+                      <span className="tracking-awb-enhanced">AWB: {trackingResult.awb}</span>
+                    </div>
+                    {getStatusBadge(trackingResult.status)}
                   </div>
-                  <ArrowRight size={20} />
-                  <div className="route-point">
-                    <MapPin size={16} />
-                    <div><strong>To</strong><p>{trackingResult.deliveryName}<br/>{trackingResult.deliveryPincode}</p></div>
+                  
+                  <div className="tracking-route-info-enhanced">
+                    <div className="route-point-enhanced pickup">
+                      <div className="point-icon-enhanced"><MapPin size={20} /></div>
+                      <div className="point-details-enhanced">
+                        <label>Pickup Location</label>
+                        <p><strong>{trackingResult.pickupName || 'N/A'}</strong></p>
+                        <span>Pincode: {trackingResult.pickupPincode}</span>
+                      </div>
+                    </div>
+                    <div className="route-arrow-enhanced">
+                      <div className="arrow-line"></div>
+                      <Truck size={20} className="truck-icon" />
+                      <div className="arrow-line"></div>
+                    </div>
+                    <div className="route-point-enhanced delivery">
+                      <div className="point-icon-enhanced"><Truck size={20} /></div>
+                      <div className="point-details-enhanced">
+                        <label>Delivery Location</label>
+                        <p><strong>{trackingResult.deliveryName || 'N/A'}</strong></p>
+                        <span>Pincode: {trackingResult.deliveryPincode}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="tracking-timeline-container-enhanced">
+                    <h4><Clock size={16} /> Shipment Progress</h4>
+                    {getTrackingTimeline(trackingResult.status)}
+                  </div>
+
+                  <div className="tracking-details-grid-enhanced">
+                    <div className="detail-item-enhanced">
+                      <Weight size={16} />
+                      <div><label>Weight</label><p>{trackingResult.weight} kg</p></div>
+                    </div>
+                    <div className="detail-item-enhanced">
+                      <Package size={16} />
+                      <div><label>Material</label><p>{trackingResult.material || 'General Cargo'}</p></div>
+                    </div>
+                    <div className="detail-item-enhanced">
+                      <DollarSign size={16} />
+                      <div><label>Invoice Value</label><p>₹{trackingResult.totalValue?.toLocaleString()}</p></div>
+                    </div>
+                    <div className="detail-item-enhanced">
+                      <Timer size={16} />
+                      <div><label>Last Updated</label><p>{new Date(trackingResult.updatedAt).toLocaleString()}</p></div>
+                    </div>
+                  </div>
+
+                  <div className="tracking-actions-enhanced">
+                    <button className="tracking-close-enhanced" onClick={() => setTrackingResult(null)}>Close</button>
+                    <button className="tracking-refresh-enhanced" onClick={handleTrackShipment}><RefreshCw size={14} /> Refresh</button>
                   </div>
                 </div>
-                <div className="tracking-details-grid">
-                  <div><span>Weight</span><strong>{trackingResult.weight} kg</strong></div>
-                  <div><span>Material</span><strong>{trackingResult.material}</strong></div>
-                  <div><span>Total Value</span><strong>₹{trackingResult.totalValue?.toLocaleString()}</strong></div>
-                </div>
-                {getTrackingTimeline(trackingResult.status)}
               </div>
             )}
           </div>
         )}
 
         <div className="two-column-form">
-          {/* Left Column - Pickup & Delivery */}
           <div className="left-form-col">
-            {/* Consignor Section */}
             <div className="form-section">
               <div className="section-heading"><MapPin size={18} color="#d32f2f" /> Consignor (Sender)</div>
               <div className="section-body">
@@ -1265,7 +1029,6 @@ export default function CreateOrder() {
               </div>
             </div>
 
-            {/* Consignee Section */}
             <div className="form-section">
               <div className="section-heading"><Truck size={18} color="#d32f2f" /> Consignee (Receiver)</div>
               <div className="section-body">
@@ -1277,7 +1040,6 @@ export default function CreateOrder() {
             </div>
           </div>
 
-          {/* Right Column - Shipment Details */}
           <div className="right-form-col">
             <div className="form-section">
               <div className="section-heading"><Package size={18} color="#d32f2f" /> Shipment Details</div>
@@ -1304,18 +1066,7 @@ export default function CreateOrder() {
                 {invoices.map(inv => (<div key={inv.id} className="invoice-input-row"><input placeholder="Invoice No" value={inv.no} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, no: e.target.value.toUpperCase()} : i))} /><input type="number" placeholder="Value ₹" value={inv.value} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, value: e.target.value} : i))} /><button className="remove-invoice-btn" onClick={() => setInvoices(invoices.filter(i => i.id !== inv.id))}><Trash2 size={14} /></button></div>))}
                 <InvoiceUpload onUpload={(files) => console.log("Uploaded:", files)} uploadedFiles={uploadedFiles} setUploadedFiles={setUploadedFiles} />
                 {needsEwayBill && (<div className="eway-alert"><div className="eway-header"><AlertCircle size={16} /> E-WAY BILL REQUIRED</div><input className="eway-input-field" value={ewayBill} onChange={e => setEwayBill(e.target.value.toUpperCase())} placeholder="12 DIGIT E-WAY BILL NO." maxLength={12} /></div>)}
-                
-                <FreightCalculator 
-                  weight={chargedWeight} 
-                  origin={pickup.pincode} 
-                  destination={delivery.pincode} 
-                  bookingMode={bookingMode}
-                  clientPolicy={clientPolicy}
-                  clientRates={clientRates}
-                  userRole={userRole}
-                  onCalculate={setFreightData} 
-                />
-                
+                <RealTimeFreightCalculator weight={chargedWeight} origin={pickup.pincode} destination={delivery.pincode} bookingMode={bookingMode} onCalculate={setFreightData} />
                 <div className="settings-panel">
                   <div className="setting-row"><label>Manual LR Number</label><button className={`toggle-switch ${isManualLR ? 'on' : 'off'}`} onClick={() => setIsManualLR(!isManualLR)}>{isManualLR ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}{isManualLR ? 'Manual ON' : 'Auto'}</button></div>
                   {isManualLR && (<input className="manual-lr-input" placeholder="Enter LR Number" value={manualLRNumber} onChange={e => setManualLRNumber(e.target.value.toUpperCase())} />)}
@@ -1329,32 +1080,9 @@ export default function CreateOrder() {
         </div>
 
         {showLR && (<div className="modal-overlay" onClick={() => setShowLR(false)}><div className="modal-dialog" onClick={e => e.stopPropagation()}>
-          <div className="modal-icon"><CheckCircle size={60} color="#10b981" /></div><h2>Consignment Generated!</h2>
-          <div className="modal-lr-number">{isManualLR ? manualLRNumber : lrNumber}</div>
-          <div className="modal-awb-number">AWB: {awbNumber}</div>
-          <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-            <PrintDocket 
-              key={lrNumber} 
-              ref={printDocketRef} 
-              data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight, dimensions}} 
-              lrNumber={isManualLR ? manualLRNumber : lrNumber} 
-              totalValue={totalInvoiceValue} 
-              ewayBill={ewayBill} 
-              awbNumber={awbNumber} 
-              bookingMode={bookingMode} 
-              showFreight={showFreightOnDocket} 
-              freightData={freightData} 
-              status={shipmentStatus} 
-              uploadedInvoices={uploadedFiles}
-              clientId={userRole === "client" ? user?.clientId : null}
-              userRole={userRole}
-            />
-          </div>
-          <div className="modal-buttons">
-            <button className="modal-btn print-btn" onClick={handlePrintDocket}><Printer size={16} /> Print Docket</button>
-            <button className="modal-btn view-btn" onClick={() => window.location.href='/shipments'}><Eye size={16} /> My Shipments</button>
-            <button className="modal-btn new-btn" onClick={() => window.location.reload()}><Plus size={16} /> New</button>
-          </div>
+          <div className="modal-icon"><CheckCircle size={60} color="#10b981" /></div><h2>Consignment Generated!</h2><div className="modal-lr-number">{isManualLR ? manualLRNumber : lrNumber}</div><div className="modal-awb-number">AWB: {awbNumber}</div>
+          <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}><PrintDocket ref={printDocketRef} data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight, dimensions}} lrNumber={isManualLR ? manualLRNumber : lrNumber} totalValue={totalInvoiceValue} ewayBill={ewayBill} awbNumber={awbNumber} bookingMode={bookingMode} showFreight={showFreightOnDocket} freightData={freightData} status={shipmentStatus} uploadedInvoices={uploadedFiles} /></div>
+          <div className="modal-buttons"><button className="modal-btn print-btn" onClick={handlePrintDocket}><Printer size={16} /> Print Docket</button><button className="modal-btn view-btn" onClick={() => window.location.href='/shipments'}><Eye size={16} /> View All</button><button className="modal-btn new-btn" onClick={() => window.location.reload()}><Plus size={16} /> New</button></div>
         </div></div>)}
       </main>
     </div>

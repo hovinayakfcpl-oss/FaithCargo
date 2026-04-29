@@ -233,10 +233,12 @@ function VendorRateCalculator() {
     const cacheKey = `${sourceVendorName}_${pincode}`;
     
     if (pincodeCache[cacheKey]) {
+      console.log(`🔄 Cache hit for ${vendor.vendor_name} @ ${pincode}: ODA=${pincodeCache[cacheKey].isODA}`);
       return pincodeCache[cacheKey];
     }
     
     try {
+      console.log(`📡 Calling ODA API for ${vendor.vendor_name} @ ${pincode}...`);
       const response = await fetch(
         `${API_BASE_URL}/api/vendors/check-oda/${encodeURIComponent(sourceVendorName)}/${pincode}/`,
         { signal: abortControllerRef.current?.signal }
@@ -244,58 +246,48 @@ function VendorRateCalculator() {
       
       if (response.ok) {
         const data = await response.json();
+        console.log(`📡 API Response for ${vendor.vendor_name} @ ${pincode}:`, JSON.stringify(data, null, 2));
+        
         let result;
         
         if (vendor.vendor_name === "SHIPSHOPY BLUE DART") {
-          if (data.is_serviceable === true) {
-            result = {
-              isServiceable: true,
-              isODA: false,
-              charge: 0,
-              minCharge: 0,
-              category: null
-            };
-          } else {
-            result = {
-              isServiceable: false,
-              isODA: false,
-              charge: 0,
-              minCharge: 0,
-              category: null
-            };
-          }
+          result = {
+            isServiceable: data.is_serviceable === true,
+            isODA: false,
+            charge: 0,
+            minCharge: 0,
+            category: null
+          };
         } else {
-          if (data.is_oda === true) {
-            result = {
-              isServiceable: true,
-              isODA: true,
-              charge: parseFloat(data.oda_charge_per_kg) || 0,
-              minCharge: parseFloat(data.oda_min_charge) || 500,
-              category: data.oda_category || 'DEFAULT'
-            };
-          } else {
-            result = {
-              isServiceable: true,
-              isODA: false,
-              charge: 0,
-              minCharge: 0,
-              category: null
-            };
-          }
+          // ✅ CRITICAL: Only set ODA if backend explicitly returns true
+          const isODA = data.is_oda === true;
+          result = {
+            isServiceable: data.is_serviceable !== false,
+            isODA: isODA,
+            charge: isODA ? (parseFloat(data.oda_charge_per_kg) || 0) : 0,
+            minCharge: isODA ? (parseFloat(data.oda_min_charge) || 500) : 0,
+            category: isODA ? (data.oda_category || null) : null
+          };
         }
+        
+        console.log(`🎯 FINAL for ${vendor.vendor_name}: isODA=${result.isODA}, charge=${result.charge}, minCharge=${result.minCharge}`);
         
         setPincodeCache(prev => ({ ...prev, [cacheKey]: result }));
         return result;
+      } else {
+        console.error(`❌ API error for ${vendor.vendor_name}: ${response.status}`);
       }
     } catch (err) {
       if (err.name === 'AbortError') return null;
       console.error(`Error checking pincode for ${vendor.vendor_name}:`, err);
     }
     
+    // Default fallback - NO ODA
+    console.log(`⚠️ Default fallback for ${vendor.vendor_name} @ ${pincode}: NO ODA`);
     if (vendor.vendor_name === "SHIPSHOPY BLUE DART") {
       return { isServiceable: false, isODA: false, charge: 0, minCharge: 0, category: null };
     }
-    return { isServiceable: true, isODA: false, charge: 0, minCharge: 500, category: null };
+    return { isServiceable: true, isODA: false, charge: 0, minCharge: 0, category: null };
   }, [pincodeCache]);
 
   // Get rate from vendor based on vendor type
@@ -428,7 +420,7 @@ function VendorRateCalculator() {
     let totalFreight = baseFreight + fscAmount + docketCharge + gstAmount + modeCharge + fovCharge + finalODACharge;
     totalFreight = Math.max(totalFreight, minFreight);
     
-    console.log(`✅ ${vendorName} ${cftSize}: Rate=${ratePerKg}, EffectiveWt=${effectiveWeight.toFixed(2)}, Base=${baseFreight.toFixed(2)}, Total=${totalFreight.toFixed(2)}`);
+    console.log(`✅ ${vendorName} ${cftSize}: Rate=${ratePerKg}, ODA=${finalODACharge}, Total=${totalFreight.toFixed(2)}`);
     
     return {
       vendor_name: vendorName,
@@ -522,10 +514,13 @@ function VendorRateCalculator() {
         }
         
         let finalODACharge = 0;
+        // ✅ STRICT CHECK: Only if isODA === true and charge > 0
         if (pincodeInfo.isODA === true && pincodeInfo.charge > 0) {
           const calculatedODA = actualWeight * pincodeInfo.charge;
           finalODACharge = Math.max(calculatedODA, pincodeInfo.minCharge || 500);
-          console.log(`🔥 ODA for ${vendorName}: ${pincodeInfo.charge}/kg × ${actualWeight}kg = ${calculatedODA}, Min ₹${pincodeInfo.minCharge}, Final: ₹${finalODACharge}`);
+          console.log(`🔥🔥🔥 ODA APPLIED for ${vendorName}: ₹${finalODACharge} (${pincodeInfo.charge}/kg × ${actualWeight}kg, Min ₹${pincodeInfo.minCharge})`);
+        } else {
+          console.log(`❌❌❌ NO ODA for ${vendorName}: isODA=${pincodeInfo?.isODA}, charge=${pincodeInfo?.charge}`);
         }
         
         // Separate logic for PD Logistics, RIVIGO, and others
