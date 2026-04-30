@@ -3,12 +3,12 @@ import "./VendorManage.css";
 
 // Zones for rate matrix - FIXED to match database zones
 const ZONES = [
-  "N1", "N2", "N3",      // North zones
-  "C1",                  // Central zones
-  "W1", "W2", "W3",      // West zones (W3 exists in DB)
-  "S1", "S2",            // South zones
-  "E1",                  // East zones
-  "NE1", "NE2"           // North East zones
+  "N1", "N2", "N3", "N4",      // North zones
+  "C1", "C2",                  // Central zones
+  "W1", "W2",                  // West zones
+  "S1", "S2", "S3", "S4",      // South zones
+  "E1", "E2",                  // East zones
+  "NE1", "NE2"                 // North East zones
 ];
 
 // API Base URL - CORRECT with /api/vendors prefix
