@@ -15,9 +15,11 @@ import {
   Bookmark, SaveAll, Copy, Edit, Trash, Check, ChevronDown, ChevronUp, 
   FolderOpen, LogOut, UserCircle
 } from "lucide-react";
+import "./CreateOrder.css";
+
+// Logo import - ensure path is correct
 import logo from "../assets/logo.png";
 import stampPng from "../assets/stamp.png";
-import "./CreateOrder.css";
 
 // ============================================
 // 🔐 AUTHENTICATION CHECK
@@ -190,23 +192,25 @@ const FreightCalculator = ({ weight, origin, destination, bookingMode, clientPol
 };
 
 // ============================================
-// 🎨 DOCKET COMPONENT - OPTIMIZED FOR A4 (70% PAGE)
+// 🎨 DOCKET COMPONENT - A4 SIZE (70% PAGE)
 // ============================================
 const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData, status, clientId, userRole }, ref) => {
   const barcodeRef = useRef(null);
   const [barcodeImageUrl, setBarcodeImageUrl] = useState("");
+  const [logoError, setLogoError] = useState(false);
+  const [stampError, setStampError] = useState(false);
   
   useEffect(() => {
     if (lrNumber && barcodeRef.current) {
       try {
         JsBarcode(barcodeRef.current, lrNumber, {
           format: "CODE128",
-          width: 1.5,
-          height: 40,
+          width: 1.8,
+          height: 45,
           displayValue: true,
           fontSize: 12,
           font: "monospace",
-          margin: 5,
+          margin: 8,
           textAlign: "center",
           background: "#ffffff",
           lineColor: "#000000"
@@ -253,13 +257,9 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
 
   return (
     <div ref={ref} className="print-docket-a4">
-      {/* Hidden canvas for barcode */}
       <canvas ref={barcodeRef} style={{ display: 'none' }} width="300" height="60"></canvas>
       
-      {/* Watermark */}
       <div className="docket-watermark">FAITH CARGO</div>
-      
-      {/* Border Frame */}
       <div className="docket-border"></div>
       
       {/* Header Section */}
@@ -277,7 +277,16 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
           <div className="date-row">Date: {new Date().toLocaleDateString('en-IN')}</div>
         </div>
         <div className="header-right">
-          <img src={logo} alt="FCPL" className="brand-logo" />
+          {!logoError ? (
+            <img 
+              src={logo} 
+              alt="FCPL" 
+              className="brand-logo" 
+              onError={() => setLogoError(true)}
+            />
+          ) : (
+            <div className="logo-fallback">FCPL</div>
+          )}
           <h2>FAITH CARGO PVT LTD</h2>
           <p>ISO 9001:2015 & ISO 14001:2015 CERTIFIED</p>
           <div className="company-contact">
@@ -335,7 +344,7 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
               <td className="text-center"><strong>{safeData.chargedWeight} kg</strong></td>
               <td className="text-center"><div className="mode-badge">{getModeText()}</div></td>
               <td className="text-center small-text">{getDimensionsText()}</td>
-            </tr>
+             </tr>
           </tbody>
         </table>
       </div>
@@ -367,10 +376,18 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
       {/* Stamp & Signature */}
       <div className="docket-stamp-sign">
         <div className="stamp-container">
-          <img src={stampPng} alt="Company Stamp" className="stamp-image" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
-          <div className="stamp-fallback" style={{ display: 'none' }}>
-            <div className="stamp-circle">FAITH CARGO<br/>PVT LTD<br/>AUTHORIZED</div>
-          </div>
+          {!stampError ? (
+            <img 
+              src={stampPng} 
+              alt="Company Stamp" 
+              className="stamp-image" 
+              onError={() => setStampError(true)}
+            />
+          ) : (
+            <div className="stamp-fallback">
+              <div className="stamp-circle">FAITH CARGO<br/>PVT LTD<br/>AUTHORIZED</div>
+            </div>
+          )}
         </div>
         <div className="signature-container">
           <div className="sign-line"></div>
@@ -849,7 +866,7 @@ export default function CreateOrder() {
               transform: translate(-50%, -50%);
               font-size: 60px;
               font-weight: 900;
-              color: rgba(220, 38, 38, 0.03);
+              color: rgba(220,38,38,0.03);
               white-space: nowrap;
               z-index: 0;
               pointer-events: none;
@@ -869,7 +886,7 @@ export default function CreateOrder() {
             .docket-header {
               display: flex;
               justify-content: space-between;
-              padding: 10px 12px;
+              padding: 12px;
               border-bottom: 2px solid #dc2626;
               margin-bottom: 12px;
               position: relative;
@@ -951,7 +968,7 @@ export default function CreateOrder() {
       {/* Header */}
       <header className="app-header">
         <div className="header-logo">
-          <img src={logo} alt="FCPL" />
+          <img src={logo} alt="FCPL" style={{ height: '50px', width: 'auto' }} />
           <div>
             <h1>FAITH CARGO PVT LTD</h1>
             <p>Create Consignment Note</p>
@@ -1053,18 +1070,18 @@ export default function CreateOrder() {
                 
                 {needsEwayBill && (
                   <div className="eway-alert">
-  <div className="eway-header">
-    <AlertCircle size={14} />
-    <span>E-Way Bill Required (Invoice &gt; ₹50,000)</span>
-  </div>
-  <input 
-    type="text"
-    placeholder="12 Digit E-Way Bill No." 
-    value={ewayBill} 
-    onChange={(e) => setEwayBill(e.target.value.toUpperCase())} 
-    maxLength={12}
-  />
-</div>
+                    <div className="eway-header">
+                      <AlertCircle size={14} />
+                      <span>E-Way Bill Required (Invoice &gt; ₹50,000)</span>
+                    </div>
+                    <input 
+                      type="text"
+                      placeholder="12 Digit E-Way Bill No." 
+                      value={ewayBill} 
+                      onChange={(e) => setEwayBill(e.target.value.toUpperCase())} 
+                      maxLength={12}
+                    />
+                  </div>
                 )}
                 
                 <FreightCalculator 

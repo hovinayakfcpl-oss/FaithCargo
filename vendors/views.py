@@ -60,7 +60,7 @@ def get_zone_from_pincode(pincode):
 def is_pincode_serviceable_for_vendor(vendor, pincode):
     """
     Check if pincode is serviceable for a vendor
-    FIXED: Only serviceable if pincode exists in database with proper flag
+    FIXED: All pincodes are serviceable for PD Logistics and related vendors
     """
     pincode_str = str(pincode).strip()
     vendor_name = vendor.vendor_name
@@ -75,68 +75,29 @@ def is_pincode_serviceable_for_vendor(vendor, pincode):
         logger.info(f"Blue Dart serviceable check for {pincode_str}: {pincode_obj is not None}")
         return pincode_obj is not None
     
-    # PD LOGISTICS - serviceable only if ODA pincode exists in database
+    # PD LOGISTICS - ALWAYS serviceable (all pincodes)
     if vendor_name == 'PD LOGISTICS':
-        pincode_obj = VendorPincode.objects.filter(
-            vendor=vendor, 
-            pincode=pincode_str,
-            is_oda=True
-        ).first()
-        return pincode_obj is not None
+        return True
     
-    # SHIPSHOPY DELIVERY - uses PD LOGISTICS pincodes
+    # SHIPSHOPY DELIVERY - uses PD LOGISTICS, always serviceable
     if vendor_name == 'SHIPSHOPY DELIVERY':
-        pd_vendor = VendorRate.objects.filter(vendor_name='PD LOGISTICS').first()
-        if pd_vendor:
-            pincode_obj = VendorPincode.objects.filter(
-                vendor=pd_vendor, 
-                pincode=pincode_str,
-                is_oda=True
-            ).first()
-            return pincode_obj is not None
-        return False
+        return True
     
-    # TRUCX variants - use PD LOGISTICS pincodes
+    # TRUCX variants - use PD LOGISTICS, always serviceable
     if vendor_name in ['TRUCX DLH Lite', 'TRUCX DLH Dense', 'TRUCX DLH Cargo']:
-        pd_vendor = VendorRate.objects.filter(vendor_name='PD LOGISTICS').first()
-        if pd_vendor:
-            pincode_obj = VendorPincode.objects.filter(
-                vendor=pd_vendor, 
-                pincode=pincode_str,
-                is_oda=True
-            ).first()
-            return pincode_obj is not None
-        return False
+        return True
     
-    # SHIVANI VX - uses VXPRESS pincodes
+    # SHIVANI VX - uses VXPRESS, always serviceable
     if vendor_name == 'SHIVANI VX':
-        vxpress_vendor = VendorRate.objects.filter(vendor_name='VXPRESS').first()
-        if vxpress_vendor:
-            pincode_obj = VendorPincode.objects.filter(
-                vendor=vxpress_vendor, 
-                pincode=pincode_str,
-                is_oda=True
-            ).first()
-            return pincode_obj is not None
-        return False
+        return True
     
-    # VXPRESS - serviceable only if ODA pincode exists
+    # VXPRESS - always serviceable
     if vendor_name == 'VXPRESS':
-        pincode_obj = VendorPincode.objects.filter(
-            vendor=vendor, 
-            pincode=pincode_str,
-            is_oda=True
-        ).first()
-        return pincode_obj is not None
+        return True
     
-    # RIVIGO - serviceable only if ODA pincode exists
+    # RIVIGO - always serviceable
     if vendor_name == 'RIVIGO':
-        pincode_obj = VendorPincode.objects.filter(
-            vendor=vendor, 
-            pincode=pincode_str,
-            is_oda=True
-        ).first()
-        return pincode_obj is not None
+        return True
     
     # All other vendors (DELHIVERY, GATI) - Always serviceable
     return True
