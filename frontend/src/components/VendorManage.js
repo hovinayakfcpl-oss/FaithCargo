@@ -12,6 +12,7 @@ const CLIENT_ZONES = [
 // ============================================
 // VENDOR-SPECIFIC ZONE MAPPINGS
 // IMPORTANT: These MUST match database zone names
+// Based on actual database data
 // ============================================
 
 // Default zones - 16 zones
@@ -19,15 +20,14 @@ const DEFAULT_ZONES = [
   "N1", "N2", "N3", "N4", "C1", "C2", "W1", "W2", "S1", "S2", "S3", "S4", "E1", "E2", "NE1", "NE2"
 ];
 
-// VXPRESS zones - Database uses custom names: North1, North2, etc.
+// VXPRESS zones - Database uses STANDARD zone names (from actual DB)
 const VXPRESS_ZONES = [
-  "North1", "North2", "North3", "Guj1", "Guj2", "Mah1", "Mah2", "South1", "South2", "East1"
+  "N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1"
 ];
 
-// SHIVANI VX zones - Database uses custom names
+// SHIVANI VX zones - Database uses STANDARD + special zone names
 const SHIVANI_VX_ZONES = [
-  "North1", "North2", "North3", "Guj1", "Guj2", "Mah1", "Mah2", "Goa", 
-  "Central1", "Central2", "South1", "South2", "Kerala", "East1", "East2", "NE"
+  "N1", "N2", "N3", "C1", "C2", "W1", "W2", "S1", "S2", "E1", "E2", "NE1", "NE2", "NE3", "GOA", "KERALA"
 ];
 
 // TRUCX DLH Lite zones - 11 zones
@@ -47,7 +47,7 @@ const GATI_ZONES = [
 
 // PD LOGISTICS zones - 17 zones
 const PD_LOGISTICS_ZONES = [
-  "N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1", "NE2", "NE3"
+  "N1", "N2", "N3", "N4", "C1", "C2", "W1", "W2", "S1", "S2", "S3", "S4", "E1", "E2", "NE1", "NE2", "NE3"
 ];
 
 // SHIPSHOPY BLUE DART & DELIVERY zones
@@ -65,60 +65,36 @@ const getZonesForVendor = (vendorName) => {
   if (vendorName === "SHIPSHOPY BLUE DART") return SHIPSHOPY_ZONES;
   if (vendorName === "SHIPSHOPY DELIVERY") return SHIPSHOPY_ZONES;
   if (vendorName === "DELHIVERY") return DELHIVERY_ZONES;
+  if (vendorName === "TRUCX DLH Dense") return DEFAULT_ZONES;
+  if (vendorName === "TRUCX DLH Cargo") return DEFAULT_ZONES;
   return DEFAULT_ZONES;
 };
 
 // Get client-friendly zone name from vendor zone (for display only)
 const getClientZoneFromVendorZone = (vendorZone, vendorName) => {
-  // For VXPRESS custom zones
-  if (vendorName === "VXPRESS") {
-    const clientMap = {
-      "North1": "Delhi NCR",
-      "North2": "NORTH 2",
-      "North3": "NORTH 3",
-      "Guj1": "W1",
-      "Guj2": "W2",
-      "Mah1": "Central",
-      "Mah2": "Central",
-      "South1": "South",
-      "South2": "South",
-      "East1": "East"
-    };
-    return clientMap[vendorZone] || vendorZone;
-  }
-  
-  // For SHIVANI VX custom zones
-  if (vendorName === "SHIVANI VX") {
-    const clientMap = {
-      "North1": "Delhi NCR",
-      "North2": "NORTH 2",
-      "North3": "NORTH 3",
-      "Guj1": "W1",
-      "Guj2": "W2",
-      "Mah1": "W2",
-      "Mah2": "W2",
-      "Goa": "W2",
-      "Central1": "Central",
-      "Central2": "Central",
-      "South1": "South",
-      "South2": "South",
-      "Kerala": "South",
-      "East1": "East",
-      "East2": "East",
-      "NE": "NE1"
-    };
-    return clientMap[vendorZone] || vendorZone;
-  }
-  
-  // For standard zones
+  // Standard zone mapping (for all vendors)
   const standardZoneMap = {
-    "N1": "Delhi NCR", "N2": "NORTH 2", "N3": "NORTH 3", "N4": "NORTH 2",
-    "C1": "Central", "C2": "Central", "C3": "Central",
-    "W1": "W1", "W2": "W2", "W3": "W2",
-    "S1": "South", "S2": "South", "S3": "South", "S4": "South",
-    "E1": "East", "E2": "East",
-    "NE1": "NE1", "NE2": "NE2", "NE3": "NE3",
-    "GOA": "W2", "KERALA": "South"
+    "N1": "Delhi NCR",
+    "N2": "NORTH 2",
+    "N3": "NORTH 3",
+    "N4": "NORTH 2",
+    "C1": "Central",
+    "C2": "Central",
+    "C3": "Central",
+    "W1": "W1",
+    "W2": "W2",
+    "W3": "W2",
+    "S1": "South",
+    "S2": "South",
+    "S3": "South",
+    "S4": "South",
+    "E1": "East",
+    "E2": "East",
+    "NE1": "NE1",
+    "NE2": "NE2",
+    "NE3": "NE3",
+    "GOA": "W2",
+    "KERALA": "South"
   };
   return standardZoneMap[vendorZone] || vendorZone;
 };
@@ -175,6 +151,7 @@ function VendorManage() {
         console.log("✅ Fetched vendors from DB:", data.map(v => ({ 
           name: v.vendor_name, 
           ratesCount: Object.keys(v.rates || {}).length,
+          ratesZones: Object.keys(v.rates || {}),
           zoneCount: getZonesForVendor(v.vendor_name).length
         })));
         
@@ -192,9 +169,12 @@ function VendorManage() {
         updateStats(updatedData);
       } else {
         setError(`API Error: ${response.status}`);
+        setVendors([]);
       }
     } catch (err) {
+      console.error("Error fetching vendors:", err);
       setError(err.message);
+      setVendors([]);
     } finally {
       setLoading(false);
     }
@@ -416,6 +396,7 @@ function VendorManage() {
 
   const handleEditVendor = (vendor) => {
     console.log("Editing vendor:", vendor.vendor_name);
+    console.log("Vendor rates zones:", Object.keys(vendor.rates || {}));
     setFormData({
       vendor_name: vendor.vendor_name,
       rates: vendor.rates || {},
@@ -472,6 +453,10 @@ function VendorManage() {
       if (!chargesToSave.oda_min_charge || chargesToSave.oda_min_charge === 0) {
         chargesToSave.oda_min_charge = isBlueDart ? BLUE_DART_ODA_MIN_CHARGE : DEFAULT_ODA_MIN_CHARGE;
       }
+      
+      console.log("Saving rates for:", formData.vendor_name);
+      console.log("Rates zones:", Object.keys(formData.rates || {}));
+      
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -604,70 +589,84 @@ function VendorManage() {
     );
   };
 
-  const renderCsvModal = () => {
-    if (!showCsvModal) return null;
-    
-    const isBlueDart = csvVendor?.vendor_name === 'SHIPSHOPY BLUE DART';
-    const isShipshopyDelivery = csvVendor?.vendor_name === 'SHIPSHOPY DELIVERY';
-    const isShivaniVX = csvVendor?.vendor_name === 'SHIVANI VX';
-    const isPd = csvVendor?.vendor_name === 'PD LOGISTICS';
-    const isRivigo = csvVendor?.vendor_name === 'RIVIGO';
-    
-    let odaHint = "";
-    if (isBlueDart) odaHint = `Blue Dart ODA: ₹5/kg (Min ₹${BLUE_DART_ODA_MIN_CHARGE})`;
-    else if (isShipshopyDelivery) odaHint = `Shipshopy Delhivery ODA: ₹3/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
-    else if (isShivaniVX) odaHint = `Shivani VX: Standard rates, Min ODA ₹${DEFAULT_ODA_MIN_CHARGE}`;
-    else if (isPd) odaHint = `PD Logistics ODA: ₹4/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
-    else if (isRivigo) odaHint = `RIVIGO ODA: ₹4/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
-    else odaHint = `Default ODA Min Charge: ₹${DEFAULT_ODA_MIN_CHARGE}`;
-    
-    return (
-      <div className="modal-overlay" onClick={() => setShowCsvModal(false)}>
-        <div className="modal-container csv-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header">
-            <h2>📊 CSV Upload - {csvVendor?.vendor_name}</h2>
-            <button className="close-btn" onClick={() => setShowCsvModal(false)}>×</button>
-          </div>
-          <div className="modal-body">
-            <div className="csv-info-section">
-              <h4>📋 CSV Format:</h4>
-              <div className="csv-format-box">
-                <code>pincode,city,state,is_oda,oda_category,oda_charge_per_kg,oda_min_charge,is_serviceable</code><br/>
-                <code>212217,Allahabad,UP,TRUE,B,4,{DEFAULT_ODA_MIN_CHARGE},TRUE</code><br/>
-                <code>122502,Gurgaon,Haryana,TRUE,A,2,{DEFAULT_ODA_MIN_CHARGE},TRUE</code><br/>
-                <code>110001,New Delhi,Delhi,FALSE,,0,0,TRUE</code>
-              </div>
-              {odaHint && (<div className="oda-hint"><strong>⚠️ Note:</strong> {odaHint}</div>)}
+const renderCsvModal = () => {
+  if (!showCsvModal) return null;
+  
+  const isBlueDart = csvVendor?.vendor_name === 'SHIPSHOPY BLUE DART';
+  const isShipshopyDelivery = csvVendor?.vendor_name === 'SHIPSHOPY DELIVERY';
+  const isShivaniVX = csvVendor?.vendor_name === 'SHIVANI VX';
+  const isPd = csvVendor?.vendor_name === 'PD LOGISTICS';
+  const isRivigo = csvVendor?.vendor_name === 'RIVIGO';
+  
+  let odaHint = "";
+  if (isBlueDart) odaHint = `Blue Dart ODA: ₹5/kg (Min ₹${BLUE_DART_ODA_MIN_CHARGE})`;
+  else if (isShipshopyDelivery) odaHint = `Shipshopy Delhivery ODA: ₹3/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
+  else if (isShivaniVX) odaHint = `Shivani VX: Standard rates, Min ODA ₹${DEFAULT_ODA_MIN_CHARGE}`;
+  else if (isPd) odaHint = `PD Logistics ODA: ₹4/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
+  else if (isRivigo) odaHint = `RIVIGO ODA: ₹4/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
+  else odaHint = `Default ODA Min Charge: ₹${DEFAULT_ODA_MIN_CHARGE}`;
+  
+  return (
+    <div className="modal-overlay" onClick={() => setShowCsvModal(false)}>
+      <div className="modal-container csv-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>📊 CSV Upload - {csvVendor?.vendor_name}</h2>
+          <button className="close-btn" onClick={() => setShowCsvModal(false)}>×</button>
+        </div>
+        <div className="modal-body">
+          <div className="csv-info-section">
+            <h4>📋 CSV Format:</h4>
+            <div className="csv-format-box">
+              <code>pincode,city,state,is_oda,oda_category,oda_charge_per_kg,oda_min_charge,is_serviceable</code><br/>
+              <code>212217,Allahabad,UP,TRUE,B,4,{DEFAULT_ODA_MIN_CHARGE},TRUE</code><br/>
+              <code>122502,Gurgaon,Haryana,TRUE,A,2,{DEFAULT_ODA_MIN_CHARGE},TRUE</code><br/>
+              <code>110001,New Delhi,Delhi,FALSE,,0,0,TRUE</code>
             </div>
-            <div className="csv-upload-section">
-              <button className="download-template-btn" onClick={() => downloadCsvTemplate(csvVendor?.vendor_name)}>📥 Download Template CSV</button>
-              <div className="file-upload-area">
-                <input type="file" accept=".csv" onChange={handleCsvFileChange} id="csv-file-input" style={{ display: 'none' }} />
-                <label htmlFor="csv-file-input" className="file-upload-label">📁 {csvFile ? csvFile.name : "Choose CSV File"}</label>
-              </div>
-              {csvPreview.length > 0 && (
-                <div className="csv-preview">
-                  <h4>Preview:</h4>
-                  <div className="preview-table-wrapper">
-                    <table className="preview-table">
-                      <thead><tr>{Object.keys(csvPreview[0] || {}).map(k => <th key={k}>{k}</th>)}</tr></thead>
-                      <tbody>{csvPreview.map((row, idx) => (<tr key={idx}>{Object.values(row).map((v, i) => <td key={i}>{v}</td>)}</tr>))}</tbody>
-                    </table>
-                  </div>
+            {odaHint && (<div className="oda-hint"><strong>⚠️ Note:</strong> {odaHint}</div>)}
+          </div>
+          <div className="csv-upload-section">
+            <button className="download-template-btn" onClick={() => downloadCsvTemplate(csvVendor?.vendor_name)}>📥 Download Template CSV</button>
+            <div className="file-upload-area">
+              <input type="file" accept=".csv" onChange={handleCsvFileChange} id="csv-file-input" style={{ display: 'none' }} />
+              <label htmlFor="csv-file-input" className="file-upload-label">📁 {csvFile ? csvFile.name : "Choose CSV File"}</label>
+            </div>
+            {csvPreview.length > 0 && (
+              <div className="csv-preview">
+                <h4>Preview (First 10 rows):</h4>
+                <div className="preview-table-wrapper">
+                  <table className="preview-table">
+                    <thead>
+                      <tr>
+                        {Object.keys(csvPreview[0] || {}).map(key => (
+                          <th key={key}>{key}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {csvPreview.map((row, idx) => (
+                        <tr key={idx}>
+                          {Object.values(row).map((v, i) => (
+                            <td key={i}>{v}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              )}
-            </div>
-          </div>
-          <div className="modal-footer">
-            <button className="cancel-btn" onClick={() => setShowCsvModal(false)}>Cancel</button>
-            <button className="upload-btn" onClick={uploadCsvData} disabled={!csvFile || csvUploading}>
-              {csvUploading ? "⏳ Uploading..." : "📤 Upload CSV"}
-            </button>
+              </div>
+            )}
           </div>
         </div>
+        <div className="modal-footer">
+          <button className="cancel-btn" onClick={() => setShowCsvModal(false)}>Cancel</button>
+          <button className="upload-btn" onClick={uploadCsvData} disabled={!csvFile || csvUploading}>
+            {csvUploading ? "⏳ Uploading..." : "📤 Upload CSV"}
+          </button>
+        </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   const renderRateMatrix = (rateType, title) => {
     const rates = formData[rateType] || {};
@@ -697,7 +696,10 @@ function VendorManage() {
         <div className="table-wrapper">
           <table className="rate-matrix-table">
             <thead>
-              <tr><th className="from-zone-cell">From \\ To</th>{displayZones.map(z => <th key={z}>{z}</th>)}</tr>
+              <tr>
+                <th className="from-zone-cell">From \\ To</th>
+                {displayZones.map(zone => <th key={zone}>{zone}</th>)}
+              </tr>
             </thead>
             <tbody>
               {displayZones.map(fromZone => {
@@ -714,10 +716,14 @@ function VendorManage() {
                       const rateValue = rowRates[toZone];
                       return (
                         <td key={toZone}>
-                          <input type="number" step="0.01" className="rate-input"
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="rate-input"
                             value={rateValue !== undefined && rateValue !== null ? rateValue : ""}
                             onChange={(e) => handleRateChange(rateType, fromZone, toZone, e.target.value)}
-                            placeholder="0.00" />
+                            placeholder="0.00"
+                          />
                         </td>
                       );
                     })}
@@ -729,7 +735,7 @@ function VendorManage() {
         </div>
         {(isVxpress || isShivaniVX) && (
           <div className="info-note" style={{marginTop: '10px', padding: '8px', background: '#e0e7ff', borderRadius: '8px', fontSize: '11px'}}>
-            💡 Note: {formData.vendor_name} uses custom zone names. These rates will be applied correctly in the calculator.
+            💡 Note: {formData.vendor_name} uses standard zone names (N1, N2, etc.) for rates.
           </div>
         )}
       </div>
@@ -763,9 +769,13 @@ function VendorManage() {
             <div className="charge-card" key={key}>
               <div className="charge-field">
                 <label>{label}</label>
-                <input type={type} step={step} className="charge-input"
+                <input
+                  type={type}
+                  step={step}
+                  className="charge-input"
                   value={charges[key] !== undefined ? charges[key] : ""}
-                  onChange={(e) => handleChargeChange(key, e.target.value)} />
+                  onChange={(e) => handleChargeChange(key, e.target.value)}
+                />
               </div>
             </div>
           ))}
@@ -774,7 +784,7 @@ function VendorManage() {
           <div className="info-note"><span className="info-icon">📦</span> This vendor supports 6 CFT and 10 CFT rate slabs only.</div>
         )}
         {(isVxpress || isShivaniVX) && (
-          <div className="info-note" style={{background: '#e0e7ff'}}><span className="info-icon">📍</span> This vendor uses custom zone names.</div>
+          <div className="info-note" style={{background: '#e0e7ff'}}><span className="info-icon">📍</span> This vendor uses standard zone names.</div>
         )}
         {isBlueDart && (
           <div className="info-note" style={{background: '#fef3c7'}}><span className="info-icon">🔵</span> Blue Dart uses serviceable pincodes only. ODA Min Charge: ₹{BLUE_DART_ODA_MIN_CHARGE}</div>
@@ -804,6 +814,10 @@ function VendorManage() {
     const zoneCount = vendorZones.length;
     const clientZoneMapping = vendorZones.slice(0, 3).map(zone => `${zone}→${getClientZoneFromVendorZone(zone, vendor.vendor_name)}`).join(', ');
     
+    // Get actual zones from database
+    const dbZones = Object.keys(vendor.rates || {});
+    const hasRates = dbZones.length > 0;
+    
     return (
       <div className={`vendor-card ${!vendor.is_active ? 'inactive-card' : ''}`} key={vendor.id}>
         <div className="vendor-card-header">
@@ -811,6 +825,7 @@ function VendorManage() {
             <div className={`vendor-icon ${!vendor.is_active ? 'inactive-icon' : ''}`}>{vendor.vendor_name.charAt(0)}</div>
             <h3>{vendor.vendor_name}</h3>
             {zoneCount > 0 && zoneCount !== 16 && <span className="zone-count-badge">{zoneCount} zones</span>}
+            {!hasRates && <span className="warning-badge">⚠️ No Rates</span>}
           </div>
           <div className="vendor-card-actions">
             <button className="edit-btn" onClick={() => handleEditVendor(vendor)} title="Edit Vendor">✏️</button>
@@ -840,7 +855,9 @@ function VendorManage() {
             {isShipshopyDelivery && <span className="badge delhivery-badge">📦 Shipshopy Del</span>}
             {isTrucx && <span className="badge trucx-badge">🚛 TRUCX</span>}
           </div>
-          {clientZoneMapping && <div className="zone-mapping-hint">📍 Zone Map: {clientZoneMapping}...</div>}
+          {dbZones.length > 0 && (
+            <div className="zone-mapping-hint">📍 DB Zones: {dbZones.slice(0, 5).join(', ')}{dbZones.length > 5 ? '...' : ''}</div>
+          )}
           <div className="vendor-status"><span className={`status-badge ${vendor.is_active ? "active" : "inactive"}`}>{vendor.is_active ? "● Active" : "○ Inactive"}</span></div>
         </div>
       </div>
@@ -864,20 +881,26 @@ function VendorManage() {
             {!editMode && (
               <div className="form-group">
                 <label>Vendor Name</label>
-                <input type="text" className="form-input" value={formData.vendor_name}
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.vendor_name}
                   onChange={(e) => setFormData({...formData, vendor_name: e.target.value.toUpperCase()})}
-                  placeholder="DELHIVERY, SHIPSHOPY BLUE DART, TRUCX DLH Lite, SHIVANI VX, VXPRESS" />
+                  placeholder="DELHIVERY, SHIPSHOPY BLUE DART, TRUCX DLH Lite, SHIVANI VX, VXPRESS"
+                />
                 <small className="input-hint">Available: DELHIVERY, GATI, PD LOGISTICS, RIVIGO, SHIPSHOPY BLUE DART, SHIPSHOPY DELIVERY, TRUCX DLH Lite/Dense/Cargo, VXPRESS, SHIVANI VX</small>
               </div>
             )}
             <div className="tabs">
-              <button className={`tab ${activeTab === "standard" ? "active" : ""}`} onClick={() => setActiveTab("standard")}>📊 {(isVxpress || isShivaniVX) ? "Custom Rates" : "Standard Rates"}</button>
-              {showCFTTabs && (<><button className={`tab ${activeTab === "6cft" ? "active" : ""}`} onClick={() => setActiveTab("6cft")}>📦 6 CFT</button>
-              <button className={`tab ${activeTab === "10cft" ? "active" : ""}`} onClick={() => setActiveTab("10cft")}>📦 10 CFT</button></>)}
+              <button className={`tab ${activeTab === "standard" ? "active" : ""}`} onClick={() => setActiveTab("standard")}>📊 {(isVxpress || isShivaniVX) ? "Standard Rates" : "Standard Rates"}</button>
+              {showCFTTabs && (<>
+                <button className={`tab ${activeTab === "6cft" ? "active" : ""}`} onClick={() => setActiveTab("6cft")}>📦 6 CFT</button>
+                <button className={`tab ${activeTab === "10cft" ? "active" : ""}`} onClick={() => setActiveTab("10cft")}>📦 10 CFT</button>
+              </>)}
               <button className={`tab ${activeTab === "charges" ? "active" : ""}`} onClick={() => setActiveTab("charges")}>⚙️ Charges</button>
             </div>
             <div className="tab-content">
-              {activeTab === "standard" && renderRateMatrix("rates", (isVxpress || isShivaniVX) ? "Custom Zone Rates (₹/kg)" : "Zone to Zone Rates (₹/kg)")}
+              {activeTab === "standard" && renderRateMatrix("rates", "Zone to Zone Rates (₹/kg)")}
               {activeTab === "6cft" && renderRateMatrix("delhivery_6cft", "6 CFT Rates (₹/kg)")}
               {activeTab === "10cft" && renderRateMatrix("delhivery_10cft", "10 CFT Rates (₹/kg)")}
               {activeTab === "charges" && renderChargesSection()}
@@ -913,9 +936,17 @@ function VendorManage() {
         <div className="stats-info"><span>Showing {filteredVendors.length} of {vendors.length} vendors</span></div>
         <button className="refresh-btn" onClick={fetchVendors} title="Refresh">🔄</button>
       </div>
-      {loading ? (<div className="loading-state"><div className="spinner"></div><p>Loading vendor rates...</p></div>) : error ? (<div className="error-state"><p>⚠️ {error}</p><button onClick={fetchVendors}>Retry</button></div>) : (
+      {loading ? (
+        <div className="loading-state"><div className="spinner"></div><p>Loading vendor rates...</p></div>
+      ) : error ? (
+        <div className="error-state"><p>⚠️ {error}</p><button onClick={fetchVendors}>Retry</button></div>
+      ) : (
         <div className="vendors-grid">
-          {filteredVendors.length === 0 ? (<div className="no-results"><p>No vendors found matching "{searchTerm}"</p></div>) : (filteredVendors.map(vendor => renderVendorCard(vendor)))}
+          {filteredVendors.length === 0 ? (
+            <div className="no-results"><p>No vendors found matching "{searchTerm}"</p></div>
+          ) : (
+            filteredVendors.map(vendor => renderVendorCard(vendor))
+          )}
         </div>
       )}
       {renderModal()}

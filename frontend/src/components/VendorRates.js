@@ -79,6 +79,7 @@ const getClientZoneFromPincode = (pincode) => {
 
 // ============================================
 // VENDOR-SPECIFIC ZONE LISTS (as stored in database)
+// Based on actual database data
 // ============================================
 
 // TRUCX DLH Lite - 11 zones
@@ -93,11 +94,11 @@ const ZONES_RIVIGO = ["N1", "N2", "N3", "C1", "W1", "W2", "W3", "S1", "S2", "E1"
 // GATI - 12 zones
 const ZONES_GATI = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1", "NE2", "NE3"];
 
-// VXPRESS - 10 zones (database custom names)
-const ZONES_VXPRESS = ["North1", "North2", "North3", "Guj1", "Guj2", "Mah1", "Mah2", "South1", "South2", "East1"];
+// VXPRESS - Database uses STANDARD zone names (from actual DB)
+const ZONES_VXPRESS = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1"];
 
-// SHIVANI VX - 16 zones (database custom names)
-const ZONES_SHIVANI_VX = ["North1", "North2", "North3", "Guj1", "Guj2", "Mah1", "Mah2", "Goa", "Central1", "Central2", "South1", "South2", "Kerala", "East1", "East2", "NE"];
+// SHIVANI VX - Database uses STANDARD + special zone names
+const ZONES_SHIVANI_VX = ["N1", "N2", "N3", "C1", "C2", "W1", "W2", "S1", "S2", "E1", "E2", "NE1", "NE2", "NE3", "GOA", "KERALA"];
 
 // SHIPSHOPY BLUE DART & DELIVERY - 16 zones
 const ZONES_SHIPSHOPY = ZONES_TRUCX_16;
@@ -115,138 +116,75 @@ const ZONES_DEFAULT = ZONES_TRUCX_16;
 const getVendorZoneFromClientZone = (clientZone, vendorName) => {
   const vendorUpper = vendorName.toUpperCase();
   
-  // VXPRESS - Database custom zone names
-  if (vendorUpper.includes('VXPRESS')) {
-    const mapping = {
-      'Delhi NCR': 'North1',
-      'NORTH 2': 'North2',
-      'NORTH 3': 'North3',
-      'Central': 'Mah1',
-      'W1': 'Guj1',
-      'W2': 'Mah1',
-      'East': 'East1',
-      'South': 'South1',
-      'NE1': 'East1',
-      'NE2': 'East1',
-      'NE3': 'East1'
-    };
-    return mapping[clientZone] || 'North1';
-  }
-  
-  // SHIVANI VX - Database custom zone names
-  if (vendorUpper.includes('SHIVANI VX')) {
-    const mapping = {
-      'Delhi NCR': 'North1',
-      'NORTH 2': 'North2',
-      'NORTH 3': 'North3',
-      'Central': 'Central1',
-      'W1': 'Guj1',
-      'W2': 'Mah1',
-      'East': 'East1',
-      'South': 'South1',
-      'NE1': 'NE',
-      'NE2': 'NE',
-      'NE3': 'NE'
-    };
-    return mapping[clientZone] || 'North1';
-  }
-  
-  // GATI
-  if (vendorUpper.includes('GATI')) {
-    const mapping = {
-      'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
-      'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
-      'East': 'E1', 'South': 'S1',
-      'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'E1'
-    };
-    return mapping[clientZone] || 'N1';
-  }
-  
-  // PD LOGISTICS
-  if (vendorUpper.includes('PD LOGISTICS')) {
-    const mapping = {
-      'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
-      'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
-      'East': 'E1', 'South': 'S1',
-      'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'NE3'
-    };
-    return mapping[clientZone] || 'N1';
-  }
-  
-  // RIVIGO
-  if (vendorUpper.includes('RIVIGO')) {
-    const mapping = {
-      'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
-      'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
-      'East': 'E1', 'South': 'S1',
-      'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'NE2'
-    };
-    return mapping[clientZone] || 'N1';
-  }
-  
-  // TRUCX DLH Lite
-  if (vendorUpper.includes('TRUCX DLH LITE')) {
-    const mapping = {
-      'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
-      'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
-      'East': 'E1', 'South': 'S1',
-      'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'NE2'
-    };
-    return mapping[clientZone] || 'N1';
-  }
-  
-  // TRUCX DLH Dense / Cargo
-  if (vendorUpper.includes('TRUCX DLH DENSE') || vendorUpper.includes('TRUCX DLH CARGO')) {
-    const mapping = {
-      'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
-      'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
-      'East': 'E1', 'South': 'S1',
-      'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'NE3'
-    };
-    return mapping[clientZone] || 'N1';
-  }
-  
-  // SHIPSHOPY BLUE DART
-  if (vendorUpper.includes('SHIPSHOPY BLUE DART')) {
-    const mapping = {
-      'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
-      'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
-      'East': 'E1', 'South': 'S1',
-      'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'NE3'
-    };
-    return mapping[clientZone] || 'N1';
-  }
-  
-  // SHIPSHOPY DELIVERY
-  if (vendorUpper.includes('SHIPSHOPY DELIVERY')) {
-    const mapping = {
-      'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
-      'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
-      'East': 'E1', 'South': 'S1',
-      'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'NE3'
-    };
-    return mapping[clientZone] || 'N1';
-  }
-  
-  // DELHIVERY
-  if (vendorUpper.includes('DELHIVERY')) {
-    const mapping = {
-      'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
-      'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
-      'East': 'E1', 'South': 'S1',
-      'NE1': 'E1', 'NE2': 'E1', 'NE3': 'E1'
-    };
-    return mapping[clientZone] || 'N1';
-  }
-  
-  // Default
-  const defaultMapping = {
-    'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
-    'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
-    'East': 'E1', 'South': 'S1',
-    'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'NE3'
+  // Base mapping for all vendors (standard zones)
+  const baseMapping = {
+    'Delhi NCR': 'N1',
+    'NORTH 2': 'N2',
+    'NORTH 3': 'N3',
+    'Central': 'C1',
+    'W1': 'W1',
+    'W2': 'W2',
+    'East': 'E1',
+    'South': 'S1',
+    'NE1': 'NE1',
+    'NE2': 'NE2',
+    'NE3': 'NE3'
   };
-  return defaultMapping[clientZone] || 'N1';
+  
+  // VXPRESS - uses standard zone names
+  if (vendorUpper.includes('VXPRESS')) {
+    return baseMapping[clientZone] || 'N1';
+  }
+  
+  // SHIVANI VX - uses standard zone names
+  if (vendorUpper.includes('SHIVANI VX')) {
+    // Special handling for SHIVANI VX specific zones
+    if (clientZone === 'W2') return 'W2';
+    if (clientZone === 'South') return 'S1';
+    return baseMapping[clientZone] || 'N1';
+  }
+  
+  // GATI - NE3 maps to E1
+  if (vendorUpper.includes('GATI') && clientZone === 'NE3') {
+    return 'E1';
+  }
+  
+  // RIVIGO - NE3 maps to NE2
+  if (vendorUpper.includes('RIVIGO') && clientZone === 'NE3') {
+    return 'NE2';
+  }
+  
+  // TRUCX Lite - NE3 maps to NE2
+  if (vendorUpper.includes('TRUCX DLH LITE') && clientZone === 'NE3') {
+    return 'NE2';
+  }
+  
+  // DELHIVERY - all NE zones map to E1
+  if (vendorUpper.includes('DELHIVERY') && (clientZone === 'NE1' || clientZone === 'NE2' || clientZone === 'NE3')) {
+    return 'E1';
+  }
+  
+  // PD LOGISTICS - supports all zones
+  if (vendorUpper.includes('PD LOGISTICS')) {
+    return baseMapping[clientZone] || 'N1';
+  }
+  
+  // SHIPSHOPY BLUE DART - supports all zones
+  if (vendorUpper.includes('SHIPSHOPY BLUE DART')) {
+    return baseMapping[clientZone] || 'N1';
+  }
+  
+  // SHIPSHOPY DELIVERY - supports all zones
+  if (vendorUpper.includes('SHIPSHOPY DELIVERY')) {
+    return baseMapping[clientZone] || 'N1';
+  }
+  
+  // TRUCX Dense/Cargo - supports all zones
+  if (vendorUpper.includes('TRUCX DLH DENSE') || vendorUpper.includes('TRUCX DLH CARGO')) {
+    return baseMapping[clientZone] || 'N1';
+  }
+  
+  return baseMapping[clientZone] || 'N1';
 };
 
 // Get vendor zone from pincode
@@ -375,6 +313,7 @@ function VendorRateCalculator() {
         console.log("✅ Fetched vendors from DB:", data.map(v => ({ 
           name: v.vendor_name, 
           ratesCount: Object.keys(v.rates || {}).length,
+          ratesZones: Object.keys(v.rates || {}),
           cft6Count: Object.keys(v.delhivery_6cft || {}).length,
           cft10Count: Object.keys(v.delhivery_10cft || {}).length
         })));
@@ -541,11 +480,7 @@ function VendorRateCalculator() {
     else if (TRUCX_VENDORS.includes(vendorName)) {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
     }
-    // VXPRESS and SHIVANI VX - use vendor-specific zone names
-    else if (vendorName === "VXPRESS" || vendorName === "SHIVANI VX") {
-      rate = vendor.rates[fromZone]?.[toZone] || 0;
-    }
-    // Other vendors - standard rates only
+    // All other vendors (including VXPRESS and SHIVANI VX) - standard rates only
     else {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
     }
@@ -1103,7 +1038,7 @@ function VendorRateCalculator() {
                 </div>
                 
                 <div className="disclaimer">
-                  <small>* Rates are based on your client's zone mapping (Delhi NCR, NORTH 2, NORTH 3, Central, W1, W2, East, South, NE1, NE2, NE3). ODA charges: Min ₹500 for all vendors. PD Logistics: Only 6 CFT and 10 CFT rates apply. RIVIGO: Both CFT and Standard rates. VXPRESS & SHIVANI VX use their own zone naming.</small>
+                  <small>* Rates are based on your client's zone mapping (Delhi NCR, NORTH 2, NORTH 3, Central, W1, W2, East, South, NE1, NE2, NE3). ODA charges: Min ₹500 for all vendors. PD Logistics: Only 6 CFT and 10 CFT rates apply. RIVIGO: Both CFT and Standard rates.</small>
                 </div>
               </>
             )}
