@@ -1101,3 +1101,298 @@ def manage_vendor_service_rates(request, service_id=None):
             return Response({"message": "Service rate deleted successfully"})
         except VendorServiceRate.DoesNotExist:
             return Response({"error": "Service not found"}, status=404)
+        
+@api_view(["GET", "POST", "PUT", "DELETE"])
+def manage_vendor_pincodes(request, vendor_name=None, pincode=None):
+    """Complete CRUD operations for vendor pincodes"""
+    
+    # GET - Retrieve pincode(s)
+    if request.method == "GET":
+        try:
+            if vendor_name:
+                vendor = VendorRate.objects.get(vendor_name__iexact=vendor_name)
+                
+                if pincode:
+                    # Get single pincode
+                    pincode_obj = VendorPincode.objects.get(vendor=vendor, pincode=pincode)
+                    return Response({
+                        'success': True,
+                        'pincode': pincode_obj.pincode,
+                        'city': pincode_obj.city,
+                        'state': pincode_obj.state,
+                        'is_oda': pincode_obj.is_oda,
+                        'oda_category': pincode_obj.oda_category,
+                        'oda_charge_per_kg': pincode_obj.oda_charge_per_kg,
+                        'oda_min_charge': pincode_obj.oda_min_charge,
+                        'is_serviceable': pincode_obj.is_serviceable,
+                    })
+                else:
+                    # Get all pincodes for vendor
+                    pincodes = VendorPincode.objects.filter(vendor=vendor)
+                    data = []
+                    for obj in pincodes:
+                        data.append({
+                            'pincode': obj.pincode,
+                            'city': obj.city,
+                            'state': obj.state,
+                            'is_oda': obj.is_oda,
+                            'oda_category': obj.oda_category,
+                            'oda_charge_per_kg': obj.oda_charge_per_kg,
+                            'oda_min_charge': obj.oda_min_charge,
+                            'is_serviceable': obj.is_serviceable,
+                        })
+                    return Response({
+                        'success': True,
+                        'vendor': vendor_name,
+                        'count': len(data),
+                        'data': data
+                    })
+            else:
+                # Get all pincodes from all vendors
+                all_pincodes = VendorPincode.objects.all().select_related('vendor')
+                data = []
+                for obj in all_pincodes:
+                    data.append({
+                        'vendor': obj.vendor.vendor_name,
+                        'pincode': obj.pincode,
+                        'city': obj.city,
+                        'state': obj.state,
+                        'is_oda': obj.is_oda,
+                        'oda_category': obj.oda_category,
+                    })
+                return Response({
+                    'success': True,
+                    'count': len(data),
+                    'data': data
+                })
+        except VendorRate.DoesNotExist:
+            return Response({'error': f'Vendor "{vendor_name}" not found'}, status=404)
+        except VendorPincode.DoesNotExist:
+            return Response({'error': f'Pincode {pincode} not found'}, status=404)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+    
+    # POST - Create new pincode
+    elif request.method == "POST":
+        try:
+            vendor = VendorRate.objects.get(vendor_name__iexact=vendor_name)
+            data = request.data
+            
+            pincode_obj, created = VendorPincode.objects.update_or_create(
+                vendor=vendor,
+                pincode=data.get('pincode'),
+                defaults={
+                    'city': data.get('city', ''),
+                    'state': data.get('state', ''),
+                    'is_oda': data.get('is_oda', False),
+                    'oda_category': data.get('oda_category', ''),
+                    'oda_charge_per_kg': data.get('oda_charge_per_kg', 0),
+                    'oda_min_charge': data.get('oda_min_charge', 500),
+                    'is_serviceable': data.get('is_serviceable', True),
+                }
+            )
+            return Response({
+                'success': True,
+                'message': f'Pincode {data.get("pincode")} {"created" if created else "updated"}',
+                'pincode': pincode_obj.pincode
+            }, status=201)
+        except VendorRate.DoesNotExist:
+            return Response({'error': 'Vendor not found'}, status=404)
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
+    
+    # PUT - Update existing pincode
+    elif request.method == "PUT":
+        try:
+            vendor = VendorRate.objects.get(vendor_name__iexact=vendor_name)
+            pincode_obj = VendorPincode.objects.get(vendor=vendor, pincode=pincode)
+            data = request.data
+            
+            # Update fields
+            if 'city' in data:
+                pincode_obj.city = data['city']
+            if 'state' in data:
+                pincode_obj.state = data['state']
+            if 'is_oda' in data:
+                pincode_obj.is_oda = data['is_oda']
+            if 'oda_category' in data:
+                pincode_obj.oda_category = data['oda_category']
+            if 'oda_charge_per_kg' in data:
+                pincode_obj.oda_charge_per_kg = data['oda_charge_per_kg']
+            if 'oda_min_charge' in data:
+                pincode_obj.oda_min_charge = data['oda_min_charge']
+            if 'is_serviceable' in data:
+                pincode_obj.is_serviceable = data['is_serviceable']
+            
+            pincode_obj.save()
+            return Response({
+                'success': True,
+                'message': f'Pincode {pincode} updated successfully'
+            })
+        except VendorRate.DoesNotExist:
+            return Response({'error': 'Vendor not found'}, status=404)
+        except VendorPincode.DoesNotExist:
+            return Response({'error': 'Pincode not found'}, status=404)
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
+    
+    # DELETE - Remove pincode
+    elif request.method == "DELETE":
+        try:
+            vendor = VendorRate.objects.get(vendor_name__iexact=vendor_name)
+            pincode_obj = VendorPincode.objects.get(vendor=vendor, pincode=pincode)
+            pincode_obj.delete()
+            return Response({
+                'success': True,
+                'message': f'Pincode {pincode} deleted successfully'
+            })
+        except VendorRate.DoesNotExist:
+            return Response({'error': 'Vendor not found'}, status=404)
+        except VendorPincode.DoesNotExist:
+            return Response({'error': 'Pincode not found'}, status=404)
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
+        
+# ============================================
+# CHECK ODA FOR ALL VENDORS (Single Pincode)
+# ============================================
+
+@api_view(["GET"])
+def check_oda_all_vendors(request):
+    """Check ODA status for a pincode across all active vendors"""
+    
+    pincode = request.GET.get('pincode', '').strip()
+    
+    if not pincode or len(pincode) != 6 or not pincode.isdigit():
+        return Response({
+            'success': False,
+            'error': 'Invalid pincode format. Please provide a 6-digit pincode.'
+        }, status=400)
+    
+    try:
+        vendors = VendorRate.objects.filter(is_active=True)
+        results = {}
+        
+        for vendor in vendors:
+            try:
+                # Check serviceability first
+                if not is_pincode_serviceable_for_vendor(vendor, pincode):
+                    results[vendor.vendor_name] = {
+                        'is_oda': False,
+                        'is_serviceable': False,
+                        'oda_category': None,
+                        'oda_charge_per_kg': 0,
+                        'oda_min_charge': 0,
+                        'message': f'Not serviceable for {vendor.vendor_name}'
+                    }
+                    continue
+                
+                # Get ODA info
+                oda_info = check_oda_for_vendor(vendor, pincode)
+                
+                results[vendor.vendor_name] = {
+                    'is_oda': oda_info.get('is_oda', False),
+                    'is_serviceable': oda_info.get('is_serviceable', True),
+                    'oda_category': oda_info.get('category'),
+                    'oda_charge_per_kg': oda_info.get('charge_per_kg', 0),
+                    'oda_min_charge': oda_info.get('min_charge', 500),
+                }
+                
+            except Exception as e:
+                logger.error(f"Error checking ODA for {vendor.vendor_name}: {str(e)}")
+                results[vendor.vendor_name] = {
+                    'is_oda': False,
+                    'is_serviceable': False,
+                    'oda_category': None,
+                    'oda_charge_per_kg': 0,
+                    'oda_min_charge': 0,
+                    'error': str(e)
+                }
+        
+        # Count ODA and Non-ODA vendors
+        oda_count = sum(1 for v in results.values() if v.get('is_oda') == True)
+        serviceable_count = sum(1 for v in results.values() if v.get('is_serviceable') == True)
+        
+        return Response({
+            'success': True,
+            'pincode': pincode,
+            'total_vendors': len(results),
+            'serviceable_vendors': serviceable_count,
+            'oda_vendors': oda_count,
+            'non_oda_vendors': serviceable_count - oda_count,
+            'results': results
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in check_oda_all_vendors: {str(e)}")
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+    
+# ============================================
+# GET VENDOR PINCODE STATISTICS
+# ============================================
+
+@api_view(["GET"])
+def get_vendor_pincode_stats(request, vendor_name):
+    """Get pincode statistics for a vendor"""
+    try:
+        vendor = VendorRate.objects.get(vendor_name__iexact=vendor_name)
+        
+        total_pincodes = VendorPincode.objects.filter(vendor=vendor).count()
+        oda_pincodes = VendorPincode.objects.filter(vendor=vendor, is_oda=True).count()
+        serviceable_pincodes = VendorPincode.objects.filter(vendor=vendor, is_serviceable=True).count()
+        non_serviceable_pincodes = total_pincodes - serviceable_pincodes
+        
+        # Category wise statistics
+        category_stats = {}
+        for category in ['A', 'B', 'C', 'D']:
+            count = VendorPincode.objects.filter(
+                vendor=vendor, 
+                is_oda=True, 
+                oda_category=category
+            ).count()
+            if count > 0:
+                category_rates = {'A': 2, 'B': 4, 'C': 7, 'D': 10}
+                category_stats[category] = {
+                    'count': count,
+                    'charge_per_kg': category_rates.get(category, 4),
+                    'min_charge': category_rates.get(category, 4) * 100
+                }
+        
+        # Recent pincodes (last 10)
+        recent_pincodes = VendorPincode.objects.filter(vendor=vendor).order_by('-id')[:10]
+        recent_list = []
+        for obj in recent_pincodes:
+            recent_list.append({
+                'pincode': obj.pincode,
+                'city': obj.city,
+                'state': obj.state,
+                'is_oda': obj.is_oda,
+                'oda_category': obj.oda_category,
+            })
+        
+        return Response({
+            'success': True,
+            'vendor': vendor_name,
+            'total_pincodes': total_pincodes,
+            'oda_pincodes': oda_pincodes,
+            'non_oda_pincodes': total_pincodes - oda_pincodes,
+            'serviceable_pincodes': serviceable_pincodes,
+            'non_serviceable_pincodes': non_serviceable_pincodes,
+            'category_stats': category_stats,
+            'recent_pincodes': recent_list
+        })
+        
+    except VendorRate.DoesNotExist:
+        return Response({
+            'success': False,
+            'error': f'Vendor "{vendor_name}" not found'
+        }, status=404)
+    except Exception as e:
+        logger.error(f"Error in get_vendor_pincode_stats: {str(e)}")
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=500)
