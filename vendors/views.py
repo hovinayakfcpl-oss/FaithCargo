@@ -102,7 +102,6 @@ def get_client_zone_from_pincode(pincode):
 def get_vendor_zone_from_client_zone(client_zone, vendor_name):
     """
     Convert client's bill zone to vendor's internal zone name
-    UPDATED: VXPRESS and SHIVANI VX use standard database zone names
     """
     vendor_upper = vendor_name.upper()
     
@@ -121,80 +120,59 @@ def get_vendor_zone_from_client_zone(client_zone, vendor_name):
         'NE3': 'NE3'
     }
     
-    # ========================================
     # GATI - NE3 maps to E1
-    # ========================================
     if 'GATI' in vendor_upper:
         if client_zone == 'NE3':
             return 'E1'
         return base_mapping.get(client_zone, 'N1')
     
-    # ========================================
-    # PD LOGISTICS (17 zones - supports all NE)
-    # ========================================
+    # PD LOGISTICS - supports all zones
     elif 'PD LOGISTICS' in vendor_upper:
         return base_mapping.get(client_zone, 'N1')
     
-    # ========================================
     # RIVIGO - NE3 maps to NE2
-    # ========================================
     elif 'RIVIGO' in vendor_upper:
         if client_zone == 'NE3':
             return 'NE2'
         return base_mapping.get(client_zone, 'N1')
     
-    # ========================================
     # TRUCX DLH Lite - NE3 maps to NE2
-    # ========================================
     elif 'TRUCX DLH LITE' in vendor_upper:
         if client_zone == 'NE3':
             return 'NE2'
         return base_mapping.get(client_zone, 'N1')
     
-    # ========================================
-    # TRUCX DLH Dense / Cargo (16 zones)
-    # ========================================
+    # TRUCX DLH Dense / Cargo
     elif 'TRUCX DLH DENSE' in vendor_upper or 'TRUCX DLH CARGO' in vendor_upper:
         return base_mapping.get(client_zone, 'N1')
     
-    # ========================================
-    # VXPRESS - Uses standard database zone names (N1, N2, C1, etc.)
-    # ========================================
+    # VXPRESS - uses standard names
     elif 'VXPRESS' in vendor_upper:
         return base_mapping.get(client_zone, 'N1')
     
-    # ========================================
-    # SHIVANI VX - Uses standard database zone names
-    # Special zones: GOA, KERALA
-    # ========================================
+    # SHIVANI VX - uses standard names
     elif 'SHIVANI VX' in vendor_upper:
         if client_zone == 'W2':
-            return 'W2'  # For Goa
+            return 'W2'
         if client_zone == 'South':
-            return 'S1'  # For Kerala
+            return 'S1'
         return base_mapping.get(client_zone, 'N1')
     
-    # ========================================
-    # SHIPSHOPY BLUE DART (16 zones)
-    # ========================================
+    # SHIPSHOPY BLUE DART
     elif 'SHIPSHOPY BLUE DART' in vendor_upper:
         return base_mapping.get(client_zone, 'N1')
     
-    # ========================================
-    # SHIPSHOPY DELIVERY (16 zones)
-    # ========================================
+    # SHIPSHOPY DELIVERY
     elif 'SHIPSHOPY DELIVERY' in vendor_upper:
         return base_mapping.get(client_zone, 'N1')
     
-    # ========================================
     # DELHIVERY - NE zones map to E1
-    # ========================================
     elif 'DELHIVERY' in vendor_upper:
         if client_zone in ['NE1', 'NE2', 'NE3']:
             return 'E1'
         return base_mapping.get(client_zone, 'N1')
     
-    # Default mapping
+    # Default
     else:
         return base_mapping.get(client_zone, 'N1')
 
@@ -222,7 +200,6 @@ def is_pincode_serviceable_for_vendor(vendor, pincode):
         pincode_obj = VendorPincode.objects.filter(
             vendor=vendor, pincode=pincode_str, is_serviceable=True
         ).first()
-        logger.info(f"Blue Dart serviceable check for {pincode_str}: {pincode_obj is not None}")
         return pincode_obj is not None
     
     # All other vendors - always serviceable
@@ -234,29 +211,19 @@ def check_oda_for_vendor(vendor, pincode):
     pincode_str = str(pincode).strip()
     vendor_name = vendor.vendor_name
     
-    # First check if pincode is serviceable
     if not is_pincode_serviceable_for_vendor(vendor, pincode_str):
-        logger.info(f"Pincode {pincode_str} NOT serviceable for {vendor_name}")
         return {
-            'is_oda': False,
-            'is_serviceable': False,
-            'charge_per_kg': 0,
-            'min_charge': 0,
-            'category': None,
-            'city': '',
-            'state': ''
+            'is_oda': False, 'is_serviceable': False,
+            'charge_per_kg': 0, 'min_charge': 0,
+            'category': None, 'city': '', 'state': ''
         }
     
-    # SHIPSHOPY BLUE DART - never ODA
+    # SHIPSHOPY BLUE DART - no ODA
     if vendor_name == 'SHIPSHOPY BLUE DART':
         return {
-            'is_oda': False,
-            'is_serviceable': True,
-            'charge_per_kg': 0,
-            'min_charge': 0,
-            'category': None,
-            'city': '',
-            'state': ''
+            'is_oda': False, 'is_serviceable': True,
+            'charge_per_kg': 0, 'min_charge': 0,
+            'category': None, 'city': '', 'state': ''
         }
     
     # PD LOGISTICS
@@ -265,28 +232,20 @@ def check_oda_for_vendor(vendor, pincode):
             vendor=vendor, pincode=pincode_str, is_oda=True
         ).first()
         if pincode_obj and pincode_obj.is_oda:
-            logger.info(f"✅ PD LOGISTICS: {pincode_str} is ODA (Category: {pincode_obj.oda_category})")
             return {
-                'is_oda': True,
-                'is_serviceable': True,
+                'is_oda': True, 'is_serviceable': True,
                 'charge_per_kg': float(pincode_obj.oda_charge_per_kg),
                 'min_charge': float(pincode_obj.oda_min_charge),
                 'category': pincode_obj.oda_category,
-                'city': pincode_obj.city or '',
-                'state': pincode_obj.state or ''
+                'city': pincode_obj.city or '', 'state': pincode_obj.state or ''
             }
-        logger.info(f"❌ PD LOGISTICS: {pincode_str} is NOT ODA")
         return {
-            'is_oda': False,
-            'is_serviceable': True,
-            'charge_per_kg': 0,
-            'min_charge': 0,
-            'category': None,
-            'city': '',
-            'state': ''
+            'is_oda': False, 'is_serviceable': True,
+            'charge_per_kg': 0, 'min_charge': 0,
+            'category': None, 'city': '', 'state': ''
         }
     
-    # SHIPSHOPY DELIVERY & TRUCX variants - use PD LOGISTICS pincodes
+    # SHIPSHOPY DELIVERY & TRUCX variants - use PD LOGISTICS
     if vendor_name in ['SHIPSHOPY DELIVERY', 'TRUCX DLH Lite', 'TRUCX DLH Dense', 'TRUCX DLH Cargo']:
         pd_vendor = VendorRate.objects.filter(vendor_name='PD LOGISTICS').first()
         if pd_vendor:
@@ -294,55 +253,39 @@ def check_oda_for_vendor(vendor, pincode):
                 vendor=pd_vendor, pincode=pincode_str, is_oda=True
             ).first()
             if pincode_obj and pincode_obj.is_oda:
-                logger.info(f"✅ {vendor_name}: {pincode_str} is ODA via PD LOGISTICS")
                 return {
-                    'is_oda': True,
-                    'is_serviceable': True,
+                    'is_oda': True, 'is_serviceable': True,
                     'charge_per_kg': float(pincode_obj.oda_charge_per_kg),
                     'min_charge': float(pincode_obj.oda_min_charge),
                     'category': pincode_obj.oda_category,
-                    'city': pincode_obj.city or '',
-                    'state': pincode_obj.state or ''
+                    'city': pincode_obj.city or '', 'state': pincode_obj.state or ''
                 }
-        logger.info(f"❌ {vendor_name}: {pincode_str} is NOT ODA")
         return {
-            'is_oda': False,
-            'is_serviceable': True,
-            'charge_per_kg': 0,
-            'min_charge': 0,
-            'category': None,
-            'city': '',
-            'state': ''
+            'is_oda': False, 'is_serviceable': True,
+            'charge_per_kg': 0, 'min_charge': 0,
+            'category': None, 'city': '', 'state': ''
         }
     
-    # VXPRESS - check its own ODA pincodes
+    # VXPRESS
     if vendor_name == 'VXPRESS':
         pincode_obj = VendorPincode.objects.filter(
             vendor=vendor, pincode=pincode_str, is_oda=True
         ).first()
         if pincode_obj and pincode_obj.is_oda:
-            logger.info(f"✅ VXPRESS: {pincode_str} is ODA")
             return {
-                'is_oda': True,
-                'is_serviceable': True,
+                'is_oda': True, 'is_serviceable': True,
                 'charge_per_kg': float(pincode_obj.oda_charge_per_kg),
                 'min_charge': float(pincode_obj.oda_min_charge),
                 'category': pincode_obj.oda_category,
-                'city': pincode_obj.city or '',
-                'state': pincode_obj.state or ''
+                'city': pincode_obj.city or '', 'state': pincode_obj.state or ''
             }
-        logger.info(f"❌ VXPRESS: {pincode_str} is NOT ODA")
         return {
-            'is_oda': False,
-            'is_serviceable': True,
-            'charge_per_kg': 0,
-            'min_charge': 0,
-            'category': None,
-            'city': '',
-            'state': ''
+            'is_oda': False, 'is_serviceable': True,
+            'charge_per_kg': 0, 'min_charge': 0,
+            'category': None, 'city': '', 'state': ''
         }
     
-    # SHIVANI VX - uses VXPRESS pincodes
+    # SHIVANI VX - uses VXPRESS
     if vendor_name == 'SHIVANI VX':
         vxpress_vendor = VendorRate.objects.filter(vendor_name='VXPRESS').first()
         if vxpress_vendor:
@@ -350,63 +293,43 @@ def check_oda_for_vendor(vendor, pincode):
                 vendor=vxpress_vendor, pincode=pincode_str, is_oda=True
             ).first()
             if pincode_obj and pincode_obj.is_oda:
-                logger.info(f"✅ SHIVANI VX: {pincode_str} is ODA via VXPRESS")
                 return {
-                    'is_oda': True,
-                    'is_serviceable': True,
+                    'is_oda': True, 'is_serviceable': True,
                     'charge_per_kg': float(pincode_obj.oda_charge_per_kg),
                     'min_charge': float(pincode_obj.oda_min_charge),
                     'category': pincode_obj.oda_category,
-                    'city': pincode_obj.city or '',
-                    'state': pincode_obj.state or ''
+                    'city': pincode_obj.city or '', 'state': pincode_obj.state or ''
                 }
-        logger.info(f"❌ SHIVANI VX: {pincode_str} is NOT ODA")
         return {
-            'is_oda': False,
-            'is_serviceable': True,
-            'charge_per_kg': 0,
-            'min_charge': 0,
-            'category': None,
-            'city': '',
-            'state': ''
+            'is_oda': False, 'is_serviceable': True,
+            'charge_per_kg': 0, 'min_charge': 0,
+            'category': None, 'city': '', 'state': ''
         }
     
-    # RIVIGO - check its own ODA pincodes
+    # RIVIGO
     if vendor_name == 'RIVIGO':
         pincode_obj = VendorPincode.objects.filter(
             vendor=vendor, pincode=pincode_str, is_oda=True
         ).first()
         if pincode_obj and pincode_obj.is_oda:
-            logger.info(f"✅ RIVIGO: {pincode_str} is ODA")
             return {
-                'is_oda': True,
-                'is_serviceable': True,
+                'is_oda': True, 'is_serviceable': True,
                 'charge_per_kg': float(pincode_obj.oda_charge_per_kg),
                 'min_charge': float(pincode_obj.oda_min_charge),
                 'category': pincode_obj.oda_category,
-                'city': pincode_obj.city or '',
-                'state': pincode_obj.state or ''
+                'city': pincode_obj.city or '', 'state': pincode_obj.state or ''
             }
-        logger.info(f"❌ RIVIGO: {pincode_str} is NOT ODA")
         return {
-            'is_oda': False,
-            'is_serviceable': True,
-            'charge_per_kg': 0,
-            'min_charge': 0,
-            'category': None,
-            'city': '',
-            'state': ''
+            'is_oda': False, 'is_serviceable': True,
+            'charge_per_kg': 0, 'min_charge': 0,
+            'category': None, 'city': '', 'state': ''
         }
     
     # All other vendors - No ODA
     return {
-        'is_oda': False,
-        'is_serviceable': True,
-        'charge_per_kg': 0,
-        'min_charge': 0,
-        'category': None,
-        'city': '',
-        'state': ''
+        'is_oda': False, 'is_serviceable': True,
+        'charge_per_kg': 0, 'min_charge': 0,
+        'category': None, 'city': '', 'state': ''
     }
 
 
@@ -414,7 +337,6 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
     """Calculate freight for a single vendor"""
     
     if oda_info and not oda_info.get('is_serviceable', True):
-        logger.info(f"Vendor {vendor.vendor_name} not serviceable")
         return None
     
     rate_per_kg = 0
@@ -423,9 +345,7 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
     
     is_pd = vendor_name == 'PD LOGISTICS'
     is_rivigo = vendor_name == 'RIVIGO'
-    is_delhivery = vendor_name == 'DELHIVERY'
     
-    # Get appropriate rates
     if is_pd:
         if cft_type == '6cft':
             rates = vendor.delhivery_6cft or {}
@@ -457,10 +377,9 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
         rate_per_kg = rates.get(from_zone, {}).get(to_zone, 0)
         display_cft_type = 'Standard'
     
-    # Fallback rates if no rate found
+    # Fallback rates
     if rate_per_kg == 0:
         if is_pd:
-            logger.warning(f"No rate found for {vendor_name} {cft_type}")
             return None
         fallback_rates = {
             'DELHIVERY': 28, 'GATI': 25,
@@ -469,9 +388,7 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
             'VXPRESS': 20, 'SHIVANI VX': 20, 'RIVIGO': 24
         }
         rate_per_kg = fallback_rates.get(vendor_name, 22)
-        logger.info(f"Using fallback rate for {vendor_name}: ₹{rate_per_kg}/kg")
     
-    # Get charges
     charges = vendor.charges or {}
     docket_charge = float(charges.get('docket_charge', 100))
     fsc_percent = float(str(charges.get('fsc', '10%')).replace('%', ''))
@@ -481,15 +398,12 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
     min_weight = float(charges.get('min_weight', 20))
     divisor = charges.get('divisor', 5000)
     
-    # Calculate volumetric weight
     volumetric_weight = volume_cft * (divisor / 10) if volume_cft > 0 else 0
     effective_weight = max(weight, volumetric_weight, min_weight)
     
-    # Calculate freight
     base_freight = effective_weight * rate_per_kg
     fsc_amount = base_freight * (fsc_percent / 100)
     
-    # ODA charges
     oda_charge = 0
     oda_applicable = False
     oda_category = None
@@ -501,12 +415,8 @@ def calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, cft
         oda_min = oda_info.get('min_charge', 500)
         oda_calc = effective_weight * oda_charge_per_kg
         oda_charge = max(oda_calc, oda_min)
-        logger.info(f"✅ ODA APPLIED for {vendor_name}: ₹{oda_charge}")
     
-    # GST
     gst_amount = (base_freight + fsc_amount + docket_charge + oda_charge) * (gst_percent / 100)
-    
-    # Total freight
     total_freight = base_freight + fsc_amount + docket_charge + gst_amount + fov_charge + oda_charge
     total_freight = max(total_freight, min_freight)
     
@@ -727,6 +637,142 @@ def manage_vendor_pincodes(request, vendor_name=None, pincode=None):
 
 
 # ============================================
+# BULK PINCODE UPLOAD (ADDED BACK)
+# ============================================
+
+@api_view(["POST"])
+def bulk_upload_pincodes(request, vendor_name):
+    """Bulk upload pincodes for a vendor"""
+    try:
+        vendor = VendorRate.objects.get(vendor_name__iexact=vendor_name)
+        pincodes_data = request.data.get('pincodes', [])
+        replace_existing = request.data.get('replace_existing', False)
+        
+        if not pincodes_data:
+            return Response({
+                "success": False,
+                "error": "No pincodes data provided."
+            }, status=400)
+        
+        if replace_existing:
+            deleted_count = VendorPincode.objects.filter(vendor=vendor).count()
+            VendorPincode.objects.filter(vendor=vendor).delete()
+            logger.info(f"Deleted {deleted_count} existing pincodes for {vendor_name}")
+        
+        created_count = 0
+        updated_count = 0
+        errors = []
+        oda_categories_used = {'A': 0, 'B': 0, 'C': 0, 'D': 0}
+        
+        for pincode_data in pincodes_data:
+            pincode_str = str(pincode_data.get('pincode', '')).strip()
+            
+            if not pincode_str or len(pincode_str) != 6 or not pincode_str.isdigit():
+                errors.append(f"Invalid pincode: {pincode_str}")
+                continue
+            
+            oda_category = pincode_data.get('oda_category', '').upper()
+            is_oda = pincode_data.get('is_oda', False)
+            
+            if isinstance(is_oda, str):
+                is_oda = is_oda.lower() in ['true', '1', 'yes', 'y']
+            
+            oda_charge = float(pincode_data.get('oda_charge_per_kg', 0))
+            oda_min = float(pincode_data.get('oda_min_charge', 0))
+            
+            if is_oda and oda_category in ['A', 'B', 'C', 'D']:
+                category_rates = {'A': 2, 'B': 4, 'C': 7, 'D': 10}
+                if oda_charge == 0:
+                    oda_charge = category_rates[oda_category]
+                if oda_min == 0:
+                    oda_min = oda_charge * 100
+                oda_categories_used[oda_category] += 1
+            
+            try:
+                obj, created = VendorPincode.objects.update_or_create(
+                    vendor=vendor,
+                    pincode=pincode_str,
+                    defaults={
+                        'city': pincode_data.get('city', ''),
+                        'state': pincode_data.get('state', ''),
+                        'is_oda': is_oda,
+                        'oda_category': oda_category if is_oda else '',
+                        'oda_charge_per_kg': oda_charge,
+                        'oda_min_charge': oda_min,
+                        'is_serviceable': pincode_data.get('is_serviceable', True)
+                    }
+                )
+                if created:
+                    created_count += 1
+                else:
+                    updated_count += 1
+            except Exception as e:
+                errors.append(f"Error for pincode {pincode_str}: {str(e)}")
+        
+        return Response({
+            'success': True,
+            'message': f'Pincodes uploaded successfully for {vendor_name}',
+            'vendor': vendor_name,
+            'created': created_count,
+            'updated': updated_count,
+            'total': len(pincodes_data),
+            'errors': errors if errors else None,
+            'oda_categories_used': oda_categories_used
+        })
+        
+    except VendorRate.DoesNotExist:
+        return Response({
+            "success": False,
+            "error": f'Vendor "{vendor_name}" not found.'
+        }, status=404)
+    except Exception as e:
+        logger.error(f"Error in bulk_upload_pincodes: {str(e)}")
+        return Response({
+            "success": False,
+            "error": str(e)
+        }, status=400)
+
+
+# ============================================
+# DOWNLOAD PINCODE TEMPLATE
+# ============================================
+
+@api_view(["GET"])
+def download_pincode_template(request, vendor_name):
+    """Download CSV template for pincode upload"""
+    try:
+        vendor = VendorRate.objects.get(vendor_name__iexact=vendor_name)
+        import csv
+        from django.http import HttpResponse
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{vendor_name}_pincodes_template.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(['pincode', 'city', 'state', 'is_oda', 'oda_category', 'oda_charge_per_kg', 'oda_min_charge', 'is_serviceable'])
+        
+        if 'BLUE DART' in vendor_name:
+            samples = [
+                ['212217', 'Allahabad', 'Uttar Pradesh', 'FALSE', '', '0', '0', 'TRUE'],
+                ['122502', 'Gurgaon', 'Haryana', 'FALSE', '', '0', '0', 'TRUE'],
+                ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
+            ]
+        else:
+            samples = [
+                ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', '500', 'TRUE'],
+                ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', '500', 'TRUE'],
+                ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
+            ]
+        
+        for sample in samples:
+            writer.writerow(sample)
+        
+        return response
+    except VendorRate.DoesNotExist:
+        return Response({"error": "Vendor not found"}, status=404)
+
+
+# ============================================
 # CHECK ODA FOR PINCODE
 # ============================================
 
@@ -760,80 +806,6 @@ def check_oda_status(request, vendor_name, pincode):
         return Response({'success': False, 'error': f'Vendor "{vendor_name}" not found'}, status=404)
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
-
-
-# ============================================
-# BULK PINCODE UPLOAD
-# ============================================
-
-@api_view(["POST"])
-def bulk_upload_pincodes(request, vendor_name):
-    """Bulk upload pincodes for a vendor"""
-    try:
-        vendor = VendorRate.objects.get(vendor_name__iexact=vendor_name)
-        pincodes_data = request.data.get('pincodes', [])
-        replace_existing = request.data.get('replace_existing', False)
-        
-        if not pincodes_data:
-            return Response({"success": False, "error": "No pincodes data provided."}, status=400)
-        
-        if replace_existing:
-            VendorPincode.objects.filter(vendor=vendor).delete()
-        
-        created_count = 0
-        updated_count = 0
-        errors = []
-        
-        for pincode_data in pincodes_data:
-            pincode_str = str(pincode_data.get('pincode', '')).strip()
-            
-            if not pincode_str or len(pincode_str) != 6 or not pincode_str.isdigit():
-                errors.append(f"Invalid pincode: {pincode_str}")
-                continue
-            
-            oda_category = pincode_data.get('oda_category', '').upper()
-            is_oda = pincode_data.get('is_oda', False)
-            
-            if isinstance(is_oda, str):
-                is_oda = is_oda.lower() in ['true', '1', 'yes', 'y']
-            
-            oda_charge = float(pincode_data.get('oda_charge_per_kg', 0))
-            oda_min = float(pincode_data.get('oda_min_charge', 0))
-            
-            try:
-                obj, created = VendorPincode.objects.update_or_create(
-                    vendor=vendor,
-                    pincode=pincode_str,
-                    defaults={
-                        'city': pincode_data.get('city', ''),
-                        'state': pincode_data.get('state', ''),
-                        'is_oda': is_oda,
-                        'oda_category': oda_category if is_oda else '',
-                        'oda_charge_per_kg': oda_charge,
-                        'oda_min_charge': oda_min,
-                        'is_serviceable': pincode_data.get('is_serviceable', True)
-                    }
-                )
-                if created:
-                    created_count += 1
-                else:
-                    updated_count += 1
-            except Exception as e:
-                errors.append(f"Error for pincode {pincode_str}: {str(e)}")
-        
-        return Response({
-            'success': True,
-            'message': f'Pincodes uploaded successfully',
-            'vendor': vendor_name,
-            'created': created_count,
-            'updated': updated_count,
-            'total': len(pincodes_data),
-            'errors': errors if errors else None
-        })
-    except VendorRate.DoesNotExist:
-        return Response({"success": False, "error": f'Vendor "{vendor_name}" not found.'}, status=404)
-    except Exception as e:
-        return Response({"success": False, "error": str(e)}, status=400)
 
 
 # ============================================
@@ -918,6 +890,122 @@ def calculate_all_vendor_rates(request):
 
 
 # ============================================
+# COMPARE VENDORS ENDPOINT
+# ============================================
+
+@api_view(["POST"])
+def compare_vendors(request):
+    """Compare rates across multiple vendors"""
+    try:
+        data = request.data
+        origin_pincode = data.get('origin_pincode')
+        destination_pincode = data.get('destination_pincode')
+        weight = float(data.get('weight', 0))
+        length = float(data.get('length', 0))
+        width = float(data.get('width', 0))
+        height = float(data.get('height', 0))
+        
+        volume_cft = (length * width * height) / (30.48 ** 3) if length and width and height else 0
+        
+        vendors = VendorRate.objects.filter(is_active=True)
+        comparison = []
+        
+        for vendor in vendors:
+            from_zone = get_vendor_specific_zone(origin_pincode, vendor.vendor_name)
+            to_zone = get_vendor_specific_zone(destination_pincode, vendor.vendor_name)
+            
+            if not is_pincode_serviceable_for_vendor(vendor, destination_pincode):
+                continue
+            
+            oda_info = check_oda_for_vendor(vendor, destination_pincode)
+            rate_info = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, 'standard', oda_info)
+            if rate_info:
+                comparison.append({
+                    'vendor': vendor.vendor_name,
+                    'rate_per_kg': rate_info['rate_per_kg'],
+                    'oda_applicable': rate_info['oda_applicable'],
+                    'oda_charge': rate_info['oda_charge'],
+                    'total_freight': rate_info['total_freight']
+                })
+        
+        comparison.sort(key=lambda x: x['total_freight'])
+        
+        return Response({
+            'origin': origin_pincode,
+            'destination': destination_pincode,
+            'weight': weight,
+            'comparison': comparison,
+            'recommended': comparison[0] if comparison else None
+        })
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
+
+
+# ============================================
+# CHECK ODA ALL VENDORS
+# ============================================
+
+@api_view(["GET"])
+def check_oda_all_vendors(request):
+    """Check ODA status for a pincode across all vendors"""
+    pincode = request.GET.get('pincode', '').strip()
+    
+    if not pincode or len(pincode) != 6:
+        return Response({'success': False, 'error': 'Invalid pincode'}, status=400)
+    
+    try:
+        vendors = VendorRate.objects.filter(is_active=True)
+        results = {}
+        
+        for vendor in vendors:
+            if not is_pincode_serviceable_for_vendor(vendor, pincode):
+                results[vendor.vendor_name] = {
+                    'is_oda': False, 'is_serviceable': False,
+                    'oda_category': None, 'oda_charge_per_kg': 0, 'oda_min_charge': 0
+                }
+            else:
+                oda_info = check_oda_for_vendor(vendor, pincode)
+                results[vendor.vendor_name] = {
+                    'is_oda': oda_info.get('is_oda', False),
+                    'is_serviceable': oda_info.get('is_serviceable', True),
+                    'oda_category': oda_info.get('category'),
+                    'oda_charge_per_kg': oda_info.get('charge_per_kg', 0),
+                    'oda_min_charge': oda_info.get('min_charge', 0)
+                }
+        
+        return Response({'success': True, 'pincode': pincode, 'results': results})
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+# ============================================
+# GET VENDOR PINCODE STATISTICS
+# ============================================
+
+@api_view(["GET"])
+def get_vendor_pincode_stats(request, vendor_name):
+    """Get pincode statistics for a vendor"""
+    try:
+        vendor = VendorRate.objects.get(vendor_name__iexact=vendor_name)
+        
+        total_pincodes = VendorPincode.objects.filter(vendor=vendor).count()
+        oda_pincodes = VendorPincode.objects.filter(vendor=vendor, is_oda=True).count()
+        serviceable_pincodes = VendorPincode.objects.filter(vendor=vendor, is_serviceable=True).count()
+        
+        return Response({
+            'success': True,
+            'vendor': vendor_name,
+            'total_pincodes': total_pincodes,
+            'oda_pincodes': oda_pincodes,
+            'serviceable_pincodes': serviceable_pincodes
+        })
+    except VendorRate.DoesNotExist:
+        return Response({'success': False, 'error': f'Vendor "{vendor_name}" not found'}, status=404)
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=400)
+
+
+# ============================================
 # OTHER ENDPOINTS
 # ============================================
 
@@ -992,85 +1080,205 @@ def get_pincode_location(request, pincode):
         return Response({"error": str(e)}, status=400)
 
 
-@api_view(["GET"])
-def download_pincode_template(request, vendor_name):
-    """Download CSV template for pincode upload"""
+@api_view(["POST"])
+def update_vendor_rate(request, vendor_name):
     try:
-        vendor = VendorRate.objects.get(vendor_name__iexact=vendor_name)
-        import csv
-        from django.http import HttpResponse
-        
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="{vendor_name}_pincodes_template.csv"'
-        
-        writer = csv.writer(response)
-        writer.writerow(['pincode', 'city', 'state', 'is_oda', 'oda_category', 'oda_charge_per_kg', 'oda_min_charge', 'is_serviceable'])
-        
-        samples = [
-            ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', '500', 'TRUE'],
-            ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', '500', 'TRUE'],
-            ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
-        ]
-        
-        for sample in samples:
-            writer.writerow(sample)
-        
-        return response
+        data = request.data
+        obj, created = VendorRate.objects.update_or_create(
+            vendor_name=vendor_name,
+            defaults={"rates": data.get('rates', {}), "charges": data.get('charges', {})}
+        )
+        return Response({"message": "Rates updated", "vendor": vendor_name}, status=200)
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
+
+
+@api_view(["GET"])
+def get_vendor_rate(request, vendor_name):
+    try:
+        obj = VendorRate.objects.get(vendor_name=vendor_name)
+        return Response({
+            "vendor": vendor_name,
+            "rates": obj.rates,
+            "charges": obj.charges,
+            "delhivery_6cft": obj.delhivery_6cft,
+            "delhivery_10cft": obj.delhivery_10cft
+        })
     except VendorRate.DoesNotExist:
         return Response({"error": "Vendor not found"}, status=404)
 
 
-@api_view(["GET"])
-def check_oda_all_vendors(request):
-    """Check ODA status for a pincode across all vendors"""
-    pincode = request.GET.get('pincode', '').strip()
-    
-    if not pincode or len(pincode) != 6:
-        return Response({'success': False, 'error': 'Invalid pincode'}, status=400)
-    
+@api_view(["POST"])
+def bulk_upload_rates(request):
     try:
-        vendors = VendorRate.objects.filter(is_active=True)
-        results = {}
+        data = request.data
+        vendor_name = data.get('vendor_name')
+        rates_data = data.get('rates_data', {})
+        replace_existing = data.get('replace_existing', False)
         
-        for vendor in vendors:
-            if not is_pincode_serviceable_for_vendor(vendor, pincode):
-                results[vendor.vendor_name] = {
-                    'is_oda': False, 'is_serviceable': False,
-                    'oda_category': None, 'oda_charge_per_kg': 0, 'oda_min_charge': 0
-                }
-            else:
-                oda_info = check_oda_for_vendor(vendor, pincode)
-                results[vendor.vendor_name] = {
-                    'is_oda': oda_info.get('is_oda', False),
-                    'is_serviceable': oda_info.get('is_serviceable', True),
-                    'oda_category': oda_info.get('category'),
-                    'oda_charge_per_kg': oda_info.get('charge_per_kg', 0),
-                    'oda_min_charge': oda_info.get('min_charge', 0)
-                }
+        vendor, created = VendorRate.objects.get_or_create(
+            vendor_name=vendor_name,
+            defaults={'rates': {}, 'charges': {}}
+        )
         
-        return Response({'success': True, 'pincode': pincode, 'results': results})
-    except Exception as e:
-        return Response({'success': False, 'error': str(e)}, status=500)
-
-
-@api_view(["GET"])
-def get_vendor_pincode_stats(request, vendor_name):
-    """Get pincode statistics for a vendor"""
-    try:
-        vendor = VendorRate.objects.get(vendor_name__iexact=vendor_name)
+        if replace_existing:
+            vendor.rates = rates_data
+        else:
+            for from_zone, to_zones in rates_data.items():
+                if from_zone not in vendor.rates:
+                    vendor.rates[from_zone] = {}
+                for to_zone, rate in to_zones.items():
+                    vendor.rates[from_zone][to_zone] = rate
         
-        total_pincodes = VendorPincode.objects.filter(vendor=vendor).count()
-        oda_pincodes = VendorPincode.objects.filter(vendor=vendor, is_oda=True).count()
-        serviceable_pincodes = VendorPincode.objects.filter(vendor=vendor, is_serviceable=True).count()
+        vendor.save()
         
         return Response({
-            'success': True,
+            'message': f'Rates uploaded successfully for {vendor_name}',
             'vendor': vendor_name,
-            'total_pincodes': total_pincodes,
-            'oda_pincodes': oda_pincodes,
-            'serviceable_pincodes': serviceable_pincodes
+            'zones_updated': len(rates_data.keys())
         })
-    except VendorRate.DoesNotExist:
-        return Response({'success': False, 'error': f'Vendor "{vendor_name}" not found'}, status=404)
     except Exception as e:
-        return Response({'success': False, 'error': str(e)}, status=400)
+        return Response({"error": str(e)}, status=400)
+
+
+@api_view(["GET"])
+def get_rate_history(request, vendor_name=None):
+    try:
+        if vendor_name:
+            vendor = VendorRate.objects.get(vendor_name=vendor_name)
+            history = RateHistory.objects.filter(vendor=vendor).order_by('-updated_at')
+        else:
+            history = RateHistory.objects.all().order_by('-updated_at')
+        
+        serializer = RateHistorySerializer(history, many=True)
+        return Response(serializer.data)
+    except VendorRate.DoesNotExist:
+        return Response({"error": "Vendor not found"}, status=404)
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
+
+
+@api_view(["GET", "POST", "PUT", "DELETE"])
+def manage_zones(request, zone_id=None):
+    if request.method == "GET":
+        if zone_id:
+            try:
+                zone = ZoneMaster.objects.get(id=zone_id)
+                serializer = ZoneMasterSerializer(zone)
+                return Response(serializer.data)
+            except ZoneMaster.DoesNotExist:
+                return Response({"error": "Zone not found"}, status=404)
+        else:
+            zones = ZoneMaster.objects.all()
+            serializer = ZoneMasterSerializer(zones, many=True)
+            return Response(serializer.data)
+    
+    elif request.method == "POST":
+        serializer = ZoneMasterSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+    
+    elif request.method == "PUT":
+        try:
+            zone = ZoneMaster.objects.get(id=zone_id)
+            serializer = ZoneMasterSerializer(zone, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=400)
+        except ZoneMaster.DoesNotExist:
+            return Response({"error": "Zone not found"}, status=404)
+    
+    elif request.method == "DELETE":
+        try:
+            zone = ZoneMaster.objects.get(id=zone_id)
+            zone.delete()
+            return Response({"message": "Zone deleted successfully"})
+        except ZoneMaster.DoesNotExist:
+            return Response({"error": "Zone not found"}, status=404)
+
+
+@api_view(["GET", "POST", "PUT", "DELETE"])
+def manage_b2b_rates(request, rate_id=None):
+    if request.method == "GET":
+        if rate_id:
+            try:
+                rate = B2BRate.objects.get(id=rate_id)
+                serializer = B2BRateSerializer(rate)
+                return Response(serializer.data)
+            except B2BRate.DoesNotExist:
+                return Response({"error": "Rate not found"}, status=404)
+        else:
+            rates = B2BRate.objects.filter(is_active=True)
+            serializer = B2BRateSerializer(rates, many=True)
+            return Response(serializer.data)
+    
+    elif request.method == "POST":
+        serializer = B2BRateSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+    
+    elif request.method == "PUT":
+        try:
+            rate = B2BRate.objects.get(id=rate_id)
+            serializer = B2BRateSerializer(rate, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=400)
+        except B2BRate.DoesNotExist:
+            return Response({"error": "Rate not found"}, status=404)
+    
+    elif request.method == "DELETE":
+        try:
+            rate = B2BRate.objects.get(id=rate_id)
+            rate.delete()
+            return Response({"message": "Rate deleted successfully"})
+        except B2BRate.DoesNotExist:
+            return Response({"error": "Rate not found"}, status=404)
+
+
+@api_view(["GET", "POST", "PUT", "DELETE"])
+def manage_vendor_service_rates(request, service_id=None):
+    if request.method == "GET":
+        if service_id:
+            try:
+                service = VendorServiceRate.objects.get(id=service_id)
+                serializer = VendorServiceRateSerializer(service)
+                return Response(serializer.data)
+            except VendorServiceRate.DoesNotExist:
+                return Response({"error": "Service not found"}, status=404)
+        else:
+            services = VendorServiceRate.objects.filter(is_active=True)
+            serializer = VendorServiceRateSerializer(services, many=True)
+            return Response(serializer.data)
+    
+    elif request.method == "POST":
+        serializer = VendorServiceRateSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+    
+    elif request.method == "PUT":
+        try:
+            service = VendorServiceRate.objects.get(id=service_id)
+            serializer = VendorServiceRateSerializer(service, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=400)
+        except VendorServiceRate.DoesNotExist:
+            return Response({"error": "Service not found"}, status=404)
+    
+    elif request.method == "DELETE":
+        try:
+            service = VendorServiceRate.objects.get(id=service_id)
+            service.delete()
+            return Response({"message": "Service rate deleted successfully"})
+        except VendorServiceRate.DoesNotExist:
+            return Response({"error": "Service not found"}, status=404)
