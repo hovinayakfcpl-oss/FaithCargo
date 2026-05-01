@@ -8,16 +8,10 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || "https://faithcargo.onrend
 // CLIENT ZONE MAPPING (Based on your image)
 // ============================================
 
-// Client zones as per your requirement
-const CLIENT_ZONES = [
-  "Delhi NCR", "NORTH 2", "NORTH 3", "Central", "W1", "W2", "East", "South", "NE1", "NE2", "NE3"
-];
-
-// Get client zone from pincode based on your region mapping
 const getClientZoneFromPincode = (pincode) => {
   const pincodeStr = String(pincode).trim();
   
-  // Delhi NCR - New Delhi, Gurgaon, Noida, Ghaziabad, Faridabad
+  // Delhi NCR
   if (pincodeStr.startsWith('110') || pincodeStr.startsWith('122') ||
       pincodeStr.startsWith('201') || pincodeStr === '110001' || pincodeStr === '110002' ||
       pincodeStr === '110003' || pincodeStr === '122001' || pincodeStr === '122002' ||
@@ -26,7 +20,7 @@ const getClientZoneFromPincode = (pincode) => {
     return 'Delhi NCR';
   }
   
-  // NORTH 3 - Srinagar specific
+  // NORTH 3 - Srinagar
   const srinagarPincodes = ['190001', '190002', '190003', '190004', '190005', '190006', 
                            '190007', '190008', '190009', '190010', '190011', '190012', 
                            '190013', '190014', '190015'];
@@ -34,13 +28,13 @@ const getClientZoneFromPincode = (pincode) => {
     return 'NORTH 3';
   }
   
-  // Central - Madhya Pradesh & Chhattisgarh
+  // Central
   if (pincodeStr.startsWith('45') || pincodeStr.startsWith('46') || pincodeStr.startsWith('47') ||
       pincodeStr.startsWith('48') || pincodeStr.startsWith('49')) {
     return 'Central';
   }
   
-  // W1 - Gujarat & Daman & Diu
+  // W1 - Gujarat
   if (pincodeStr.startsWith('36') || pincodeStr.startsWith('37') || pincodeStr.startsWith('38') ||
       pincodeStr.startsWith('39') || pincodeStr.startsWith('396') || pincodeStr.startsWith('362')) {
     return 'W1';
@@ -52,7 +46,7 @@ const getClientZoneFromPincode = (pincode) => {
     return 'W2';
   }
   
-  // South - Karnataka, AP, Pondicherry, Kerala, Tamil Nadu
+  // South
   if (pincodeStr.startsWith('50') || pincodeStr.startsWith('51') || pincodeStr.startsWith('52') ||
       pincodeStr.startsWith('53') || pincodeStr.startsWith('54') || pincodeStr.startsWith('55') ||
       pincodeStr.startsWith('56') || pincodeStr.startsWith('57') || pincodeStr.startsWith('58') ||
@@ -65,23 +59,14 @@ const getClientZoneFromPincode = (pincode) => {
   
   // Northeast Zones
   if (pincodeStr.startsWith('78') || pincodeStr.startsWith('79')) {
-    // NE1 - Guwahati, Sikkim
-    if (pincodeStr.startsWith('781') || pincodeStr.startsWith('737')) {
-      return 'NE1';
-    }
-    // NE2 - Assam (other), Manipur, Meghalaya, Tripura, Arunachal
+    if (pincodeStr.startsWith('781') || pincodeStr.startsWith('737')) return 'NE1';
     if (pincodeStr.startsWith('782') || pincodeStr.startsWith('783') || pincodeStr.startsWith('784') ||
         pincodeStr.startsWith('785') || pincodeStr.startsWith('786') || pincodeStr.startsWith('787') ||
-        pincodeStr.startsWith('788') || pincodeStr.startsWith('789')) {
-      return 'NE2';
-    }
-    // NE3 - Mizoram, Nagaland
-    if (pincodeStr.startsWith('796') || pincodeStr.startsWith('797') || pincodeStr.startsWith('798')) {
-      return 'NE3';
-    }
+        pincodeStr.startsWith('788') || pincodeStr.startsWith('789')) return 'NE2';
+    if (pincodeStr.startsWith('796') || pincodeStr.startsWith('797') || pincodeStr.startsWith('798')) return 'NE3';
   }
   
-  // East - West Bengal, Orissa, Bihar, Jharkhand
+  // East
   if (pincodeStr.startsWith('70') || pincodeStr.startsWith('71') || pincodeStr.startsWith('72') ||
       pincodeStr.startsWith('73') || pincodeStr.startsWith('74') || pincodeStr.startsWith('75') ||
       pincodeStr.startsWith('76') || pincodeStr.startsWith('77') || pincodeStr.startsWith('80') ||
@@ -89,108 +74,48 @@ const getClientZoneFromPincode = (pincode) => {
     return 'East';
   }
   
-  // Default NORTH 2 - Punjab, Rajasthan, Uttaranchal, Haryana (excluding NCR), UP (excluding NCR), J&K, HP
   return 'NORTH 2';
 };
 
 // ============================================
-// VENDOR-SPECIFIC ZONE MAPPING (Client Zone → Vendor Zone)
+// VENDOR-SPECIFIC ZONE LISTS (as stored in database)
+// ============================================
+
+// TRUCX DLH Lite - 11 zones
+const ZONES_TRUCX_LITE = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1", "NE2"];
+
+// TRUCX DLH Dense & Cargo - 16 zones
+const ZONES_TRUCX_16 = ["N1", "N2", "N3", "N4", "C1", "C2", "W1", "W2", "S1", "S2", "S3", "S4", "E1", "E2", "NE1", "NE2"];
+
+// RIVIGO - 12 zones
+const ZONES_RIVIGO = ["N1", "N2", "N3", "C1", "W1", "W2", "W3", "S1", "S2", "E1", "NE1", "NE2"];
+
+// GATI - 12 zones
+const ZONES_GATI = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1", "NE2", "NE3"];
+
+// VXPRESS - 10 zones (database custom names)
+const ZONES_VXPRESS = ["North1", "North2", "North3", "Guj1", "Guj2", "Mah1", "Mah2", "South1", "South2", "East1"];
+
+// SHIVANI VX - 16 zones (database custom names)
+const ZONES_SHIVANI_VX = ["North1", "North2", "North3", "Guj1", "Guj2", "Mah1", "Mah2", "Goa", "Central1", "Central2", "South1", "South2", "Kerala", "East1", "East2", "NE"];
+
+// SHIPSHOPY BLUE DART & DELIVERY - 16 zones
+const ZONES_SHIPSHOPY = ZONES_TRUCX_16;
+
+// PD LOGISTICS - No standard zones (only CFT)
+const ZONES_PD_LOGISTICS = [];
+
+// DELHIVERY - 16 zones (default)
+const ZONES_DEFAULT = ZONES_TRUCX_16;
+
+// ============================================
+// ZONE MAPPING: Client Zone → Vendor Database Zone
 // ============================================
 
 const getVendorZoneFromClientZone = (clientZone, vendorName) => {
   const vendorUpper = vendorName.toUpperCase();
   
-  // GATI (12 zones: N1,N2,N3, C1, W1,W2, E1, S1, NE1,NE2)
-  if (vendorUpper.includes('GATI')) {
-    const mapping = {
-      'Delhi NCR': 'N1',
-      'NORTH 2': 'N2',
-      'NORTH 3': 'N3',
-      'Central': 'C1',
-      'W1': 'W1',
-      'W2': 'W2',
-      'East': 'E1',
-      'South': 'S1',
-      'NE1': 'NE1',
-      'NE2': 'NE2',
-      'NE3': 'E1'
-    };
-    return mapping[clientZone] || 'N1';
-  }
-  
-  // PD LOGISTICS (17 zones - supports all NE)
-  if (vendorUpper.includes('PD LOGISTICS')) {
-    const mapping = {
-      'Delhi NCR': 'N1',
-      'NORTH 2': 'N2',
-      'NORTH 3': 'N3',
-      'Central': 'C1',
-      'W1': 'W1',
-      'W2': 'W2',
-      'East': 'E1',
-      'South': 'S1',
-      'NE1': 'NE1',
-      'NE2': 'NE2',
-      'NE3': 'NE3'
-    };
-    return mapping[clientZone] || 'N1';
-  }
-  
-  // RIVIGO (12 zones)
-  if (vendorUpper.includes('RIVIGO')) {
-    const mapping = {
-      'Delhi NCR': 'N1',
-      'NORTH 2': 'N2',
-      'NORTH 3': 'N3',
-      'Central': 'C1',
-      'W1': 'W1',
-      'W2': 'W2',
-      'East': 'E1',
-      'South': 'S1',
-      'NE1': 'NE1',
-      'NE2': 'NE2',
-      'NE3': 'NE2'
-    };
-    return mapping[clientZone] || 'N1';
-  }
-  
-  // TRUCX DLH Lite (11 zones)
-  if (vendorUpper.includes('TRUCX DLH LITE')) {
-    const mapping = {
-      'Delhi NCR': 'N1',
-      'NORTH 2': 'N2',
-      'NORTH 3': 'N3',
-      'Central': 'C1',
-      'W1': 'W1',
-      'W2': 'W2',
-      'East': 'E1',
-      'South': 'S1',
-      'NE1': 'NE1',
-      'NE2': 'NE2',
-      'NE3': 'NE2'
-    };
-    return mapping[clientZone] || 'N1';
-  }
-  
-  // TRUCX DLH Dense / Cargo (16 zones)
-  if (vendorUpper.includes('TRUCX DLH DENSE') || vendorUpper.includes('TRUCX DLH CARGO')) {
-    const mapping = {
-      'Delhi NCR': 'N1',
-      'NORTH 2': 'N2',
-      'NORTH 3': 'N3',
-      'Central': 'C1',
-      'W1': 'W1',
-      'W2': 'W2',
-      'East': 'E1',
-      'South': 'S1',
-      'NE1': 'NE1',
-      'NE2': 'NE2',
-      'NE3': 'NE3'
-    };
-    return mapping[clientZone] || 'N1';
-  }
-  
-  // VXPRESS (Custom: North1, North2, North3, Guj1, Guj2, Mah1, Mah2, South1, South2, East1)
+  // VXPRESS - Database custom zone names
   if (vendorUpper.includes('VXPRESS')) {
     const mapping = {
       'Delhi NCR': 'North1',
@@ -208,7 +133,7 @@ const getVendorZoneFromClientZone = (clientZone, vendorName) => {
     return mapping[clientZone] || 'North1';
   }
   
-  // SHIVANI VX (17 custom zones)
+  // SHIVANI VX - Database custom zone names
   if (vendorUpper.includes('SHIVANI VX')) {
     const mapping = {
       'Delhi NCR': 'North1',
@@ -226,115 +151,111 @@ const getVendorZoneFromClientZone = (clientZone, vendorName) => {
     return mapping[clientZone] || 'North1';
   }
   
-  // SHIPSHOPY BLUE DART (16 zones)
+  // GATI
+  if (vendorUpper.includes('GATI')) {
+    const mapping = {
+      'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
+      'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
+      'East': 'E1', 'South': 'S1',
+      'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'E1'
+    };
+    return mapping[clientZone] || 'N1';
+  }
+  
+  // PD LOGISTICS
+  if (vendorUpper.includes('PD LOGISTICS')) {
+    const mapping = {
+      'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
+      'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
+      'East': 'E1', 'South': 'S1',
+      'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'NE3'
+    };
+    return mapping[clientZone] || 'N1';
+  }
+  
+  // RIVIGO
+  if (vendorUpper.includes('RIVIGO')) {
+    const mapping = {
+      'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
+      'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
+      'East': 'E1', 'South': 'S1',
+      'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'NE2'
+    };
+    return mapping[clientZone] || 'N1';
+  }
+  
+  // TRUCX DLH Lite
+  if (vendorUpper.includes('TRUCX DLH LITE')) {
+    const mapping = {
+      'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
+      'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
+      'East': 'E1', 'South': 'S1',
+      'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'NE2'
+    };
+    return mapping[clientZone] || 'N1';
+  }
+  
+  // TRUCX DLH Dense / Cargo
+  if (vendorUpper.includes('TRUCX DLH DENSE') || vendorUpper.includes('TRUCX DLH CARGO')) {
+    const mapping = {
+      'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
+      'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
+      'East': 'E1', 'South': 'S1',
+      'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'NE3'
+    };
+    return mapping[clientZone] || 'N1';
+  }
+  
+  // SHIPSHOPY BLUE DART
   if (vendorUpper.includes('SHIPSHOPY BLUE DART')) {
     const mapping = {
-      'Delhi NCR': 'N1',
-      'NORTH 2': 'N2',
-      'NORTH 3': 'N3',
-      'Central': 'C1',
-      'W1': 'W1',
-      'W2': 'W2',
-      'East': 'E1',
-      'South': 'S1',
-      'NE1': 'NE1',
-      'NE2': 'NE2',
-      'NE3': 'NE3'
+      'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
+      'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
+      'East': 'E1', 'South': 'S1',
+      'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'NE3'
     };
     return mapping[clientZone] || 'N1';
   }
   
-  // SHIPSHOPY DELIVERY (16 zones)
+  // SHIPSHOPY DELIVERY
   if (vendorUpper.includes('SHIPSHOPY DELIVERY')) {
     const mapping = {
-      'Delhi NCR': 'N1',
-      'NORTH 2': 'N2',
-      'NORTH 3': 'N3',
-      'Central': 'C1',
-      'W1': 'W1',
-      'W2': 'W2',
-      'East': 'E1',
-      'South': 'S1',
-      'NE1': 'NE1',
-      'NE2': 'NE2',
-      'NE3': 'NE3'
+      'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
+      'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
+      'East': 'E1', 'South': 'S1',
+      'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'NE3'
     };
     return mapping[clientZone] || 'N1';
   }
   
-  // DELHIVERY (Standard zones)
+  // DELHIVERY
   if (vendorUpper.includes('DELHIVERY')) {
     const mapping = {
-      'Delhi NCR': 'N1',
-      'NORTH 2': 'N2',
-      'NORTH 3': 'N3',
-      'Central': 'C1',
-      'W1': 'W1',
-      'W2': 'W2',
-      'East': 'E1',
-      'South': 'S1',
-      'NE1': 'E1',
-      'NE2': 'E1',
-      'NE3': 'E1'
+      'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
+      'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
+      'East': 'E1', 'South': 'S1',
+      'NE1': 'E1', 'NE2': 'E1', 'NE3': 'E1'
     };
     return mapping[clientZone] || 'N1';
   }
   
-  // Default mapping for any other vendor
+  // Default
   const defaultMapping = {
-    'Delhi NCR': 'N1',
-    'NORTH 2': 'N2',
-    'NORTH 3': 'N3',
-    'Central': 'C1',
-    'W1': 'W1',
-    'W2': 'W2',
-    'East': 'E1',
-    'South': 'S1',
-    'NE1': 'NE1',
-    'NE2': 'NE2',
-    'NE3': 'NE3'
+    'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
+    'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
+    'East': 'E1', 'South': 'S1',
+    'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'NE3'
   };
   return defaultMapping[clientZone] || 'N1';
 };
 
-// Main function to get vendor-specific zone from pincode
+// Get vendor zone from pincode
 const getVendorZoneFromPincode = (pincode, vendorName) => {
   const clientZone = getClientZoneFromPincode(pincode);
   const vendorZone = getVendorZoneFromClientZone(clientZone, vendorName);
-  console.log(`📍 Pincode ${pincode} → Client Zone: ${clientZone} → ${vendorName} Zone: ${vendorZone}`);
-  return { clientZone, vendorZone };
+  console.log(`📍 ${pincode} → Client: ${clientZone} → ${vendorName} Zone: ${vendorZone}`);
+  return vendorZone;
 };
-
-// ============================================
-// VENDOR-SPECIFIC ZONE LISTS
-// ============================================
-
-// TRUCX DLH Lite - 11 zones
-const ZONES_TRUCX_LITE = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1", "NE2"];
-
-// TRUCX DLH Dense & Cargo - 16 zones
-const ZONES_TRUCX_16 = ["N1", "N2", "N3", "N4", "C1", "C2", "W1", "W2", "S1", "S2", "S3", "S4", "E1", "E2", "NE1", "NE2"];
-
-// RIVIGO - 12 zones (includes W3)
-const ZONES_RIVIGO = ["N1", "N2", "N3", "C1", "W1", "W2", "W3", "S1", "S2", "E1", "NE1", "NE2"];
-
-// GATI - 12 zones (includes NE3)
-const ZONES_GATI = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1", "NE2", "NE3"];
-
-// VXPRESS - 10 zones (custom names)
-const ZONES_VXPRESS = ["North1", "North2", "North3", "Guj1", "Guj2", "Mah1", "Mah2", "South1", "South2", "East1"];
-
-// SHIVANI VX - 16 zones (custom names)
-const ZONES_SHIVANI_VX = ["North1", "North2", "North3", "Guj1", "Guj2", "Mah1", "Mah2", "Goa", "Central1", "Central2", "South1", "South2", "Kerala", "East1", "East2", "NE"];
-
-// SHIPSHOPY BLUE DART & DELIVERY - 16 zones
-const ZONES_SHIPSHOPY = ZONES_TRUCX_16;
-
-// PD LOGISTICS - No standard zones (only CFT)
-const ZONES_PD_LOGISTICS = [];
-
-// DELHIVERY - 16 zones (default)
-const ZONES_DEFAULT = ZONES_TRUCX_16;
 
 // Get zones for a specific vendor
 const getZonesForVendor = (vendorName) => {
@@ -402,8 +323,6 @@ function VendorRateCalculator() {
   const [chargedWeight, setChargedWeight] = useState(0);
   const [originClientZone, setOriginClientZone] = useState("");
   const [destClientZone, setDestClientZone] = useState("");
-  const [originVendorZones, setOriginVendorZones] = useState({});
-  const [destVendorZones, setDestVendorZones] = useState({});
   const [volumeCFT, setVolumeCFT] = useState(0);
   
   const abortControllerRef = useRef(null);
@@ -430,29 +349,15 @@ function VendorRateCalculator() {
   useEffect(() => {
     if (pickup && pickup.length === 6) {
       fetchPincodeLocation(pickup, "origin");
-      const { clientZone, vendorZone } = getVendorZoneFromPincode(pickup, "STANDARD");
+      const clientZone = getClientZoneFromPincode(pickup);
       setOriginClientZone(clientZone);
-      // Calculate vendor zones for all vendors
-      const vendorZones = {};
-      vendors.forEach(vendor => {
-        const { vendorZone: vz } = getVendorZoneFromPincode(pickup, vendor.vendor_name);
-        vendorZones[vendor.vendor_name] = vz;
-      });
-      setOriginVendorZones(vendorZones);
     }
     if (destination && destination.length === 6) {
       fetchPincodeLocation(destination, "dest");
-      const { clientZone, vendorZone } = getVendorZoneFromPincode(destination, "STANDARD");
+      const clientZone = getClientZoneFromPincode(destination);
       setDestClientZone(clientZone);
-      // Calculate vendor zones for all vendors
-      const vendorZones = {};
-      vendors.forEach(vendor => {
-        const { vendorZone: vz } = getVendorZoneFromPincode(destination, vendor.vendor_name);
-        vendorZones[vendor.vendor_name] = vz;
-      });
-      setDestVendorZones(vendorZones);
     }
-  }, [pickup, destination, vendors]);
+  }, [pickup, destination]);
 
   useEffect(() => {
     return () => {
@@ -608,7 +513,7 @@ function VendorRateCalculator() {
       return 0;
     }
     
-    // PD LOGISTICS - ONLY CFT rates (6CFT and 10CFT)
+    // PD LOGISTICS - ONLY CFT rates
     if (vendorName === PD_LOGISTICS) {
       if (cftType === "6CFT" && vendor.delhivery_6cft) {
         rate = vendor.delhivery_6cft[fromZone]?.[toZone] || 0;
@@ -657,7 +562,7 @@ function VendorRateCalculator() {
     
     // Skip if no rate found
     if (ratePerKg === 0) {
-      console.log(`⏭️ Skipping ${vendorName} ${cftSize} - no rate found`);
+      console.log(`⏭️ Skipping ${vendorName} ${cftSize} - no rate found for ${fromZone}→${toZone}`);
       return null;
     }
     
@@ -800,8 +705,8 @@ function VendorRateCalculator() {
         }
         
         // Get vendor-specific zones
-        const { vendorZone: fromZone } = getVendorZoneFromPincode(pickup, vendorName);
-        const { vendorZone: toZone } = getVendorZoneFromPincode(destination, vendorName);
+        const fromZone = getVendorZoneFromPincode(pickup, vendorName);
+        const toZone = getVendorZoneFromPincode(destination, vendorName);
         
         console.log(`📍 ${vendorName}: ${pickup}(${fromZone}) → ${destination}(${toZone})`);
         
@@ -886,8 +791,6 @@ function VendorRateCalculator() {
     setVolumeCFT(0);
     setOriginClientZone("");
     setDestClientZone("");
-    setOriginVendorZones({});
-    setDestVendorZones({});
   };
 
   const toggleVendorSelection = (vendorName) => {
