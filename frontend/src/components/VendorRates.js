@@ -95,7 +95,6 @@ const getClientZoneFromPincode = (pincode) => {
 
 // ============================================
 // VENDOR-SPECIFIC ZONE MAPPING (Client Zone → Vendor Zone)
-// UPDATED: VXPRESS and SHIVANI VX now use standard database zone names
 // ============================================
 
 const getVendorZoneFromClientZone = (clientZone, vendorName) => {
@@ -191,40 +190,40 @@ const getVendorZoneFromClientZone = (clientZone, vendorName) => {
     return mapping[clientZone] || 'N1';
   }
   
-  // VXPRESS - NOW USING STANDARD DATABASE ZONE NAMES (N1, N2, N3, C1, W1, W2, S1, S2, E1, NE1)
+  // VXPRESS (Custom: North1, North2, North3, Guj1, Guj2, Mah1, Mah2, South1, South2, East1)
   if (vendorUpper.includes('VXPRESS')) {
     const mapping = {
-      'Delhi NCR': 'N1',
-      'NORTH 2': 'N2',
-      'NORTH 3': 'N3',
-      'Central': 'C1',
-      'W1': 'W1',
-      'W2': 'W2',
-      'East': 'E1',
-      'South': 'S1',
-      'NE1': 'NE1',
-      'NE2': 'NE1',
-      'NE3': 'NE1'
+      'Delhi NCR': 'North1',
+      'NORTH 2': 'North2',
+      'NORTH 3': 'North3',
+      'Central': 'Mah1',
+      'W1': 'Guj1',
+      'W2': 'Mah1',
+      'East': 'East1',
+      'South': 'South1',
+      'NE1': 'East1',
+      'NE2': 'East1',
+      'NE3': 'East1'
     };
-    return mapping[clientZone] || 'N1';
+    return mapping[clientZone] || 'North1';
   }
   
-  // SHIVANI VX - NOW USING STANDARD DATABASE ZONE NAMES (N1, N2, N3, C1, C2, W1, W2, S1, S2, E1, E2, NE1, NE2)
+  // SHIVANI VX (17 custom zones)
   if (vendorUpper.includes('SHIVANI VX')) {
     const mapping = {
-      'Delhi NCR': 'N1',
-      'NORTH 2': 'N2',
-      'NORTH 3': 'N3',
-      'Central': 'C1',
-      'W1': 'W1',
-      'W2': 'W2',
-      'East': 'E1',
-      'South': 'S1',
-      'NE1': 'NE1',
-      'NE2': 'NE2',
-      'NE3': 'NE2'
+      'Delhi NCR': 'North1',
+      'NORTH 2': 'North2',
+      'NORTH 3': 'North3',
+      'Central': 'Central1',
+      'W1': 'Guj1',
+      'W2': 'Mah1',
+      'East': 'East1',
+      'South': 'South1',
+      'NE1': 'NE',
+      'NE2': 'NE',
+      'NE3': 'NE'
     };
-    return mapping[clientZone] || 'N1';
+    return mapping[clientZone] || 'North1';
   }
   
   // SHIPSHOPY BLUE DART (16 zones)
@@ -308,7 +307,6 @@ const getVendorZoneFromPincode = (pincode, vendorName) => {
 
 // ============================================
 // VENDOR-SPECIFIC ZONE LISTS
-// UPDATED: VXPRESS and SHIVANI VX now use standard database zone names
 // ============================================
 
 // TRUCX DLH Lite - 11 zones
@@ -323,13 +321,11 @@ const ZONES_RIVIGO = ["N1", "N2", "N3", "C1", "W1", "W2", "W3", "S1", "S2", "E1"
 // GATI - 12 zones (includes NE3)
 const ZONES_GATI = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1", "NE2", "NE3"];
 
-// VXPRESS - NOW USING STANDARD DATABASE ZONE NAMES (10 zones)
-// Database stores rates with these zone names: N1, N2, N3, C1, W1, W2, S1, S2, E1, NE1
-const ZONES_VXPRESS = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1"];
+// VXPRESS - 10 zones (custom names)
+const ZONES_VXPRESS = ["North1", "North2", "North3", "Guj1", "Guj2", "Mah1", "Mah2", "South1", "South2", "East1"];
 
-// SHIVANI VX - NOW USING STANDARD DATABASE ZONE NAMES (13 zones)
-// Database stores rates with these zone names: N1, N2, N3, C1, C2, W1, W2, S1, S2, E1, E2, NE1, NE2
-const ZONES_SHIVANI_VX = ["N1", "N2", "N3", "C1", "C2", "W1", "W2", "S1", "S2", "E1", "E2", "NE1", "NE2"];
+// SHIVANI VX - 16 zones (custom names)
+const ZONES_SHIVANI_VX = ["North1", "North2", "North3", "Guj1", "Guj2", "Mah1", "Mah2", "Goa", "Central1", "Central2", "South1", "South2", "Kerala", "East1", "East2", "NE"];
 
 // SHIPSHOPY BLUE DART & DELIVERY - 16 zones
 const ZONES_SHIPSHOPY = ZONES_TRUCX_16;
@@ -406,8 +402,6 @@ function VendorRateCalculator() {
   const [chargedWeight, setChargedWeight] = useState(0);
   const [originClientZone, setOriginClientZone] = useState("");
   const [destClientZone, setDestClientZone] = useState("");
-  const [originVendorZones, setOriginVendorZones] = useState({});
-  const [destVendorZones, setDestVendorZones] = useState({});
   const [volumeCFT, setVolumeCFT] = useState(0);
   
   const abortControllerRef = useRef(null);
@@ -626,7 +620,17 @@ function VendorRateCalculator() {
     else if (TRUCX_VENDORS.includes(vendorName)) {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
     }
-    // All other vendors (including VXPRESS and SHIVANI VX now) - standard rates only
+    // VXPRESS - use vendor-specific zone names
+    else if (vendorName === "VXPRESS") {
+      rate = vendor.rates[fromZone]?.[toZone] || 0;
+      console.log(`  📦 VXPRESS rate: ${rate}`);
+    }
+    // SHIVANI VX - use vendor-specific zone names
+    else if (vendorName === "SHIVANI VX") {
+      rate = vendor.rates[fromZone]?.[toZone] || 0;
+      console.log(`  📦 SHIVANI VX rate: ${rate}`);
+    }
+    // Other vendors - standard rates only
     else {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
     }
@@ -785,7 +789,7 @@ function VendorRateCalculator() {
           console.log(`🔥 ODA APPLIED for ${vendorName}: ₹${finalODACharge}`);
         }
         
-        // Get vendor-specific zones using the mapping function
+        // Get vendor-specific zones
         const { vendorZone: fromZone } = getVendorZoneFromPincode(pickup, vendorName);
         const { vendorZone: toZone } = getVendorZoneFromPincode(destination, vendorName);
         
@@ -820,7 +824,21 @@ function VendorRateCalculator() {
             calculatedResults.push(rateStandard);
           }
         }
-        // Other vendors (including VXPRESS and SHIVANI VX) - Standard rates only
+        // VXPRESS - Standard rates only (using custom zone names)
+        else if (vendorName === "VXPRESS") {
+          const rate = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "Standard", pincodeInfo);
+          if (rate && rate.rate_per_kg > 0) {
+            calculatedResults.push(rate);
+          }
+        }
+        // SHIVANI VX - Standard rates only (using custom zone names)
+        else if (vendorName === "SHIVANI VX") {
+          const rate = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "Standard", pincodeInfo);
+          if (rate && rate.rate_per_kg > 0) {
+            calculatedResults.push(rate);
+          }
+        }
+        // Other vendors - Standard rates only
         else {
           const rate = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "Standard", pincodeInfo);
           if (rate && rate.rate_per_kg > 0) {
@@ -872,8 +890,6 @@ function VendorRateCalculator() {
     setVolumeCFT(0);
     setOriginClientZone("");
     setDestClientZone("");
-    setOriginVendorZones({});
-    setDestVendorZones({});
   };
 
   const toggleVendorSelection = (vendorName) => {
@@ -1186,7 +1202,7 @@ function VendorRateCalculator() {
                 </div>
                 
                 <div className="disclaimer">
-                  <small>* Rates are based on your client's zone mapping (Delhi NCR, NORTH 2, NORTH 3, Central, W1, W2, East, South, NE1, NE2, NE3). ODA charges: Min ₹500 for all vendors. PD Logistics: Only 6 CFT and 10 CFT rates apply. RIVIGO: Both CFT and Standard rates. VXPRESS & SHIVANI VX use standard zone names (N1, N2, etc.) for rate storage.</small>
+                  <small>* Rates are based on your client's zone mapping (Delhi NCR, NORTH 2, NORTH 3, Central, W1, W2, East, South, NE1, NE2, NE3). ODA charges: Min ₹500 for all vendors. PD Logistics: Only 6 CFT and 10 CFT rates apply. RIVIGO: Both CFT and Standard rates. VXPRESS & SHIVANI VX use their own zone naming.</small>
                 </div>
               </>
             )}

@@ -11,8 +11,7 @@ const CLIENT_ZONES = [
 ];
 
 // ============================================
-// VENDOR-SPECIFIC ZONE MAPPINGS
-// IMPORTANT: These MUST match database zone names
+// VENDOR-SPECIFIC ZONE MAPPINGS (Standard zones that vendors use)
 // ============================================
 
 // Default zones - 16 zones
@@ -25,24 +24,23 @@ const DEFAULT_ZONES = [
   "NE1", "NE2"                 // North East zones
 ];
 
-// VXPRESS zones - 10 zones (Database names: N1, N2, N3, C1, W1, W2, S1, S2, E1, NE1)
+// VXPRESS zones - 10 zones (custom names)
 const VXPRESS_ZONES = [
-  "N1", "N2", "N3",
-  "C1",
-  "W1", "W2",
-  "S1", "S2",
-  "E1",
-  "NE1"
+  "North1", "North2", "North3",
+  "Guj1", "Guj2",
+  "Mah1", "Mah2",
+  "South1", "South2",
+  "East1"
 ];
 
-// SHIVANI VX zones - Database names only (uses standard zone names)
+// SHIVANI VX zones - 16 zones (custom names)
 const SHIVANI_VX_ZONES = [
-  "N1", "N2", "N3",
-  "C1", "C2",
-  "W1", "W2",
-  "S1", "S2",
-  "E1", "E2",
-  "NE1", "NE2"
+  "North1", "North2", "North3",
+  "Guj1", "Guj2",
+  "Mah1", "Mah2", "Goa",
+  "Central1", "Central2",
+  "South1", "South2", "Kerala",
+  "East1", "East2", "NE"
 ];
 
 // TRUCX DLH Lite zones - 11 zones
@@ -107,9 +105,30 @@ const getZonesForVendor = (vendorName) => {
   return DEFAULT_ZONES;
 };
 
-// Get client-friendly zone name from vendor zone (for display only)
-const getClientZoneFromVendorZone = (vendorZone, vendorName) => {
-  // Standard zone mapping (all vendors including VXPRESS and SHIVANI VX now use standard names)
+// Get client-friendly zone name for display
+const getClientZoneDisplay = (vendorZone, vendorName) => {
+  if (vendorName === "VXPRESS" || vendorName === "SHIVANI VX") {
+    const clientZoneMap = {
+      "North1": "Delhi NCR",
+      "North2": "NORTH 2",
+      "North3": "NORTH 3",
+      "Guj1": "W1",
+      "Guj2": "W2",
+      "Mah1": "Central",
+      "Mah2": "Central",
+      "South1": "South",
+      "South2": "South",
+      "East1": "East",
+      "Goa": "W2",
+      "Central1": "Central",
+      "Central2": "Central",
+      "Kerala": "South",
+      "NE": "NE1"
+    };
+    return clientZoneMap[vendorZone] || vendorZone;
+  }
+  
+  // For standard zones (N1, N2, etc.)
   const standardZoneMap = {
     "N1": "Delhi NCR",
     "N2": "NORTH 2",
@@ -133,31 +152,6 @@ const getClientZoneFromVendorZone = (vendorZone, vendorName) => {
     "KERALA": "South"
   };
   return standardZoneMap[vendorZone] || vendorZone;
-};
-
-// Get vendor zone from client zone (for internal mapping)
-const getVendorZoneFromClientZone = (clientZone, vendorName) => {
-  // For VXPRESS - uses standard zone names (same as mapping)
-  const mapping = {
-    'Delhi NCR': 'N1',
-    'NORTH 2': 'N2',
-    'NORTH 3': 'N3',
-    'Central': 'C1',
-    'W1': 'W1',
-    'W2': 'W2',
-    'East': 'E1',
-    'South': 'S1',
-    'NE1': 'NE1',
-    'NE2': 'NE2',
-    'NE3': 'NE3'
-  };
-  
-  // Special handling for SHIVANI VX (uses C2 for some central zones)
-  if (vendorName === "SHIVANI VX" && clientZone === "Central") {
-    return "C1";
-  }
-  
-  return mapping[clientZone] || 'N1';
 };
 
 // API Base URL
@@ -688,6 +682,12 @@ function VendorManage() {
     }
   };
 
+  const getRateValue = (rates, fromZone, toZone) => {
+    const value = rates?.[fromZone]?.[toZone];
+    if (value === undefined || value === null) return "";
+    return value;
+  };
+
   const copyRatesToClipboard = () => {
     let rates = {};
     let zonesToCopy = currentZones;
@@ -984,8 +984,8 @@ function VendorManage() {
       );
     }
     
-    // Check if vendor uses custom zones (VXPRESS uses standard names now, so not custom)
-    const isCustomZoneVendor = false; // VXPRESS and SHIVANI VX now use standard zone names
+    // For VXPRESS and SHIVANI VX, show their custom zone names
+    const isCustomZoneVendor = formData.vendor_name === "VXPRESS" || formData.vendor_name === "SHIVANI VX";
     
     return (
       <div className="rate-matrix-container">
@@ -1013,9 +1013,11 @@ function VendorManage() {
                   <tr key={fromZone}>
                     <td className="zone-cell from-zone">
                       {fromZone}
-                      <span className="client-zone-hint" style={{fontSize: '10px', display: 'block', color: '#666'}}>
-                        ({getClientZoneFromVendorZone(fromZone, formData.vendor_name)})
-                      </span>
+                      {isCustomZoneVendor && (
+                        <span className="client-zone-hint" style={{fontSize: '10px', display: 'block', color: '#666'}}>
+                          ({getClientZoneDisplay(fromZone, formData.vendor_name)})
+                        </span>
+                      )}
                     </td>
                     {displayZones.map(toZone => {
                       const rateValue = rowRates[toZone];
@@ -1030,27 +1032,21 @@ function VendorManage() {
                             onChange={(e) => handleRateChange(rateType, fromZone, toZone, e.target.value)}
                             placeholder="0.00"
                           />
-                        </td>
+                                                
+                         </td>
                       );
                     })}
-                  </tr>
+                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-        {formData.vendor_name === "VXPRESS" && (
+        {isCustomZoneVendor && (
           <div className="info-note" style={{marginTop: '10px', padding: '8px', background: '#e0e7ff', borderRadius: '8px', fontSize: '11px'}}>
-            💡 Note: VXPRESS uses standard zone names (N1, N2, N3, C1, W1, W2, S1, S2, E1, NE1).
+            💡 Note: {formData.vendor_name} uses custom zone names. These rates will be applied correctly in the calculator.
             <br />
-            <small>Client Zone Mapping: N1=Delhi NCR, N2=NORTH 2, N3=NORTH 3, C1=Central, W1=W1, W2=W2, S1/S2=South, E1=East, NE1=NE1</small>
-          </div>
-        )}
-        {formData.vendor_name === "SHIVANI VX" && (
-          <div className="info-note" style={{marginTop: '10px', padding: '8px', background: '#e0e7ff', borderRadius: '8px', fontSize: '11px'}}>
-            💡 Note: SHIVANI VX uses standard zone names (N1, N2, N3, C1, C2, W1, W2, S1, S2, E1, E2, NE1, NE2).
-            <br />
-            <small>Client Zone Mapping: N1=Delhi NCR, N2=NORTH 2, N3=NORTH 3, C1/C2=Central, W1=W1, W2=W2, S1/S2=South, E1/E2=East, NE1/NE2=NE1/NE2</small>
+            <small>Client Zone Mapping: North1=Delhi NCR, North2=NORTH 2, North3=NORTH 3, Guj1=W1, Guj2=W2, Mah1=Central, South1=South, South2=South, East1=East, NE=NE1</small>
           </div>
         )}
       </div>
@@ -1203,7 +1199,7 @@ function VendorManage() {
         {(isVxpress || isShivaniVX) && (
           <div className="info-note" style={{background: '#e0e7ff'}}>
             <span className="info-icon">📍</span>
-            <span>This vendor uses standard zone names (N1, N2, etc.) for rate storage.</span>
+            <span>This vendor uses custom zone names. Rates entered here will be mapped to client zones automatically.</span>
           </div>
         )}
         
@@ -1245,7 +1241,7 @@ function VendorManage() {
     
     // Get client zone mapping info
     const clientZoneMapping = vendorZones.slice(0, 3).map(zone => 
-      `${zone}→${getClientZoneFromVendorZone(zone, vendor.vendor_name)}`
+      `${zone}→${getClientZoneDisplay(zone, vendor.vendor_name)}`
     ).join(', ');
     
     return (
@@ -1340,7 +1336,7 @@ function VendorManage() {
     if (!showModal) return null;
     
     const showCFTTabs = CFT_SUPPORTED_VENDORS.includes(formData.vendor_name);
-    const isCustomZoneVendor = false; // VXPRESS and SHIVANI VX now use standard zone names
+    const isCustomZoneVendor = formData.vendor_name === "VXPRESS" || formData.vendor_name === "SHIVANI VX";
     
     return (
       <div className="modal-overlay" onClick={() => setShowModal(false)}>
@@ -1385,7 +1381,7 @@ function VendorManage() {
             </div>
             
             <div className="tab-content">
-              {activeTab === "standard" && renderRateMatrix("rates", "Zone to Zone Rates (₹/kg)")}
+              {activeTab === "standard" && renderRateMatrix("rates", isCustomZoneVendor ? "Custom Zone to Zone Rates (₹/kg)" : "Zone to Zone Rates (₹/kg)")}
               {activeTab === "6cft" && renderRateMatrix("delhivery_6cft", "6 CFT Rates (₹/kg)")}
               {activeTab === "10cft" && renderRateMatrix("delhivery_10cft", "10 CFT Rates (₹/kg)")}
               {activeTab === "charges" && renderChargesSection()}
