@@ -209,17 +209,18 @@ def get_vendor_zone_from_client_zone(client_zone, vendor_name):
     # ========================================
     elif 'VXPRESS' in vendor_upper:
         mapping = {
-            'Delhi NCR': 'North1',
-            'NORTH 2': 'North2',
-            'NORTH 3': 'North3',
-            'Central': 'Mah1',  # VXPRESS doesn't have Central, use Mah1
-            'W1': 'Guj1',
-            'W2': 'Mah1',
-            'East': 'East1',
-            'South': 'South1',
-            'NE1': 'East1',
-            'NE2': 'East1',
-            'NE3': 'East1',
+        
+            'Delhi NCR': 'N1',
+            'NORTH 2': 'N2',
+            'NORTH 3': 'N3',
+            'Central': 'C1',
+            'W1': 'W1',
+            'W2': 'W2',
+            'East': 'E1',
+            'South': 'S1',
+            'NE1': 'NE1',
+            'NE2': 'NE1',  # NE2 mapped to NE1
+            'NE3': 'NE1',  # NE3 mapped to NE1
         }
         return mapping.get(client_zone, 'North1')
     
@@ -228,17 +229,17 @@ def get_vendor_zone_from_client_zone(client_zone, vendor_name):
     # ========================================
     elif 'SHIVANI VX' in vendor_upper:
         mapping = {
-            'Delhi NCR': 'North1',
-            'NORTH 2': 'North2',
-            'NORTH 3': 'North3',
-            'Central': 'Central1',
-            'W1': 'Guj1',
-            'W2': 'Mah1',
-            'East': 'East1',
-            'South': 'South1',
-            'NE1': 'NE',
-            'NE2': 'NE',
-            'NE3': 'NE',
+            'Delhi NCR': 'N1',
+            'NORTH 2': 'N2',
+            'NORTH 3': 'N3',
+            'Central': 'C1',
+            'W1': 'W1',
+            'W2': 'W2',
+            'East': 'E1',
+            'South': 'S1',
+            'NE1': 'NE1',
+            'NE2': 'NE2',
+            'NE3': 'NE2',
         }
         return mapping.get(client_zone, 'North1')
     
