@@ -5,6 +5,307 @@ import "./VendorRateCalculator.css";
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://faithcargo.onrender.com";
 
 // ============================================
+// CLIENT ZONE MAPPING (Based on your image)
+// ============================================
+
+// Client zones as per your requirement
+const CLIENT_ZONES = [
+  "Delhi NCR", "NORTH 2", "NORTH 3", "Central", "W1", "W2", "East", "South", "NE1", "NE2", "NE3"
+];
+
+// Get client zone from pincode based on your region mapping
+const getClientZoneFromPincode = (pincode) => {
+  const pincodeStr = String(pincode).trim();
+  
+  // Delhi NCR - New Delhi, Gurgaon, Noida, Ghaziabad, Faridabad
+  if (pincodeStr.startsWith('110') || pincodeStr.startsWith('122') ||
+      pincodeStr.startsWith('201') || pincodeStr === '110001' || pincodeStr === '110002' ||
+      pincodeStr === '110003' || pincodeStr === '122001' || pincodeStr === '122002' ||
+      pincodeStr === '122003' || pincodeStr === '201301' || pincodeStr === '201302' ||
+      pincodeStr === '201303' || pincodeStr === '201304' || pincodeStr === '201305') {
+    return 'Delhi NCR';
+  }
+  
+  // NORTH 3 - Srinagar specific
+  const srinagarPincodes = ['190001', '190002', '190003', '190004', '190005', '190006', 
+                           '190007', '190008', '190009', '190010', '190011', '190012', 
+                           '190013', '190014', '190015'];
+  if (srinagarPincodes.includes(pincodeStr)) {
+    return 'NORTH 3';
+  }
+  
+  // Central - Madhya Pradesh & Chhattisgarh
+  if (pincodeStr.startsWith('45') || pincodeStr.startsWith('46') || pincodeStr.startsWith('47') ||
+      pincodeStr.startsWith('48') || pincodeStr.startsWith('49')) {
+    return 'Central';
+  }
+  
+  // W1 - Gujarat & Daman & Diu
+  if (pincodeStr.startsWith('36') || pincodeStr.startsWith('37') || pincodeStr.startsWith('38') ||
+      pincodeStr.startsWith('39') || pincodeStr.startsWith('396') || pincodeStr.startsWith('362')) {
+    return 'W1';
+  }
+  
+  // W2 - Maharashtra & Goa
+  if (pincodeStr.startsWith('40') || pincodeStr.startsWith('41') || pincodeStr.startsWith('42') ||
+      pincodeStr.startsWith('43') || pincodeStr.startsWith('44') || pincodeStr.startsWith('403')) {
+    return 'W2';
+  }
+  
+  // South - Karnataka, AP, Pondicherry, Kerala, Tamil Nadu
+  if (pincodeStr.startsWith('50') || pincodeStr.startsWith('51') || pincodeStr.startsWith('52') ||
+      pincodeStr.startsWith('53') || pincodeStr.startsWith('54') || pincodeStr.startsWith('55') ||
+      pincodeStr.startsWith('56') || pincodeStr.startsWith('57') || pincodeStr.startsWith('58') ||
+      pincodeStr.startsWith('59') || pincodeStr.startsWith('60') || pincodeStr.startsWith('61') ||
+      pincodeStr.startsWith('62') || pincodeStr.startsWith('63') || pincodeStr.startsWith('64') ||
+      pincodeStr.startsWith('65') || pincodeStr.startsWith('66') || pincodeStr.startsWith('67') ||
+      pincodeStr.startsWith('68') || pincodeStr.startsWith('69')) {
+    return 'South';
+  }
+  
+  // Northeast Zones
+  if (pincodeStr.startsWith('78') || pincodeStr.startsWith('79')) {
+    // NE1 - Guwahati, Sikkim
+    if (pincodeStr.startsWith('781') || pincodeStr.startsWith('737')) {
+      return 'NE1';
+    }
+    // NE2 - Assam (other), Manipur, Meghalaya, Tripura, Arunachal
+    if (pincodeStr.startsWith('782') || pincodeStr.startsWith('783') || pincodeStr.startsWith('784') ||
+        pincodeStr.startsWith('785') || pincodeStr.startsWith('786') || pincodeStr.startsWith('787') ||
+        pincodeStr.startsWith('788') || pincodeStr.startsWith('789')) {
+      return 'NE2';
+    }
+    // NE3 - Mizoram, Nagaland
+    if (pincodeStr.startsWith('796') || pincodeStr.startsWith('797') || pincodeStr.startsWith('798')) {
+      return 'NE3';
+    }
+  }
+  
+  // East - West Bengal, Orissa, Bihar, Jharkhand
+  if (pincodeStr.startsWith('70') || pincodeStr.startsWith('71') || pincodeStr.startsWith('72') ||
+      pincodeStr.startsWith('73') || pincodeStr.startsWith('74') || pincodeStr.startsWith('75') ||
+      pincodeStr.startsWith('76') || pincodeStr.startsWith('77') || pincodeStr.startsWith('80') ||
+      pincodeStr.startsWith('81') || pincodeStr.startsWith('82') || pincodeStr.startsWith('83')) {
+    return 'East';
+  }
+  
+  // Default NORTH 2 - Punjab, Rajasthan, Uttaranchal, Haryana (excluding NCR), UP (excluding NCR), J&K, HP
+  return 'NORTH 2';
+};
+
+// ============================================
+// VENDOR-SPECIFIC ZONE MAPPING (Client Zone → Vendor Zone)
+// ============================================
+
+const getVendorZoneFromClientZone = (clientZone, vendorName) => {
+  const vendorUpper = vendorName.toUpperCase();
+  
+  // GATI (12 zones: N1,N2,N3, C1, W1,W2, E1, S1, NE1,NE2)
+  if (vendorUpper.includes('GATI')) {
+    const mapping = {
+      'Delhi NCR': 'N1',
+      'NORTH 2': 'N2',
+      'NORTH 3': 'N3',
+      'Central': 'C1',
+      'W1': 'W1',
+      'W2': 'W2',
+      'East': 'E1',
+      'South': 'S1',
+      'NE1': 'NE1',
+      'NE2': 'NE2',
+      'NE3': 'E1'
+    };
+    return mapping[clientZone] || 'N1';
+  }
+  
+  // PD LOGISTICS (17 zones - supports all NE)
+  if (vendorUpper.includes('PD LOGISTICS')) {
+    const mapping = {
+      'Delhi NCR': 'N1',
+      'NORTH 2': 'N2',
+      'NORTH 3': 'N3',
+      'Central': 'C1',
+      'W1': 'W1',
+      'W2': 'W2',
+      'East': 'E1',
+      'South': 'S1',
+      'NE1': 'NE1',
+      'NE2': 'NE2',
+      'NE3': 'NE3'
+    };
+    return mapping[clientZone] || 'N1';
+  }
+  
+  // RIVIGO (12 zones)
+  if (vendorUpper.includes('RIVIGO')) {
+    const mapping = {
+      'Delhi NCR': 'N1',
+      'NORTH 2': 'N2',
+      'NORTH 3': 'N3',
+      'Central': 'C1',
+      'W1': 'W1',
+      'W2': 'W2',
+      'East': 'E1',
+      'South': 'S1',
+      'NE1': 'NE1',
+      'NE2': 'NE2',
+      'NE3': 'NE2'
+    };
+    return mapping[clientZone] || 'N1';
+  }
+  
+  // TRUCX DLH Lite (11 zones)
+  if (vendorUpper.includes('TRUCX DLH LITE')) {
+    const mapping = {
+      'Delhi NCR': 'N1',
+      'NORTH 2': 'N2',
+      'NORTH 3': 'N3',
+      'Central': 'C1',
+      'W1': 'W1',
+      'W2': 'W2',
+      'East': 'E1',
+      'South': 'S1',
+      'NE1': 'NE1',
+      'NE2': 'NE2',
+      'NE3': 'NE2'
+    };
+    return mapping[clientZone] || 'N1';
+  }
+  
+  // TRUCX DLH Dense / Cargo (16 zones)
+  if (vendorUpper.includes('TRUCX DLH DENSE') || vendorUpper.includes('TRUCX DLH CARGO')) {
+    const mapping = {
+      'Delhi NCR': 'N1',
+      'NORTH 2': 'N2',
+      'NORTH 3': 'N3',
+      'Central': 'C1',
+      'W1': 'W1',
+      'W2': 'W2',
+      'East': 'E1',
+      'South': 'S1',
+      'NE1': 'NE1',
+      'NE2': 'NE2',
+      'NE3': 'NE3'
+    };
+    return mapping[clientZone] || 'N1';
+  }
+  
+  // VXPRESS (Custom: North1, North2, North3, Guj1, Guj2, Mah1, Mah2, South1, South2, East1)
+  if (vendorUpper.includes('VXPRESS')) {
+    const mapping = {
+      'Delhi NCR': 'North1',
+      'NORTH 2': 'North2',
+      'NORTH 3': 'North3',
+      'Central': 'Mah1',
+      'W1': 'Guj1',
+      'W2': 'Mah1',
+      'East': 'East1',
+      'South': 'South1',
+      'NE1': 'East1',
+      'NE2': 'East1',
+      'NE3': 'East1'
+    };
+    return mapping[clientZone] || 'North1';
+  }
+  
+  // SHIVANI VX (17 custom zones)
+  if (vendorUpper.includes('SHIVANI VX')) {
+    const mapping = {
+      'Delhi NCR': 'North1',
+      'NORTH 2': 'North2',
+      'NORTH 3': 'North3',
+      'Central': 'Central1',
+      'W1': 'Guj1',
+      'W2': 'Mah1',
+      'East': 'East1',
+      'South': 'South1',
+      'NE1': 'NE',
+      'NE2': 'NE',
+      'NE3': 'NE'
+    };
+    return mapping[clientZone] || 'North1';
+  }
+  
+  // SHIPSHOPY BLUE DART (16 zones)
+  if (vendorUpper.includes('SHIPSHOPY BLUE DART')) {
+    const mapping = {
+      'Delhi NCR': 'N1',
+      'NORTH 2': 'N2',
+      'NORTH 3': 'N3',
+      'Central': 'C1',
+      'W1': 'W1',
+      'W2': 'W2',
+      'East': 'E1',
+      'South': 'S1',
+      'NE1': 'NE1',
+      'NE2': 'NE2',
+      'NE3': 'NE3'
+    };
+    return mapping[clientZone] || 'N1';
+  }
+  
+  // SHIPSHOPY DELIVERY (16 zones)
+  if (vendorUpper.includes('SHIPSHOPY DELIVERY')) {
+    const mapping = {
+      'Delhi NCR': 'N1',
+      'NORTH 2': 'N2',
+      'NORTH 3': 'N3',
+      'Central': 'C1',
+      'W1': 'W1',
+      'W2': 'W2',
+      'East': 'E1',
+      'South': 'S1',
+      'NE1': 'NE1',
+      'NE2': 'NE2',
+      'NE3': 'NE3'
+    };
+    return mapping[clientZone] || 'N1';
+  }
+  
+  // DELHIVERY (Standard zones)
+  if (vendorUpper.includes('DELHIVERY')) {
+    const mapping = {
+      'Delhi NCR': 'N1',
+      'NORTH 2': 'N2',
+      'NORTH 3': 'N3',
+      'Central': 'C1',
+      'W1': 'W1',
+      'W2': 'W2',
+      'East': 'E1',
+      'South': 'S1',
+      'NE1': 'E1',
+      'NE2': 'E1',
+      'NE3': 'E1'
+    };
+    return mapping[clientZone] || 'N1';
+  }
+  
+  // Default mapping for any other vendor
+  const defaultMapping = {
+    'Delhi NCR': 'N1',
+    'NORTH 2': 'N2',
+    'NORTH 3': 'N3',
+    'Central': 'C1',
+    'W1': 'W1',
+    'W2': 'W2',
+    'East': 'E1',
+    'South': 'S1',
+    'NE1': 'NE1',
+    'NE2': 'NE2',
+    'NE3': 'NE3'
+  };
+  return defaultMapping[clientZone] || 'N1';
+};
+
+// Main function to get vendor-specific zone from pincode
+const getVendorZoneFromPincode = (pincode, vendorName) => {
+  const clientZone = getClientZoneFromPincode(pincode);
+  const vendorZone = getVendorZoneFromClientZone(clientZone, vendorName);
+  console.log(`📍 Pincode ${pincode} → Client Zone: ${clientZone} → ${vendorName} Zone: ${vendorZone}`);
+  return { clientZone, vendorZone };
+};
+
+// ============================================
 // VENDOR-SPECIFIC ZONE LISTS
 // ============================================
 
@@ -21,10 +322,10 @@ const ZONES_RIVIGO = ["N1", "N2", "N3", "C1", "W1", "W2", "W3", "S1", "S2", "E1"
 const ZONES_GATI = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1", "NE2", "NE3"];
 
 // VXPRESS - 10 zones (custom names)
-const ZONES_VXPRESS = ["North 1", "North 2", "North 3", "Guj 1", "Guj 2", "Mah 1", "Mah 2", "South 1", "South 2", "East 1"];
+const ZONES_VXPRESS = ["North1", "North2", "North3", "Guj1", "Guj2", "Mah1", "Mah2", "South1", "South2", "East1"];
 
 // SHIVANI VX - 16 zones (custom names)
-const ZONES_SHIVANI_VX = ["North 1", "North 2", "North 3", "Guj 1", "Guj 2", "Mah 1", "Mah 2", "Goa", "Central 1", "Central 2", "South 1", "South 2", "Kerala", "East 1", "East 2", "NE"];
+const ZONES_SHIVANI_VX = ["North1", "North2", "North3", "Guj1", "Guj2", "Mah1", "Mah2", "Goa", "Central1", "Central2", "South1", "South2", "Kerala", "East1", "East2", "NE"];
 
 // SHIPSHOPY BLUE DART & DELIVERY - 16 zones
 const ZONES_SHIPSHOPY = ZONES_TRUCX_16;
@@ -34,60 +335,6 @@ const ZONES_PD_LOGISTICS = [];
 
 // DELHIVERY - 16 zones (default)
 const ZONES_DEFAULT = ZONES_TRUCX_16;
-
-// ============================================
-// ZONE MAPPING FOR VXPRESS & SHIVANI VX
-// ============================================
-
-// Convert vendor zone to standard zone for rate lookup
-const vendorZoneToStandard = (zone, vendorName) => {
-  if (vendorName === "VXPRESS" || vendorName === "SHIVANI VX") {
-    const zoneMap = {
-      "North 1": "N1",
-      "North 2": "N2",
-      "North 3": "N3",
-      "Guj 1": "W1",
-      "Guj 2": "W2",
-      "Mah 1": "C1",
-      "Mah 2": "C2",
-      "Goa": "GOA",
-      "Central 1": "C1",
-      "Central 2": "C2",
-      "South 1": "S1",
-      "South 2": "S2",
-      "Kerala": "KERALA",
-      "East 1": "E1",
-      "East 2": "E2",
-      "NE": "NE1"
-    };
-    return zoneMap[zone] || zone;
-  }
-  return zone;
-};
-
-// Convert standard zone to vendor zone
-const standardToVendorZone = (zone, vendorName) => {
-  if (vendorName === "VXPRESS" || vendorName === "SHIVANI VX") {
-    const reverseMap = {
-      "N1": "North 1",
-      "N2": "North 2",
-      "N3": "North 3",
-      "W1": "Guj 1",
-      "W2": "Guj 2",
-      "C1": "Mah 1",
-      "C2": "Mah 2",
-      "GOA": "Goa",
-      "S1": "South 1",
-      "S2": "South 2",
-      "KERALA": "Kerala",
-      "E1": "East 1",
-      "E2": "East 2",
-      "NE1": "NE"
-    };
-    return reverseMap[zone] || zone;
-  }
-  return zone;
-};
 
 // Get zones for a specific vendor
 const getZonesForVendor = (vendorName) => {
@@ -153,8 +400,10 @@ function VendorRateCalculator() {
   const [expandedVendor, setExpandedVendor] = useState(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [chargedWeight, setChargedWeight] = useState(0);
-  const [originZone, setOriginZone] = useState("");
-  const [destZone, setDestZone] = useState("");
+  const [originClientZone, setOriginClientZone] = useState("");
+  const [destClientZone, setDestClientZone] = useState("");
+  const [originVendorZones, setOriginVendorZones] = useState({});
+  const [destVendorZones, setDestVendorZones] = useState({});
   const [volumeCFT, setVolumeCFT] = useState(0);
   
   const abortControllerRef = useRef(null);
@@ -181,13 +430,29 @@ function VendorRateCalculator() {
   useEffect(() => {
     if (pickup && pickup.length === 6) {
       fetchPincodeLocation(pickup, "origin");
-      setOriginZone(getZoneFromPincode(pickup));
+      const { clientZone, vendorZone } = getVendorZoneFromPincode(pickup, "STANDARD");
+      setOriginClientZone(clientZone);
+      // Calculate vendor zones for all vendors
+      const vendorZones = {};
+      vendors.forEach(vendor => {
+        const { vendorZone: vz } = getVendorZoneFromPincode(pickup, vendor.vendor_name);
+        vendorZones[vendor.vendor_name] = vz;
+      });
+      setOriginVendorZones(vendorZones);
     }
     if (destination && destination.length === 6) {
       fetchPincodeLocation(destination, "dest");
-      setDestZone(getZoneFromPincode(destination));
+      const { clientZone, vendorZone } = getVendorZoneFromPincode(destination, "STANDARD");
+      setDestClientZone(clientZone);
+      // Calculate vendor zones for all vendors
+      const vendorZones = {};
+      vendors.forEach(vendor => {
+        const { vendorZone: vz } = getVendorZoneFromPincode(destination, vendor.vendor_name);
+        vendorZones[vendor.vendor_name] = vz;
+      });
+      setDestVendorZones(vendorZones);
     }
-  }, [pickup, destination]);
+  }, [pickup, destination, vendors]);
 
   useEffect(() => {
     return () => {
@@ -271,52 +536,6 @@ function VendorRateCalculator() {
     return { volumetricWeight: totalVolKg, volumeCFT: totalVolCFT };
   }, [dimensions]);
 
-  // Get standard zone from pincode
-  const getZoneFromPincode = useCallback((pincode) => {
-    const pincodeStr = String(pincode);
-    const firstDigit = pincodeStr.charAt(0);
-    
-    // North zones
-    if (firstDigit === '1') return 'N1';
-    if (firstDigit === '2') return 'N2';
-    if (firstDigit === '3') return 'N3';
-    if (firstDigit === '4') return 'N4';
-    
-    // Central zones
-    if (firstDigit === '5') return 'C1';
-    if (firstDigit === '6') return 'C2';
-    
-    // West zones
-    if (firstDigit === '7') return 'W1';
-    if (firstDigit === '8') return 'W2';
-    
-    // South zones
-    if (firstDigit === '9') return 'S1';
-    if (pincodeStr.startsWith('30')) return 'S2';
-    if (pincodeStr.startsWith('31')) return 'S3';
-    if (pincodeStr.startsWith('32')) return 'S4';
-    
-    // East zones
-    if (pincodeStr.startsWith('10')) return 'E1';
-    if (pincodeStr.startsWith('11')) return 'E2';
-    
-    // North East zones
-    if (pincodeStr.startsWith('12')) return 'NE1';
-    if (pincodeStr.startsWith('13')) return 'NE2';
-    if (pincodeStr.startsWith('14')) return 'NE3';
-    
-    // Special zones
-    if (pincodeStr.startsWith('403')) return 'GOA';
-    if (pincodeStr.startsWith('38') || pincodeStr.startsWith('39')) return 'W3';
-    if (pincodeStr.startsWith('682') || pincodeStr.startsWith('683') || 
-        pincodeStr.startsWith('688') || pincodeStr.startsWith('689') ||
-        pincodeStr.startsWith('690') || pincodeStr.startsWith('691')) {
-      return 'KERALA';
-    }
-    
-    return 'N1';
-  }, []);
-
   const checkPincodeForVendor = useCallback(async (vendor, pincode) => {
     let sourceVendorName = vendor.vendor_name;
     if (VENDOR_PINCODE_SOURCE[vendor.vendor_name]) {
@@ -374,13 +593,11 @@ function VendorRateCalculator() {
   }, [pincodeCache]);
 
   // Get rate from vendor based on vendor type and its specific zones
-  const getRateFromVendor = useCallback((vendor, standardFromZone, standardToZone, cftType) => {
+  const getRateFromVendor = useCallback((vendor, fromZone, toZone, cftType) => {
     let rate = 0;
     const vendorName = vendor.vendor_name;
     
-    // Convert standard zones to vendor-specific zone names for rate lookup
-    let fromZone = standardToVendorZone(standardFromZone, vendorName);
-    let toZone = standardToVendorZone(standardToZone, vendorName);
+    console.log(`🔍 Getting rate for ${vendorName}, ${cftType}, ${fromZone}→${toZone}`);
     
     // Get vendor-specific zones for validation
     const vendorZones = getZonesForVendor(vendorName);
@@ -391,43 +608,41 @@ function VendorRateCalculator() {
       return 0;
     }
     
-    console.log(`🔍 Getting rate for ${vendorName}, ${cftType}, ${fromZone}→${toZone} (standard: ${standardFromZone}→${standardToZone})`);
-    
     // PD LOGISTICS - ONLY CFT rates (6CFT and 10CFT)
     if (vendorName === PD_LOGISTICS) {
       if (cftType === "6CFT" && vendor.delhivery_6cft) {
-        rate = vendor.delhivery_6cft[standardFromZone]?.[standardToZone] || 0;
+        rate = vendor.delhivery_6cft[fromZone]?.[toZone] || 0;
       } 
       else if (cftType === "10CFT" && vendor.delhivery_10cft) {
-        rate = vendor.delhivery_10cft[standardFromZone]?.[standardToZone] || 0;
+        rate = vendor.delhivery_10cft[fromZone]?.[toZone] || 0;
       }
       else {
         return 0;
       }
     }
-    // RIVIGO - Has both CFT and Standard rates (uses standard zones)
+    // RIVIGO - Has both CFT and Standard rates
     else if (vendorName === RIVIGO) {
       if (cftType === "6CFT" && vendor.delhivery_6cft) {
-        rate = vendor.delhivery_6cft[standardFromZone]?.[standardToZone] || 0;
+        rate = vendor.delhivery_6cft[fromZone]?.[toZone] || 0;
       } 
       else if (cftType === "10CFT" && vendor.delhivery_10cft) {
-        rate = vendor.delhivery_10cft[standardFromZone]?.[standardToZone] || 0;
+        rate = vendor.delhivery_10cft[fromZone]?.[toZone] || 0;
       }
       else {
-        rate = vendor.rates[standardFromZone]?.[standardToZone] || 0;
+        rate = vendor.rates[fromZone]?.[toZone] || 0;
       }
     }
-    // TRUCX vendors - standard rates only (uses standard zones)
+    // TRUCX vendors - standard rates only
     else if (TRUCX_VENDORS.includes(vendorName)) {
-      rate = vendor.rates[standardFromZone]?.[standardToZone] || 0;
+      rate = vendor.rates[fromZone]?.[toZone] || 0;
     }
     // VXPRESS and SHIVANI VX - use vendor-specific zone names
     else if (vendorName === "VXPRESS" || vendorName === "SHIVANI VX") {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
     }
-    // Other vendors - standard rates only (uses standard zones)
+    // Other vendors - standard rates only
     else {
-      rate = vendor.rates[standardFromZone]?.[standardToZone] || 0;
+      rate = vendor.rates[fromZone]?.[toZone] || 0;
     }
     
     return rate;
@@ -549,11 +764,6 @@ function VendorRateCalculator() {
     abortControllerRef.current = new AbortController();
     
     try {
-      const fromZone = originZone || getZoneFromPincode(pickup);
-      const toZone = destZone || getZoneFromPincode(destination);
-      
-      console.log(`📊 Calculating: ${pickup}(${fromZone}) → ${destination}(${toZone}), Weight: ${weight}kg`);
-      
       if (vendors.length === 0) {
         console.error("❌ No vendors loaded from DB");
         alert("No vendors found. Please check API connection.");
@@ -588,6 +798,12 @@ function VendorRateCalculator() {
           finalODACharge = Math.max(calculatedODA, pincodeInfo.minCharge || 500);
           console.log(`🔥 ODA APPLIED for ${vendorName}: ₹${finalODACharge}`);
         }
+        
+        // Get vendor-specific zones
+        const { vendorZone: fromZone } = getVendorZoneFromPincode(pickup, vendorName);
+        const { vendorZone: toZone } = getVendorZoneFromPincode(destination, vendorName);
+        
+        console.log(`📍 ${vendorName}: ${pickup}(${fromZone}) → ${destination}(${toZone})`);
         
         // PD LOGISTICS - ONLY 6CFT and 10CFT
         if (vendorName === PD_LOGISTICS) {
@@ -634,9 +850,10 @@ function VendorRateCalculator() {
       
       setResults(calculatedResults);
       setCalculationDetails({
-        from_zone: fromZone,
-        to_zone: toZone,
-        charged_weight: chargedWeight,
+        from_pincode: pickup,
+        to_pincode: destination,
+        from_client_zone: originClientZone,
+        to_client_zone: destClientZone,
         volume_cft: totalVolumeCFT
       });
       
@@ -667,8 +884,10 @@ function VendorRateCalculator() {
     setExpandedVendor(null);
     setChargedWeight(0);
     setVolumeCFT(0);
-    setOriginZone("");
-    setDestZone("");
+    setOriginClientZone("");
+    setDestClientZone("");
+    setOriginVendorZones({});
+    setDestVendorZones({});
   };
 
   const toggleVendorSelection = (vendorName) => {
@@ -714,7 +933,7 @@ function VendorRateCalculator() {
                   onChange={(e) => setPickup(e.target.value.replace(/\D/g, ''))} 
                 />
                 {originLocation && <small className="location-hint">📍 {originLocation}</small>}
-                {originZone && <small className="zone-hint">Zone: {originZone}</small>}
+                {originClientZone && <small className="zone-hint">📌 Client Zone: <strong>{originClientZone}</strong></small>}
               </div>
               <div className="form-group">
                 <label>Destination Pincode *</label>
@@ -726,7 +945,7 @@ function VendorRateCalculator() {
                   onChange={(e) => setDestination(e.target.value.replace(/\D/g,''))} 
                 />
                 {destLocation && <small className="location-hint">📍 {destLocation}</small>}
-                {destZone && <small className="zone-hint">Zone: {destZone}</small>}
+                {destClientZone && <small className="zone-hint">📌 Client Zone: <strong>{destClientZone}</strong></small>}
               </div>
             </div>
 
@@ -845,8 +1064,8 @@ function VendorRateCalculator() {
               <h3>📊 Rate Comparison</h3>
               {calculationDetails && (
                 <div className="calc-info">
-                  <span>📍 {originLocation || pickup} → {destLocation || destination}</span>
-                  <span>Zone: <strong>{calculationDetails.from_zone} → {calculationDetails.to_zone}</strong></span>
+                  <span>📍 {originLocation || calculationDetails.from_pincode} → {destLocation || calculationDetails.to_pincode}</span>
+                  <span>Client Zones: <strong>{calculationDetails.from_client_zone} → {calculationDetails.to_client_zone}</strong></span>
                   {volumeCFT > 0 && (
                     <span>Volume: <strong>{volumeCFT.toFixed(2)} CFT</strong></span>
                   )}
@@ -865,13 +1084,16 @@ function VendorRateCalculator() {
                 <div className="example-inputs">
                   <p>💡 Try these examples:</p>
                   <button onClick={() => { setPickup("110001"); setDestination("400001"); setWeight("100"); }} className="example-btn">
-                    Delhi → Mumbai
+                    Delhi NCR → Mumbai (W2)
                   </button>
-                  <button onClick={() => { setPickup("400001"); setDestination("500001"); setWeight("50"); }} className="example-btn">
-                    Mumbai → Hyderabad
+                  <button onClick={() => { setPickup("110001"); setDestination("500001"); setWeight("50"); }} className="example-btn">
+                    Delhi NCR → Hyderabad (South)
                   </button>
                   <button onClick={() => { setPickup("110001"); setDestination("700001"); setWeight("200"); }} className="example-btn">
-                    Delhi → Kolkata
+                    Delhi NCR → Kolkata (East)
+                  </button>
+                  <button onClick={() => { setPickup("110001"); setDestination("781001"); setWeight("50"); }} className="example-btn">
+                    Delhi NCR → Guwahati (NE1)
                   </button>
                 </div>
               </div>
@@ -978,7 +1200,7 @@ function VendorRateCalculator() {
                 </div>
                 
                 <div className="disclaimer">
-                  <small>* Rates are indicative. ODA charges: Min ₹500 for all vendors. PD Logistics: Only 6 CFT and 10 CFT rates apply. RIVIGO: Both CFT and Standard rates. VXPRESS & SHIVANI VX use their own zone naming.</small>
+                  <small>* Rates are based on your client's zone mapping (Delhi NCR, NORTH 2, NORTH 3, Central, W1, W2, East, South, NE1, NE2, NE3). ODA charges: Min ₹500 for all vendors. PD Logistics: Only 6 CFT and 10 CFT rates apply. RIVIGO: Both CFT and Standard rates. VXPRESS & SHIVANI VX use their own zone naming.</small>
                 </div>
               </>
             )}

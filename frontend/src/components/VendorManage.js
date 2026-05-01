@@ -2,7 +2,16 @@ import React, { useState, useEffect, useCallback } from "react";
 import "./VendorManage.css";
 
 // ============================================
-// VENDOR-SPECIFIC ZONE MAPPINGS
+// CLIENT ZONE MAPPING (Based on your image)
+// ============================================
+
+// Client zones as per your requirement
+const CLIENT_ZONES = [
+  "Delhi NCR", "NORTH 2", "NORTH 3", "Central", "W1", "W2", "East", "South", "NE1", "NE2", "NE3"
+];
+
+// ============================================
+// VENDOR-SPECIFIC ZONE MAPPINGS (Standard zones that vendors use)
 // ============================================
 
 // Default zones - 16 zones
@@ -17,21 +26,21 @@ const DEFAULT_ZONES = [
 
 // VXPRESS zones - 10 zones (custom names)
 const VXPRESS_ZONES = [
-  "North 1", "North 2", "North 3",
-  "Guj 1", "Guj 2",
-  "Mah 1", "Mah 2",
-  "South 1", "South 2",
-  "East 1"
+  "North1", "North2", "North3",
+  "Guj1", "Guj2",
+  "Mah1", "Mah2",
+  "South1", "South2",
+  "East1"
 ];
 
 // SHIVANI VX zones - 16 zones (custom names)
 const SHIVANI_VX_ZONES = [
-  "North 1", "North 2", "North 3",
-  "Guj 1", "Guj 2",
-  "Mah 1", "Mah 2", "Goa",
-  "Central 1", "Central 2",
-  "South 1", "South 2", "Kerala",
-  "East 1", "East 2", "NE"
+  "North1", "North2", "North3",
+  "Guj1", "Guj2",
+  "Mah1", "Mah2", "Goa",
+  "Central1", "Central2",
+  "South1", "South2", "Kerala",
+  "East1", "East2", "NE"
 ];
 
 // TRUCX DLH Lite zones - 11 zones
@@ -64,6 +73,22 @@ const GATI_ZONES = [
   "NE1", "NE2", "NE3"
 ];
 
+// PD LOGISTICS zones - 17 zones (supports all NE)
+const PD_LOGISTICS_ZONES = [
+  "N1", "N2", "N3",
+  "C1",
+  "W1", "W2",
+  "S1", "S2",
+  "E1",
+  "NE1", "NE2", "NE3"
+];
+
+// SHIPSHOPY BLUE DART zones - 16 zones
+const SHIPSHOPY_ZONES = DEFAULT_ZONES;
+
+// DELHIVERY zones - 16 zones
+const DELHIVERY_ZONES = DEFAULT_ZONES;
+
 // Get zones for a specific vendor
 const getZonesForVendor = (vendorName) => {
   if (vendorName === "VXPRESS") return VXPRESS_ZONES;
@@ -71,7 +96,62 @@ const getZonesForVendor = (vendorName) => {
   if (vendorName === "TRUCX DLH Lite") return TRUCX_LITE_ZONES;
   if (vendorName === "RIVIGO") return RIVIGO_ZONES;
   if (vendorName === "GATI") return GATI_ZONES;
+  if (vendorName === "PD LOGISTICS") return PD_LOGISTICS_ZONES;
+  if (vendorName === "SHIPSHOPY BLUE DART") return SHIPSHOPY_ZONES;
+  if (vendorName === "SHIPSHOPY DELIVERY") return SHIPSHOPY_ZONES;
+  if (vendorName === "DELHIVERY") return DELHIVERY_ZONES;
+  if (vendorName === "TRUCX DLH Dense") return DEFAULT_ZONES;
+  if (vendorName === "TRUCX DLH Cargo") return DEFAULT_ZONES;
   return DEFAULT_ZONES;
+};
+
+// Get client-friendly zone name for display
+const getClientZoneDisplay = (vendorZone, vendorName) => {
+  if (vendorName === "VXPRESS" || vendorName === "SHIVANI VX") {
+    const clientZoneMap = {
+      "North1": "Delhi NCR",
+      "North2": "NORTH 2",
+      "North3": "NORTH 3",
+      "Guj1": "W1",
+      "Guj2": "W2",
+      "Mah1": "Central",
+      "Mah2": "Central",
+      "South1": "South",
+      "South2": "South",
+      "East1": "East",
+      "Goa": "W2",
+      "Central1": "Central",
+      "Central2": "Central",
+      "Kerala": "South",
+      "NE": "NE1"
+    };
+    return clientZoneMap[vendorZone] || vendorZone;
+  }
+  
+  // For standard zones (N1, N2, etc.)
+  const standardZoneMap = {
+    "N1": "Delhi NCR",
+    "N2": "NORTH 2",
+    "N3": "NORTH 3",
+    "N4": "NORTH 2",
+    "C1": "Central",
+    "C2": "Central",
+    "W1": "W1",
+    "W2": "W2",
+    "W3": "W2",
+    "S1": "South",
+    "S2": "South",
+    "S3": "South",
+    "S4": "South",
+    "E1": "East",
+    "E2": "East",
+    "NE1": "NE1",
+    "NE2": "NE2",
+    "NE3": "NE3",
+    "GOA": "W2",
+    "KERALA": "South"
+  };
+  return standardZoneMap[vendorZone] || vendorZone;
 };
 
 // API Base URL
@@ -931,7 +1011,14 @@ function VendorManage() {
                 const rowRates = rates[fromZone] || {};
                 return (
                   <tr key={fromZone}>
-                    <td className="zone-cell from-zone">{fromZone}</td>
+                    <td className="zone-cell from-zone">
+                      {fromZone}
+                      {isCustomZoneVendor && (
+                        <span className="client-zone-hint" style={{fontSize: '10px', display: 'block', color: '#666'}}>
+                          ({getClientZoneDisplay(fromZone, formData.vendor_name)})
+                        </span>
+                      )}
+                    </td>
                     {displayZones.map(toZone => {
                       const rateValue = rowRates[toZone];
                       const displayValue = (rateValue !== undefined && rateValue !== null) ? rateValue : "";
@@ -945,10 +1032,11 @@ function VendorManage() {
                             onChange={(e) => handleRateChange(rateType, fromZone, toZone, e.target.value)}
                             placeholder="0.00"
                           />
-                        </td>
+                                                
+                         </td>
                       );
                     })}
-                  </tr>
+                   </tr>
                 );
               })}
             </tbody>
@@ -957,6 +1045,8 @@ function VendorManage() {
         {isCustomZoneVendor && (
           <div className="info-note" style={{marginTop: '10px', padding: '8px', background: '#e0e7ff', borderRadius: '8px', fontSize: '11px'}}>
             💡 Note: {formData.vendor_name} uses custom zone names. These rates will be applied correctly in the calculator.
+            <br />
+            <small>Client Zone Mapping: North1=Delhi NCR, North2=NORTH 2, North3=NORTH 3, Guj1=W1, Guj2=W2, Mah1=Central, South1=South, South2=South, East1=East, NE=NE1</small>
           </div>
         )}
       </div>
@@ -969,6 +1059,9 @@ function VendorManage() {
     const isPd = formData.vendor_name === "PD LOGISTICS";
     
     const hasCFTSupport = isRivigo || isPd;
+    const isBlueDart = formData.vendor_name === "SHIPSHOPY BLUE DART";
+    const isVxpress = formData.vendor_name === "VXPRESS";
+    const isShivaniVX = formData.vendor_name === "SHIVANI VX";
     
     return (
       <div className="charges-section">
@@ -1063,6 +1156,7 @@ function VendorManage() {
                 value={charges.oda_charge || 2}
                 onChange={(e) => handleChargeChange("oda_charge", parseFloat(e.target.value))}
               />
+              <small className="input-hint">Default: ₹2/kg (Blue Dart: ₹5/kg)</small>
             </div>
           </div>
           
@@ -1076,6 +1170,7 @@ function VendorManage() {
                 value={charges.divisor || 5000}
                 onChange={(e) => handleChargeChange("divisor", parseFloat(e.target.value))}
               />
+              <small className="input-hint">Standard: 5000, 6CFT: 4500, 10CFT: 10000</small>
             </div>
           </div>
           
@@ -1098,6 +1193,20 @@ function VendorManage() {
           <div className="info-note">
             <span className="info-icon">📦</span>
             <span>This vendor supports 6 CFT and 10 CFT rate slabs only. Standard rates are NOT used.</span>
+          </div>
+        )}
+        
+        {(isVxpress || isShivaniVX) && (
+          <div className="info-note" style={{background: '#e0e7ff'}}>
+            <span className="info-icon">📍</span>
+            <span>This vendor uses custom zone names. Rates entered here will be mapped to client zones automatically.</span>
+          </div>
+        )}
+        
+        {isBlueDart && (
+          <div className="info-note" style={{background: '#fef3c7'}}>
+            <span className="info-icon">🔵</span>
+            <span>Blue Dart uses serviceable pincodes only. ODA Min Charge: ₹{BLUE_DART_ODA_MIN_CHARGE}</span>
           </div>
         )}
       </div>
@@ -1129,6 +1238,11 @@ function VendorManage() {
     // Get vendor-specific zone count for display
     const vendorZones = getZonesForVendor(vendor.vendor_name);
     const zoneCount = vendorZones.length;
+    
+    // Get client zone mapping info
+    const clientZoneMapping = vendorZones.slice(0, 3).map(zone => 
+      `${zone}→${getClientZoneDisplay(zone, vendor.vendor_name)}`
+    ).join(', ');
     
     return (
       <div className={`vendor-card ${!vendor.is_active ? 'inactive-card' : ''}`} key={vendor.id}>
@@ -1202,6 +1316,12 @@ function VendorManage() {
             {isTrucx && <span className="badge trucx-badge">🚛 TRUCX DLH</span>}
           </div>
           
+          {clientZoneMapping && (
+            <div className="zone-mapping-hint" style={{fontSize: '10px', color: '#666', marginTop: '8px', padding: '4px 8px', background: '#f0f0f0', borderRadius: '4px'}}>
+              📍 Zone Map: {clientZoneMapping}...
+            </div>
+          )}
+          
           <div className="vendor-status">
             <span className={`status-badge ${vendor.is_active ? "active" : "inactive"}`}>
               {vendor.is_active ? "● Active" : "○ Inactive"}
@@ -1237,6 +1357,7 @@ function VendorManage() {
                   onChange={(e) => setFormData({...formData, vendor_name: e.target.value.toUpperCase()})}
                   placeholder="Enter vendor name (e.g., DELHIVERY, SHIPSHOPY BLUE DART, TRUCX DLH Lite, SHIVANI VX, VXPRESS)"
                 />
+                <small className="input-hint">Available vendors: DELHIVERY, GATI, PD LOGISTICS, RIVIGO, SHIPSHOPY BLUE DART, SHIPSHOPY DELIVERY, TRUCX DLH Lite, TRUCX DLH Dense, TRUCX DLH Cargo, VXPRESS, SHIVANI VX</small>
               </div>
             )}
             
@@ -1260,7 +1381,7 @@ function VendorManage() {
             </div>
             
             <div className="tab-content">
-              {activeTab === "standard" && renderRateMatrix("rates", isCustomZoneVendor ? "Zone to Zone Rates (₹/kg)" : "Zone to Zone Rates (₹/kg)")}
+              {activeTab === "standard" && renderRateMatrix("rates", isCustomZoneVendor ? "Custom Zone to Zone Rates (₹/kg)" : "Zone to Zone Rates (₹/kg)")}
               {activeTab === "6cft" && renderRateMatrix("delhivery_6cft", "6 CFT Rates (₹/kg)")}
               {activeTab === "10cft" && renderRateMatrix("delhivery_10cft", "10 CFT Rates (₹/kg)")}
               {activeTab === "charges" && renderChargesSection()}
@@ -1290,6 +1411,9 @@ function VendorManage() {
         <div className="header-content">
           <h1>🚚 Vendor Rate Management</h1>
           <p>Manage zone-to-zone rates, CFT rates, ODA charges, and upload invoices for all logistics vendors</p>
+          <div className="client-zone-info" style={{marginTop: '8px', fontSize: '12px', color: '#666'}}>
+            📌 Client Zones: Delhi NCR, NORTH 2, NORTH 3, Central, W1, W2, East, South, NE1, NE2, NE3
+          </div>
         </div>
         <button className="add-vendor-btn" onClick={handleAddVendor}>
           + Add New Vendor

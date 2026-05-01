@@ -18,43 +18,323 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 # ============================================
-# HELPER FUNCTIONS
+# CLIENT ZONE MAPPING (Based on your image)
 # ============================================
 
-def get_zone_from_pincode(pincode):
-    """Get zone from pincode using first digit mapping"""
+def get_client_zone_from_pincode(pincode):
+    """
+    Get CLIENT's bill zone from pincode based on your region mapping
+    Returns: Delhi NCR, NORTH 2, NORTH 3, Central, W1, W2, East, South, NE1, NE2, NE3
+    """
     pincode_str = str(pincode).strip()
-    first_digit = pincode_str[0] if pincode_str else '1'
     
-    zone_map = {
-        '1': 'N1', '2': 'N2', '3': 'N3', '4': 'N4',
-        '5': 'C1', '6': 'C2',
-        '7': 'W1', '8': 'W2',
-        '9': 'S1'
-    }
+    # Delhi NCR - New Delhi, Gurgaon, Noida, Ghaziabad, Faridabad
+    if pincode_str.startswith('110') or pincode_str.startswith('122') or \
+       pincode_str.startswith('201') or pincode_str.startswith('1100') or \
+       pincode_str in ['110001', '110002', '110003', '110019', '110020', '110025',
+                       '122001', '122002', '122003', '122004', '122005', '122006',
+                       '122007', '122008', '122009', '122010', '122015', '122016',
+                       '122017', '122018', '122019', '122050', '122051', '122052',
+                       '122053', '122054', '122055', '122056', '122057', '122058',
+                       '122059', '122060', '201301', '201302', '201303', '201304',
+                       '201305', '201306', '201307', '201308', '201309', '201310',
+                       '110086', '110096']:
+        return 'Delhi NCR'
     
-    if pincode_str.startswith('30'):
-        return 'S2'
-    elif pincode_str.startswith('31'):
-        return 'S3'
-    elif pincode_str.startswith('32'):
-        return 'S4'
-    elif pincode_str.startswith('10'):
-        return 'E1'
-    elif pincode_str.startswith('11'):
-        return 'E2'
-    elif pincode_str.startswith('12'):
-        return 'NE1'
-    elif pincode_str.startswith('13'):
-        return 'NE2'
-    elif pincode_str.startswith('14'):
-        return 'NE3'
+    # NORTH 3 - Srinagar specific
+    srinagar_pincodes = ['190001', '190002', '190003', '190004', '190005', '190006', 
+                         '190007', '190008', '190009', '190010', '190011', '190012', 
+                         '190013', '190014', '190015']
+    if pincode_str in srinagar_pincodes:
+        return 'NORTH 3'
     
-    # W3 zone mapping for pincodes starting with 38, 39
-    if pincode_str.startswith('38') or pincode_str.startswith('39'):
-        return 'W3'
+    # Central - Madhya Pradesh & Chhattisgarh
+    if pincode_str.startswith('45') or pincode_str.startswith('46') or pincode_str.startswith('47') or \
+       pincode_str.startswith('48') or pincode_str.startswith('49'):
+        return 'Central'
     
-    return zone_map.get(first_digit, 'N1')
+    # W1 - Gujarat & Daman & Diu
+    if pincode_str.startswith('36') or pincode_str.startswith('37') or pincode_str.startswith('38') or \
+       pincode_str.startswith('39') or pincode_str.startswith('396') or pincode_str.startswith('362'):
+        return 'W1'
+    
+    # W2 - Maharashtra & Goa
+    if pincode_str.startswith('40') or pincode_str.startswith('41') or pincode_str.startswith('42') or \
+       pincode_str.startswith('43') or pincode_str.startswith('44') or pincode_str.startswith('403'):
+        return 'W2'
+    
+    # South - Karnataka, AP, Pondicherry, Kerala, Tamil Nadu
+    if pincode_str.startswith('50') or pincode_str.startswith('51') or pincode_str.startswith('52') or \
+       pincode_str.startswith('53') or pincode_str.startswith('54') or pincode_str.startswith('55') or \
+       pincode_str.startswith('56') or pincode_str.startswith('57') or pincode_str.startswith('58') or \
+       pincode_str.startswith('59') or pincode_str.startswith('60') or pincode_str.startswith('61') or \
+       pincode_str.startswith('62') or pincode_str.startswith('63') or pincode_str.startswith('64') or \
+       pincode_str.startswith('65') or pincode_str.startswith('66') or pincode_str.startswith('67') or \
+       pincode_str.startswith('68') or pincode_str.startswith('69'):
+        return 'South'
+    
+    # East & Northeast
+    if pincode_str.startswith('70') or pincode_str.startswith('71') or pincode_str.startswith('72') or \
+       pincode_str.startswith('73') or pincode_str.startswith('74') or pincode_str.startswith('75') or \
+       pincode_str.startswith('76') or pincode_str.startswith('77') or pincode_str.startswith('78') or \
+       pincode_str.startswith('79') or pincode_str.startswith('80') or pincode_str.startswith('81') or \
+       pincode_str.startswith('82') or pincode_str.startswith('83'):
+        
+        # Northeast Zones
+        if pincode_str.startswith('78') or pincode_str.startswith('79'):
+            # NE1 - Guwahati, Sikkim
+            if pincode_str.startswith('781') or pincode_str.startswith('737'):
+                return 'NE1'
+            # NE2 - Assam (other), Manipur, Meghalaya, Tripura, Arunachal
+            elif pincode_str.startswith('782') or pincode_str.startswith('783') or pincode_str.startswith('784') or \
+                 pincode_str.startswith('785') or pincode_str.startswith('786') or pincode_str.startswith('787') or \
+                 pincode_str.startswith('788') or pincode_str.startswith('789'):
+                return 'NE2'
+            # NE3 - Mizoram, Nagaland
+            elif pincode_str.startswith('796') or pincode_str.startswith('797') or pincode_str.startswith('798'):
+                return 'NE3'
+        return 'East'
+    
+    # NORTH 2 - Punjab, Rajasthan, Uttaranchal, Haryana (excluding NCR), UP (excluding NCR), J&K, HP
+    # Default for other north pincodes
+    if pincode_str.startswith('1') or pincode_str.startswith('2') or pincode_str.startswith('3'):
+        return 'NORTH 2'
+    
+    return 'NORTH 2'
+
+
+def get_vendor_zone_from_client_zone(client_zone, vendor_name):
+    """
+    Convert client's bill zone to vendor's internal zone name
+    """
+    vendor_upper = vendor_name.upper()
+    
+    # ========================================
+    # GATI (12 zones: N1,N2,N3, C1, W1,W2, E1, S1, NE1,NE2)
+    # ========================================
+    if 'GATI' in vendor_upper:
+        mapping = {
+            'Delhi NCR': 'N1',
+            'NORTH 2': 'N2',
+            'NORTH 3': 'N3',
+            'Central': 'C1',
+            'W1': 'W1',
+            'W2': 'W2',
+            'East': 'E1',
+            'South': 'S1',
+            'NE1': 'NE1',
+            'NE2': 'NE2',
+            'NE3': 'E1',
+        }
+        return mapping.get(client_zone, 'N1')
+    
+    # ========================================
+    # PD LOGISTICS (17 zones - supports all NE)
+    # ========================================
+    elif 'PD LOGISTICS' in vendor_upper:
+        mapping = {
+            'Delhi NCR': 'N1',
+            'NORTH 2': 'N2',
+            'NORTH 3': 'N3',
+            'Central': 'C1',
+            'W1': 'W1',
+            'W2': 'W2',
+            'East': 'E1',
+            'South': 'S1',
+            'NE1': 'NE1',
+            'NE2': 'NE2',
+            'NE3': 'NE3',
+        }
+        return mapping.get(client_zone, 'N1')
+    
+    # ========================================
+    # RIVIGO (12 zones)
+    # ========================================
+    elif 'RIVIGO' in vendor_upper:
+        mapping = {
+            'Delhi NCR': 'N1',
+            'NORTH 2': 'N2',
+            'NORTH 3': 'N3',
+            'Central': 'C1',
+            'W1': 'W1',
+            'W2': 'W2',
+            'East': 'E1',
+            'South': 'S1',
+            'NE1': 'NE1',
+            'NE2': 'NE2',
+            'NE3': 'NE2',  # Rivigo doesn't have NE3, use NE2
+        }
+        return mapping.get(client_zone, 'N1')
+    
+    # ========================================
+    # TRUCX DLH Lite (11 zones)
+    # ========================================
+    elif 'TRUCX DLH LITE' in vendor_upper:
+        mapping = {
+            'Delhi NCR': 'N1',
+            'NORTH 2': 'N2',
+            'NORTH 3': 'N3',
+            'Central': 'C1',
+            'W1': 'W1',
+            'W2': 'W2',
+            'East': 'E1',
+            'South': 'S1',
+            'NE1': 'NE1',
+            'NE2': 'NE2',
+            'NE3': 'NE2',
+        }
+        return mapping.get(client_zone, 'N1')
+    
+    # ========================================
+    # TRUCX DLH Dense / Cargo (16 zones)
+    # ========================================
+    elif 'TRUCX DLH DENSE' in vendor_upper or 'TRUCX DLH CARGO' in vendor_upper:
+        mapping = {
+            'Delhi NCR': 'N1',
+            'NORTH 2': 'N2',
+            'NORTH 3': 'N3',
+            'Central': 'C1',
+            'W1': 'W1',
+            'W2': 'W2',
+            'East': 'E1',
+            'South': 'S1',
+            'NE1': 'NE1',
+            'NE2': 'NE2',
+            'NE3': 'NE3',
+        }
+        return mapping.get(client_zone, 'N1')
+    
+    # ========================================
+    # VXPRESS (Custom: North1, North2, North3, Guj1, Guj2, Mah1, Mah2, South1, South2, East1)
+    # ========================================
+    elif 'VXPRESS' in vendor_upper:
+        mapping = {
+            'Delhi NCR': 'North1',
+            'NORTH 2': 'North2',
+            'NORTH 3': 'North3',
+            'Central': 'Mah1',  # VXPRESS doesn't have Central, use Mah1
+            'W1': 'Guj1',
+            'W2': 'Mah1',
+            'East': 'East1',
+            'South': 'South1',
+            'NE1': 'East1',
+            'NE2': 'East1',
+            'NE3': 'East1',
+        }
+        return mapping.get(client_zone, 'North1')
+    
+    # ========================================
+    # SHIVANI VX (17 custom zones)
+    # ========================================
+    elif 'SHIVANI VX' in vendor_upper:
+        mapping = {
+            'Delhi NCR': 'North1',
+            'NORTH 2': 'North2',
+            'NORTH 3': 'North3',
+            'Central': 'Central1',
+            'W1': 'Guj1',
+            'W2': 'Mah1',
+            'East': 'East1',
+            'South': 'South1',
+            'NE1': 'NE',
+            'NE2': 'NE',
+            'NE3': 'NE',
+        }
+        return mapping.get(client_zone, 'North1')
+    
+    # ========================================
+    # SHIPSHOPY BLUE DART (16 zones)
+    # ========================================
+    elif 'SHIPSHOPY BLUE DART' in vendor_upper:
+        mapping = {
+            'Delhi NCR': 'N1',
+            'NORTH 2': 'N2',
+            'NORTH 3': 'N3',
+            'Central': 'C1',
+            'W1': 'W1',
+            'W2': 'W2',
+            'East': 'E1',
+            'South': 'S1',
+            'NE1': 'NE1',
+            'NE2': 'NE2',
+            'NE3': 'NE3',
+        }
+        return mapping.get(client_zone, 'N1')
+    
+    # ========================================
+    # SHIPSHOPY DELIVERY (16 zones)
+    # ========================================
+    elif 'SHIPSHOPY DELIVERY' in vendor_upper:
+        mapping = {
+            'Delhi NCR': 'N1',
+            'NORTH 2': 'N2',
+            'NORTH 3': 'N3',
+            'Central': 'C1',
+            'W1': 'W1',
+            'W2': 'W2',
+            'East': 'E1',
+            'South': 'S1',
+            'NE1': 'NE1',
+            'NE2': 'NE2',
+            'NE3': 'NE3',
+        }
+        return mapping.get(client_zone, 'N1')
+    
+    # ========================================
+    # DELHIVERY (Standard zones)
+    # ========================================
+    elif 'DELHIVERY' in vendor_upper:
+        mapping = {
+            'Delhi NCR': 'N1',
+            'NORTH 2': 'N2',
+            'NORTH 3': 'N3',
+            'Central': 'C1',
+            'W1': 'W1',
+            'W2': 'W2',
+            'East': 'E1',
+            'South': 'S1',
+            'NE1': 'E1',
+            'NE2': 'E1',
+            'NE3': 'E1',
+        }
+        return mapping.get(client_zone, 'N1')
+    
+    # Default mapping for any other vendor
+    else:
+        mapping = {
+            'Delhi NCR': 'N1',
+            'NORTH 2': 'N2',
+            'NORTH 3': 'N3',
+            'Central': 'C1',
+            'W1': 'W1',
+            'W2': 'W2',
+            'East': 'E1',
+            'South': 'S1',
+            'NE1': 'NE1',
+            'NE2': 'NE2',
+            'NE3': 'NE3',
+        }
+        return mapping.get(client_zone, 'N1')
+
+
+def get_zone_from_pincode(pincode):
+    """
+    Main function - returns the appropriate zone for a vendor
+    NOTE: This is kept for backward compatibility
+    For vendor-specific zones, use get_vendor_specific_zone()
+    """
+    return get_client_zone_from_pincode(pincode)
+
+
+def get_vendor_specific_zone(pincode, vendor_name):
+    """
+    Get vendor-specific zone for a pincode
+    This is the main function to use for rate calculation
+    """
+    client_zone = get_client_zone_from_pincode(pincode)
+    vendor_zone = get_vendor_zone_from_client_zone(client_zone, vendor_name)
+    logger.info(f"Pincode {pincode} → Client Zone: {client_zone} → Vendor {vendor_name} Zone: {vendor_zone}")
+    return vendor_zone
 
 
 def is_pincode_serviceable_for_vendor(vendor, pincode):
@@ -112,7 +392,7 @@ def check_oda_for_vendor(vendor, pincode):
     vendor_name = vendor.vendor_name
     
     # First check if pincode is serviceable
-    if not is_pincode_serviceable_for_vendor(vendor, pincode):
+    if not is_pincode_serviceable_for_vendor(vendor, pincode_str):
         logger.info(f"Pincode {pincode_str} NOT serviceable for {vendor_name}")
         return {
             'is_oda': False,
@@ -1036,15 +1316,16 @@ def calculate_all_vendor_rates(request):
         
         volume_cft = (length * width * height) / (30.48 * 30.48 * 30.48) if length and width and height else 0
         
-        from_zone = get_zone_from_pincode(origin_pincode)
-        to_zone = get_zone_from_pincode(destination_pincode)
-        
-        logger.info(f"Calculating rates: {origin_pincode}({from_zone}) → {destination_pincode}({to_zone}), Weight: {weight}kg")
-        
         vendors = VendorRate.objects.filter(is_active=True)
         results = []
         
         for vendor in vendors:
+            # Get vendor-specific zones
+            from_zone = get_vendor_specific_zone(origin_pincode, vendor.vendor_name)
+            to_zone = get_vendor_specific_zone(destination_pincode, vendor.vendor_name)
+            
+            logger.info(f"Calculating {vendor.vendor_name}: {origin_pincode}({from_zone}) → {destination_pincode}({to_zone}), Weight: {weight}kg")
+            
             # Check serviceability
             if not is_pincode_serviceable_for_vendor(vendor, destination_pincode):
                 logger.info(f"Skipping {vendor.vendor_name} - not serviceable for {destination_pincode}")
@@ -1096,8 +1377,6 @@ def calculate_all_vendor_rates(request):
             'success': True,
             'origin_pincode': origin_pincode,
             'destination_pincode': destination_pincode,
-            'from_zone': from_zone,
-            'to_zone': to_zone,
             'weight': weight,
             'vendor_rates': results,
             'best_vendor': results[0]['vendor_name'] if results else None,
@@ -1128,13 +1407,13 @@ def compare_vendors(request):
         
         volume_cft = (length * width * height) / (30.48 * 30.48 * 30.48)
         
-        from_zone = get_zone_from_pincode(origin_pincode)
-        to_zone = get_zone_from_pincode(destination_pincode)
-        
         vendors = VendorRate.objects.filter(is_active=True)
         comparison = []
         
         for vendor in vendors:
+            from_zone = get_vendor_specific_zone(origin_pincode, vendor.vendor_name)
+            to_zone = get_vendor_specific_zone(destination_pincode, vendor.vendor_name)
+            
             if not is_pincode_serviceable_for_vendor(vendor, destination_pincode):
                 continue
             
@@ -1392,6 +1671,7 @@ def get_pincode_location(request, pincode):
                 'pincode': pincode_str,
                 'city': pincode_obj.city,
                 'state': pincode_obj.state,
+                'client_zone': get_client_zone_from_pincode(pincode_str),
                 'source': 'database'
             })
         
@@ -1407,6 +1687,7 @@ def get_pincode_location(request, pincode):
                     'pincode': pincode_str,
                     'city': post_office.get('District', ''),
                     'state': post_office.get('State', ''),
+                    'client_zone': get_client_zone_from_pincode(pincode_str),
                     'country': post_office.get('Country', ''),
                     'block': post_office.get('Block', ''),
                     'source': 'api'
@@ -1419,3 +1700,31 @@ def get_pincode_location(request, pincode):
         
     except Exception as e:
         return Response({"error": str(e)}, status=400)
+
+
+@api_view(["GET"])
+def get_zone_for_pincode(request, pincode):
+    """Get client zone and vendor-specific zones for a pincode"""
+    pincode_str = str(pincode).strip()
+    
+    if len(pincode_str) != 6:
+        return Response({
+            'success': False,
+            'error': 'Invalid pincode format'
+        }, status=400)
+    
+    client_zone = get_client_zone_from_pincode(pincode_str)
+    
+    # Get vendor-specific zones
+    vendor_zones = {}
+    vendors = VendorRate.objects.filter(is_active=True)
+    
+    for vendor in vendors:
+        vendor_zones[vendor.vendor_name] = get_vendor_zone_from_client_zone(client_zone, vendor.vendor_name)
+    
+    return Response({
+        'success': True,
+        'pincode': pincode_str,
+        'client_zone': client_zone,
+        'vendor_zones': vendor_zones
+    })
