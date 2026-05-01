@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import "./VendorManage.css";
 
-// Zones for rate matrix - FIXED to match database zones
-const ZONES = [
+// ============================================
+// VENDOR-SPECIFIC ZONE MAPPINGS
+// ============================================
+
+// Default zones - 16 zones
+const DEFAULT_ZONES = [
   "N1", "N2", "N3", "N4",      // North zones
   "C1", "C2",                  // Central zones
   "W1", "W2",                  // West zones
@@ -11,7 +15,66 @@ const ZONES = [
   "NE1", "NE2"                 // North East zones
 ];
 
-// API Base URL - CORRECT with /api/vendors prefix
+// VXPRESS zones - 10 zones (custom names)
+const VXPRESS_ZONES = [
+  "North 1", "North 2", "North 3",
+  "Guj 1", "Guj 2",
+  "Mah 1", "Mah 2",
+  "South 1", "South 2",
+  "East 1"
+];
+
+// SHIVANI VX zones - 16 zones (custom names)
+const SHIVANI_VX_ZONES = [
+  "North 1", "North 2", "North 3",
+  "Guj 1", "Guj 2",
+  "Mah 1", "Mah 2", "Goa",
+  "Central 1", "Central 2",
+  "South 1", "South 2", "Kerala",
+  "East 1", "East 2", "NE"
+];
+
+// TRUCX DLH Lite zones - 11 zones
+const TRUCX_LITE_ZONES = [
+  "N1", "N2", "N3",
+  "C1",
+  "W1", "W2",
+  "S1", "S2",
+  "E1",
+  "NE1", "NE2"
+];
+
+// RIVIGO zones - 12 zones (includes W3)
+const RIVIGO_ZONES = [
+  "N1", "N2", "N3",
+  "C1",
+  "W1", "W2", "W3",
+  "S1", "S2",
+  "E1",
+  "NE1", "NE2"
+];
+
+// GATI zones - 12 zones (includes NE3)
+const GATI_ZONES = [
+  "N1", "N2", "N3",
+  "C1",
+  "W1", "W2",
+  "S1", "S2",
+  "E1",
+  "NE1", "NE2", "NE3"
+];
+
+// Get zones for a specific vendor
+const getZonesForVendor = (vendorName) => {
+  if (vendorName === "VXPRESS") return VXPRESS_ZONES;
+  if (vendorName === "SHIVANI VX") return SHIVANI_VX_ZONES;
+  if (vendorName === "TRUCX DLH Lite") return TRUCX_LITE_ZONES;
+  if (vendorName === "RIVIGO") return RIVIGO_ZONES;
+  if (vendorName === "GATI") return GATI_ZONES;
+  return DEFAULT_ZONES;
+};
+
+// API Base URL
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://faithcargo.onrender.com";
 
 const DEFAULT_ODA_MIN_CHARGE = 500;
@@ -53,6 +116,9 @@ function VendorManage() {
   const [invoiceData, setInvoiceData] = useState(null);
   const [invoiceUploading, setInvoiceUploading] = useState(false);
 
+  // Get current zones based on selected vendor
+  const currentZones = getZonesForVendor(formData.vendor_name);
+
   useEffect(() => {
     fetchVendors();
   }, []);
@@ -65,7 +131,6 @@ function VendorManage() {
   const fetchVendors = async () => {
     setLoading(true);
     try {
-      // ✅ CORRECT URL with /api/vendors prefix
       const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/`);
       if (response.ok) {
         const data = await response.json();
@@ -161,7 +226,6 @@ function VendorManage() {
     setInvoiceUploading(true);
 
     try {
-      // ✅ CORRECT URL with /api/vendors prefix
       const getResponse = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(invoiceVendor.vendor_name)}/`);
       let currentData = {};
       
@@ -361,7 +425,6 @@ function VendorManage() {
       }
       
       try {
-        // ✅ CORRECT URL with /api/vendors prefix
         const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-pincodes/bulk-upload/${encodeURIComponent(csvVendor.vendor_name)}/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -393,8 +456,6 @@ function VendorManage() {
 
   const handleEditVendor = (vendor) => {
     console.log("Editing vendor:", vendor.vendor_name);
-    console.log("Vendor rates from DB:", vendor.rates);
-    console.log("Vendor 6CFT from DB:", vendor.delhivery_6cft);
     
     let rates = vendor.rates || {};
     let delhivery_6cft = vendor.delhivery_6cft || {};
@@ -464,7 +525,6 @@ function VendorManage() {
   const handleSave = async () => {
     setSaveLoading(true);
     try {
-      // ✅ CORRECT URL with /api/vendors prefix
       const url = editMode 
         ? `${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(formData.vendor_name)}/`
         : `${API_BASE_URL}/api/vendors/vendor-rates/`;
@@ -506,7 +566,6 @@ function VendorManage() {
   const handleDeleteVendor = async (vendor) => {
     if (window.confirm(`⚠️ Are you sure you want to delete ${vendor.vendor_name}? This action cannot be undone.`)) {
       try {
-        // ✅ CORRECT URL with /api/vendors prefix
         const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(vendor.vendor_name)}/`, {
           method: "DELETE"
         });
@@ -526,7 +585,6 @@ function VendorManage() {
   const handleToggleStatus = async (vendor) => {
     const updatedVendor = { ...vendor, is_active: !vendor.is_active };
     try {
-      // ✅ CORRECT URL with /api/vendors prefix
       const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(vendor.vendor_name)}/`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -552,18 +610,22 @@ function VendorManage() {
 
   const copyRatesToClipboard = () => {
     let rates = {};
+    let zonesToCopy = currentZones;
+    
     if (activeTab === "standard") {
       rates = formData.rates;
     } else if (activeTab === "6cft") {
       rates = formData.delhivery_6cft;
+      zonesToCopy = DEFAULT_ZONES;
     } else if (activeTab === "10cft") {
       rates = formData.delhivery_10cft;
+      zonesToCopy = DEFAULT_ZONES;
     }
     
-    let text = "From\\To\t" + ZONES.join("\t") + "\n";
-    ZONES.forEach(fromZone => {
+    let text = "From\\To\t" + zonesToCopy.join("\t") + "\n";
+    zonesToCopy.forEach(fromZone => {
       text += fromZone + "\t";
-      ZONES.forEach(toZone => {
+      zonesToCopy.forEach(toZone => {
         text += (rates[fromZone]?.[toZone] || "0") + "\t";
       });
       text += "\n";
@@ -821,10 +883,12 @@ function VendorManage() {
 
   const renderRateMatrix = (rateType, title) => {
     const rates = formData[rateType] || {};
+    const displayZones = currentZones;
     
     const isCFTVendor = CFT_SUPPORTED_VENDORS.includes(formData.vendor_name);
     const isStandardTab = rateType === "rates";
     
+    // For CFT vendors with no standard rates
     if (isCFTVendor && isStandardTab && Object.keys(rates).length === 0) {
       return (
         <div className="rate-matrix-container">
@@ -839,6 +903,9 @@ function VendorManage() {
         </div>
       );
     }
+    
+    // For VXPRESS and SHIVANI VX, show their custom zone names
+    const isCustomZoneVendor = formData.vendor_name === "VXPRESS" || formData.vendor_name === "SHIVANI VX";
     
     return (
       <div className="rate-matrix-container">
@@ -856,16 +923,16 @@ function VendorManage() {
             <thead>
               <tr>
                 <th className="from-zone-cell">From \\ To</th>
-                {ZONES.map(zone => <th key={zone}>{zone}</th>)}
+                {displayZones.map(zone => <th key={zone}>{zone}</th>)}
               </tr>
             </thead>
             <tbody>
-              {ZONES.map(fromZone => {
+              {displayZones.map(fromZone => {
                 const rowRates = rates[fromZone] || {};
                 return (
                   <tr key={fromZone}>
                     <td className="zone-cell from-zone">{fromZone}</td>
-                    {ZONES.map(toZone => {
+                    {displayZones.map(toZone => {
                       const rateValue = rowRates[toZone];
                       const displayValue = (rateValue !== undefined && rateValue !== null) ? rateValue : "";
                       return (
@@ -887,6 +954,11 @@ function VendorManage() {
             </tbody>
           </table>
         </div>
+        {isCustomZoneVendor && (
+          <div className="info-note" style={{marginTop: '10px', padding: '8px', background: '#e0e7ff', borderRadius: '8px', fontSize: '11px'}}>
+            💡 Note: {formData.vendor_name} uses custom zone names. These rates will be applied correctly in the calculator.
+          </div>
+        )}
       </div>
     );
   };
@@ -1054,6 +1126,10 @@ function VendorManage() {
       ? `₹${vendor.charges?.oda_charge || 5}/kg (Min ₹${odaMinCharge})`
       : `₹${vendor.charges?.oda_charge || 2}/kg (Min ₹${odaMinCharge})`;
     
+    // Get vendor-specific zone count for display
+    const vendorZones = getZonesForVendor(vendor.vendor_name);
+    const zoneCount = vendorZones.length;
+    
     return (
       <div className={`vendor-card ${!vendor.is_active ? 'inactive-card' : ''}`} key={vendor.id}>
         <div className="vendor-card-header">
@@ -1062,6 +1138,9 @@ function VendorManage() {
               {vendor.vendor_name.charAt(0)}
             </div>
             <h3>{vendor.vendor_name}</h3>
+            {zoneCount > 0 && zoneCount !== 16 && (
+              <span className="zone-count-badge">{zoneCount} zones</span>
+            )}
           </div>
           <div className="vendor-card-actions">
             <button className="edit-btn" onClick={() => handleEditVendor(vendor)} title="Edit Vendor">
@@ -1116,8 +1195,8 @@ function VendorManage() {
             {showCFTBadges && has10CFT && <span className="badge cft-badge">📦 10 CFT Support</span>}
             {isPd && <span className="badge pd-badge">📦 Only CFT Rates (No Standard)</span>}
             {isRivigo && <span className="badge rivigo-badge">📦 CFT + Standard</span>}
-            {isVxpress && <span className="badge vxpress-badge">⭐ V-Xpress ODA Ready</span>}
-            {isShivaniVX && <span className="badge shivani-badge">🟣 Shivani VX</span>}
+            {isVxpress && <span className="badge vxpress-badge">⭐ V-Xpress ({zoneCount} Zones)</span>}
+            {isShivaniVX && <span className="badge shivani-badge">🟣 Shivani VX ({zoneCount} Zones)</span>}
             {isBlueDart && <span className="badge bluedart-badge">🔵 Shipshopy Blue Dart</span>}
             {isShipshopyDelivery && <span className="badge delhivery-badge">📦 Shipshopy Delhivery</span>}
             {isTrucx && <span className="badge trucx-badge">🚛 TRUCX DLH</span>}
@@ -1137,6 +1216,7 @@ function VendorManage() {
     if (!showModal) return null;
     
     const showCFTTabs = CFT_SUPPORTED_VENDORS.includes(formData.vendor_name);
+    const isCustomZoneVendor = formData.vendor_name === "VXPRESS" || formData.vendor_name === "SHIVANI VX";
     
     return (
       <div className="modal-overlay" onClick={() => setShowModal(false)}>
@@ -1155,14 +1235,14 @@ function VendorManage() {
                   className="form-input"
                   value={formData.vendor_name}
                   onChange={(e) => setFormData({...formData, vendor_name: e.target.value.toUpperCase()})}
-                  placeholder="Enter vendor name (e.g., DELHIVERY, SHIPSHOPY BLUE DART, TRUCX DLH Lite, SHIVANI VX)"
+                  placeholder="Enter vendor name (e.g., DELHIVERY, SHIPSHOPY BLUE DART, TRUCX DLH Lite, SHIVANI VX, VXPRESS)"
                 />
               </div>
             )}
             
             <div className="tabs">
               <button className={`tab ${activeTab === "standard" ? "active" : ""}`} onClick={() => setActiveTab("standard")}>
-                📊 Standard Rates
+                📊 {isCustomZoneVendor ? "Custom Zone Rates" : "Standard Rates"}
               </button>
               {showCFTTabs && (
                 <>
@@ -1180,7 +1260,7 @@ function VendorManage() {
             </div>
             
             <div className="tab-content">
-              {activeTab === "standard" && renderRateMatrix("rates", "Zone to Zone Rates (₹/kg)")}
+              {activeTab === "standard" && renderRateMatrix("rates", isCustomZoneVendor ? "Zone to Zone Rates (₹/kg)" : "Zone to Zone Rates (₹/kg)")}
               {activeTab === "6cft" && renderRateMatrix("delhivery_6cft", "6 CFT Rates (₹/kg)")}
               {activeTab === "10cft" && renderRateMatrix("delhivery_10cft", "10 CFT Rates (₹/kg)")}
               {activeTab === "charges" && renderChargesSection()}

@@ -1,18 +1,106 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import "./VendorRateCalculator.css";
 
-// API Base URL - CORRECT with /api/vendors prefix
+// API Base URL
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://faithcargo.onrender.com";
 
-// Zones list - COMPLETE 16 zones matching database
-const ZONES = [
-  "N1", "N2", "N3", "N4",      // North zones
-  "C1", "C2",                  // Central zones
-  "W1", "W2",                  // West zones
-  "S1", "S2", "S3", "S4",      // South zones
-  "E1", "E2",                  // East zones
-  "NE1", "NE2"                 // North East zones
-];
+// ============================================
+// VENDOR-SPECIFIC ZONE LISTS
+// ============================================
+
+// TRUCX DLH Lite - 11 zones
+const ZONES_TRUCX_LITE = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1", "NE2"];
+
+// TRUCX DLH Dense & Cargo - 16 zones
+const ZONES_TRUCX_16 = ["N1", "N2", "N3", "N4", "C1", "C2", "W1", "W2", "S1", "S2", "S3", "S4", "E1", "E2", "NE1", "NE2"];
+
+// RIVIGO - 12 zones (includes W3)
+const ZONES_RIVIGO = ["N1", "N2", "N3", "C1", "W1", "W2", "W3", "S1", "S2", "E1", "NE1", "NE2"];
+
+// GATI - 12 zones (includes NE3)
+const ZONES_GATI = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1", "NE2", "NE3"];
+
+// VXPRESS - 10 zones (custom names)
+const ZONES_VXPRESS = ["North 1", "North 2", "North 3", "Guj 1", "Guj 2", "Mah 1", "Mah 2", "South 1", "South 2", "East 1"];
+
+// SHIVANI VX - 16 zones (custom names)
+const ZONES_SHIVANI_VX = ["North 1", "North 2", "North 3", "Guj 1", "Guj 2", "Mah 1", "Mah 2", "Goa", "Central 1", "Central 2", "South 1", "South 2", "Kerala", "East 1", "East 2", "NE"];
+
+// SHIPSHOPY BLUE DART & DELIVERY - 16 zones
+const ZONES_SHIPSHOPY = ZONES_TRUCX_16;
+
+// PD LOGISTICS - No standard zones (only CFT)
+const ZONES_PD_LOGISTICS = [];
+
+// DELHIVERY - 16 zones (default)
+const ZONES_DEFAULT = ZONES_TRUCX_16;
+
+// ============================================
+// ZONE MAPPING FOR VXPRESS & SHIVANI VX
+// ============================================
+
+// Convert vendor zone to standard zone for rate lookup
+const vendorZoneToStandard = (zone, vendorName) => {
+  if (vendorName === "VXPRESS" || vendorName === "SHIVANI VX") {
+    const zoneMap = {
+      "North 1": "N1",
+      "North 2": "N2",
+      "North 3": "N3",
+      "Guj 1": "W1",
+      "Guj 2": "W2",
+      "Mah 1": "C1",
+      "Mah 2": "C2",
+      "Goa": "GOA",
+      "Central 1": "C1",
+      "Central 2": "C2",
+      "South 1": "S1",
+      "South 2": "S2",
+      "Kerala": "KERALA",
+      "East 1": "E1",
+      "East 2": "E2",
+      "NE": "NE1"
+    };
+    return zoneMap[zone] || zone;
+  }
+  return zone;
+};
+
+// Convert standard zone to vendor zone
+const standardToVendorZone = (zone, vendorName) => {
+  if (vendorName === "VXPRESS" || vendorName === "SHIVANI VX") {
+    const reverseMap = {
+      "N1": "North 1",
+      "N2": "North 2",
+      "N3": "North 3",
+      "W1": "Guj 1",
+      "W2": "Guj 2",
+      "C1": "Mah 1",
+      "C2": "Mah 2",
+      "GOA": "Goa",
+      "S1": "South 1",
+      "S2": "South 2",
+      "KERALA": "Kerala",
+      "E1": "East 1",
+      "E2": "East 2",
+      "NE1": "NE"
+    };
+    return reverseMap[zone] || zone;
+  }
+  return zone;
+};
+
+// Get zones for a specific vendor
+const getZonesForVendor = (vendorName) => {
+  if (vendorName === "TRUCX DLH Lite") return ZONES_TRUCX_LITE;
+  if (vendorName === "TRUCX DLH Dense" || vendorName === "TRUCX DLH Cargo") return ZONES_TRUCX_16;
+  if (vendorName === "RIVIGO") return ZONES_RIVIGO;
+  if (vendorName === "GATI") return ZONES_GATI;
+  if (vendorName === "VXPRESS") return ZONES_VXPRESS;
+  if (vendorName === "SHIVANI VX") return ZONES_SHIVANI_VX;
+  if (vendorName === "PD LOGISTICS") return ZONES_PD_LOGISTICS;
+  if (vendorName === "SHIPSHOPY BLUE DART" || vendorName === "SHIPSHOPY DELIVERY") return ZONES_SHIPSHOPY;
+  return ZONES_DEFAULT;
+};
 
 // ODA Categories
 const ODA_CATEGORIES = {
@@ -23,11 +111,11 @@ const ODA_CATEGORIES = {
   'DEFAULT': { rate: 4, min: 500, name: 'ODA Default (₹4/kg, Min ₹500)', color: '#6b7280' }
 };
 
-// CFT vendors - ONLY RIVIGO and PD LOGISTICS
+// CFT vendors
 const PD_LOGISTICS = "PD LOGISTICS";
 const RIVIGO = "RIVIGO";
 
-// TRUCX vendors (NO CFT support - only standard rates)
+// TRUCX vendors
 const TRUCX_VENDORS = ["TRUCX DLH Lite", "TRUCX DLH Dense", "TRUCX DLH Cargo"];
 
 // Volumetric constants
@@ -37,7 +125,7 @@ const VOLUMETRIC_DIVISOR = {
   '10CFT': 10000
 };
 
-// Vendor pincode source mapping (for ODA checking)
+// Vendor pincode source mapping
 const VENDOR_PINCODE_SOURCE = {
   "SHIPSHOPY DELIVERY": "PD LOGISTICS",
   "TRUCX DLH Lite": "PD LOGISTICS",
@@ -183,7 +271,7 @@ function VendorRateCalculator() {
     return { volumetricWeight: totalVolKg, volumeCFT: totalVolCFT };
   }, [dimensions]);
 
-  // FIXED: Zone mapping to match database zones (16 zones)
+  // Get standard zone from pincode
   const getZoneFromPincode = useCallback((pincode) => {
     const pincodeStr = String(pincode);
     const firstDigit = pincodeStr.charAt(0);
@@ -215,6 +303,16 @@ function VendorRateCalculator() {
     // North East zones
     if (pincodeStr.startsWith('12')) return 'NE1';
     if (pincodeStr.startsWith('13')) return 'NE2';
+    if (pincodeStr.startsWith('14')) return 'NE3';
+    
+    // Special zones
+    if (pincodeStr.startsWith('403')) return 'GOA';
+    if (pincodeStr.startsWith('38') || pincodeStr.startsWith('39')) return 'W3';
+    if (pincodeStr.startsWith('682') || pincodeStr.startsWith('683') || 
+        pincodeStr.startsWith('688') || pincodeStr.startsWith('689') ||
+        pincodeStr.startsWith('690') || pincodeStr.startsWith('691')) {
+      return 'KERALA';
+    }
     
     return 'N1';
   }, []);
@@ -275,42 +373,61 @@ function VendorRateCalculator() {
     return { isServiceable: true, isODA: false, charge: 0, minCharge: 0, category: null };
   }, [pincodeCache]);
 
-  // Get rate from vendor based on vendor type
-  const getRateFromVendor = useCallback((vendor, fromZone, toZone, cftType) => {
+  // Get rate from vendor based on vendor type and its specific zones
+  const getRateFromVendor = useCallback((vendor, standardFromZone, standardToZone, cftType) => {
     let rate = 0;
     const vendorName = vendor.vendor_name;
+    
+    // Convert standard zones to vendor-specific zone names for rate lookup
+    let fromZone = standardToVendorZone(standardFromZone, vendorName);
+    let toZone = standardToVendorZone(standardToZone, vendorName);
+    
+    // Get vendor-specific zones for validation
+    const vendorZones = getZonesForVendor(vendorName);
+    
+    // Check if zones are valid for this vendor
+    if (vendorZones.length > 0 && (!vendorZones.includes(fromZone) || !vendorZones.includes(toZone))) {
+      console.log(`⚠️ Zone mismatch for ${vendorName}: ${fromZone}→${toZone} not in vendor zones`);
+      return 0;
+    }
+    
+    console.log(`🔍 Getting rate for ${vendorName}, ${cftType}, ${fromZone}→${toZone} (standard: ${standardFromZone}→${standardToZone})`);
     
     // PD LOGISTICS - ONLY CFT rates (6CFT and 10CFT)
     if (vendorName === PD_LOGISTICS) {
       if (cftType === "6CFT" && vendor.delhivery_6cft) {
-        rate = vendor.delhivery_6cft[fromZone]?.[toZone] || 0;
+        rate = vendor.delhivery_6cft[standardFromZone]?.[standardToZone] || 0;
       } 
       else if (cftType === "10CFT" && vendor.delhivery_10cft) {
-        rate = vendor.delhivery_10cft[fromZone]?.[toZone] || 0;
+        rate = vendor.delhivery_10cft[standardFromZone]?.[standardToZone] || 0;
       }
       else {
         return 0;
       }
     }
-    // RIVIGO - Has both CFT and Standard rates
+    // RIVIGO - Has both CFT and Standard rates (uses standard zones)
     else if (vendorName === RIVIGO) {
       if (cftType === "6CFT" && vendor.delhivery_6cft) {
-        rate = vendor.delhivery_6cft[fromZone]?.[toZone] || 0;
+        rate = vendor.delhivery_6cft[standardFromZone]?.[standardToZone] || 0;
       } 
       else if (cftType === "10CFT" && vendor.delhivery_10cft) {
-        rate = vendor.delhivery_10cft[fromZone]?.[toZone] || 0;
+        rate = vendor.delhivery_10cft[standardFromZone]?.[standardToZone] || 0;
       }
       else {
-        rate = vendor.rates[fromZone]?.[toZone] || 0;
+        rate = vendor.rates[standardFromZone]?.[standardToZone] || 0;
       }
     }
-    // TRUCX vendors - standard rates only
+    // TRUCX vendors - standard rates only (uses standard zones)
     else if (TRUCX_VENDORS.includes(vendorName)) {
+      rate = vendor.rates[standardFromZone]?.[standardToZone] || 0;
+    }
+    // VXPRESS and SHIVANI VX - use vendor-specific zone names
+    else if (vendorName === "VXPRESS" || vendorName === "SHIVANI VX") {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
     }
-    // Other vendors - standard rates only
+    // Other vendors - standard rates only (uses standard zones)
     else {
-      rate = vendor.rates[fromZone]?.[toZone] || 0;
+      rate = vendor.rates[standardFromZone]?.[standardToZone] || 0;
     }
     
     return rate;
@@ -325,6 +442,7 @@ function VendorRateCalculator() {
     
     // Skip if no rate found
     if (ratePerKg === 0) {
+      console.log(`⏭️ Skipping ${vendorName} ${cftSize} - no rate found`);
       return null;
     }
     
@@ -372,6 +490,8 @@ function VendorRateCalculator() {
     
     let totalFreight = baseFreight + fscAmount + docketCharge + gstAmount + modeCharge + fovCharge + finalODACharge;
     totalFreight = Math.max(totalFreight, minFreight);
+    
+    console.log(`✅ ${vendorName} ${cftSize}: Rate=${ratePerKg}, ODA=${finalODACharge}, Total=${totalFreight.toFixed(2)}`);
     
     return {
       vendor_name: vendorName,
@@ -858,7 +978,7 @@ function VendorRateCalculator() {
                 </div>
                 
                 <div className="disclaimer">
-                  <small>* Rates are indicative. ODA charges: Min ₹500 for all vendors. PD Logistics: Only 6 CFT and 10 CFT rates apply. RIVIGO: Both CFT and Standard rates.</small>
+                  <small>* Rates are indicative. ODA charges: Min ₹500 for all vendors. PD Logistics: Only 6 CFT and 10 CFT rates apply. RIVIGO: Both CFT and Standard rates. VXPRESS & SHIVANI VX use their own zone naming.</small>
                 </div>
               </>
             )}
