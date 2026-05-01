@@ -12,17 +12,17 @@ const CLIENT_ZONES = [
 // ============================================
 // VENDOR-SPECIFIC ZONE MAPPINGS
 // IMPORTANT: These MUST match database zone names
-// Based on actual database data
+// Based on actual database data with NE3 support
 // ============================================
 
-// Default zones - 16 zones
+// Default zones - 16 zones (including NE3)
 const DEFAULT_ZONES = [
-  "N1", "N2", "N3", "N4", "C1", "C2", "W1", "W2", "S1", "S2", "S3", "S4", "E1", "E2", "NE1", "NE2"
+  "N1", "N2", "N3", "N4", "C1", "C2", "W1", "W2", "S1", "S2", "S3", "S4", "E1", "E2", "NE1", "NE2", "NE3"
 ];
 
 // VXPRESS zones - Database uses STANDARD zone names (from actual DB)
 const VXPRESS_ZONES = [
-  "N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1"
+  "N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1", "NE2"
 ];
 
 // SHIVANI VX zones - Database uses STANDARD + special zone names
@@ -40,12 +40,12 @@ const RIVIGO_ZONES = [
   "N1", "N2", "N3", "C1", "W1", "W2", "W3", "S1", "S2", "E1", "NE1", "NE2"
 ];
 
-// GATI zones - 12 zones
+// GATI zones - 12 zones (supports NE3)
 const GATI_ZONES = [
   "N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1", "NE2", "NE3"
 ];
 
-// PD LOGISTICS zones - 17 zones
+// PD LOGISTICS zones - 17 zones (supports NE3)
 const PD_LOGISTICS_ZONES = [
   "N1", "N2", "N3", "N4", "C1", "C2", "W1", "W2", "S1", "S2", "S3", "S4", "E1", "E2", "NE1", "NE2", "NE3"
 ];
@@ -72,7 +72,7 @@ const getZonesForVendor = (vendorName) => {
 
 // Get client-friendly zone name from vendor zone (for display only)
 const getClientZoneFromVendorZone = (vendorZone, vendorName) => {
-  // Standard zone mapping (for all vendors)
+  // Standard zone mapping (for all vendors) with NE3 support
   const standardZoneMap = {
     "N1": "Delhi NCR",
     "N2": "NORTH 2",
@@ -92,7 +92,7 @@ const getClientZoneFromVendorZone = (vendorZone, vendorName) => {
     "E2": "East",
     "NE1": "NE1",
     "NE2": "NE2",
-    "NE3": "NE3",
+    "NE3": "NE3",  // NE3 mapping added
     "GOA": "W2",
     "KERALA": "South"
   };
@@ -371,7 +371,8 @@ function VendorManage() {
         return;
       }
       try {
-        const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-pincodes/bulk-upload/${encodeURIComponent(csvVendor.vendor_name)}/`, {
+        // Updated endpoint to match backend
+        const response = await fetch(`${API_BASE_URL}/api/vendors/bulk-upload-pincodes/${encodeURIComponent(csvVendor.vendor_name)}/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pincodes: pincodes, replace_existing: true })
@@ -589,84 +590,84 @@ function VendorManage() {
     );
   };
 
-const renderCsvModal = () => {
-  if (!showCsvModal) return null;
-  
-  const isBlueDart = csvVendor?.vendor_name === 'SHIPSHOPY BLUE DART';
-  const isShipshopyDelivery = csvVendor?.vendor_name === 'SHIPSHOPY DELIVERY';
-  const isShivaniVX = csvVendor?.vendor_name === 'SHIVANI VX';
-  const isPd = csvVendor?.vendor_name === 'PD LOGISTICS';
-  const isRivigo = csvVendor?.vendor_name === 'RIVIGO';
-  
-  let odaHint = "";
-  if (isBlueDart) odaHint = `Blue Dart ODA: ₹5/kg (Min ₹${BLUE_DART_ODA_MIN_CHARGE})`;
-  else if (isShipshopyDelivery) odaHint = `Shipshopy Delhivery ODA: ₹3/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
-  else if (isShivaniVX) odaHint = `Shivani VX: Standard rates, Min ODA ₹${DEFAULT_ODA_MIN_CHARGE}`;
-  else if (isPd) odaHint = `PD Logistics ODA: ₹4/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
-  else if (isRivigo) odaHint = `RIVIGO ODA: ₹4/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
-  else odaHint = `Default ODA Min Charge: ₹${DEFAULT_ODA_MIN_CHARGE}`;
-  
-  return (
-    <div className="modal-overlay" onClick={() => setShowCsvModal(false)}>
-      <div className="modal-container csv-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>📊 CSV Upload - {csvVendor?.vendor_name}</h2>
-          <button className="close-btn" onClick={() => setShowCsvModal(false)}>×</button>
-        </div>
-        <div className="modal-body">
-          <div className="csv-info-section">
-            <h4>📋 CSV Format:</h4>
-            <div className="csv-format-box">
-              <code>pincode,city,state,is_oda,oda_category,oda_charge_per_kg,oda_min_charge,is_serviceable</code><br/>
-              <code>212217,Allahabad,UP,TRUE,B,4,{DEFAULT_ODA_MIN_CHARGE},TRUE</code><br/>
-              <code>122502,Gurgaon,Haryana,TRUE,A,2,{DEFAULT_ODA_MIN_CHARGE},TRUE</code><br/>
-              <code>110001,New Delhi,Delhi,FALSE,,0,0,TRUE</code>
-            </div>
-            {odaHint && (<div className="oda-hint"><strong>⚠️ Note:</strong> {odaHint}</div>)}
+  const renderCsvModal = () => {
+    if (!showCsvModal) return null;
+    
+    const isBlueDart = csvVendor?.vendor_name === 'SHIPSHOPY BLUE DART';
+    const isShipshopyDelivery = csvVendor?.vendor_name === 'SHIPSHOPY DELIVERY';
+    const isShivaniVX = csvVendor?.vendor_name === 'SHIVANI VX';
+    const isPd = csvVendor?.vendor_name === 'PD LOGISTICS';
+    const isRivigo = csvVendor?.vendor_name === 'RIVIGO';
+    
+    let odaHint = "";
+    if (isBlueDart) odaHint = `Blue Dart ODA: ₹5/kg (Min ₹${BLUE_DART_ODA_MIN_CHARGE})`;
+    else if (isShipshopyDelivery) odaHint = `Shipshopy Delhivery ODA: ₹3/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
+    else if (isShivaniVX) odaHint = `Shivani VX: Standard rates, Min ODA ₹${DEFAULT_ODA_MIN_CHARGE}`;
+    else if (isPd) odaHint = `PD Logistics ODA: ₹4/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
+    else if (isRivigo) odaHint = `RIVIGO ODA: ₹4/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
+    else odaHint = `Default ODA Min Charge: ₹${DEFAULT_ODA_MIN_CHARGE}`;
+    
+    return (
+      <div className="modal-overlay" onClick={() => setShowCsvModal(false)}>
+        <div className="modal-container csv-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>📊 CSV Upload - {csvVendor?.vendor_name}</h2>
+            <button className="close-btn" onClick={() => setShowCsvModal(false)}>×</button>
           </div>
-          <div className="csv-upload-section">
-            <button className="download-template-btn" onClick={() => downloadCsvTemplate(csvVendor?.vendor_name)}>📥 Download Template CSV</button>
-            <div className="file-upload-area">
-              <input type="file" accept=".csv" onChange={handleCsvFileChange} id="csv-file-input" style={{ display: 'none' }} />
-              <label htmlFor="csv-file-input" className="file-upload-label">📁 {csvFile ? csvFile.name : "Choose CSV File"}</label>
+          <div className="modal-body">
+            <div className="csv-info-section">
+              <h4>📋 CSV Format:</h4>
+              <div className="csv-format-box">
+                <code>pincode,city,state,is_oda,oda_category,oda_charge_per_kg,oda_min_charge,is_serviceable</code><br/>
+                <code>212217,Allahabad,UP,TRUE,B,4,{DEFAULT_ODA_MIN_CHARGE},TRUE</code><br/>
+                <code>122502,Gurgaon,Haryana,TRUE,A,2,{DEFAULT_ODA_MIN_CHARGE},TRUE</code><br/>
+                <code>110001,New Delhi,Delhi,FALSE,,0,0,TRUE</code>
+              </div>
+              {odaHint && (<div className="oda-hint"><strong>⚠️ Note:</strong> {odaHint}</div>)}
             </div>
-            {csvPreview.length > 0 && (
-              <div className="csv-preview">
-                <h4>Preview (First 10 rows):</h4>
-                <div className="preview-table-wrapper">
-                  <table className="preview-table">
-                    <thead>
-                      <tr>
-                        {Object.keys(csvPreview[0] || {}).map(key => (
-                          <th key={key}>{key}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {csvPreview.map((row, idx) => (
-                        <tr key={idx}>
-                          {Object.values(row).map((v, i) => (
-                            <td key={i}>{v}</td>
+            <div className="csv-upload-section">
+              <button className="download-template-btn" onClick={() => downloadCsvTemplate(csvVendor?.vendor_name)}>📥 Download Template CSV</button>
+              <div className="file-upload-area">
+                <input type="file" accept=".csv" onChange={handleCsvFileChange} id="csv-file-input" style={{ display: 'none' }} />
+                <label htmlFor="csv-file-input" className="file-upload-label">📁 {csvFile ? csvFile.name : "Choose CSV File"}</label>
+              </div>
+              {csvPreview.length > 0 && (
+                <div className="csv-preview">
+                  <h4>Preview (First 10 rows):</h4>
+                  <div className="preview-table-wrapper">
+                    <table className="preview-table">
+                      <thead>
+                        <tr>
+                          {Object.keys(csvPreview[0] || {}).map(key => (
+                            <th key={key}>{key}</th>
                           ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {csvPreview.map((row, idx) => (
+                          <tr key={idx}>
+                            {Object.values(row).map((v, i) => (
+                              <td key={i}>{v}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button className="cancel-btn" onClick={() => setShowCsvModal(false)}>Cancel</button>
+            <button className="upload-btn" onClick={uploadCsvData} disabled={!csvFile || csvUploading}>
+              {csvUploading ? "⏳ Uploading..." : "📤 Upload CSV"}
+            </button>
           </div>
         </div>
-        <div className="modal-footer">
-          <button className="cancel-btn" onClick={() => setShowCsvModal(false)}>Cancel</button>
-          <button className="upload-btn" onClick={uploadCsvData} disabled={!csvFile || csvUploading}>
-            {csvUploading ? "⏳ Uploading..." : "📤 Upload CSV"}
-          </button>
-        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   const renderRateMatrix = (rateType, title) => {
     const rates = formData[rateType] || {};
@@ -711,7 +712,7 @@ const renderCsvModal = () => {
                       <span className="client-zone-hint" style={{fontSize: '10px', display: 'block', color: '#666'}}>
                         ({getClientZoneFromVendorZone(fromZone, formData.vendor_name)})
                       </span>
-                    </td>
+                     </td>
                     {displayZones.map(toZone => {
                       const rateValue = rowRates[toZone];
                       return (

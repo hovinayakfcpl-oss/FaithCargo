@@ -5,118 +5,142 @@ import "./VendorRateCalculator.css";
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://faithcargo.onrender.com";
 
 // ============================================
-// CLIENT ZONE MAPPING (Based on your image)
+// CLIENT ZONE MAPPING (Based on FIRST 3 DIGITS)
+// Updated with full NE1, NE2, NE3 support
 // ============================================
 
 const getClientZoneFromPincode = (pincode) => {
   const pincodeStr = String(pincode).trim();
+  const prefix = pincodeStr.substring(0, 3);
   
-  // Delhi NCR
-  if (pincodeStr.startsWith('110') || pincodeStr.startsWith('122') ||
-      pincodeStr.startsWith('201') || pincodeStr === '110001' || pincodeStr === '110002' ||
-      pincodeStr === '110003' || pincodeStr === '122001' || pincodeStr === '122002' ||
-      pincodeStr === '122003' || pincodeStr === '201301' || pincodeStr === '201302' ||
-      pincodeStr === '201303' || pincodeStr === '201304' || pincodeStr === '201305') {
+  // Delhi NCR - 110, 122, 201
+  if (prefix === '110' || prefix === '122' || prefix === '201') {
     return 'Delhi NCR';
   }
   
-  // NORTH 3 - Srinagar
-  const srinagarPincodes = ['190001', '190002', '190003', '190004', '190005', '190006', 
-                           '190007', '190008', '190009', '190010', '190011', '190012', 
-                           '190013', '190014', '190015'];
-  if (srinagarPincodes.includes(pincodeStr)) {
+  // NORTH 2 - Punjab, Chandigarh, Uttarakhand, Himachal, Haryana outskirts
+  const north2Prefixes = ['140','141','142','143','144','145','146','147','148','149',
+                          '150','151','152','153','154','155','156','157','158','159',
+                          '160','161','162','163','164','165','166','167','168','169',
+                          '170','171','172','173','174','175','176','177','178','179',
+                          '240','241','242','243','244','245','246','247','248','249',
+                          '250','251','252','253','254','255','256','257','258','259',
+                          '260','261','262','263','264','265','266','267','268','269'];
+  if (north2Prefixes.includes(prefix)) {
+    return 'NORTH 2';
+  }
+  
+  // NORTH 3 - Jammu & Kashmir (18xxxx, 19xxxx)
+  const north3Prefixes = ['180','181','182','183','184','185','186','187','188','189',
+                          '190','191','192','193','194','195','196','197','198','199'];
+  if (north3Prefixes.includes(prefix)) {
     return 'NORTH 3';
   }
   
-  // Central
-  if (pincodeStr.startsWith('45') || pincodeStr.startsWith('46') || pincodeStr.startsWith('47') ||
-      pincodeStr.startsWith('48') || pincodeStr.startsWith('49')) {
+  // Central - Madhya Pradesh (45xxxx to 49xxxx)
+  const centralPrefixes = ['450','451','452','453','454','455','456','457','458','459',
+                           '460','461','462','463','464','465','466','467','468','469',
+                           '470','471','472','473','474','475','476','477','478','479',
+                           '480','481','482','483','484','485','486','487','488','489',
+                           '490','491','492','493','494','495','496','497','498','499'];
+  if (centralPrefixes.includes(prefix)) {
     return 'Central';
   }
   
-  // W1 - Gujarat
-  if (pincodeStr.startsWith('36') || pincodeStr.startsWith('37') || pincodeStr.startsWith('38') ||
-      pincodeStr.startsWith('39') || pincodeStr.startsWith('396') || pincodeStr.startsWith('362')) {
+  // W1 - Gujarat (36xxxx to 39xxxx)
+  const w1Prefixes = ['360','361','362','363','364','365','366','367','368','369',
+                      '370','371','372','373','374','375','376','377','378','379',
+                      '380','381','382','383','384','385','386','387','388','389',
+                      '390','391','392','393','394','395','396','397','398','399'];
+  if (w1Prefixes.includes(prefix)) {
     return 'W1';
   }
   
-  // W2 - Maharashtra & Goa
-  if (pincodeStr.startsWith('40') || pincodeStr.startsWith('41') || pincodeStr.startsWith('42') ||
-      pincodeStr.startsWith('43') || pincodeStr.startsWith('44') || pincodeStr.startsWith('403')) {
+  // W2 - Maharashtra (40xxxx to 44xxxx)
+  const w2Prefixes = ['400','401','402','403','404','405','406','407','408','409',
+                      '410','411','412','413','414','415','416','417','418','419',
+                      '420','421','422','423','424','425','426','427','428','429',
+                      '430','431','432','433','434','435','436','437','438','439',
+                      '440','441','442','443','444','445','446','447','448','449'];
+  if (w2Prefixes.includes(prefix)) {
     return 'W2';
   }
   
-  // South
-  if (pincodeStr.startsWith('50') || pincodeStr.startsWith('51') || pincodeStr.startsWith('52') ||
-      pincodeStr.startsWith('53') || pincodeStr.startsWith('54') || pincodeStr.startsWith('55') ||
-      pincodeStr.startsWith('56') || pincodeStr.startsWith('57') || pincodeStr.startsWith('58') ||
-      pincodeStr.startsWith('59') || pincodeStr.startsWith('60') || pincodeStr.startsWith('61') ||
-      pincodeStr.startsWith('62') || pincodeStr.startsWith('63') || pincodeStr.startsWith('64') ||
-      pincodeStr.startsWith('65') || pincodeStr.startsWith('66') || pincodeStr.startsWith('67') ||
-      pincodeStr.startsWith('68') || pincodeStr.startsWith('69')) {
+  // South - (50xxxx to 69xxxx)
+  const southPrefixes = [];
+  for (let i = 50; i <= 69; i++) {
+    southPrefixes.push(String(i));
+  }
+  if (southPrefixes.includes(prefix)) {
     return 'South';
   }
   
-  // Northeast Zones
-  if (pincodeStr.startsWith('78') || pincodeStr.startsWith('79')) {
-    if (pincodeStr.startsWith('781') || pincodeStr.startsWith('737')) return 'NE1';
-    if (pincodeStr.startsWith('782') || pincodeStr.startsWith('783') || pincodeStr.startsWith('784') ||
-        pincodeStr.startsWith('785') || pincodeStr.startsWith('786') || pincodeStr.startsWith('787') ||
-        pincodeStr.startsWith('788') || pincodeStr.startsWith('789')) return 'NE2';
-    if (pincodeStr.startsWith('796') || pincodeStr.startsWith('797') || pincodeStr.startsWith('798')) return 'NE3';
+  // East - (70xxxx to 83xxxx)
+  const eastPrefixes = [];
+  for (let i = 70; i <= 83; i++) {
+    eastPrefixes.push(String(i));
   }
-  
-  // East
-  if (pincodeStr.startsWith('70') || pincodeStr.startsWith('71') || pincodeStr.startsWith('72') ||
-      pincodeStr.startsWith('73') || pincodeStr.startsWith('74') || pincodeStr.startsWith('75') ||
-      pincodeStr.startsWith('76') || pincodeStr.startsWith('77') || pincodeStr.startsWith('80') ||
-      pincodeStr.startsWith('81') || pincodeStr.startsWith('82') || pincodeStr.startsWith('83')) {
+  if (eastPrefixes.includes(prefix)) {
     return 'East';
   }
   
+  // Northeast Zones - 78xxxx, 79xxxx
+  // NE1: Guwahati (781)
+  // NE2: Rest of Assam, Tripura, Meghalaya, Arunachal, Manipur, Sikkim (782-789, 790-795, 799)
+  // NE3: Mizoram, Nagaland (796, 797, 798)
+  if (prefix === '781') {
+    return 'NE1';
+  } else if (prefix === '796' || prefix === '797' || prefix === '798') {
+    return 'NE3';
+  } else if (prefix >= '780' && prefix <= '799') {
+    return 'NE2';
+  }
+  
+  // DEFAULT
   return 'NORTH 2';
 };
 
 // ============================================
 // VENDOR-SPECIFIC ZONE LISTS (as stored in database)
-// Based on actual database data
+// Updated with NE3 support for all vendors
 // ============================================
 
-// TRUCX DLH Lite - 11 zones
+// TRUCX DLH Lite - 11 zones (no NE3)
 const ZONES_TRUCX_LITE = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1", "NE2"];
 
-// TRUCX DLH Dense & Cargo - 16 zones
+// TRUCX DLH Dense & Cargo - 16 zones (no NE3)
 const ZONES_TRUCX_16 = ["N1", "N2", "N3", "N4", "C1", "C2", "W1", "W2", "S1", "S2", "S3", "S4", "E1", "E2", "NE1", "NE2"];
 
-// RIVIGO - 12 zones
+// RIVIGO - 12 zones (no NE3, NE3 maps to NE2)
 const ZONES_RIVIGO = ["N1", "N2", "N3", "C1", "W1", "W2", "W3", "S1", "S2", "E1", "NE1", "NE2"];
 
-// GATI - 12 zones
+// GATI - 12 zones (HAS NE3 support)
 const ZONES_GATI = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1", "NE2", "NE3"];
 
-// VXPRESS - Database uses STANDARD zone names (from actual DB)
+// VXPRESS - 10 zones (no NE3)
 const ZONES_VXPRESS = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "S2", "E1", "NE1"];
 
-// SHIVANI VX - Database uses STANDARD + special zone names
+// SHIVANI VX - 16 zones (HAS NE3 support)
 const ZONES_SHIVANI_VX = ["N1", "N2", "N3", "C1", "C2", "W1", "W2", "S1", "S2", "E1", "E2", "NE1", "NE2", "NE3", "GOA", "KERALA"];
 
-// SHIPSHOPY BLUE DART & DELIVERY - 16 zones
+// SHIPSHOPY BLUE DART & DELIVERY - 16 zones (no NE3)
 const ZONES_SHIPSHOPY = ZONES_TRUCX_16;
 
-// PD LOGISTICS - No standard zones (only CFT)
+// PD LOGISTICS - No standard zones (only CFT) - but supports NE3 via CFT
 const ZONES_PD_LOGISTICS = [];
 
-// DELHIVERY - 16 zones (default)
+// DELHIVERY - 16 zones (NE zones map to E1)
 const ZONES_DEFAULT = ZONES_TRUCX_16;
 
 // ============================================
 // ZONE MAPPING: Client Zone → Vendor Database Zone
+// Updated with NE3 mapping for all vendors
 // ============================================
 
 const getVendorZoneFromClientZone = (clientZone, vendorName) => {
   const vendorUpper = vendorName.toUpperCase();
   
-  // Base mapping for all vendors (standard zones)
+  // Base mapping with NE3 support
   const baseMapping = {
     'Delhi NCR': 'N1',
     'NORTH 2': 'N2',
@@ -131,40 +155,19 @@ const getVendorZoneFromClientZone = (clientZone, vendorName) => {
     'NE3': 'NE3'
   };
   
-  // VXPRESS - uses standard zone names
-  if (vendorUpper.includes('VXPRESS')) {
+  // GATI - supports NE3 directly
+  if (vendorUpper.includes('GATI')) {
     return baseMapping[clientZone] || 'N1';
   }
   
-  // SHIVANI VX - uses standard zone names
+  // SHIVANI VX - supports NE3 directly
   if (vendorUpper.includes('SHIVANI VX')) {
-    // Special handling for SHIVANI VX specific zones
     if (clientZone === 'W2') return 'W2';
     if (clientZone === 'South') return 'S1';
     return baseMapping[clientZone] || 'N1';
   }
   
-  // GATI - NE3 maps to E1
-  if (vendorUpper.includes('GATI') && clientZone === 'NE3') {
-    return 'E1';
-  }
-  
-  // RIVIGO - NE3 maps to NE2
-  if (vendorUpper.includes('RIVIGO') && clientZone === 'NE3') {
-    return 'NE2';
-  }
-  
-  // TRUCX Lite - NE3 maps to NE2
-  if (vendorUpper.includes('TRUCX DLH LITE') && clientZone === 'NE3') {
-    return 'NE2';
-  }
-  
-  // DELHIVERY - all NE zones map to E1
-  if (vendorUpper.includes('DELHIVERY') && (clientZone === 'NE1' || clientZone === 'NE2' || clientZone === 'NE3')) {
-    return 'E1';
-  }
-  
-  // PD LOGISTICS - supports all zones
+  // PD LOGISTICS - supports NE3 via CFT
   if (vendorUpper.includes('PD LOGISTICS')) {
     return baseMapping[clientZone] || 'N1';
   }
@@ -179,9 +182,30 @@ const getVendorZoneFromClientZone = (clientZone, vendorName) => {
     return baseMapping[clientZone] || 'N1';
   }
   
-  // TRUCX Dense/Cargo - supports all zones
-  if (vendorUpper.includes('TRUCX DLH DENSE') || vendorUpper.includes('TRUCX DLH CARGO')) {
+  // RIVIGO - NE3 maps to NE2
+  if (vendorUpper.includes('RIVIGO') && clientZone === 'NE3') {
+    return 'NE2';
+  }
+  
+  // TRUCX Lite - NE3 maps to NE2
+  if (vendorUpper.includes('TRUCX DLH LITE') && clientZone === 'NE3') {
+    return 'NE2';
+  }
+  
+  // TRUCX Dense/Cargo - NE3 maps to NE2 (they don't have NE3)
+  if ((vendorUpper.includes('TRUCX DLH DENSE') || vendorUpper.includes('TRUCX DLH CARGO')) && clientZone === 'NE3') {
+    return 'NE2';
+  }
+  
+  // VXPRESS - NE3 maps to NE1 or E1
+  if (vendorUpper.includes('VXPRESS')) {
+    if (clientZone === 'NE3') return 'NE1';
     return baseMapping[clientZone] || 'N1';
+  }
+  
+  // DELHIVERY - all NE zones map to E1
+  if (vendorUpper.includes('DELHIVERY') && (clientZone === 'NE1' || clientZone === 'NE2' || clientZone === 'NE3')) {
+    return 'E1';
   }
   
   return baseMapping[clientZone] || 'N1';
@@ -697,6 +721,10 @@ function VendorRateCalculator() {
         volume_cft: totalVolumeCFT
       });
       
+      if (calculatedResults.length === 0) {
+        alert(`❌ No rates found for ${pickup} → ${destination}\n\nPossible reasons:\n• No vendor serves this route\n• Zone mapping missing\n• Check if pincodes are serviceable`);
+      }
+      
     } catch (error) {
       if (error.name === 'AbortError') {
         return;
@@ -932,6 +960,9 @@ function VendorRateCalculator() {
                   </button>
                   <button onClick={() => { setPickup("110001"); setDestination("781001"); setWeight("50"); }} className="example-btn">
                     Delhi NCR → Guwahati (NE1)
+                  </button>
+                  <button onClick={() => { setPickup("110001"); setDestination("796001"); setWeight("50"); }} className="example-btn">
+                    Delhi NCR → Mizoram (NE3)
                   </button>
                 </div>
               </div>
