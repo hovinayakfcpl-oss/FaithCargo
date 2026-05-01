@@ -270,6 +270,7 @@ function VendorRateCalculator() {
   const [mode, setMode] = useState("Prepaid");
   const [weight, setWeight] = useState("");
   const [invoiceValue, setInvoiceValue] = useState("");
+  const [insuranceEnabled, setInsuranceEnabled] = useState(false); // NEW: Insurance checkbox
   const [dimensions, setDimensions] = useState([{ qty: 1, length: "", width: "", height: "" }]);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -562,15 +563,17 @@ function VendorRateCalculator() {
     if (mode === "COD") modeCharge = 125;
     if (mode === "ToPay") modeCharge = 200;
     
+    // FOV/Insurance Charge - ONLY if insurance is enabled
     let fovCharge = 0;
-    if (invoiceValue && invoiceValue > 0) {
+    if (insuranceEnabled && invoiceValue && invoiceValue > 0) {
       fovCharge = Math.max(invoiceValue * 0.001, 100);
+      console.log(`🛡️ Insurance applied for ${vendorName}: ₹${fovCharge} (${insuranceEnabled ? 'Enabled' : 'Disabled'})`);
     }
     
     let totalFreight = baseFreight + fscAmount + docketCharge + gstAmount + modeCharge + fovCharge + finalODACharge;
     totalFreight = Math.max(totalFreight, minFreight);
     
-    console.log(`✅ ${vendorName} ${cftSize}: Rate=${ratePerKg}, ODA=${finalODACharge}, Total=${totalFreight.toFixed(2)}`);
+    console.log(`✅ ${vendorName} ${cftSize}: Rate=${ratePerKg}, ODA=${finalODACharge}, Insurance=${fovCharge}, Total=${totalFreight.toFixed(2)}`);
     
     return {
       vendor_name: vendorName,
@@ -585,6 +588,7 @@ function VendorRateCalculator() {
       gst_amount: gstAmount,
       mode_charge: modeCharge,
       fov_charge: fovCharge,
+      insurance_applied: insuranceEnabled && fovCharge > 0,
       oda_charge: finalODACharge,
       oda_applicable: pincodeInfo?.isODA === true && pincodeInfo.charge > 0,
       oda_category: pincodeInfo?.category,
@@ -593,7 +597,7 @@ function VendorRateCalculator() {
       min_freight: minFreight,
       total_freight: totalFreight
     };
-  }, [mode, invoiceValue, calculateVolumetricWeight, getRateFromVendor]);
+  }, [mode, invoiceValue, insuranceEnabled, calculateVolumetricWeight, getRateFromVendor]);
 
   const handleCalculate = async () => {
     if (abortControllerRef.current) {
@@ -718,7 +722,8 @@ function VendorRateCalculator() {
         to_pincode: destination,
         from_client_zone: originClientZone,
         to_client_zone: destClientZone,
-        volume_cft: totalVolumeCFT
+        volume_cft: totalVolumeCFT,
+        insurance_enabled: insuranceEnabled
       });
       
       if (calculatedResults.length === 0) {
@@ -743,6 +748,7 @@ function VendorRateCalculator() {
     setMode("Prepaid");
     setWeight("");
     setInvoiceValue("");
+    setInsuranceEnabled(false); // Reset insurance checkbox
     setDimensions([{ qty: 1, length: "", width: "", height: "" }]);
     setResults([]);
     setCalculationDetails(null);
@@ -836,15 +842,38 @@ function VendorRateCalculator() {
               </div>
             </div>
 
-            <div className="form-group">
-              <label>Invoice Value (₹)</label>
-              <input 
-                type="number" 
-                placeholder="0" 
-                value={invoiceValue} 
-                onChange={(e) => setInvoiceValue(e.target.value)} 
-              />
-              <small className="input-hint">FOV: 0.1% (Min ₹100)</small>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Invoice Value (₹)</label>
+                <input 
+                  type="number" 
+                  placeholder="0" 
+                  value={invoiceValue} 
+                  onChange={(e) => setInvoiceValue(e.target.value)} 
+                />
+                <small className="input-hint">Required for Insurance (0.1% Min ₹100)</small>
+              </div>
+              <div className="form-group insurance-checkbox">
+                <label className="checkbox-label">
+                  <input 
+                    type="checkbox" 
+                    checked={insuranceEnabled} 
+                    onChange={(e) => setInsuranceEnabled(e.target.checked)} 
+                  />
+                  <span>🛡️ Add Insurance / FOV Cover</span>
+                </label>
+                {insuranceEnabled && invoiceValue > 0 && (
+                  <small className="insurance-hint">
+                    Insurance Charge: ₹{Math.max(invoiceValue * 0.001, 100).toFixed(2)} 
+                    (0.1% of ₹{parseFloat(invoiceValue).toLocaleString()}, Min ₹100)
+                  </small>
+                )}
+                {insuranceEnabled && (!invoiceValue || invoiceValue <= 0) && (
+                  <small className="insurance-warning">
+                    ⚠️ Please enter invoice value to calculate insurance charge
+                  </small>
+                )}
+              </div>
             </div>
 
             <div className="dimensions-section">
@@ -932,6 +961,9 @@ function VendorRateCalculator() {
                 <div className="calc-info">
                   <span>📍 {originLocation || calculationDetails.from_pincode} → {destLocation || calculationDetails.to_pincode}</span>
                   <span>Client Zones: <strong>{calculationDetails.from_client_zone} → {calculationDetails.to_client_zone}</strong></span>
+                  {calculationDetails.insurance_enabled && (
+                    <span className="insurance-badge">🛡️ Insurance Included</span>
+                  )}
                   {volumeCFT > 0 && (
                     <span>Volume: <strong>{volumeCFT.toFixed(2)} CFT</strong></span>
                   )}
@@ -983,6 +1015,11 @@ function VendorRateCalculator() {
                           🚚 ODA {bestVendor.oda_category || 'Applied'} (Min ₹500) +₹{bestVendor.oda_charge?.toFixed(2)}
                         </div>
                       )}
+                      {bestVendor.insurance_applied && (
+                        <div className="insurance-highlight-badge">
+                          🛡️ Insurance +₹{bestVendor.fov_charge?.toFixed(2)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1005,6 +1042,11 @@ function VendorRateCalculator() {
                             </span>
                           ) : (
                             <span className="oda-badge oda-no">✅ No ODA</span>
+                          )}
+                          {vendor.insurance_applied && (
+                            <span className="insurance-badge-small">
+                              🛡️ +₹{vendor.fov_charge?.toFixed(2)}
+                            </span>
                           )}
                         </div>
                         <div className="vendor-total">₹{vendor.total_freight?.toFixed(2)}</div>
@@ -1037,6 +1079,12 @@ function VendorRateCalculator() {
                             <span>₹{vendor.oda_charge?.toFixed(2)}</span>
                           </div>
                         )}
+                        {vendor.insurance_applied && (
+                          <div className="breakdown-row insurance-highlight">
+                            <span>Insurance / FOV (0.1%):</span>
+                            <span>₹{vendor.fov_charge?.toFixed(2)}</span>
+                          </div>
+                        )}
                         <div className="breakdown-row">
                           <span>GST ({vendor.gst_percent}%):</span>
                           <span>₹{vendor.gst_amount?.toFixed(2)}</span>
@@ -1045,12 +1093,6 @@ function VendorRateCalculator() {
                           <div className="breakdown-row">
                             <span>Mode Charge:</span>
                             <span>₹{vendor.mode_charge?.toFixed(2)}</span>
-                          </div>
-                        )}
-                        {vendor.fov_charge > 0 && (
-                          <div className="breakdown-row">
-                            <span>FOV/Insurance:</span>
-                            <span>₹{vendor.fov_charge?.toFixed(2)}</span>
                           </div>
                         )}
                         <div className="breakdown-row total">
@@ -1069,7 +1111,7 @@ function VendorRateCalculator() {
                 </div>
                 
                 <div className="disclaimer">
-                  <small>* Rates are based on your client's zone mapping (Delhi NCR, NORTH 2, NORTH 3, Central, W1, W2, East, South, NE1, NE2, NE3). ODA charges: Min ₹500 for all vendors. PD Logistics: Only 6 CFT and 10 CFT rates apply. RIVIGO: Both CFT and Standard rates.</small>
+                  <small>* Rates are based on your client's zone mapping (Delhi NCR, NORTH 2, NORTH 3, Central, W1, W2, East, South, NE1, NE2, NE3). ODA charges: Min ₹500 for all vendors. PD Logistics: Only 6 CFT and 10 CFT rates apply. RIVIGO: Both CFT and Standard rates. Insurance: 0.1% of invoice value (Min ₹100) - only when checkbox is selected.</small>
                 </div>
               </>
             )}
