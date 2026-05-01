@@ -402,6 +402,8 @@ function VendorRateCalculator() {
   const [chargedWeight, setChargedWeight] = useState(0);
   const [originClientZone, setOriginClientZone] = useState("");
   const [destClientZone, setDestClientZone] = useState("");
+  const [originVendorZones, setOriginVendorZones] = useState({});
+  const [destVendorZones, setDestVendorZones] = useState({});
   const [volumeCFT, setVolumeCFT] = useState(0);
   
   const abortControllerRef = useRef(null);
@@ -428,15 +430,29 @@ function VendorRateCalculator() {
   useEffect(() => {
     if (pickup && pickup.length === 6) {
       fetchPincodeLocation(pickup, "origin");
-      const { clientZone } = getVendorZoneFromPincode(pickup, "STANDARD");
+      const { clientZone, vendorZone } = getVendorZoneFromPincode(pickup, "STANDARD");
       setOriginClientZone(clientZone);
+      // Calculate vendor zones for all vendors
+      const vendorZones = {};
+      vendors.forEach(vendor => {
+        const { vendorZone: vz } = getVendorZoneFromPincode(pickup, vendor.vendor_name);
+        vendorZones[vendor.vendor_name] = vz;
+      });
+      setOriginVendorZones(vendorZones);
     }
     if (destination && destination.length === 6) {
       fetchPincodeLocation(destination, "dest");
-      const { clientZone } = getVendorZoneFromPincode(destination, "STANDARD");
+      const { clientZone, vendorZone } = getVendorZoneFromPincode(destination, "STANDARD");
       setDestClientZone(clientZone);
+      // Calculate vendor zones for all vendors
+      const vendorZones = {};
+      vendors.forEach(vendor => {
+        const { vendorZone: vz } = getVendorZoneFromPincode(destination, vendor.vendor_name);
+        vendorZones[vendor.vendor_name] = vz;
+      });
+      setDestVendorZones(vendorZones);
     }
-  }, [pickup, destination]);
+  }, [pickup, destination, vendors]);
 
   useEffect(() => {
     return () => {
@@ -620,15 +636,9 @@ function VendorRateCalculator() {
     else if (TRUCX_VENDORS.includes(vendorName)) {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
     }
-    // VXPRESS - use vendor-specific zone names
-    else if (vendorName === "VXPRESS") {
+    // VXPRESS and SHIVANI VX - use vendor-specific zone names
+    else if (vendorName === "VXPRESS" || vendorName === "SHIVANI VX") {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
-      console.log(`  📦 VXPRESS rate: ${rate}`);
-    }
-    // SHIVANI VX - use vendor-specific zone names
-    else if (vendorName === "SHIVANI VX") {
-      rate = vendor.rates[fromZone]?.[toZone] || 0;
-      console.log(`  📦 SHIVANI VX rate: ${rate}`);
     }
     // Other vendors - standard rates only
     else {
@@ -824,20 +834,6 @@ function VendorRateCalculator() {
             calculatedResults.push(rateStandard);
           }
         }
-        // VXPRESS - Standard rates only (using custom zone names)
-        else if (vendorName === "VXPRESS") {
-          const rate = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "Standard", pincodeInfo);
-          if (rate && rate.rate_per_kg > 0) {
-            calculatedResults.push(rate);
-          }
-        }
-        // SHIVANI VX - Standard rates only (using custom zone names)
-        else if (vendorName === "SHIVANI VX") {
-          const rate = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "Standard", pincodeInfo);
-          if (rate && rate.rate_per_kg > 0) {
-            calculatedResults.push(rate);
-          }
-        }
         // Other vendors - Standard rates only
         else {
           const rate = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "Standard", pincodeInfo);
@@ -890,6 +886,8 @@ function VendorRateCalculator() {
     setVolumeCFT(0);
     setOriginClientZone("");
     setDestClientZone("");
+    setOriginVendorZones({});
+    setDestVendorZones({});
   };
 
   const toggleVendorSelection = (vendorName) => {
