@@ -1,6 +1,7 @@
 /* ============================================
-   FAITH CARGO - CREATE ORDER PAGE v16.0
+   FAITH CARGO - CREATE ORDER PAGE v17.0
    PREMIUM UI - A4 DOCKET PERFECT LAYOUT
+   BARCODE AT TOP | COMPANY LOGO | DIMENSIONS PRINT
    DEVELOPED BY DEVORA TECHNOLOGIES
    ============================================ */
 
@@ -1158,7 +1159,7 @@ body {
 }
 
 /* --------------------------------------------
-   21. A4 DOCKET PRINT STYLES - PERFECT 70% LAYOUT
+   21. A4 DOCKET PRINT STYLES - BARCODE AT TOP
    -------------------------------------------- */
 .print-docket-premium {
   width: 210mm;
@@ -1229,6 +1230,36 @@ body {
   border-radius: 0 0 12px 0;
 }
 
+/* BARCODE SECTION - TOP CENTER */
+.docket-barcode-top {
+  text-align: center;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: #f8fafc;
+  border-radius: 10px;
+  position: relative;
+  z-index: 2;
+}
+.barcode-img-large {
+  width: 280px;
+  height: auto;
+  margin: 0 auto;
+}
+.lr-number-large {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--primary-red);
+  font-family: monospace;
+  letter-spacing: 2px;
+  margin-top: 8px;
+}
+.awb-row-large {
+  font-size: 11px;
+  color: #475569;
+  margin-top: 4px;
+}
+
+/* HEADER SECTION WITH LOGO */
 .docket-header-premium {
   display: flex;
   justify-content: space-between;
@@ -1238,48 +1269,36 @@ body {
   position: relative;
   z-index: 2;
 }
-.header-left .lr-label {
-  font-size: 8px;
-  font-weight: 800;
-  color: var(--text-gray);
-  letter-spacing: 2px;
-  margin-bottom: 4px;
-}
-.lr-number {
-  font-size: 20px;
-  font-weight: 900;
-  color: var(--primary-red);
-  font-family: monospace;
-  letter-spacing: 1px;
-}
-.awb-row {
+.consignment-label {
   font-size: 9px;
-  color: var(--text-gray);
-  margin: 4px 0;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 2px;
+  margin-bottom: 5px;
+}
+.date-row {
+  font-size: 8px;
+  color: #64748b;
+  margin: 3px 0;
 }
 .mode-badge-docket {
   display: inline-block;
   padding: 3px 12px;
   border-radius: 20px;
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 700;
   background: #1e293b;
   color: white;
-  margin: 4px 0;
+  margin: 3px 0;
 }
 .status-badge-docket {
   display: inline-block;
   padding: 3px 12px;
   border-radius: 20px;
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 700;
   color: white;
   margin-left: 8px;
-}
-.date-row {
-  font-size: 7px;
-  color: var(--text-gray);
-  margin-top: 5px;
 }
 .header-right {
   text-align: right;
@@ -1287,42 +1306,31 @@ body {
 .brand-logo {
   height: 45px;
   width: auto;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 .header-right h2 {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
   margin: 0;
-  color: var(--dark-bg);
+  color: #1e293b;
 }
 .header-right p {
-  font-size: 6px;
-  color: var(--primary-red);
+  font-size: 7px;
+  color: #dc2626;
   font-weight: 600;
   margin: 2px 0;
 }
 .company-contact {
-  font-size: 5.5px;
-  color: var(--text-gray);
-  margin-top: 4px;
+  font-size: 6px;
+  color: #475569;
+  margin-top: 5px;
   display: flex;
   flex-direction: column;
   gap: 2px;
   line-height: 1.3;
 }
 
-.docket-barcode-section {
-  text-align: center;
-  padding: 6px 0;
-  position: relative;
-  z-index: 2;
-}
-.barcode-img {
-  width: 220px;
-  height: auto;
-  margin: 0 auto;
-}
-
+/* PARTIES SECTION */
 .docket-parties-premium {
   display: flex;
   gap: 15px;
@@ -1333,19 +1341,19 @@ body {
 }
 .party-box {
   flex: 1;
-  border: 1px solid var(--border-color);
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   overflow: hidden;
 }
 .party-title {
-  background: var(--bg-gray);
+  background: #f8fafc;
   padding: 6px 10px;
   font-size: 8px;
   font-weight: 800;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 .party-content {
   padding: 8px 10px;
@@ -1357,7 +1365,7 @@ body {
 }
 .party-content p {
   font-size: 7px;
-  color: var(--text-gray);
+  color: #475569;
   margin-bottom: 5px;
   line-height: 1.2;
 }
@@ -1367,14 +1375,16 @@ body {
   gap: 6px;
   font-size: 6px;
   padding-top: 4px;
-  border-top: 1px dashed var(--border-color);
+  border-top: 1px dashed #e2e8f0;
 }
 .party-arrow {
   display: flex;
   align-items: center;
-  color: var(--primary-red);
+  color: #dc2626;
+  font-size: 18px;
 }
 
+/* SHIPMENT TABLE WITH DIMENSIONS */
 .docket-shipment-premium {
   padding: 0 10px;
   margin-bottom: 10px;
@@ -1387,15 +1397,15 @@ body {
   font-size: 7px;
 }
 .shipment-table-premium th {
-  background: var(--bg-gray);
+  background: #f8fafc;
   padding: 6px 4px;
   font-weight: 800;
-  border: 1px solid var(--border-color);
+  border: 1px solid #e2e8f0;
   text-align: center;
 }
 .shipment-table-premium td {
   padding: 6px 4px;
-  border: 1px solid var(--border-color);
+  border: 1px solid #e2e8f0;
   text-align: center;
 }
 .text-left {
@@ -1406,13 +1416,31 @@ body {
 }
 .goods-note {
   font-size: 6px;
-  color: var(--text-light);
+  color: #94a3b8;
   margin-top: 2px;
 }
 .small-text {
   font-size: 6px;
 }
 
+/* PACKAGE SUMMARY BAR */
+.package-summary {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 12px;
+  margin: 0 10px 12px 10px;
+  background: #f0fdf4;
+  border-radius: 8px;
+  font-size: 7px;
+  font-weight: 600;
+  border-left: 3px solid #10b981;
+  position: relative;
+  z-index: 2;
+}
+
+/* INVOICE & FREIGHT SECTION */
 .docket-bottom-premium {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1424,19 +1452,19 @@ body {
 }
 .invoice-box-premium,
 .freight-box-premium {
-  border: 1px solid var(--border-color);
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   overflow: hidden;
 }
 .box-title {
-  background: var(--bg-gray);
+  background: #f8fafc;
   padding: 6px 10px;
   font-size: 7px;
   font-weight: 800;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 .invoice-list {
   max-height: 80px;
@@ -1485,10 +1513,11 @@ body {
   padding: 4px 10px;
   font-size: 5.5px;
   text-align: center;
-  background: var(--bg-light);
-  color: var(--text-gray);
+  background: #f1f5f9;
+  color: #64748b;
 }
 
+/* STAMP & SIGNATURE */
 .docket-stamp-sign-premium {
   display: flex;
   justify-content: space-between;
@@ -1511,18 +1540,18 @@ body {
 .stamp-fallback {
   width: 80px;
   height: 80px;
-  border: 2px dashed var(--primary-red);
+  border: 2px dashed #dc2626;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  background: var(--primary-red-light);
+  background: #fee2e2;
 }
 .stamp-circle {
   font-size: 7px;
   font-weight: 800;
-  color: var(--primary-red);
+  color: #dc2626;
   text-align: center;
   line-height: 1.3;
 }
@@ -1541,17 +1570,18 @@ body {
 .signature-container p {
   font-size: 6px;
   margin-top: 3px;
-  color: var(--text-gray);
+  color: #475569;
 }
 .authorized-sign {
   font-weight: 700;
-  color: var(--dark-bg);
+  color: #1e293b;
 }
 
+/* TERMS & CONDITIONS */
 .docket-terms-premium {
   margin: 0 10px 10px 10px;
   padding: 8px 12px;
-  background: var(--bg-gray);
+  background: #f8fafc;
   border-radius: 8px;
   position: relative;
   z-index: 2;
@@ -1567,12 +1597,13 @@ body {
 .docket-terms-premium ul {
   padding-left: 16px;
   font-size: 5.5px;
-  color: var(--text-gray);
+  color: #475569;
 }
 .docket-terms-premium li {
   margin: 2px 0;
 }
 
+/* FOOTER */
 .docket-footer-premium {
   padding: 8px 12px;
   background: linear-gradient(135deg, #0f172a, #1e293b);
@@ -1598,6 +1629,12 @@ body {
   font-size: 5px;
   letter-spacing: 0.5px;
   color: #94a3b8;
+  margin-bottom: 3px;
+}
+.footer-powered {
+  text-align: center;
+  font-size: 4px;
+  color: #64748b;
 }
 
 /* --------------------------------------------
@@ -1674,6 +1711,12 @@ body {
   .docket-watermark {
     color: rgba(220, 38, 38, 0.02);
   }
+  .package-summary {
+    background: #f0fdf4;
+  }
+  .barcode-img-large {
+    filter: grayscale(100%);
+  }
 }
 
 /* --------------------------------------------
@@ -1748,6 +1791,12 @@ body {
   .card-body-premium {
     padding: 16px;
   }
+  .barcode-img-large {
+    max-width: 220px;
+  }
+  .lr-number-large {
+    font-size: 20px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1760,8 +1809,11 @@ body {
   .card-body-premium {
     padding: 14px;
   }
-  .barcode-img {
+  .barcode-img-large {
     max-width: 180px;
+  }
+  .lr-number-large {
+    font-size: 18px;
   }
   .lr-number {
     font-size: 16px;
@@ -1794,6 +1846,11 @@ body {
   }
   .rate-badge {
     font-size: 12px;
+  }
+  .package-summary {
+    flex-direction: column;
+    gap: 5px;
+    text-align: center;
   }
 }
 

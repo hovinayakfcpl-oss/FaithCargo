@@ -196,7 +196,7 @@ const FreightCalculator = ({ weight, origin, destination, bookingMode, clientPol
 };
 
 // ============================================
-// 🎨 PREMIUM DOCKET COMPONENT - A4 SIZE PERFECT
+// 🎨 PREMIUM DOCKET COMPONENT - BARCODE AT TOP
 // ============================================
 const PrintDocket = React.forwardRef(({ 
   data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, 
@@ -212,12 +212,12 @@ const PrintDocket = React.forwardRef(({
       try {
         JsBarcode(barcodeRef.current, lrNumber, {
           format: "CODE128",
-          width: 1.5,
-          height: 40,
+          width: 1.8,
+          height: 50,
           displayValue: true,
-          fontSize: 10,
+          fontSize: 12,
           font: "monospace",
-          margin: 5,
+          margin: 10,
           textAlign: "center",
           background: "#ffffff",
           lineColor: "#000000"
@@ -269,7 +269,7 @@ const PrintDocket = React.forwardRef(({
 
   const getDimensionsText = () => {
     if (!data?.orderDetails?.dimensions || data.orderDetails.dimensions.length === 0) return "—";
-    return data.orderDetails.dimensions.map(d => `${d.quantity}×(${d.length}×${d.width}×${d.height})`).join(", ");
+    return data.orderDetails.dimensions.map(d => `${d.quantity}×(${d.length}×${d.width}×${d.height}cm)`).join(", ");
   };
 
   const safeData = {
@@ -283,7 +283,7 @@ const PrintDocket = React.forwardRef(({
 
   return (
     <div ref={ref} className="print-docket-premium">
-      <canvas ref={barcodeRef} style={{ display: 'none' }} width="300" height="50"></canvas>
+      <canvas ref={barcodeRef} style={{ display: 'none' }} width="350" height="70"></canvas>
       
       {/* Watermark */}
       <div className="docket-watermark">FAITH CARGO</div>
@@ -296,15 +296,24 @@ const PrintDocket = React.forwardRef(({
         <div className="corner bottom-right"></div>
       </div>
 
-      {/* Header Section */}
+      {/* BARCODE SECTION - TOP CENTER */}
+      <div className="docket-barcode-top">
+        {barcodeImageUrl ? (
+          <img src={barcodeImageUrl} alt="Barcode" className="barcode-img-large" />
+        ) : (
+          <div className="barcode-placeholder">Generating barcode...</div>
+        )}
+        <div className="lr-number-large">{lrNumber || "DRAFT"}</div>
+        <div className="awb-row-large">AWB: <strong>{awbNumber || "N/A"}</strong></div>
+      </div>
+
+      {/* Header Section with Logo and Company Details */}
       <div className="docket-header-premium">
         <div className="header-left">
-          <div className="lr-label">CONSIGNMENT NOTE</div>
-          <div className="lr-number">{lrNumber || "DRAFT"}</div>
-          <div className="awb-row">AWB: <strong>{awbNumber || "N/A"}</strong></div>
+          <div className="consignment-label">CONSIGNMENT NOTE</div>
+          <div className="date-row">Date: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
           <div className="mode-badge-docket">{getModeIcon()} {getModeText()}</div>
           <div className="status-badge-docket" style={{ backgroundColor: getStatusColor() }}>{getStatusText()}</div>
-          <div className="date-row">Date: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
         </div>
         
         <div className="header-right">
@@ -321,15 +330,6 @@ const PrintDocket = React.forwardRef(({
             <span>🏢 GST: 07AAFCF2947K1ZD  |  CIN: U60231DL2021PTC384521</span>
           </div>
         </div>
-      </div>
-
-      {/* Barcode Section */}
-      <div className="docket-barcode-section">
-        {barcodeImageUrl ? (
-          <img src={barcodeImageUrl} alt="Barcode" className="barcode-img" />
-        ) : (
-          <div className="barcode-placeholder">Generating barcode...</div>
-        )}
       </div>
 
       {/* Parties Section */}
@@ -365,35 +365,63 @@ const PrintDocket = React.forwardRef(({
         </div>
       </div>
 
-      {/* Shipment Details Table */}
+      {/* Shipment Details Table with Dimensions */}
       <div className="docket-shipment-premium">
         <table className="shipment-table-premium">
           <thead>
             <tr>
               <th width="8%">PKGS</th>
-              <th width="25%">DESCRIPTION</th>
+              <th width="22%">DESCRIPTION</th>
               <th width="8%">HSN</th>
               <th width="10%">ACTUAL WT</th>
               <th width="10%">VOL WT</th>
               <th width="10%">CHARGED WT</th>
-              <th width="12%">DIMENSIONS</th>
+              <th width="18%">DIMENSIONS (L×W×H cm)</th>
+              <th width="10%">PKG TYPE</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td className="text-center">{safeData.orderDetails.boxesCount || 0}</td>
-              <td className="text-left">
-                <strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong>
-                <div className="goods-note">Said to contain</div>
-               </td>
-              <td className="text-center">{safeData.orderDetails.hsnCode || "1234"}</td>
-              <td className="text-center">{safeData.orderDetails.weight || 0} kg</td>
-              <td className="text-center">{safeData.volWeight} kg</td>
-              <td className="text-center"><strong>{safeData.chargedWeight} kg</strong></td>
-              <td className="text-center small-text">{getDimensionsText()}</td>
-            </tr>
+            {safeData.orderDetails.dimensions && safeData.orderDetails.dimensions.length > 0 ? (
+              safeData.orderDetails.dimensions.map((dim, idx) => (
+                <tr key={idx}>
+                  <td className="text-center">{dim.quantity || 0}</td>
+                  <td className="text-left">
+                    <strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong>
+                    <div className="goods-note">Said to contain</div>
+                  </td>
+                  <td className="text-center">{safeData.orderDetails.hsnCode || "1234"}</td>
+                  <td className="text-center">{safeData.orderDetails.weight || 0} kg</td>
+                  <td className="text-center">{safeData.volWeight} kg</td>
+                  <td className="text-center"><strong>{safeData.chargedWeight} kg</strong></td>
+                  <td className="text-center small-text">{dim.length}×{dim.width}×{dim.height}</td>
+                  <td className="text-center">BOX</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="text-center">{safeData.orderDetails.boxesCount || 0}</td>
+                <td className="text-left">
+                  <strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong>
+                  <div className="goods-note">Said to contain</div>
+                </td>
+                <td className="text-center">{safeData.orderDetails.hsnCode || "1234"}</td>
+                <td className="text-center">{safeData.orderDetails.weight || 0} kg</td>
+                <td className="text-center">{safeData.volWeight} kg</td>
+                <td className="text-center"><strong>{safeData.chargedWeight} kg</strong></td>
+                <td className="text-center small-text">{getDimensionsText()}</td>
+                <td className="text-center">BOX</td>
+              </tr>
+            )}
           </tbody>
         </table>
+      </div>
+
+      {/* Package Summary */}
+      <div className="package-summary">
+        <span>📦 Total Packages: <strong>{safeData.orderDetails.boxesCount || 0}</strong></span>
+        <span>⚖️ Total Weight: <strong>{safeData.orderDetails.weight || 0} kg</strong></span>
+        <span>📐 Volumetric Weight: <strong>{safeData.volWeight} kg</strong></span>
+        <span>🎯 Charged Weight: <strong>{safeData.chargedWeight} kg</strong></span>
       </div>
 
       {/* Invoice & Freight Section */}
@@ -425,6 +453,17 @@ const PrintDocket = React.forwardRef(({
         )}
       </div>
 
+      {/* Terms & Conditions */}
+      <div className="docket-terms-premium">
+        <h4><Shield size={10} /> TERMS & CONDITIONS</h4>
+        <ul>
+          <li>Goods carried at Owner's Risk. Insurance recommended.</li>
+          <li>Claim within 7 days of delivery. Jurisdiction: Delhi Only.</li>
+          <li>Transit liability as per Carriers Act, 1865.</li>
+          <li>E-Way Bill mandatory for invoice &gt; ₹50,000.</li>
+        </ul>
+      </div>
+
       {/* Stamp & Signature */}
       <div className="docket-stamp-sign-premium">
         <div className="stamp-container">
@@ -445,17 +484,6 @@ const PrintDocket = React.forwardRef(({
         </div>
       </div>
 
-      {/* Terms & Conditions */}
-      <div className="docket-terms-premium">
-        <h4><Shield size={10} /> TERMS & CONDITIONS</h4>
-        <ul>
-          <li>Goods carried at Owner's Risk. Insurance recommended.</li>
-          <li>Claim within 7 days of delivery. Jurisdiction: Delhi Only.</li>
-          <li>Transit liability as per Carriers Act, 1865.</li>
-          <li>E-Way Bill mandatory for invoice &gt; ₹50,000.</li>
-        </ul>
-      </div>
-
       {/* Footer */}
       <div className="docket-footer-premium">
         <div className="footer-copies">
@@ -467,6 +495,7 @@ const PrintDocket = React.forwardRef(({
           🌐 www.faithcargo.com | 📞 9818641504 | ✉️ care@faithcargo.com
         </div>
         <div className="footer-thanks">Thank you for choosing Faith Cargo - Delivering Trust Worldwide</div>
+        <div className="footer-powered">Powered by Devora Technologies</div>
       </div>
     </div>
   );
@@ -565,9 +594,9 @@ const DimensionInput = ({ dimensions, setDimensions, setTotalBoxes }) => {
           <div className="dim-group-header"><span>Type {idx + 1}</span><button className="remove-dim-group" onClick={() => removeDimensionGroup(group.id)}><Trash2 size={12} /></button></div>
           <div className="dim-inputs">
             <input type="number" placeholder="Qty" value={group.quantity} onChange={e => updateDimensionGroup(group.id, 'quantity', e.target.value)} />
-            <input type="number" placeholder="L" value={group.length} onChange={e => updateDimensionGroup(group.id, 'length', e.target.value)} />
-            <input type="number" placeholder="W" value={group.width} onChange={e => updateDimensionGroup(group.id, 'width', e.target.value)} />
-            <input type="number" placeholder="H" value={group.height} onChange={e => updateDimensionGroup(group.id, 'height', e.target.value)} />
+            <input type="number" placeholder="L (cm)" value={group.length} onChange={e => updateDimensionGroup(group.id, 'length', e.target.value)} />
+            <input type="number" placeholder="W (cm)" value={group.width} onChange={e => updateDimensionGroup(group.id, 'width', e.target.value)} />
+            <input type="number" placeholder="H (cm)" value={group.height} onChange={e => updateDimensionGroup(group.id, 'height', e.target.value)} />
           </div>
         </div>
       ))}
@@ -882,14 +911,14 @@ export default function CreateOrder() {
               background: white;
               box-shadow: 0 20px 40px rgba(0,0,0,0.15);
               position: relative;
-              padding: 8px;
+              padding: 10px;
             }
             .docket-watermark {
               position: absolute;
               top: 50%;
               left: 50%;
               transform: translate(-50%, -50%);
-              font-size: 70px;
+              font-size: 80px;
               font-weight: 900;
               color: rgba(220,38,38,0.03);
               white-space: nowrap;
@@ -899,10 +928,10 @@ export default function CreateOrder() {
             }
             .docket-border-premium {
               position: absolute;
-              top: 4px;
-              left: 4px;
-              right: 4px;
-              bottom: 4px;
+              top: 5px;
+              left: 5px;
+              right: 5px;
+              bottom: 5px;
               border: 1.5px solid #dc2626;
               pointer-events: none;
               border-radius: 12px;
@@ -918,74 +947,160 @@ export default function CreateOrder() {
             .top-right { top: -2px; right: -2px; border-left: none; border-bottom: none; border-radius: 0 12px 0 0; }
             .bottom-left { bottom: -2px; left: -2px; border-right: none; border-top: none; border-radius: 0 0 0 12px; }
             .bottom-right { bottom: -2px; right: -2px; border-left: none; border-top: none; border-radius: 0 0 12px 0; }
+            
+            /* Barcode Top Section */
+            .docket-barcode-top {
+              text-align: center;
+              padding: 10px;
+              margin-bottom: 10px;
+              background: #f8fafc;
+              border-radius: 10px;
+            }
+            .barcode-img-large {
+              width: 280px;
+              height: auto;
+              margin: 0 auto;
+            }
+            .lr-number-large {
+              font-size: 24px;
+              font-weight: 900;
+              color: #dc2626;
+              font-family: monospace;
+              letter-spacing: 2px;
+              margin-top: 8px;
+            }
+            .awb-row-large {
+              font-size: 11px;
+              color: #475569;
+              margin-top: 4px;
+            }
+            
             .docket-header-premium {
               display: flex;
               justify-content: space-between;
-              padding: 10px 12px 8px 12px;
+              padding: 10px 12px;
               border-bottom: 2px solid #dc2626;
-              margin-bottom: 8px;
+              margin-bottom: 10px;
               position: relative;
               z-index: 2;
             }
-            .header-left .lr-label { font-size: 8px; font-weight: 700; color: #64748b; letter-spacing: 1.5px; margin-bottom: 3px; }
-            .lr-number { font-size: 20px; font-weight: 900; color: #dc2626; font-family: monospace; letter-spacing: 1px; margin: 4px 0; }
-            .awb-row { font-size: 9px; color: #475569; margin: 3px 0; }
-            .mode-badge-docket { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 7px; font-weight: 700; background: #1e293b; color: white; margin: 3px 0; }
-            .status-badge-docket { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 7px; font-weight: 700; color: white; margin-left: 6px; }
-            .date-row { font-size: 7px; color: #64748b; margin-top: 5px; }
+            .consignment-label {
+              font-size: 9px;
+              font-weight: 800;
+              color: #64748b;
+              letter-spacing: 2px;
+              margin-bottom: 5px;
+            }
+            .date-row { font-size: 8px; color: #64748b; margin: 3px 0; }
+            .mode-badge-docket { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 8px; font-weight: 700; background: #1e293b; color: white; margin: 3px 0; }
+            .status-badge-docket { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 8px; font-weight: 700; color: white; margin-left: 8px; }
             .header-right { text-align: right; }
-            .brand-logo { height: 42px; width: auto; margin-bottom: 4px; }
-            .header-right h2 { font-size: 11px; font-weight: 800; margin: 0; color: #1e293b; }
-            .header-right p { font-size: 6px; color: #dc2626; font-weight: 600; margin: 2px 0; }
-            .company-contact { font-size: 5.5px; color: #475569; margin-top: 4px; display: flex; flex-direction: column; gap: 2px; line-height: 1.3; }
-            .docket-barcode-section { text-align: center; padding: 5px 0; position: relative; z-index: 2; }
-            .barcode-img { width: 220px; height: auto; margin: 0 auto; }
-            .docket-parties-premium { display: flex; gap: 15px; padding: 0 12px; margin-bottom: 12px; position: relative; z-index: 2; }
+            .brand-logo { height: 45px; width: auto; margin-bottom: 5px; }
+            .header-right h2 { font-size: 12px; font-weight: 800; margin: 0; color: #1e293b; }
+            .header-right p { font-size: 7px; color: #dc2626; font-weight: 600; margin: 2px 0; }
+            .company-contact { font-size: 6px; color: #475569; margin-top: 5px; display: flex; flex-direction: column; gap: 2px; line-height: 1.3; }
+            
+            .docket-parties-premium {
+              display: flex;
+              gap: 15px;
+              padding: 0 10px;
+              margin-bottom: 12px;
+              position: relative;
+              z-index: 2;
+            }
             .party-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
-            .party-title { background: #f8fafc; padding: 5px 8px; font-size: 8px; font-weight: 700; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 4px; }
-            .party-content { padding: 6px 8px; }
-            .party-content h4 { font-size: 9px; font-weight: 700; margin-bottom: 3px; }
-            .party-content p { font-size: 7px; color: #475569; margin-bottom: 4px; line-height: 1.2; }
-            .party-contact { display: flex; flex-wrap: wrap; gap: 5px; font-size: 6px; padding-top: 3px; border-top: 1px dashed #e2e8f0; }
-            .party-arrow { display: flex; align-items: center; color: #dc2626; }
-            .docket-shipment-premium { padding: 0 12px; margin-bottom: 10px; position: relative; z-index: 2; }
+            .party-title { background: #f8fafc; padding: 6px 10px; font-size: 8px; font-weight: 800; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 5px; }
+            .party-content { padding: 8px 10px; }
+            .party-content h4 { font-size: 9px; font-weight: 800; margin-bottom: 4px; }
+            .party-content p { font-size: 7px; color: #475569; margin-bottom: 5px; line-height: 1.2; }
+            .party-contact { display: flex; flex-wrap: wrap; gap: 6px; font-size: 6px; padding-top: 4px; border-top: 1px dashed #e2e8f0; }
+            .party-arrow { display: flex; align-items: center; color: #dc2626; font-size: 18px; }
+            
+            .docket-shipment-premium { padding: 0 10px; margin-bottom: 10px; position: relative; z-index: 2; }
             .shipment-table-premium { width: 100%; border-collapse: collapse; font-size: 7px; }
-            .shipment-table-premium th { background: #f8fafc; padding: 6px 4px; font-weight: 700; border: 1px solid #e2e8f0; text-align: center; }
+            .shipment-table-premium th { background: #f8fafc; padding: 6px 4px; font-weight: 800; border: 1px solid #e2e8f0; text-align: center; }
             .shipment-table-premium td { padding: 6px 4px; border: 1px solid #e2e8f0; text-align: center; }
-            .text-left { text-align: left; }
-            .text-center { text-align: center; }
             .goods-note { font-size: 6px; color: #94a3b8; margin-top: 2px; }
-            .small-text { font-size: 6px; }
-            .docket-bottom-premium { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 12px; margin-bottom: 10px; position: relative; z-index: 2; }
+            
+            .package-summary {
+              display: flex;
+              justify-content: space-between;
+              flex-wrap: wrap;
+              gap: 10px;
+              padding: 8px 12px;
+              margin: 0 10px 12px 10px;
+              background: #f0fdf4;
+              border-radius: 8px;
+              font-size: 7px;
+              font-weight: 600;
+              border-left: 3px solid #10b981;
+            }
+            
+            .docket-bottom-premium {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 12px;
+              padding: 0 10px;
+              margin-bottom: 10px;
+              position: relative;
+              z-index: 2;
+            }
             .invoice-box-premium, .freight-box-premium { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
-            .box-title { background: #f8fafc; padding: 5px 8px; font-size: 7px; font-weight: 700; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 4px; }
-            .invoice-row { display: flex; justify-content: space-between; padding: 3px 8px; font-size: 6px; border-bottom: 1px solid #f1f5f9; }
-            .invoice-total { display: flex; justify-content: space-between; padding: 4px 8px; font-size: 7px; font-weight: 700; background: #fef3c7; }
-            .eway-bill { padding: 3px 8px; font-size: 6px; background: #f0fdf4; color: #166534; display: flex; align-items: center; gap: 4px; }
-            .freight-row-line { display: flex; justify-content: space-between; padding: 3px 8px; font-size: 6px; border-bottom: 1px solid #f1f5f9; }
-            .freight-total-premium { display: flex; justify-content: space-between; padding: 4px 8px; font-size: 7px; font-weight: 700; background: #fef3c7; }
-            .rate-note { padding: 3px 8px; font-size: 5px; text-align: center; background: #f1f5f9; color: #64748b; }
-            .docket-stamp-sign-premium { display: flex; justify-content: space-between; align-items: center; padding: 0 12px; margin: 8px 0; position: relative; z-index: 2; }
-            .stamp-container { width: 70px; height: 70px; }
-            .stamp-image { width: 100%; height: auto; object-fit: contain; opacity: 0.85; }
-            .stamp-fallback { width: 70px; height: 70px; border: 2px dashed #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-align: center; }
-            .stamp-circle { font-size: 6px; font-weight: 700; color: #dc2626; text-align: center; line-height: 1.2; }
-            .signature-container { text-align: center; }
-            .sign-line { width: 120px; height: 1px; background: #000; margin: 4px auto; }
-            .sign-line.second { margin-top: 10px; }
-            .signature-container p { font-size: 6px; margin-top: 2px; color: #475569; }
-            .authorized-sign { font-weight: 600; color: #1e293b; }
-            .docket-terms-premium { margin: 0 12px 8px 12px; padding: 6px 10px; background: #f8fafc; border-radius: 8px; position: relative; z-index: 2; }
-            .docket-terms-premium h4 { font-size: 6px; font-weight: 700; margin-bottom: 3px; display: flex; align-items: center; gap: 4px; }
-            .docket-terms-premium ul { padding-left: 15px; font-size: 5px; color: #475569; }
+            .box-title { background: #f8fafc; padding: 6px 10px; font-size: 7px; font-weight: 800; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 5px; }
+            .invoice-row { display: flex; justify-content: space-between; padding: 4px 10px; font-size: 6px; border-bottom: 1px solid #f1f5f9; }
+            .invoice-total { display: flex; justify-content: space-between; padding: 5px 10px; font-size: 7px; font-weight: 800; background: #fef3c7; }
+            .eway-bill { padding: 4px 10px; font-size: 6px; background: #ecfdf5; color: #166534; display: flex; align-items: center; gap: 5px; }
+            .freight-row-line { display: flex; justify-content: space-between; padding: 4px 10px; font-size: 6px; border-bottom: 1px solid #f1f5f9; }
+            .freight-total-premium { display: flex; justify-content: space-between; padding: 5px 10px; font-size: 7px; font-weight: 800; background: #fef3c7; }
+            .rate-note { padding: 4px 10px; font-size: 5.5px; text-align: center; background: #f1f5f9; color: #64748b; }
+            
+            .docket-terms-premium {
+              margin: 0 10px 10px 10px;
+              padding: 8px 12px;
+              background: #f8fafc;
+              border-radius: 8px;
+              position: relative;
+              z-index: 2;
+            }
+            .docket-terms-premium h4 { font-size: 7px; font-weight: 800; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+            .docket-terms-premium ul { padding-left: 16px; font-size: 5.5px; color: #475569; }
             .docket-terms-premium li { margin: 2px 0; }
-            .docket-footer-premium { padding: 6px 12px; background: linear-gradient(135deg, #0f172a, #1e293b); color: white; font-size: 5px; position: relative; z-index: 2; border-radius: 0 0 8px 8px; }
-            .footer-copies { display: flex; justify-content: space-between; margin-bottom: 4px; }
-            .footer-website { text-align: center; margin-bottom: 3px; font-size: 5px; opacity: 0.8; }
-            .footer-thanks { text-align: center; font-size: 5px; letter-spacing: 0.5px; color: #94a3b8; }
+            
+            .docket-stamp-sign-premium {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 0 10px;
+              margin: 10px 0;
+              position: relative;
+              z-index: 2;
+            }
+            .stamp-container { width: 75px; height: 75px; }
+            .stamp-image { width: 100%; height: auto; object-fit: contain; opacity: 0.85; }
+            .signature-container { text-align: center; }
+            .sign-line { width: 120px; height: 1px; background: #000; margin: 5px auto; }
+            .sign-line.second { margin-top: 12px; }
+            .signature-container p { font-size: 6px; margin-top: 3px; color: #475569; }
+            .authorized-sign { font-weight: 700; color: #1e293b; }
+            
+            .docket-footer-premium {
+              padding: 8px 12px;
+              background: linear-gradient(135deg, #0f172a, #1e293b);
+              color: white;
+              font-size: 5.5px;
+              position: relative;
+              z-index: 2;
+              border-radius: 0 0 10px 10px;
+            }
+            .footer-copies { display: flex; justify-content: space-between; margin-bottom: 5px; }
+            .footer-website { text-align: center; margin-bottom: 4px; font-size: 5px; opacity: 0.8; }
+            .footer-thanks { text-align: center; font-size: 5px; letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 3px; }
+            .footer-powered { text-align: center; font-size: 4px; color: #64748b; }
+            
             @media print {
               body { background: white; padding: 0; margin: 0; }
               .print-docket-premium { box-shadow: none; margin: 0; page-break-after: avoid; break-inside: avoid; }
+              .package-summary { background: #f0fdf4; }
             }
           </style>
         </head>
@@ -1174,7 +1289,7 @@ export default function CreateOrder() {
                 <PrintDocket 
                   key={lrNumber} 
                   ref={printDocketRef} 
-                  data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight, dimensions}} 
+                  data={{pickup, delivery, orderDetails, invoices, chargedWeight, volWeight, dimensions, boxesCount: totalPackages}} 
                   lrNumber={isManualLR ? manualLRNumber : lrNumber} 
                   totalValue={totalInvoiceValue} 
                   ewayBill={ewayBill} 
