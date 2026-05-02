@@ -6,12 +6,13 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || "https://faithcargo.onrend
 
 // ============================================
 // CLIENT ZONE MAPPING (Based on FIRST 3 DIGITS)
-// Updated with full NE1, NE2, NE3 support
+// FIXED: East zone checked BEFORE Northeast zone
 // ============================================
 
 const getClientZoneFromPincode = (pincode) => {
   const pincodeStr = String(pincode).trim();
   const prefix = pincodeStr.substring(0, 3);
+  const prefixNum = parseInt(prefix, 10);
   
   // Delhi NCR - 110, 122, 201
   if (prefix === '110' || prefix === '122' || prefix === '201') {
@@ -31,69 +32,49 @@ const getClientZoneFromPincode = (pincode) => {
   }
   
   // NORTH 3 - Jammu & Kashmir (18xxxx, 19xxxx)
-  const north3Prefixes = ['180','181','182','183','184','185','186','187','188','189',
-                          '190','191','192','193','194','195','196','197','198','199'];
-  if (north3Prefixes.includes(prefix)) {
+  if (prefixNum >= 180 && prefixNum <= 199) {
     return 'NORTH 3';
   }
   
   // Central - Madhya Pradesh (45xxxx to 49xxxx)
-  const centralPrefixes = ['450','451','452','453','454','455','456','457','458','459',
-                           '460','461','462','463','464','465','466','467','468','469',
-                           '470','471','472','473','474','475','476','477','478','479',
-                           '480','481','482','483','484','485','486','487','488','489',
-                           '490','491','492','493','494','495','496','497','498','499'];
-  if (centralPrefixes.includes(prefix)) {
+  if (prefixNum >= 450 && prefixNum <= 499) {
     return 'Central';
   }
   
   // W1 - Gujarat (36xxxx to 39xxxx)
-  const w1Prefixes = ['360','361','362','363','364','365','366','367','368','369',
-                      '370','371','372','373','374','375','376','377','378','379',
-                      '380','381','382','383','384','385','386','387','388','389',
-                      '390','391','392','393','394','395','396','397','398','399'];
-  if (w1Prefixes.includes(prefix)) {
+  if (prefixNum >= 360 && prefixNum <= 399) {
     return 'W1';
   }
   
   // W2 - Maharashtra (40xxxx to 44xxxx)
-  const w2Prefixes = ['400','401','402','403','404','405','406','407','408','409',
-                      '410','411','412','413','414','415','416','417','418','419',
-                      '420','421','422','423','424','425','426','427','428','429',
-                      '430','431','432','433','434','435','436','437','438','439',
-                      '440','441','442','443','444','445','446','447','448','449'];
-  if (w2Prefixes.includes(prefix)) {
+  if (prefixNum >= 400 && prefixNum <= 449) {
     return 'W2';
   }
   
   // South - (50xxxx to 69xxxx)
-  const southPrefixes = [];
-  for (let i = 50; i <= 69; i++) {
-    southPrefixes.push(String(i));
-  }
-  if (southPrefixes.includes(prefix)) {
+  if (prefixNum >= 500 && prefixNum <= 699) {
     return 'South';
   }
   
-  // East - (70xxxx to 83xxxx)
-  const eastPrefixes = [];
-  for (let i = 70; i <= 83; i++) {
-    eastPrefixes.push(String(i));
-  }
-  if (eastPrefixes.includes(prefix)) {
+  // East - (70xxxx to 83xxxx) - MUST BE BEFORE NORTHEAST
+  // Because West Bengal (700-743) is EAST, not Northeast
+  if (prefixNum >= 700 && prefixNum <= 839) {
     return 'East';
   }
   
-  // Northeast Zones - 78xxxx, 79xxxx
+  // Northeast Zones - 78xxxx, 79xxxx (Only for Northeast states)
   // NE1: Guwahati (781)
   // NE2: Rest of Assam, Tripura, Meghalaya, Arunachal, Manipur, Sikkim (782-789, 790-795, 799)
   // NE3: Mizoram, Nagaland (796, 797, 798)
-  if (prefix === '781') {
-    return 'NE1';
-  } else if (prefix === '796' || prefix === '797' || prefix === '798') {
-    return 'NE3';
-  } else if (prefix >= '780' && prefix <= '799') {
-    return 'NE2';
+  // NOTE: 780-839 already caught by East above, so this only catches remaining NE ranges
+  if (prefixNum >= 780 && prefixNum <= 799) {
+    if (prefix === '781') {
+      return 'NE1';
+    } else if (prefix === '796' || prefix === '797' || prefix === '798') {
+      return 'NE3';
+    } else {
+      return 'NE2';
+    }
   }
   
   // DEFAULT
@@ -102,7 +83,6 @@ const getClientZoneFromPincode = (pincode) => {
 
 // ============================================
 // VENDOR-SPECIFIC ZONE LISTS (as stored in database)
-// Updated with NE3 support for all vendors
 // ============================================
 
 // TRUCX DLH Lite - 11 zones (no NE3)
@@ -126,15 +106,14 @@ const ZONES_SHIVANI_VX = ["N1", "N2", "N3", "C1", "C2", "W1", "W2", "S1", "S2", 
 // SHIPSHOPY BLUE DART & DELIVERY - 16 zones (no NE3)
 const ZONES_SHIPSHOPY = ZONES_TRUCX_16;
 
-// PD LOGISTICS - No standard zones (only CFT) - but supports NE3 via CFT
+// PD LOGISTICS - No standard zones (only CFT)
 const ZONES_PD_LOGISTICS = [];
 
-// DELHIVERY - 16 zones (NE zones map to E1)
+// DELHIVERY - 16 zones
 const ZONES_DEFAULT = ZONES_TRUCX_16;
 
 // ============================================
 // ZONE MAPPING: Client Zone → Vendor Database Zone
-// Updated with NE3 mapping for all vendors
 // ============================================
 
 const getVendorZoneFromClientZone = (clientZone, vendorName) => {
@@ -167,7 +146,7 @@ const getVendorZoneFromClientZone = (clientZone, vendorName) => {
     return baseMapping[clientZone] || 'N1';
   }
   
-  // PD LOGISTICS - supports NE3 via CFT
+  // PD LOGISTICS - supports all zones
   if (vendorUpper.includes('PD LOGISTICS')) {
     return baseMapping[clientZone] || 'N1';
   }
@@ -192,12 +171,12 @@ const getVendorZoneFromClientZone = (clientZone, vendorName) => {
     return 'NE2';
   }
   
-  // TRUCX Dense/Cargo - NE3 maps to NE2 (they don't have NE3)
+  // TRUCX Dense/Cargo - NE3 maps to NE2
   if ((vendorUpper.includes('TRUCX DLH DENSE') || vendorUpper.includes('TRUCX DLH CARGO')) && clientZone === 'NE3') {
     return 'NE2';
   }
   
-  // VXPRESS - NE3 maps to NE1 or E1
+  // VXPRESS - NE3 maps to NE1
   if (vendorUpper.includes('VXPRESS')) {
     if (clientZone === 'NE3') return 'NE1';
     return baseMapping[clientZone] || 'N1';
@@ -270,7 +249,7 @@ function VendorRateCalculator() {
   const [mode, setMode] = useState("Prepaid");
   const [weight, setWeight] = useState("");
   const [invoiceValue, setInvoiceValue] = useState("");
-  const [insuranceEnabled, setInsuranceEnabled] = useState(false); // NEW: Insurance checkbox
+  const [insuranceEnabled, setInsuranceEnabled] = useState(false);
   const [dimensions, setDimensions] = useState([{ qty: 1, length: "", width: "", height: "" }]);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -461,23 +440,19 @@ function VendorRateCalculator() {
     return { isServiceable: true, isODA: false, charge: 0, minCharge: 0, category: null };
   }, [pincodeCache]);
 
-  // Get rate from vendor based on vendor type and its specific zones
   const getRateFromVendor = useCallback((vendor, fromZone, toZone, cftType) => {
     let rate = 0;
     const vendorName = vendor.vendor_name;
     
     console.log(`🔍 Getting rate for ${vendorName}, ${cftType}, ${fromZone}→${toZone}`);
     
-    // Get vendor-specific zones for validation
     const vendorZones = getZonesForVendor(vendorName);
     
-    // Check if zones are valid for this vendor
     if (vendorZones.length > 0 && (!vendorZones.includes(fromZone) || !vendorZones.includes(toZone))) {
       console.log(`⚠️ Zone mismatch for ${vendorName}: ${fromZone}→${toZone} not in vendor zones`);
       return 0;
     }
     
-    // PD LOGISTICS - ONLY CFT rates
     if (vendorName === PD_LOGISTICS) {
       if (cftType === "6CFT" && vendor.delhivery_6cft) {
         rate = vendor.delhivery_6cft[fromZone]?.[toZone] || 0;
@@ -489,7 +464,6 @@ function VendorRateCalculator() {
         return 0;
       }
     }
-    // RIVIGO - Has both CFT and Standard rates
     else if (vendorName === RIVIGO) {
       if (cftType === "6CFT" && vendor.delhivery_6cft) {
         rate = vendor.delhivery_6cft[fromZone]?.[toZone] || 0;
@@ -501,11 +475,9 @@ function VendorRateCalculator() {
         rate = vendor.rates[fromZone]?.[toZone] || 0;
       }
     }
-    // TRUCX vendors - standard rates only
     else if (TRUCX_VENDORS.includes(vendorName)) {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
     }
-    // All other vendors (including VXPRESS and SHIVANI VX) - standard rates only
     else {
       rate = vendor.rates[fromZone]?.[toZone] || 0;
     }
@@ -517,10 +489,8 @@ function VendorRateCalculator() {
     const vendorName = vendor.vendor_name;
     const charges = vendor.charges || {};
     
-    // Get rate from vendor's rate matrix
     let ratePerKg = getRateFromVendor(vendor, fromZone, toZone, cftSize);
     
-    // Skip if no rate found
     if (ratePerKg === 0) {
       console.log(`⏭️ Skipping ${vendorName} ${cftSize} - no rate found for ${fromZone}→${toZone}`);
       return null;
@@ -563,17 +533,13 @@ function VendorRateCalculator() {
     if (mode === "COD") modeCharge = 125;
     if (mode === "ToPay") modeCharge = 200;
     
-    // FOV/Insurance Charge - ONLY if insurance is enabled
     let fovCharge = 0;
     if (insuranceEnabled && invoiceValue && invoiceValue > 0) {
       fovCharge = Math.max(invoiceValue * 0.001, 100);
-      console.log(`🛡️ Insurance applied for ${vendorName}: ₹${fovCharge} (${insuranceEnabled ? 'Enabled' : 'Disabled'})`);
     }
     
     let totalFreight = baseFreight + fscAmount + docketCharge + gstAmount + modeCharge + fovCharge + finalODACharge;
     totalFreight = Math.max(totalFreight, minFreight);
-    
-    console.log(`✅ ${vendorName} ${cftSize}: Rate=${ratePerKg}, ODA=${finalODACharge}, Insurance=${fovCharge}, Total=${totalFreight.toFixed(2)}`);
     
     return {
       vendor_name: vendorName,
@@ -667,13 +633,11 @@ function VendorRateCalculator() {
           console.log(`🔥 ODA APPLIED for ${vendorName}: ₹${finalODACharge}`);
         }
         
-        // Get vendor-specific zones
         const fromZone = getVendorZoneFromPincode(pickup, vendorName);
         const toZone = getVendorZoneFromPincode(destination, vendorName);
         
         console.log(`📍 ${vendorName}: ${pickup}(${fromZone}) → ${destination}(${toZone})`);
         
-        // PD LOGISTICS - ONLY 6CFT and 10CFT
         if (vendorName === PD_LOGISTICS) {
           const rate6CFT = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "6CFT", pincodeInfo);
           if (rate6CFT && rate6CFT.rate_per_kg > 0) {
@@ -685,7 +649,6 @@ function VendorRateCalculator() {
             calculatedResults.push(rate10CFT);
           }
         } 
-        // RIVIGO - Has both CFT and Standard
         else if (vendorName === RIVIGO) {
           const rate6CFT = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "6CFT", pincodeInfo);
           if (rate6CFT && rate6CFT.rate_per_kg > 0) {
@@ -702,7 +665,6 @@ function VendorRateCalculator() {
             calculatedResults.push(rateStandard);
           }
         }
-        // Other vendors - Standard rates only
         else {
           const rate = calculateRateForVendor(vendor, fromZone, toZone, actualWeight, finalODACharge, "Standard", pincodeInfo);
           if (rate && rate.rate_per_kg > 0) {
@@ -748,7 +710,7 @@ function VendorRateCalculator() {
     setMode("Prepaid");
     setWeight("");
     setInvoiceValue("");
-    setInsuranceEnabled(false); // Reset insurance checkbox
+    setInsuranceEnabled(false);
     setDimensions([{ qty: 1, length: "", width: "", height: "" }]);
     setResults([]);
     setCalculationDetails(null);
