@@ -13,11 +13,15 @@ import {
   Stamp, Circle, Star, HelpCircle, Search,
   RefreshCw, Activity, CheckCircle2, Timer,
   Bookmark, SaveAll, Copy, Edit, Trash, Check, ChevronDown, ChevronUp, 
-  FolderOpen, LogOut, UserCircle
+  FolderOpen, LogOut, UserCircle, QrCode, ScanLine, Receipt,
+  ClipboardList, TruckIcon, Ship, Navigation2, MapPinned,
+  PhoneCall, MailOpen, Building as BuildingIcon, Home,
+  Briefcase, FileCheck, Stamp as StampIcon, BadgeCheck,
+  Shield, Lock, Leaf, Sparkles, Rocket, Zap, Target, Compass
 } from "lucide-react";
 import "./CreateOrder.css";
 
-// Logo import - ensure path is correct
+// Logo import
 import logo from "../assets/logo.png";
 import stampPng from "../assets/stamp.png";
 
@@ -175,8 +179,8 @@ const FreightCalculator = ({ weight, origin, destination, bookingMode, clientPol
   if (!origin || !destination || weight === 0) return null;
 
   return (
-    <div className="freight-card-modern">
-      <div className="freight-header"><Calculator size={18} /><span>Freight Calculator</span>{freight?.isCustomRate && <span className="custom-badge">⭐ Custom Rate</span>}{loading && <span className="loading-badge">Calculating...</span>}</div>
+    <div className="freight-card-premium">
+      <div className="freight-header"><Calculator size={16} /><span>Freight Calculator</span>{freight?.isCustomRate && <span className="custom-badge">⭐ Custom Rate</span>}{loading && <span className="loading-badge">...</span>}</div>
       {freight && !loading && (
         <div className="freight-body">
           <div className="route-badges"><span className="zone-badge">{freight.fromZone} → {freight.toZone}</span><span className="rate-badge">₹{freight.ratePerKg}/kg</span></div>
@@ -184,7 +188,7 @@ const FreightCalculator = ({ weight, origin, destination, bookingMode, clientPol
           <div className="freight-row"><span>Fuel Surcharge</span><span>₹{freight.fuelSurcharge.toLocaleString()}</span></div>
           <div className="freight-row"><span>GST (18%)</span><span>₹{freight.gst.toLocaleString()}</span></div>
           <div className="freight-row"><span>Docket + FOV</span><span>₹{freight.docketCharge + freight.fovCharge}</span></div>
-          <div className="freight-row total"><span>Total Freight</span><span className="total-amount">₹{freight.total.toLocaleString()}</span></div>
+          <div className="freight-total"><span>Total Freight</span><span className="total-amount">₹{freight.total.toLocaleString()}</span></div>
         </div>
       )}
     </div>
@@ -192,9 +196,12 @@ const FreightCalculator = ({ weight, origin, destination, bookingMode, clientPol
 };
 
 // ============================================
-// 🎨 DOCKET COMPONENT - A4 SIZE (70% PAGE)
+// 🎨 PREMIUM DOCKET COMPONENT - A4 SIZE PERFECT
 // ============================================
-const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, showFreight, freightData, status, clientId, userRole }, ref) => {
+const PrintDocket = React.forwardRef(({ 
+  data, lrNumber, totalValue, ewayBill, awbNumber, bookingMode, 
+  showFreight, freightData, status, clientId, userRole, uploadedInvoices 
+}, ref) => {
   const barcodeRef = useRef(null);
   const [barcodeImageUrl, setBarcodeImageUrl] = useState("");
   const [logoError, setLogoError] = useState(false);
@@ -205,12 +212,12 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
       try {
         JsBarcode(barcodeRef.current, lrNumber, {
           format: "CODE128",
-          width: 1.8,
-          height: 45,
+          width: 1.5,
+          height: 40,
           displayValue: true,
-          fontSize: 12,
+          fontSize: 10,
           font: "monospace",
-          margin: 8,
+          margin: 5,
           textAlign: "center",
           background: "#ffffff",
           lineColor: "#000000"
@@ -231,6 +238,15 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
     }
   };
 
+  const getModeIcon = () => {
+    switch(bookingMode) {
+      case 'air': return <Plane size={12} />;
+      case 'rail': return <Train size={12} />;
+      case 'express': return <Zap size={12} />;
+      default: return <Truck size={12} />;
+    }
+  };
+
   const getStatusText = () => {
     switch(status) {
       case 'delivered': return 'DELIVERED';
@@ -241,9 +257,19 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
     }
   };
 
+  const getStatusColor = () => {
+    switch(status) {
+      case 'delivered': return '#10b981';
+      case 'in_transit': return '#f59e0b';
+      case 'out_for_delivery': return '#3b82f6';
+      case 'picked': return '#8b5cf6';
+      default: return '#dc2626';
+    }
+  };
+
   const getDimensionsText = () => {
     if (!data?.orderDetails?.dimensions || data.orderDetails.dimensions.length === 0) return "—";
-    return data.orderDetails.dimensions.map(d => `${d.quantity} x (${d.length}×${d.width}×${d.height})`).join(", ");
+    return data.orderDetails.dimensions.map(d => `${d.quantity}×(${d.length}×${d.width}×${d.height})`).join(", ");
   };
 
   const safeData = {
@@ -256,51 +282,60 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
   };
 
   return (
-    <div ref={ref} className="print-docket-a4">
-      <canvas ref={barcodeRef} style={{ display: 'none' }} width="300" height="60"></canvas>
+    <div ref={ref} className="print-docket-premium">
+      <canvas ref={barcodeRef} style={{ display: 'none' }} width="300" height="50"></canvas>
       
+      {/* Watermark */}
       <div className="docket-watermark">FAITH CARGO</div>
-      <div className="docket-border"></div>
       
+      {/* Premium Border */}
+      <div className="docket-border-premium">
+        <div className="corner top-left"></div>
+        <div className="corner top-right"></div>
+        <div className="corner bottom-left"></div>
+        <div className="corner bottom-right"></div>
+      </div>
+
       {/* Header Section */}
-      <div className="docket-header">
+      <div className="docket-header-premium">
         <div className="header-left">
           <div className="lr-label">CONSIGNMENT NOTE</div>
-          {barcodeImageUrl ? (
-            <img src={barcodeImageUrl} alt="Barcode" className="barcode-img" />
-          ) : (
-            <div className="barcode-placeholder">Generating barcode...</div>
-          )}
           <div className="lr-number">{lrNumber || "DRAFT"}</div>
           <div className="awb-row">AWB: <strong>{awbNumber || "N/A"}</strong></div>
-          <div className="status-badge">{getStatusText()}</div>
-          <div className="date-row">Date: {new Date().toLocaleDateString('en-IN')}</div>
+          <div className="mode-badge-docket">{getModeIcon()} {getModeText()}</div>
+          <div className="status-badge-docket" style={{ backgroundColor: getStatusColor() }}>{getStatusText()}</div>
+          <div className="date-row">Date: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
         </div>
+        
         <div className="header-right">
           {!logoError ? (
-            <img 
-              src={logo} 
-              alt="FCPL" 
-              className="brand-logo" 
-              onError={() => setLogoError(true)}
-            />
+            <img src={logo} alt="FCPL" className="brand-logo" onError={() => setLogoError(true)} />
           ) : (
             <div className="logo-fallback">FCPL</div>
           )}
           <h2>FAITH CARGO PVT LTD</h2>
           <p>ISO 9001:2015 & ISO 14001:2015 CERTIFIED</p>
           <div className="company-contact">
-            <span>4/15, Kirti Nagar Industrial Area, New Delhi - 110015</span>
-            <span>📞 +91 9818641504 | ✉️ care@faithcargo.com</span>
-            <span>GST: 07AAFCF2947K1ZD | CIN: U60231DL2021PTC384521</span>
+            <span>📌 4/15, Kirti Nagar Industrial Area, New Delhi - 110015</span>
+            <span>📞 +91 9818641504  |  ✉️ care@faithcargo.com</span>
+            <span>🏢 GST: 07AAFCF2947K1ZD  |  CIN: U60231DL2021PTC384521</span>
           </div>
         </div>
       </div>
 
+      {/* Barcode Section */}
+      <div className="docket-barcode-section">
+        {barcodeImageUrl ? (
+          <img src={barcodeImageUrl} alt="Barcode" className="barcode-img" />
+        ) : (
+          <div className="barcode-placeholder">Generating barcode...</div>
+        )}
+      </div>
+
       {/* Parties Section */}
-      <div className="docket-parties">
+      <div className="docket-parties-premium">
         <div className="party-box sender">
-          <div className="party-title">📤 CONSIGNOR (Sender)</div>
+          <div className="party-title"><Building2 size={12} /> CONSIGNOR (Sender)</div>
           <div className="party-content">
             <h4>{safeData.pickup.name || "____________________"}</h4>
             <p>{safeData.pickup.address || "Address not provided"}</p>
@@ -308,13 +343,15 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
               <span>📮 {safeData.pickup.pincode || "______"}</span>
               <span>📍 {safeData.pickup.city || "_____"}, {safeData.pickup.state || "_____"}</span>
               <span>📞 {safeData.pickup.contact || "_________"}</span>
-              {safeData.pickup.gstin && <span>GST: {safeData.pickup.gstin}</span>}
+              {safeData.pickup.gstin && <span>🏢 GST: {safeData.pickup.gstin}</span>}
             </div>
           </div>
         </div>
-        <div className="party-arrow">→</div>
+        
+        <div className="party-arrow"><ArrowRight size={20} /></div>
+        
         <div className="party-box receiver">
-          <div className="party-title">📥 CONSIGNEE (Receiver)</div>
+          <div className="party-title"><Home size={12} /> CONSIGNEE (Receiver)</div>
           <div className="party-content">
             <h4>{safeData.delivery.name || "____________________"}</h4>
             <p>{safeData.delivery.address || "Address not provided"}</p>
@@ -322,67 +359,77 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
               <span>📮 {safeData.delivery.pincode || "______"}</span>
               <span>📍 {safeData.delivery.city || "_____"}, {safeData.delivery.state || "_____"}</span>
               <span>📞 {safeData.delivery.contact || "_________"}</span>
-              {safeData.delivery.gstin && <span>GST: {safeData.delivery.gstin}</span>}
+              {safeData.delivery.gstin && <span>🏢 GST: {safeData.delivery.gstin}</span>}
             </div>
           </div>
         </div>
       </div>
 
       {/* Shipment Details Table */}
-      <div className="docket-shipment">
-        <table className="shipment-table">
+      <div className="docket-shipment-premium">
+        <table className="shipment-table-premium">
           <thead>
-            <tr><th>PKGS</th><th>DESCRIPTION</th><th>HSN</th><th>ACTUAL WT</th><th>VOL WT</th><th>CHARGED WT</th><th>MODE</th><th>DIMENSIONS</th></tr>
+            <tr>
+              <th width="8%">PKGS</th>
+              <th width="25%">DESCRIPTION</th>
+              <th width="8%">HSN</th>
+              <th width="10%">ACTUAL WT</th>
+              <th width="10%">VOL WT</th>
+              <th width="10%">CHARGED WT</th>
+              <th width="12%">DIMENSIONS</th>
+            </tr>
           </thead>
           <tbody>
             <tr>
               <td className="text-center">{safeData.orderDetails.boxesCount || 0}</td>
-              <td className="text-left"><strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong><div className="goods-note">Said to contain</div></td>
+              <td className="text-left">
+                <strong>{safeData.orderDetails.material || "GENERAL CARGO"}</strong>
+                <div className="goods-note">Said to contain</div>
+               </td>
               <td className="text-center">{safeData.orderDetails.hsnCode || "1234"}</td>
               <td className="text-center">{safeData.orderDetails.weight || 0} kg</td>
               <td className="text-center">{safeData.volWeight} kg</td>
               <td className="text-center"><strong>{safeData.chargedWeight} kg</strong></td>
-              <td className="text-center"><div className="mode-badge">{getModeText()}</div></td>
               <td className="text-center small-text">{getDimensionsText()}</td>
-             </tr>
+            </tr>
           </tbody>
         </table>
       </div>
 
       {/* Invoice & Freight Section */}
-      <div className="docket-bottom">
-        <div className="invoice-box">
-          <div className="box-title">INVOICE DETAILS</div>
-          {safeData.invoices?.filter(inv => inv.no).map((inv, idx) => (
-            <div key={idx} className="invoice-row"><span>{inv.no}</span><span>₹{parseFloat(inv.value).toLocaleString()}</span></div>
-          ))}
+      <div className="docket-bottom-premium">
+        <div className="invoice-box-premium">
+          <div className="box-title"><Receipt size={12} /> INVOICE DETAILS</div>
+          <div className="invoice-list">
+            {safeData.invoices?.filter(inv => inv.no).map((inv, idx) => (
+              <div key={idx} className="invoice-row"><span>{inv.no}</span><span>₹{parseFloat(inv.value).toLocaleString()}</span></div>
+            ))}
+            {(!safeData.invoices || safeData.invoices.filter(inv => inv.no).length === 0) && (
+              <div className="invoice-row"><span>—</span><span>—</span></div>
+            )}
+          </div>
           <div className="invoice-total"><span>TOTAL VALUE:</span><strong>₹{totalValue?.toLocaleString() || 0}</strong></div>
-          {ewayBill && <div className="eway-bill">E-WAY BILL: {ewayBill}</div>}
+          {ewayBill && <div className="eway-bill"><ScanLine size={10} /> E-WAY BILL: {ewayBill}</div>}
         </div>
         
         {showFreight && freightData && (
-          <div className="freight-box">
-            <div className="box-title">FREIGHT BREAKDOWN</div>
+          <div className="freight-box-premium">
+            <div className="box-title"><Calculator size={12} /> FREIGHT BREAKDOWN</div>
             <div className="freight-row-line"><span>Base Freight:</span><span>₹{freightData.baseFreight?.toLocaleString()}</span></div>
             <div className="freight-row-line"><span>Fuel Surcharge:</span><span>₹{freightData.fuelSurcharge?.toLocaleString()}</span></div>
-            <div className="freight-row-line"><span>GST:</span><span>₹{freightData.gst?.toLocaleString()}</span></div>
+            <div className="freight-row-line"><span>GST (18%):</span><span>₹{freightData.gst?.toLocaleString()}</span></div>
             <div className="freight-row-line"><span>Docket + FOV:</span><span>₹{(freightData.docketCharge || 100) + (freightData.fovCharge || 75)}</span></div>
-            <div className="freight-total"><span>TOTAL:</span><span>₹{freightData.total?.toLocaleString()}</span></div>
+            <div className="freight-total-premium"><span>TOTAL:</span><span>₹{freightData.total?.toLocaleString()}</span></div>
             <div className="rate-note">Rate: ₹{freightData.ratePerKg}/kg | {freightData.fromZone} → {freightData.toZone}</div>
           </div>
         )}
       </div>
 
       {/* Stamp & Signature */}
-      <div className="docket-stamp-sign">
+      <div className="docket-stamp-sign-premium">
         <div className="stamp-container">
           {!stampError ? (
-            <img 
-              src={stampPng} 
-              alt="Company Stamp" 
-              className="stamp-image" 
-              onError={() => setStampError(true)}
-            />
+            <img src={stampPng} alt="Company Stamp" className="stamp-image" onError={() => setStampError(true)} />
           ) : (
             <div className="stamp-fallback">
               <div className="stamp-circle">FAITH CARGO<br/>PVT LTD<br/>AUTHORIZED</div>
@@ -393,13 +440,14 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
           <div className="sign-line"></div>
           <p>Receiver's Signature</p>
           <div className="sign-line second"></div>
-          <p>Authorized Signatory</p>
+          <p>For FAITH CARGO PVT LTD</p>
+          <p className="authorized-sign">Authorized Signatory</p>
         </div>
       </div>
 
       {/* Terms & Conditions */}
-      <div className="docket-terms">
-        <h4>TERMS & CONDITIONS</h4>
+      <div className="docket-terms-premium">
+        <h4><Shield size={10} /> TERMS & CONDITIONS</h4>
         <ul>
           <li>Goods carried at Owner's Risk. Insurance recommended.</li>
           <li>Claim within 7 days of delivery. Jurisdiction: Delhi Only.</li>
@@ -409,41 +457,20 @@ const PrintDocket = React.forwardRef(({ data, lrNumber, totalValue, ewayBill, aw
       </div>
 
       {/* Footer */}
-      <div className="docket-footer">
+      <div className="docket-footer-premium">
         <div className="footer-copies">
           <span>📄 ORIGINAL - CONSIGNOR</span>
           <span>📄 DUPLICATE - CONSIGNEE</span>
           <span>📄 TRIPLICATE - OFFICE</span>
         </div>
-        <div className="footer-website">🌐 www.faithcargo.com | 📞 9818641504 | ✉️ care@faithcargo.com</div>
+        <div className="footer-website">
+          🌐 www.faithcargo.com | 📞 9818641504 | ✉️ care@faithcargo.com
+        </div>
+        <div className="footer-thanks">Thank you for choosing Faith Cargo - Delivering Trust Worldwide</div>
       </div>
     </div>
   );
 });
-
-// ============================================
-// 🏷️ STAMP IMAGE COMPONENT
-// ============================================
-const StampImage = () => {
-  const [imgError, setImgError] = useState(false);
-  
-  if (imgError) {
-    return (
-      <div className="stamp-fallback">
-        <div className="stamp-circle">FAITH CARGO<br/>PVT LTD<br/>AUTHORIZED</div>
-      </div>
-    );
-  }
-  
-  return (
-    <img 
-      src={stampPng} 
-      alt="Company Stamp" 
-      className="stamp-image"
-      onError={() => setImgError(true)}
-    />
-  );
-};
 
 // ============================================
 // 📎 INVOICE UPLOAD COMPONENT
@@ -474,26 +501,26 @@ const InvoiceUpload = ({ onUpload, uploadedFiles = [], setUploadedFiles }) => {
   };
 
   return (
-    <div className="upload-modern">
+    <div className="upload-premium">
       <div className={`upload-area ${dragging ? 'dragging' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => { e.preventDefault(); setDragging(false); handleUpload(e.dataTransfer.files); }}>
-        <input type="file" id="invoice-files-modern" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleUpload(e.target.files)} style={{ display: 'none' }} />
-        <label htmlFor="invoice-files-modern" className="upload-label">
-          <Upload size={24} />
+        <input type="file" id="invoice-files-premium" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleUpload(e.target.files)} style={{ display: 'none' }} />
+        <label htmlFor="invoice-files-premium" className="upload-label">
+          <Upload size={20} />
           <span>Upload Invoices</span>
           <small>PDF, JPG, PNG (Max 5MB)</small>
         </label>
       </div>
       {files.length > 0 && (
-        <div className="file-list-modern">
+        <div className="file-list-premium">
           <h4>{files.length} Invoice(s)</h4>
           {files.map(f => (
             <div key={f.id} className="file-item">
-              <File size={14} />
+              <File size={12} />
               <span className="file-name">{f.name}</span>
-              <button onClick={() => removeFile(f.id)} className="remove-file"><X size={14} /></button>
+              <button onClick={() => removeFile(f.id)} className="remove-file"><X size={12} /></button>
             </div>
           ))}
         </div>
@@ -528,23 +555,23 @@ const DimensionInput = ({ dimensions, setDimensions, setTotalBoxes }) => {
   }, [dimensionGroups, totalBoxes, setDimensions, setTotalBoxes]);
 
   return (
-    <div className="dimension-modern">
+    <div className="dimension-premium">
       <div className="dimension-header">
-        <span><Layers size={16} /> Package Dimensions (CM)</span>
-        <button type="button" className="add-dim-btn" onClick={addDimensionGroup}><Plus size={14} /> Add</button>
+        <span><Layers size={14} /> Package Dimensions (CM)</span>
+        <button type="button" className="add-dim-btn" onClick={addDimensionGroup}><Plus size={12} /> Add</button>
       </div>
       {dimensionGroups.map((group, idx) => (
         <div key={group.id} className="dimension-group">
-          <div className="dim-group-header"><span>Type {idx + 1}</span><button className="remove-dim-group" onClick={() => removeDimensionGroup(group.id)}><Trash2 size={14} /></button></div>
+          <div className="dim-group-header"><span>Type {idx + 1}</span><button className="remove-dim-group" onClick={() => removeDimensionGroup(group.id)}><Trash2 size={12} /></button></div>
           <div className="dim-inputs">
             <input type="number" placeholder="Qty" value={group.quantity} onChange={e => updateDimensionGroup(group.id, 'quantity', e.target.value)} />
-            <input type="number" placeholder="L (cm)" value={group.length} onChange={e => updateDimensionGroup(group.id, 'length', e.target.value)} />
-            <input type="number" placeholder="W (cm)" value={group.width} onChange={e => updateDimensionGroup(group.id, 'width', e.target.value)} />
-            <input type="number" placeholder="H (cm)" value={group.height} onChange={e => updateDimensionGroup(group.id, 'height', e.target.value)} />
+            <input type="number" placeholder="L" value={group.length} onChange={e => updateDimensionGroup(group.id, 'length', e.target.value)} />
+            <input type="number" placeholder="W" value={group.width} onChange={e => updateDimensionGroup(group.id, 'width', e.target.value)} />
+            <input type="number" placeholder="H" value={group.height} onChange={e => updateDimensionGroup(group.id, 'height', e.target.value)} />
           </div>
         </div>
       ))}
-      {dimensionGroups.length === 0 && <div className="no-dimensions"><Info size={14} /> Click "Add" to add package dimensions</div>}
+      {dimensionGroups.length === 0 && <div className="no-dimensions"><Info size={12} /> Click "Add" to add package dimensions</div>}
       {totalBoxes > 0 && <div className="total-boxes">Total Packages: <strong>{totalBoxes}</strong></div>}
     </div>
   );
@@ -614,13 +641,13 @@ const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
   };
 
   return (
-    <div className="saved-addresses-modern">
+    <div className="saved-addresses-premium">
       <div className="address-buttons">
         <button type="button" className="addr-btn" onClick={() => setShowAddressList(!showAddressList)}>
-          <FolderOpen size={14} /> {showAddressList ? "Hide Saved" : "Show Saved"}
+          <FolderOpen size={12} /> {showAddressList ? "Hide Saved" : "Show Saved"}
         </button>
         <button type="button" className="addr-btn save-btn" onClick={() => setShowSaveModal(true)}>
-          <SaveAll size={14} /> Save Current
+          <SaveAll size={12} /> Save Current
         </button>
       </div>
 
@@ -636,8 +663,8 @@ const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
                 <span>📞 {addr.contact}</span>
               </div>
               <div className="address-actions">
-                <button className="use-addr" onClick={() => selectAddress(addr)}><Check size={12} /> Use</button>
-                <button className="del-addr" onClick={() => deleteAddress(addr.id)}><Trash size={12} /></button>
+                <button className="use-addr" onClick={() => selectAddress(addr)}><Check size={10} /> Use</button>
+                <button className="del-addr" onClick={() => deleteAddress(addr.id)}><Trash size={10} /></button>
               </div>
             </div>
           ))}
@@ -664,8 +691,7 @@ const SavedAddresses = ({ onSelectAddress, currentAddress }) => {
 // 🔔 SEND NOTIFICATION FUNCTION
 // ============================================
 const sendOrderNotification = async (orderData) => {
-  console.log("📱 Sending SMS notification to backend...", orderData);
-  
+  console.log("📱 Sending SMS notification...", orderData);
   try {
     const response = await fetch("https://faithcargo.onrender.com/api/shipments/send-notification/", {
       method: "POST",
@@ -683,12 +709,10 @@ const sendOrderNotification = async (orderData) => {
         deliveryName: orderData.deliveryName,
       })
     });
-    
     const result = await response.json();
-    console.log("📦 SMS response:", result);
-    
+    console.log("✅ SMS response:", result);
   } catch (error) {
-    console.error("❌ SMS notification error:", error);
+    console.error("❌ SMS error:", error);
   }
 };
 
@@ -841,8 +865,9 @@ export default function CreateOrder() {
           <title>Faith Cargo - Consignment Note ${lrNumber}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
             body { 
-              font-family: 'Segoe UI', Arial, sans-serif; 
+              font-family: 'Inter', 'Segoe UI', Arial, sans-serif; 
               background: #e2e8f0; 
               display: flex;
               justify-content: center;
@@ -850,91 +875,117 @@ export default function CreateOrder() {
               min-height: 100vh;
               padding: 20px;
             }
-            .print-docket-a4 {
+            .print-docket-premium {
               width: 210mm;
               min-height: 297mm;
               margin: 0 auto;
               background: white;
-              box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+              box-shadow: 0 20px 40px rgba(0,0,0,0.15);
               position: relative;
-              padding: 12px;
+              padding: 8px;
             }
             .docket-watermark {
               position: absolute;
               top: 50%;
               left: 50%;
               transform: translate(-50%, -50%);
-              font-size: 60px;
+              font-size: 70px;
               font-weight: 900;
               color: rgba(220,38,38,0.03);
               white-space: nowrap;
               z-index: 0;
               pointer-events: none;
-              letter-spacing: 5px;
+              letter-spacing: 8px;
             }
-            .docket-border {
+            .docket-border-premium {
               position: absolute;
-              top: 6px;
-              left: 6px;
-              right: 6px;
-              bottom: 6px;
+              top: 4px;
+              left: 4px;
+              right: 4px;
+              bottom: 4px;
               border: 1.5px solid #dc2626;
               pointer-events: none;
-              border-radius: 8px;
+              border-radius: 12px;
               z-index: 1;
             }
-            .docket-header {
+            .corner {
+              position: absolute;
+              width: 15px;
+              height: 15px;
+              border: 2px solid #dc2626;
+            }
+            .top-left { top: -2px; left: -2px; border-right: none; border-bottom: none; border-radius: 12px 0 0 0; }
+            .top-right { top: -2px; right: -2px; border-left: none; border-bottom: none; border-radius: 0 12px 0 0; }
+            .bottom-left { bottom: -2px; left: -2px; border-right: none; border-top: none; border-radius: 0 0 0 12px; }
+            .bottom-right { bottom: -2px; right: -2px; border-left: none; border-top: none; border-radius: 0 0 12px 0; }
+            .docket-header-premium {
               display: flex;
               justify-content: space-between;
-              padding: 12px;
+              padding: 10px 12px 8px 12px;
               border-bottom: 2px solid #dc2626;
-              margin-bottom: 12px;
+              margin-bottom: 8px;
               position: relative;
               z-index: 2;
             }
-            .header-left .lr-label { font-size: 9px; font-weight: bold; color: #64748b; letter-spacing: 1px; margin-bottom: 4px; }
-            .barcode-img { margin: 4px 0; width: 220px; height: auto; }
-            .lr-number { font-size: 18px; font-weight: 900; color: #dc2626; font-family: monospace; letter-spacing: 1px; }
-            .status-badge { display: inline-block; margin-top: 5px; padding: 2px 10px; border-radius: 15px; font-size: 8px; font-weight: bold; background: #10b981; color: white; }
+            .header-left .lr-label { font-size: 8px; font-weight: 700; color: #64748b; letter-spacing: 1.5px; margin-bottom: 3px; }
+            .lr-number { font-size: 20px; font-weight: 900; color: #dc2626; font-family: monospace; letter-spacing: 1px; margin: 4px 0; }
+            .awb-row { font-size: 9px; color: #475569; margin: 3px 0; }
+            .mode-badge-docket { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 7px; font-weight: 700; background: #1e293b; color: white; margin: 3px 0; }
+            .status-badge-docket { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 7px; font-weight: 700; color: white; margin-left: 6px; }
+            .date-row { font-size: 7px; color: #64748b; margin-top: 5px; }
             .header-right { text-align: right; }
-            .brand-logo { height: 45px; width: auto; margin-bottom: 4px; }
-            .header-right h2 { font-size: 12px; font-weight: 900; margin: 0; }
-            .company-contact { font-size: 6px; color: #475569; margin-top: 4px; display: flex; flex-direction: column; gap: 2px; }
-            .docket-parties { display: flex; gap: 15px; padding: 0 12px; margin-bottom: 12px; position: relative; z-index: 2; }
-            .party-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
-            .party-title { background: #f8fafc; padding: 5px 8px; font-size: 8px; font-weight: bold; border-bottom: 1px solid #e2e8f0; }
+            .brand-logo { height: 42px; width: auto; margin-bottom: 4px; }
+            .header-right h2 { font-size: 11px; font-weight: 800; margin: 0; color: #1e293b; }
+            .header-right p { font-size: 6px; color: #dc2626; font-weight: 600; margin: 2px 0; }
+            .company-contact { font-size: 5.5px; color: #475569; margin-top: 4px; display: flex; flex-direction: column; gap: 2px; line-height: 1.3; }
+            .docket-barcode-section { text-align: center; padding: 5px 0; position: relative; z-index: 2; }
+            .barcode-img { width: 220px; height: auto; margin: 0 auto; }
+            .docket-parties-premium { display: flex; gap: 15px; padding: 0 12px; margin-bottom: 12px; position: relative; z-index: 2; }
+            .party-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+            .party-title { background: #f8fafc; padding: 5px 8px; font-size: 8px; font-weight: 700; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 4px; }
             .party-content { padding: 6px 8px; }
-            .party-content h4 { font-size: 9px; margin-bottom: 3px; }
-            .party-content p { font-size: 7px; color: #475569; margin-bottom: 4px; }
+            .party-content h4 { font-size: 9px; font-weight: 700; margin-bottom: 3px; }
+            .party-content p { font-size: 7px; color: #475569; margin-bottom: 4px; line-height: 1.2; }
             .party-contact { display: flex; flex-wrap: wrap; gap: 5px; font-size: 6px; padding-top: 3px; border-top: 1px dashed #e2e8f0; }
-            .party-arrow { display: flex; align-items: center; font-size: 16px; color: #dc2626; }
-            .docket-shipment { padding: 0 12px; margin-bottom: 10px; position: relative; z-index: 2; }
-            .shipment-table { width: 100%; border-collapse: collapse; font-size: 7px; }
-            .shipment-table th { background: #f8fafc; padding: 5px; font-weight: bold; border: 1px solid #e2e8f0; }
-            .shipment-table td { padding: 5px; border: 1px solid #e2e8f0; text-align: center; }
-            .mode-badge { display: inline-block; padding: 2px 6px; border-radius: 10px; font-size: 6px; font-weight: bold; background: #dc2626; color: white; }
-            .docket-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 12px; margin-bottom: 10px; position: relative; z-index: 2; }
-            .invoice-box, .freight-box { border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
-            .box-title { background: #f8fafc; padding: 5px 8px; font-size: 7px; font-weight: bold; border-bottom: 1px solid #e2e8f0; }
-            .invoice-row, .freight-row-line { display: flex; justify-content: space-between; padding: 3px 8px; font-size: 6px; border-bottom: 1px solid #f1f5f9; }
-            .invoice-total, .freight-total { display: flex; justify-content: space-between; padding: 4px 8px; font-size: 7px; font-weight: bold; background: #fef3c7; }
-            .eway-bill { padding: 3px 8px; font-size: 6px; background: #f0fdf4; color: #166534; }
-            .rate-note { padding: 3px 8px; font-size: 5px; text-align: center; background: #f1f5f9; }
-            .docket-stamp-sign { display: flex; justify-content: space-between; align-items: center; padding: 0 12px; margin: 10px 0; position: relative; z-index: 2; }
-            .stamp-container { width: 80px; height: 80px; }
-            .stamp-image { width: 100%; height: auto; object-fit: contain; }
+            .party-arrow { display: flex; align-items: center; color: #dc2626; }
+            .docket-shipment-premium { padding: 0 12px; margin-bottom: 10px; position: relative; z-index: 2; }
+            .shipment-table-premium { width: 100%; border-collapse: collapse; font-size: 7px; }
+            .shipment-table-premium th { background: #f8fafc; padding: 6px 4px; font-weight: 700; border: 1px solid #e2e8f0; text-align: center; }
+            .shipment-table-premium td { padding: 6px 4px; border: 1px solid #e2e8f0; text-align: center; }
+            .text-left { text-align: left; }
+            .text-center { text-align: center; }
+            .goods-note { font-size: 6px; color: #94a3b8; margin-top: 2px; }
+            .small-text { font-size: 6px; }
+            .docket-bottom-premium { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 12px; margin-bottom: 10px; position: relative; z-index: 2; }
+            .invoice-box-premium, .freight-box-premium { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+            .box-title { background: #f8fafc; padding: 5px 8px; font-size: 7px; font-weight: 700; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 4px; }
+            .invoice-row { display: flex; justify-content: space-between; padding: 3px 8px; font-size: 6px; border-bottom: 1px solid #f1f5f9; }
+            .invoice-total { display: flex; justify-content: space-between; padding: 4px 8px; font-size: 7px; font-weight: 700; background: #fef3c7; }
+            .eway-bill { padding: 3px 8px; font-size: 6px; background: #f0fdf4; color: #166534; display: flex; align-items: center; gap: 4px; }
+            .freight-row-line { display: flex; justify-content: space-between; padding: 3px 8px; font-size: 6px; border-bottom: 1px solid #f1f5f9; }
+            .freight-total-premium { display: flex; justify-content: space-between; padding: 4px 8px; font-size: 7px; font-weight: 700; background: #fef3c7; }
+            .rate-note { padding: 3px 8px; font-size: 5px; text-align: center; background: #f1f5f9; color: #64748b; }
+            .docket-stamp-sign-premium { display: flex; justify-content: space-between; align-items: center; padding: 0 12px; margin: 8px 0; position: relative; z-index: 2; }
+            .stamp-container { width: 70px; height: 70px; }
+            .stamp-image { width: 100%; height: auto; object-fit: contain; opacity: 0.85; }
+            .stamp-fallback { width: 70px; height: 70px; border: 2px dashed #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-align: center; }
+            .stamp-circle { font-size: 6px; font-weight: 700; color: #dc2626; text-align: center; line-height: 1.2; }
             .signature-container { text-align: center; }
-            .sign-line { width: 140px; height: 1px; background: #000; margin: 4px auto; }
-            .sign-line.second { margin-top: 12px; }
-            .signature-container p { font-size: 6px; margin-top: 2px; }
-            .docket-terms { margin: 0 12px 10px 12px; padding: 8px; background: #f8fafc; border-radius: 6px; position: relative; z-index: 2; }
-            .docket-terms h4 { font-size: 7px; margin-bottom: 4px; }
-            .docket-terms ul { padding-left: 15px; font-size: 5px; }
-            .docket-footer { padding: 6px 12px; background: #0f172a; color: white; font-size: 5px; position: relative; z-index: 2; border-radius: 0 0 6px 6px; }
-            .footer-copies { display: flex; justify-content: space-between; margin-bottom: 3px; }
+            .sign-line { width: 120px; height: 1px; background: #000; margin: 4px auto; }
+            .sign-line.second { margin-top: 10px; }
+            .signature-container p { font-size: 6px; margin-top: 2px; color: #475569; }
+            .authorized-sign { font-weight: 600; color: #1e293b; }
+            .docket-terms-premium { margin: 0 12px 8px 12px; padding: 6px 10px; background: #f8fafc; border-radius: 8px; position: relative; z-index: 2; }
+            .docket-terms-premium h4 { font-size: 6px; font-weight: 700; margin-bottom: 3px; display: flex; align-items: center; gap: 4px; }
+            .docket-terms-premium ul { padding-left: 15px; font-size: 5px; color: #475569; }
+            .docket-terms-premium li { margin: 2px 0; }
+            .docket-footer-premium { padding: 6px 12px; background: linear-gradient(135deg, #0f172a, #1e293b); color: white; font-size: 5px; position: relative; z-index: 2; border-radius: 0 0 8px 8px; }
+            .footer-copies { display: flex; justify-content: space-between; margin-bottom: 4px; }
+            .footer-website { text-align: center; margin-bottom: 3px; font-size: 5px; opacity: 0.8; }
+            .footer-thanks { text-align: center; font-size: 5px; letter-spacing: 0.5px; color: #94a3b8; }
             @media print {
               body { background: white; padding: 0; margin: 0; }
-              .print-docket-a4 { box-shadow: none; margin: 0; }
+              .print-docket-premium { box-shadow: none; margin: 0; page-break-after: avoid; break-inside: avoid; }
             }
           </style>
         </head>
@@ -964,34 +1015,34 @@ export default function CreateOrder() {
   const displayName = userRole === "admin" ? "Admin" : (user?.companyName || user?.username);
 
   return (
-    <div className="create-order-modern">
+    <div className="create-order-premium">
       {/* Header */}
-      <header className="app-header">
+      <header className="app-header-premium">
         <div className="header-logo">
-          <img src={logo} alt="FCPL" style={{ height: '50px', width: 'auto' }} />
+          <img src={logo} alt="FCPL" className="logo-img" />
           <div>
             <h1>FAITH CARGO PVT LTD</h1>
-            <p>Create Consignment Note</p>
+            <p>Create Consignment Note • Trusted Logistics Partner</p>
           </div>
         </div>
         <div className="header-user">
-          <UserCircle size={20} />
+          <UserCircle size={18} />
           <span>{displayName}</span>
           <button className="logout-btn" onClick={logout}>Logout</button>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="main-content">
-        {apiError && <div className="error-banner"><AlertCircle size={18} /> {apiError}</div>}
+      <div className="main-content-premium">
+        {apiError && <div className="error-banner"><AlertCircle size={16} /> {apiError}</div>}
 
-        <div className="form-grid">
+        <div className="form-grid-premium">
           {/* Left Column - Pickup & Delivery */}
-          <div className="form-column">
+          <div className="form-column-premium">
             {/* Consignor Section */}
-            <div className="form-card">
-              <div className="card-header"><MapPin size={18} color="#dc2626" /> Consignor (Sender)</div>
-              <div className="card-body">
+            <div className="form-card-premium">
+              <div className="card-header"><MapPin size={16} color="#dc2626" /> Consignor (Sender)</div>
+              <div className="card-body-premium">
                 <SavedAddresses onSelectAddress={handleSelectSavedAddress} currentAddress={pickup} />
                 <div className="input-row">
                   <div className="input-group"><label>Company / Name *</label><input value={pickup.name} onChange={e => setPickup({...pickup, name: e.target.value.toUpperCase()})} placeholder="Enter sender name" /></div>
@@ -1007,9 +1058,9 @@ export default function CreateOrder() {
             </div>
 
             {/* Consignee Section */}
-            <div className="form-card">
-              <div className="card-header"><Truck size={18} color="#dc2626" /> Consignee (Receiver)</div>
-              <div className="card-body">
+            <div className="form-card-premium">
+              <div className="card-header"><Truck size={16} color="#dc2626" /> Consignee (Receiver)</div>
+              <div className="card-body-premium">
                 <div className="input-row">
                   <div className="input-group"><label>Receiver Name *</label><input value={delivery.name} onChange={e => setDelivery({...delivery, name: e.target.value.toUpperCase()})} placeholder="Enter receiver name" /></div>
                   <div className="input-group"><label>Mobile *</label><input type="tel" maxLength={10} value={delivery.contact} onChange={e => setDelivery({...delivery, contact: e.target.value})} placeholder="10 digit mobile" /></div>
@@ -1025,19 +1076,19 @@ export default function CreateOrder() {
           </div>
 
           {/* Right Column - Shipment Details */}
-          <div className="form-column">
-            <div className="form-card">
-              <div className="card-header"><Package size={18} color="#dc2626" /> Shipment Details</div>
-              <div className="card-body">
+          <div className="form-column-premium">
+            <div className="form-card-premium">
+              <div className="card-header"><Package size={16} color="#dc2626" /> Shipment Details</div>
+              <div className="card-body-premium">
                 <div className="input-group full"><label>Material Description</label><input placeholder="e.g., Industrial Tools, Textile" onChange={e => setOrderDetails({...orderDetails, material: e.target.value.toUpperCase()})} /></div>
                 
-                <div className="mode-selector">
+                <div className="mode-selector-premium">
                   <label>Booking Mode *</label>
                   <div className="mode-options">
                     <button type="button" className={`mode ${bookingMode === 'surface' ? 'active' : ''}`} onClick={() => setBookingMode('surface')}><Truck size={14} /> Surface</button>
                     <button type="button" className={`mode ${bookingMode === 'air' ? 'active' : ''}`} onClick={() => setBookingMode('air')}><Plane size={14} /> Air</button>
                     <button type="button" className={`mode ${bookingMode === 'rail' ? 'active' : ''}`} onClick={() => setBookingMode('rail')}><Train size={14} /> Rail</button>
-                    <button type="button" className={`mode ${bookingMode === 'express' ? 'active' : ''}`} onClick={() => setBookingMode('express')}><TrendingUp size={14} /> Express</button>
+                    <button type="button" className={`mode ${bookingMode === 'express' ? 'active' : ''}`} onClick={() => setBookingMode('express')}><Zap size={14} /> Express</button>
                   </div>
                 </div>
 
@@ -1045,19 +1096,19 @@ export default function CreateOrder() {
                 
                 <DimensionInput dimensions={dimensions} setDimensions={setDimensions} setTotalBoxes={setTotalPackages} />
                 
-                <div className="weight-summary">
-                  <span>Volumetric: <strong>{volWeight} kg</strong></span>
-                  <span>Charged: <strong>{chargedWeight} kg</strong></span>
+                <div className="weight-summary-premium">
+                  <span>📦 Volumetric: <strong>{volWeight} kg</strong></span>
+                  <span>⚡ Charged: <strong>{chargedWeight} kg</strong></span>
                 </div>
               </div>
             </div>
 
-            <div className="form-card">
+            <div className="form-card-premium">
               <div className="card-header between">
-                <div><FileText size={18} color="#dc2626" /> Invoice Details</div>
-                <button className="add-invoice" onClick={() => setInvoices([...invoices, { id: Date.now(), no: "", value: "" }])}><Plus size={14} /> Add</button>
+                <div><FileText size={16} color="#dc2626" /> Invoice Details</div>
+                <button className="add-invoice" onClick={() => setInvoices([...invoices, { id: Date.now(), no: "", value: "" }])}><Plus size={12} /> Add</button>
               </div>
-              <div className="card-body">
+              <div className="card-body-premium">
                 {invoices.map(inv => (
                   <div key={inv.id} className="invoice-row-modern">
                     <input placeholder="Invoice No" value={inv.no} onChange={e => setInvoices(invoices.map(i => i.id === inv.id ? {...i, no: e.target.value.toUpperCase()} : i))} />
@@ -1069,9 +1120,9 @@ export default function CreateOrder() {
                 <InvoiceUpload onUpload={(files) => console.log("Uploaded:", files)} uploadedFiles={uploadedFiles} setUploadedFiles={setUploadedFiles} />
                 
                 {needsEwayBill && (
-                  <div className="eway-alert">
+                  <div className="eway-alert-premium">
                     <div className="eway-header">
-                      <AlertCircle size={14} />
+                      <AlertCircle size={12} />
                       <span>E-Way Bill Required (Invoice &gt; ₹50,000)</span>
                     </div>
                     <input 
@@ -1095,7 +1146,7 @@ export default function CreateOrder() {
                   onCalculate={setFreightData} 
                 />
                 
-                <div className="settings-row">
+                <div className="settings-row-premium">
                   <div className="setting"><label>Manual LR Number</label><button className={`toggle ${isManualLR ? 'on' : 'off'}`} onClick={() => setIsManualLR(!isManualLR)}>{isManualLR ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}</button></div>
                   {isManualLR && <input className="manual-lr" placeholder="Enter LR Number" value={manualLRNumber} onChange={e => setManualLRNumber(e.target.value.toUpperCase())} />}
                   <div className="setting"><label>Show Freight on Docket</label><button className={`toggle ${showFreightOnDocket ? 'on' : 'off'}`} onClick={() => setShowFreightOnDocket(!showFreightOnDocket)}>{showFreightOnDocket ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}</button></div>
@@ -1103,18 +1154,18 @@ export default function CreateOrder() {
               </div>
             </div>
 
-            <button className={`generate-btn ${loading ? 'loading' : ''}`} onClick={handleCreateOrder} disabled={loading}>
-              {loading ? <Clock size={20} className="spin" /> : <Crown size={20} />}
+            <button className={`generate-btn-premium ${loading ? 'loading' : ''}`} onClick={handleCreateOrder} disabled={loading}>
+              {loading ? <Clock size={20} className="spin" /> : <Sparkles size={20} />}
               {loading ? "Generating..." : "Generate Consignment Note"}
               <ChevronRight size={16} />
             </button>
           </div>
         </div>
 
-        {/* Modal for Generated LR */}
+        {/* Success Modal */}
         {showLR && (
-          <div className="modal-overlay" onClick={() => setShowLR(false)}>
-            <div className="modal-dialog" onClick={e => e.stopPropagation()}>
+          <div className="modal-overlay-premium" onClick={() => setShowLR(false)}>
+            <div className="modal-dialog-premium" onClick={e => e.stopPropagation()}>
               <div className="modal-icon"><CheckCircle size={60} color="#10b981" /></div>
               <h2>Consignment Generated!</h2>
               <div className="modal-lr">{isManualLR ? manualLRNumber : lrNumber}</div>
@@ -1137,7 +1188,7 @@ export default function CreateOrder() {
                   userRole={userRole}
                 />
               </div>
-              <div className="modal-buttons">
+              <div className="modal-buttons-premium">
                 <button className="modal-btn print" onClick={handlePrintDocket}><Printer size={16} /> Print Docket</button>
                 <button className="modal-btn new" onClick={() => window.location.reload()}><Plus size={16} /> New Booking</button>
               </div>
