@@ -24,10 +24,7 @@ const getClientZoneFromPincode = (pincode) => {
     return 'NORTH 3';
   }
   
-  // NORTHEAST ZONES - CHECK FIRST (Before East)
-  // NE1: Guwahati (781)
-  // NE2: Rest of Assam, Tripura, Meghalaya, Arunachal, Manipur, Sikkim
-  // NE3: Mizoram, Nagaland (796, 797, 798)
+  // NORTHEAST ZONES
   if (prefixNum >= 780 && prefixNum <= 799) {
     if (prefix === '781') {
       return 'NE1';
@@ -38,7 +35,7 @@ const getClientZoneFromPincode = (pincode) => {
     }
   }
   
-  // NORTH 2 - Punjab, Chandigarh, Uttarakhand, Himachal (14xxx-17xxx, 24xxx-26xxx)
+  // NORTH 2
   const north2Prefixes = ['140','141','142','143','144','145','146','147','148','149',
                           '150','151','152','153','154','155','156','157','158','159',
                           '160','161','162','163','164','165','166','167','168','169',
@@ -65,13 +62,24 @@ const getClientZoneFromPincode = (pincode) => {
     return 'W2';
   }
   
-  // South - (50xxxx to 69xxxx)
-  if (prefixNum >= 500 && prefixNum <= 699) {
-    return 'South';
+  // ============================================
+  // SOUTH ZONES - SPLIT INTO S1 AND S2
+  // ============================================
+  // S1: Andhra Pradesh, Telangana, Karnataka, Tamil Nadu, Pondicherry (50xxxx to 63xxxx)
+  // S2: Kerala (64xxxx to 69xxxx)
+  
+  // S2 - Kerala (64xxxx to 69xxxx)
+  if (prefixNum >= 640 && prefixNum <= 699) {
+    return 'South S2';  // or just 'South' and handle mapping separately
   }
   
-  // East - (70xxxx to 83xxxx) - EXCLUDING Northeast (780-799 already handled)
-  if (prefixNum >= 700 && prefixNum <= 845) {
+  // S1 - Rest of South India (50xxxx to 63xxxx)
+  if (prefixNum >= 500 && prefixNum <= 639) {
+    return 'South S1';
+  }
+  
+  // East - (70xxxx to 85xxxx)
+  if (prefixNum >= 700 && prefixNum <= 859) {
     return 'East';
   }
   
@@ -129,7 +137,7 @@ const getVendorZoneFromClientZone = (clientZone, vendorName) => {
     'W1': 'W1',
     'W2': 'W2',
     'East': 'E1',
-    'South': 'S1',
+    'South': isKerala ? 'S2' : 'S1', 
     'NE1': 'NE1',
     'NE2': 'NE2',
     'NE3': 'NE3'
