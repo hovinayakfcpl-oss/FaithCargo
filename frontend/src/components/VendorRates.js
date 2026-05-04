@@ -19,7 +19,26 @@ const getClientZoneFromPincode = (pincode) => {
     return 'Delhi NCR';
   }
   
-  // NORTH 2 - Punjab, Chandigarh, Uttarakhand, Himachal, Haryana outskirts
+  // NORTH 3 - Jammu & Kashmir (18xxxx, 19xxxx)
+  if (prefixNum >= 180 && prefixNum <= 199) {
+    return 'NORTH 3';
+  }
+  
+  // NORTHEAST ZONES - CHECK FIRST (Before East)
+  // NE1: Guwahati (781)
+  // NE2: Rest of Assam, Tripura, Meghalaya, Arunachal, Manipur, Sikkim
+  // NE3: Mizoram, Nagaland (796, 797, 798)
+  if (prefixNum >= 780 && prefixNum <= 799) {
+    if (prefix === '781') {
+      return 'NE1';
+    } else if (prefix === '796' || prefix === '797' || prefix === '798') {
+      return 'NE3';
+    } else {
+      return 'NE2';
+    }
+  }
+  
+  // NORTH 2 - Punjab, Chandigarh, Uttarakhand, Himachal (14xxx-17xxx, 24xxx-26xxx)
   const north2Prefixes = ['140','141','142','143','144','145','146','147','148','149',
                           '150','151','152','153','154','155','156','157','158','159',
                           '160','161','162','163','164','165','166','167','168','169',
@@ -29,11 +48,6 @@ const getClientZoneFromPincode = (pincode) => {
                           '260','261','262','263','264','265','266','267','268','269'];
   if (north2Prefixes.includes(prefix)) {
     return 'NORTH 2';
-  }
-  
-  // NORTH 3 - Jammu & Kashmir (18xxxx, 19xxxx)
-  if (prefixNum >= 180 && prefixNum <= 199) {
-    return 'NORTH 3';
   }
   
   // Central - Madhya Pradesh (45xxxx to 49xxxx)
@@ -56,25 +70,9 @@ const getClientZoneFromPincode = (pincode) => {
     return 'South';
   }
   
-  // East - (70xxxx to 83xxxx) - MUST BE BEFORE NORTHEAST
-  // Because West Bengal (700-743) is EAST, not Northeast
+  // East - (70xxxx to 83xxxx) - EXCLUDING Northeast (780-799 already handled)
   if (prefixNum >= 700 && prefixNum <= 839) {
     return 'East';
-  }
-  
-  // Northeast Zones - 78xxxx, 79xxxx (Only for Northeast states)
-  // NE1: Guwahati (781)
-  // NE2: Rest of Assam, Tripura, Meghalaya, Arunachal, Manipur, Sikkim (782-789, 790-795, 799)
-  // NE3: Mizoram, Nagaland (796, 797, 798)
-  // NOTE: 780-839 already caught by East above, so this only catches remaining NE ranges
-  if (prefixNum >= 780 && prefixNum <= 799) {
-    if (prefix === '781') {
-      return 'NE1';
-    } else if (prefix === '796' || prefix === '797' || prefix === '798') {
-      return 'NE3';
-    } else {
-      return 'NE2';
-    }
   }
   
   // DEFAULT
