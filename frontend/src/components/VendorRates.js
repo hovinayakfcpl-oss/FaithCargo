@@ -65,12 +65,9 @@ const getClientZoneFromPincode = (pincode) => {
   // ============================================
   // SOUTH ZONES - SPLIT INTO S1 AND S2
   // ============================================
-  // S1: Andhra Pradesh, Telangana, Karnataka, Tamil Nadu, Pondicherry (50xxxx to 63xxxx)
-  // S2: Kerala (64xxxx to 69xxxx)
-  
   // S2 - Kerala (64xxxx to 69xxxx)
   if (prefixNum >= 640 && prefixNum <= 699) {
-    return 'South S2';  // or just 'South' and handle mapping separately
+    return 'South S2';
   }
   
   // S1 - Rest of South India (50xxxx to 63xxxx)
@@ -78,7 +75,7 @@ const getClientZoneFromPincode = (pincode) => {
     return 'South S1';
   }
   
-  // East - (70xxxx to 85xxxx)
+  // East - (70xxxx to 85xxxx) - Including Bihar
   if (prefixNum >= 700 && prefixNum <= 859) {
     return 'East';
   }
@@ -128,6 +125,10 @@ const ZONES_DTDC = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "E1", "NE1", "NE2"
 const getVendorZoneFromClientZone = (clientZone, vendorName) => {
   const vendorUpper = vendorName.toUpperCase();
   
+  // Check if it's Kerala (South S2)
+  const isKerala = (clientZone === 'South S2');
+  const baseClientZone = isKerala ? 'South' : clientZone;
+  
   // Base mapping with NE3 support
   const baseMapping = {
     'Delhi NCR': 'N1',
@@ -137,7 +138,9 @@ const getVendorZoneFromClientZone = (clientZone, vendorName) => {
     'W1': 'W1',
     'W2': 'W2',
     'East': 'E1',
-    'South': isKerala ? 'S2' : 'S1', 
+    'South': isKerala ? 'S2' : 'S1',
+    'South S1': 'S1',
+    'South S2': 'S2',
     'NE1': 'NE1',
     'NE2': 'NE2',
     'NE3': 'NE3'
@@ -145,7 +148,6 @@ const getVendorZoneFromClientZone = (clientZone, vendorName) => {
   
   // ============================================
   // DTDC MAPPING - Uses standard zone names
-  // NE zones map to E3 (East III)
   // ============================================
   if (vendorUpper.includes('DTDC')) {
     const dtdcMapping = {
@@ -157,67 +159,76 @@ const getVendorZoneFromClientZone = (clientZone, vendorName) => {
       'W2': 'W2',
       'East': 'E1',
       'South': 'S1',
+      'South S1': 'S1',
+      'South S2': 'S1',
       'NE1': 'E3',
       'NE2': 'E3',
       'NE3': 'E3'
     };
-    return dtdcMapping[clientZone] || 'N1';
+    return dtdcMapping[baseClientZone] || dtdcMapping[clientZone] || 'N1';
   }
   
   // GATI - supports NE3 directly
   if (vendorUpper.includes('GATI')) {
-    return baseMapping[clientZone] || 'N1';
+    return baseMapping[clientZone] || baseMapping[baseClientZone] || 'N1';
   }
   
   // SHIVANI VX - supports NE3 directly
   if (vendorUpper.includes('SHIVANI VX')) {
     if (clientZone === 'W2') return 'W2';
-    if (clientZone === 'South') return 'S1';
-    return baseMapping[clientZone] || 'N1';
+    if (clientZone === 'South' || clientZone === 'South S1') return 'S1';
+    if (clientZone === 'South S2') return 'S2';
+    return baseMapping[clientZone] || baseMapping[baseClientZone] || 'N1';
   }
   
   // PD LOGISTICS - supports all zones
   if (vendorUpper.includes('PD LOGISTICS')) {
-    return baseMapping[clientZone] || 'N1';
+    return baseMapping[clientZone] || baseMapping[baseClientZone] || 'N1';
   }
   
   // SHIPSHOPY BLUE DART - supports all zones
   if (vendorUpper.includes('SHIPSHOPY BLUE DART')) {
-    return baseMapping[clientZone] || 'N1';
+    return baseMapping[clientZone] || baseMapping[baseClientZone] || 'N1';
   }
   
   // SHIPSHOPY DELIVERY - supports all zones
   if (vendorUpper.includes('SHIPSHOPY DELIVERY')) {
-    return baseMapping[clientZone] || 'N1';
+    return baseMapping[clientZone] || baseMapping[baseClientZone] || 'N1';
   }
   
   // RIVIGO - NE3 maps to NE2
-  if (vendorUpper.includes('RIVIGO') && clientZone === 'NE3') {
-    return 'NE2';
+  if (vendorUpper.includes('RIVIGO')) {
+    if (clientZone === 'NE3') return 'NE2';
+    return baseMapping[clientZone] || baseMapping[baseClientZone] || 'N1';
   }
   
   // TRUCX Lite - NE3 maps to NE2
-  if (vendorUpper.includes('TRUCX DLH LITE') && clientZone === 'NE3') {
-    return 'NE2';
+  if (vendorUpper.includes('TRUCX DLH LITE')) {
+    if (clientZone === 'NE3') return 'NE2';
+    return baseMapping[clientZone] || baseMapping[baseClientZone] || 'N1';
   }
   
   // TRUCX Dense/Cargo - NE3 maps to NE2
-  if ((vendorUpper.includes('TRUCX DLH DENSE') || vendorUpper.includes('TRUCX DLH CARGO')) && clientZone === 'NE3') {
-    return 'NE2';
+  if (vendorUpper.includes('TRUCX DLH DENSE') || vendorUpper.includes('TRUCX DLH CARGO')) {
+    if (clientZone === 'NE3') return 'NE2';
+    return baseMapping[clientZone] || baseMapping[baseClientZone] || 'N1';
   }
   
   // VXPRESS - NE3 maps to NE1
   if (vendorUpper.includes('VXPRESS')) {
     if (clientZone === 'NE3') return 'NE1';
-    return baseMapping[clientZone] || 'N1';
+    return baseMapping[clientZone] || baseMapping[baseClientZone] || 'N1';
   }
   
   // DELHIVERY - all NE zones map to E1
-  if (vendorUpper.includes('DELHIVERY') && (clientZone === 'NE1' || clientZone === 'NE2' || clientZone === 'NE3')) {
-    return 'E1';
+  if (vendorUpper.includes('DELHIVERY')) {
+    if (clientZone === 'NE1' || clientZone === 'NE2' || clientZone === 'NE3') {
+      return 'E1';
+    }
+    return baseMapping[clientZone] || baseMapping[baseClientZone] || 'N1';
   }
   
-  return baseMapping[clientZone] || 'N1';
+  return baseMapping[clientZone] || baseMapping[baseClientZone] || 'N1';
 };
 
 // Get vendor zone from pincode
@@ -272,7 +283,7 @@ const VENDOR_PINCODE_SOURCE = {
   "TRUCX DLH Dense": "PD LOGISTICS",
   "TRUCX DLH Cargo": "PD LOGISTICS",
   "SHIVANI VX": "VXPRESS",
-  "DTDC": "DTDC"  // DTDC uses its own pincodes
+  "DTDC": "DTDC"
 };
 
 function VendorRateCalculator() {
@@ -439,7 +450,6 @@ function VendorRateCalculator() {
         
         let result;
         
-        // DTDC - serviceable only if in database (like Blue Dart)
         if (vendor.vendor_name === "DTDC") {
           result = {
             isServiceable: data.is_serviceable === true,
@@ -449,7 +459,6 @@ function VendorRateCalculator() {
             category: data.is_oda === true ? (data.oda_category || null) : null
           };
         }
-        // SHIPSHOPY BLUE DART - serviceable only if in database
         else if (vendor.vendor_name === "SHIPSHOPY BLUE DART") {
           result = {
             isServiceable: data.is_serviceable === true,
@@ -478,7 +487,6 @@ function VendorRateCalculator() {
       console.error(`Error checking pincode for ${vendor.vendor_name}:`, err);
     }
     
-    // Default fallback
     if (vendor.vendor_name === "DTDC" || vendor.vendor_name === "SHIPSHOPY BLUE DART") {
       return { isServiceable: false, isODA: false, charge: 0, minCharge: 0, category: null };
     }
@@ -1118,7 +1126,7 @@ function VendorRateCalculator() {
                 </div>
                 
                 <div className="disclaimer">
-                  <small>* Rates are based on your client's zone mapping (Delhi NCR, NORTH 2, NORTH 3, Central, W1, W2, East, South, NE1, NE2, NE3). ODA charges: Min ₹500 for all vendors. PD Logistics: Only 6 CFT and 10 CFT rates apply. RIVIGO: Both CFT and Standard rates. DTDC & Blue Dart: Serviceable only where pincodes are configured in database. Insurance: 0.1% of invoice value (Min ₹100) - only when checkbox is selected.</small>
+                  <small>* Rates are based on your client's zone mapping (Delhi NCR, NORTH 2, NORTH 3, Central, W1, W2, East, South S1, South S2, NE1, NE2, NE3). ODA charges: Min ₹500 for all vendors. PD Logistics: Only 6 CFT and 10 CFT rates apply. RIVIGO: Both CFT and Standard rates. DTDC & Blue Dart: Serviceable only where pincodes are configured in database. Insurance: 0.1% of invoice value (Min ₹100) - only when checkbox is selected.</small>
                 </div>
               </>
             )}

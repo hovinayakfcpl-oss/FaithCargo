@@ -19,13 +19,13 @@ logger = logging.getLogger(__name__)
 
 # ============================================
 # SIMPLIFIED ZONE MAPPING - BASED ON FIRST 3 PINCODE DIGITS
-# As requested: "First 3 digits set kardo kaam ho jayega"
+# UPDATED: East zone 700-859 (including Bihar), South split into S1 and S2
 # ============================================
 
 def get_client_zone_from_pincode(pincode):
     """
     Get CLIENT's bill zone from pincode using FIRST 3 DIGITS
-    Returns: Delhi NCR, NORTH 2, NORTH 3, Central, W1, W2, East, South, NE1, NE2, NE3
+    Returns: Delhi NCR, NORTH 2, NORTH 3, Central, W1, W2, East, South S1, South S2, NE1, NE2, NE3
     """
     pincode_str = str(pincode).strip()
     
@@ -37,6 +37,25 @@ def get_client_zone_from_pincode(pincode):
     # ========================================
     if prefix in ['110', '122', '201']:
         return 'Delhi NCR'
+    
+    # ========================================
+    # ZONE N3 - Jammu & Kashmir (18xxxx, 19xxxx)
+    # ========================================
+    if prefix in ['180', '181', '182', '183', '184', '185', '186', '187', '188', '189',
+                  '190', '191', '192', '193', '194', '195', '196', '197', '198', '199']:
+        return 'NORTH 3'
+    
+    # ========================================
+    # NORTHEAST ZONES - CHECK FIRST (Before East)
+    # ========================================
+    if prefix in ['780', '781', '782', '783', '784', '785', '786', '787', '788', '789',
+                  '790', '791', '792', '793', '794', '795', '796', '797', '798', '799']:
+        if prefix == '781':
+            return 'NE1'
+        elif prefix in ['796', '797', '798']:
+            return 'NE3'
+        else:
+            return 'NE2'
     
     # ========================================
     # ZONE N2 - NORTH 2 (Punjab, Chandigarh, Uttarakhand, Himachal, Haryana outskirts)
@@ -51,18 +70,14 @@ def get_client_zone_from_pincode(pincode):
         return 'NORTH 2'
     
     # ========================================
-    # ZONE N3 - Jammu & Kashmir (18xxxx, 19xxxx)
+    # ZONE Central - Madhya Pradesh (45xxxx to 49xxxx)
     # ========================================
-    if prefix in ['180', '181', '182', '183', '184', '185', '186', '187', '188', '189',
-                  '190', '191', '192', '193', '194', '195', '196', '197', '198', '199']:
-        return 'NORTH 3'
-    
-    # ========================================
-    # ZONE South - (50xxxx to 69xxxx)
-    # ========================================
-    south_prefixes = [str(i) for i in range(50, 70)]
-    if prefix in south_prefixes:
-        return 'South'
+    if prefix in ['450', '451', '452', '453', '454', '455', '456', '457', '458', '459',
+                  '460', '461', '462', '463', '464', '465', '466', '467', '468', '469',
+                  '470', '471', '472', '473', '474', '475', '476', '477', '478', '479',
+                  '480', '481', '482', '483', '484', '485', '486', '487', '488', '489',
+                  '490', '491', '492', '493', '494', '495', '496', '497', '498', '499']:
+        return 'Central'
     
     # ========================================
     # ZONE W1 - Maharashtra (40xxxx to 44xxxx)
@@ -84,35 +99,24 @@ def get_client_zone_from_pincode(pincode):
         return 'W2'
     
     # ========================================
-    # ZONE Central - Madhya Pradesh (45xxxx to 49xxxx)
+    # SOUTH ZONES - SPLIT INTO S1 AND S2
+    # S2 - Kerala (64xxxx to 69xxxx)
+    # S1 - Rest of South India (50xxxx to 63xxxx)
     # ========================================
-    if prefix in ['450', '451', '452', '453', '454', '455', '456', '457', '458', '459',
-                  '460', '461', '462', '463', '464', '465', '466', '467', '468', '469',
-                  '470', '471', '472', '473', '474', '475', '476', '477', '478', '479',
-                  '480', '481', '482', '483', '484', '485', '486', '487', '488', '489',
-                  '490', '491', '492', '493', '494', '495', '496', '497', '498', '499']:
-        return 'Central'
+    south_prefixes = [str(i) for i in range(50, 70)]
+    if prefix in south_prefixes:
+        prefix_num = int(prefix)
+        if prefix_num >= 640 and prefix_num <= 699:
+            return 'South S2'  # Kerala
+        else:
+            return 'South S1'  # AP, TN, KA, TS, Pondicherry
     
     # ========================================
-    # ZONE East - (70xxxx to 83xxxx)
+    # ZONE East - (70xxxx to 85xxxx) - Including Bihar (800-855)
     # ========================================
-    east_prefixes = [str(i) for i in range(70, 84)]
+    east_prefixes = [str(i) for i in range(70, 86)]
     if prefix in east_prefixes:
         return 'East'
-    
-    # ========================================
-    # ZONE NE1 - Guwahati (781xxxx)
-    # NE2 - Rest of Northeast (78xxxx, 79xxxx except 781)
-    # NE3 - Mizoram, Nagaland (796, 797, 798)
-    # ========================================
-    if prefix in ['780', '781', '782', '783', '784', '785', '786', '787', '788', '789',
-                  '790', '791', '792', '793', '794', '795', '796', '797', '798', '799']:
-        if prefix == '781':
-            return 'NE1'  # Guwahati only
-        elif prefix in ['796', '797', '798']:
-            return 'NE3'  # Mizoram, Nagaland
-        else:
-            return 'NE2'  # Rest of Northeast
     
     # ========================================
     # DEFAULT - NORTH 2 for any other pincode
@@ -126,6 +130,10 @@ def get_vendor_zone_from_client_zone(client_zone, vendor_name):
     """
     vendor_upper = vendor_name.upper()
     
+    # Check if it's Kerala (South S2)
+    is_kerala = (client_zone == 'South S2')
+    base_client_zone = 'South' if is_kerala else client_zone
+    
     # Base mapping with NE3 support
     base_mapping = {
         'Delhi NCR': 'N1',
@@ -135,10 +143,12 @@ def get_vendor_zone_from_client_zone(client_zone, vendor_name):
         'W1': 'W1',
         'W2': 'W2',
         'East': 'E1',
-        'South': 'S1',
+        'South': 'S2' if is_kerala else 'S1',
+        'South S1': 'S1',
+        'South S2': 'S2',
         'NE1': 'NE1',
         'NE2': 'NE2',
-        'NE3': 'NE2',  # NE3 mapped to NE2 for most vendors
+        'NE3': 'NE2',
     }
     
     # VXPRESS mapping
@@ -151,6 +161,8 @@ def get_vendor_zone_from_client_zone(client_zone, vendor_name):
         'W2': 'Mah1',
         'East': 'East1',
         'South': 'South1',
+        'South S1': 'South1',
+        'South S2': 'South1',
         'NE1': 'East1',
         'NE2': 'East1',
         'NE3': 'East1',
@@ -166,88 +178,137 @@ def get_vendor_zone_from_client_zone(client_zone, vendor_name):
         'W2': 'Mah1',
         'East': 'East1',
         'South': 'South1',
+        'South S1': 'South1',
+        'South S2': 'S2',
         'NE1': 'NE',
         'NE2': 'NE',
         'NE3': 'NE',
     }
     
+    # DTDC mapping
+    dtdc_mapping = {
+        'Delhi NCR': 'N1',
+        'NORTH 2': 'N2',
+        'NORTH 3': 'N3',
+        'Central': 'C1',
+        'W1': 'W1',
+        'W2': 'W2',
+        'East': 'E1',
+        'South': 'S1',
+        'South S1': 'S1',
+        'South S2': 'S1',
+        'NE1': 'E3',
+        'NE2': 'E3',
+        'NE3': 'E3',
+    }
+    
+    # DELHIVERY mapping (NE zones map to E1)
+    delhivery_mapping = {
+        'Delhi NCR': 'N1',
+        'NORTH 2': 'N2',
+        'NORTH 3': 'N3',
+        'Central': 'C1',
+        'W1': 'W1',
+        'W2': 'W2',
+        'East': 'E1',
+        'South': 'S1',
+        'South S1': 'S1',
+        'South S2': 'S1',
+        'NE1': 'E1',
+        'NE2': 'E1',
+        'NE3': 'E1',
+    }
+    
+    # PD Logistics mapping (supports NE3)
+    pd_mapping = {
+        'Delhi NCR': 'N1',
+        'NORTH 2': 'N2',
+        'NORTH 3': 'N3',
+        'Central': 'C1',
+        'W1': 'W1',
+        'W2': 'W2',
+        'East': 'E1',
+        'South': 'S1',
+        'South S1': 'S1',
+        'South S2': 'S2',
+        'NE1': 'NE1',
+        'NE2': 'NE2',
+        'NE3': 'NE3',
+    }
+    
+    # ========================================
+    # DTDC
+    # ========================================
+    if 'DTDC' in vendor_upper:
+        return dtdc_mapping.get(client_zone, dtdc_mapping.get(base_client_zone, 'N1'))
+    
     # ========================================
     # TRUCX DLH Lite
     # ========================================
     if 'TRUCX DLH LITE' in vendor_upper:
-        return base_mapping.get(client_zone, 'N1')
+        return base_mapping.get(client_zone, base_mapping.get(base_client_zone, 'N1'))
     
     # ========================================
     # TRUCX DLH Dense / Cargo
     # ========================================
     elif 'TRUCX DLH DENSE' in vendor_upper or 'TRUCX DLH CARGO' in vendor_upper:
-        return base_mapping.get(client_zone, 'N1')
+        return base_mapping.get(client_zone, base_mapping.get(base_client_zone, 'N1'))
     
     # ========================================
     # PD LOGISTICS
     # ========================================
     elif 'PD LOGISTICS' in vendor_upper:
-        pd_mapping = {
-            'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
-            'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
-            'East': 'E1', 'South': 'S1',
-            'NE1': 'NE1', 'NE2': 'NE2', 'NE3': 'NE3',  # PD supports NE3
-        }
-        return pd_mapping.get(client_zone, 'N1')
+        return pd_mapping.get(client_zone, pd_mapping.get(base_client_zone, 'N1'))
     
     # ========================================
     # RIVIGO
     # ========================================
     elif 'RIVIGO' in vendor_upper:
-        return base_mapping.get(client_zone, 'N1')
+        if client_zone == 'NE3':
+            return 'NE2'
+        return base_mapping.get(client_zone, base_mapping.get(base_client_zone, 'N1'))
     
     # ========================================
     # GATI
     # ========================================
     elif 'GATI' in vendor_upper:
-        return base_mapping.get(client_zone, 'N1')
+        return base_mapping.get(client_zone, base_mapping.get(base_client_zone, 'N1'))
     
     # ========================================
     # VXPRESS
     # ========================================
     elif 'VXPRESS' in vendor_upper:
-        return vxpress_mapping.get(client_zone, 'North1')
+        return vxpress_mapping.get(client_zone, vxpress_mapping.get(base_client_zone, 'North1'))
     
     # ========================================
     # SHIVANI VX
     # ========================================
     elif 'SHIVANI VX' in vendor_upper:
-        return shivani_mapping.get(client_zone, 'North1')
+        return shivani_mapping.get(client_zone, shivani_mapping.get(base_client_zone, 'North1'))
     
     # ========================================
     # SHIPSHOPY BLUE DART
     # ========================================
     elif 'SHIPSHOPY BLUE DART' in vendor_upper:
-        return base_mapping.get(client_zone, 'N1')
+        return base_mapping.get(client_zone, base_mapping.get(base_client_zone, 'N1'))
     
     # ========================================
     # SHIPSHOPY DELIVERY
     # ========================================
     elif 'SHIPSHOPY DELIVERY' in vendor_upper:
-        return base_mapping.get(client_zone, 'N1')
+        return base_mapping.get(client_zone, base_mapping.get(base_client_zone, 'N1'))
     
     # ========================================
-    # DELHIVERY (NE zones map to E1)
+    # DELHIVERY
     # ========================================
     elif 'DELHIVERY' in vendor_upper:
-        delhivery_mapping = {
-            'Delhi NCR': 'N1', 'NORTH 2': 'N2', 'NORTH 3': 'N3',
-            'Central': 'C1', 'W1': 'W1', 'W2': 'W2',
-            'East': 'E1', 'South': 'S1',
-            'NE1': 'E1', 'NE2': 'E1', 'NE3': 'E1',
-        }
-        return delhivery_mapping.get(client_zone, 'N1')
+        return delhivery_mapping.get(client_zone, delhivery_mapping.get(base_client_zone, 'N1'))
     
     # ========================================
     # DEFAULT
     # ========================================
     else:
-        return base_mapping.get(client_zone, 'N1')
+        return base_mapping.get(client_zone, base_mapping.get(base_client_zone, 'N1'))
 
 
 def get_vendor_specific_zone(pincode, vendor_name):
@@ -268,6 +329,15 @@ def is_pincode_serviceable_for_vendor(vendor, pincode):
     
     # SHIPSHOPY BLUE DART - serviceable only if in database
     if vendor_name == 'SHIPSHOPY BLUE DART':
+        pincode_obj = VendorPincode.objects.filter(
+            vendor=vendor, 
+            pincode=pincode_str,
+            is_serviceable=True
+        ).first()
+        return pincode_obj is not None
+    
+    # DTDC - serviceable only if in database (like Blue Dart)
+    if vendor_name == 'DTDC':
         pincode_obj = VendorPincode.objects.filter(
             vendor=vendor, 
             pincode=pincode_str,
@@ -337,6 +407,22 @@ def check_oda_for_vendor(vendor, pincode):
                     'min_charge': float(pd_pincode.oda_min_charge),
                     'category': pd_pincode.oda_category,
                 }
+    
+    # For DTDC - check DTDC ODA from its own pincodes
+    if vendor_name == 'DTDC':
+        dtdc_pincode = VendorPincode.objects.filter(
+            vendor=vendor,
+            pincode=pincode_str,
+            is_oda=True
+        ).first()
+        if dtdc_pincode:
+            return {
+                'is_oda': True,
+                'is_serviceable': True,
+                'charge_per_kg': float(dtdc_pincode.oda_charge_per_kg),
+                'min_charge': float(dtdc_pincode.oda_min_charge),
+                'category': dtdc_pincode.oda_category,
+            }
     
     # No ODA
     return {
@@ -610,6 +696,12 @@ def calculate_all_vendor_rates(request):
                 if rate_std:
                     results.append(rate_std)
             
+            # DTDC - standard rates only (with serviceable pincodes)
+            elif vendor_name == 'DTDC':
+                rate = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, 'standard', oda_info)
+                if rate:
+                    results.append(rate)
+            
             # Other vendors - standard rates only
             else:
                 rate = calculate_vendor_freight(vendor, from_zone, to_zone, weight, volume_cft, 'standard', oda_info)
@@ -675,6 +767,7 @@ def bulk_upload_pincodes(request, vendor_name):
             oda_charge = float(pincode_data.get('oda_charge_per_kg', 0))
             oda_min = float(pincode_data.get('oda_min_charge', 0))
             
+            # Set default ODA charges based on category if not provided
             if is_oda and oda_category in ['A', 'B', 'C', 'D']:
                 category_rates = {'A': 2, 'B': 4, 'C': 7, 'D': 10}
                 if oda_charge == 0:
@@ -682,6 +775,10 @@ def bulk_upload_pincodes(request, vendor_name):
                 if oda_min == 0:
                     oda_min = oda_charge * 100
                 oda_categories_used[oda_category] += 1
+            
+            # For DTDC, set default ODA min charge if not provided
+            if vendor.vendor_name == 'DTDC' and is_oda and oda_min == 0:
+                oda_min = 500
             
             try:
                 obj, created = VendorPincode.objects.update_or_create(
@@ -747,6 +844,12 @@ def download_pincode_template(request, vendor_name):
             samples = [
                 ['212217', 'Allahabad', 'Uttar Pradesh', 'FALSE', '', '0', '0', 'TRUE'],
                 ['122502', 'Gurgaon', 'Haryana', 'FALSE', '', '0', '0', 'TRUE'],
+                ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
+            ]
+        elif vendor_name == 'DTDC':
+            samples = [
+                ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', '500', 'TRUE'],
+                ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', '500', 'TRUE'],
                 ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
             ]
         else:
@@ -1101,7 +1204,12 @@ def manage_vendor_service_rates(request, service_id=None):
             return Response({"message": "Service rate deleted successfully"})
         except VendorServiceRate.DoesNotExist:
             return Response({"error": "Service not found"}, status=404)
-        
+
+
+# ============================================
+# VENDOR PINCODE MANAGEMENT (CRUD Operations)
+# ============================================
+
 @api_view(["GET", "POST", "PUT", "DELETE"])
 def manage_vendor_pincodes(request, vendor_name=None, pincode=None):
     """Complete CRUD operations for vendor pincodes"""
@@ -1208,7 +1316,6 @@ def manage_vendor_pincodes(request, vendor_name=None, pincode=None):
             pincode_obj = VendorPincode.objects.get(vendor=vendor, pincode=pincode)
             data = request.data
             
-            # Update fields
             if 'city' in data:
                 pincode_obj.city = data['city']
             if 'state' in data:
@@ -1252,7 +1359,8 @@ def manage_vendor_pincodes(request, vendor_name=None, pincode=None):
             return Response({'error': 'Pincode not found'}, status=404)
         except Exception as e:
             return Response({'error': str(e)}, status=400)
-        
+
+
 # ============================================
 # CHECK ODA FOR ALL VENDORS (Single Pincode)
 # ============================================
@@ -1283,7 +1391,6 @@ def check_oda_all_vendors(request):
                         'oda_category': None,
                         'oda_charge_per_kg': 0,
                         'oda_min_charge': 0,
-                        'message': f'Not serviceable for {vendor.vendor_name}'
                     }
                     continue
                 
@@ -1329,7 +1436,8 @@ def check_oda_all_vendors(request):
             'success': False,
             'error': str(e)
         }, status=500)
-    
+
+
 # ============================================
 # GET VENDOR PINCODE STATISTICS
 # ============================================
