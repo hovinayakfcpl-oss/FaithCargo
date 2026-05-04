@@ -1,7 +1,8 @@
 /* ============================================
-   VENDOR RATE CALCULATOR - PREMIUM UI v11.0
+   VENDOR RATE CALCULATOR - PREMIUM UI v12.0
    PROFESSIONAL DESIGN | MODERN DARK/LIGHT THEME
-   Added: Insurance Checkbox Styles
+   Added: DTDC Vendor Support
+   Added: Serviceable Pincode Status
    Fixed: Better Colors, Contrast, Readability
    Added: Smooth Transitions, Professional Gradients
    Developed by Devora Technologies
@@ -23,6 +24,16 @@
   --primary-green-light: #e8f5e9;
   --primary-green-glow: rgba(67, 160, 71, 0.15);
   
+  /* DTDC Brand Colors */
+  --primary-dtdc: #ff6b00;
+  --primary-dtdc-dark: #e55a00;
+  --primary-dtdc-light: #fff3e0;
+  --primary-dtdc-glow: rgba(255, 107, 0, 0.15);
+  
+  /* Blue Dart Brand Colors */
+  --primary-bluedart: #1a237e;
+  --primary-bluedart-light: #e8eaf6;
+  
   /* Accent Colors */
   --primary-blue: #1e88e5;
   --primary-blue-light: #e3f2fd;
@@ -42,6 +53,10 @@
   --primary-insurance: #7b1fa2;
   --primary-insurance-light: #f3e5f5;
   --primary-insurance-glow: rgba(123, 31, 162, 0.15);
+  
+  /* Not Serviceable Color */
+  --primary-not-serviceable: #9e9e9e;
+  --primary-not-serviceable-light: #f5f5f5;
   
   /* Neutral Colors - Light Theme */
   --bg-primary: #ffffff;
@@ -67,6 +82,7 @@
   --shadow-orange: 0 4px 15px rgba(251, 140, 0, 0.2);
   --shadow-purple: 0 4px 15px rgba(142, 36, 170, 0.2);
   --shadow-insurance: 0 4px 15px rgba(123, 31, 162, 0.2);
+  --shadow-dtdc: 0 4px 15px rgba(255, 107, 0, 0.2);
   
   /* Border Radius */
   --radius-sm: 6px;
@@ -149,7 +165,10 @@
 .page-header-calc h1 {
   font-size: 32px;
   font-weight: 700;
-  color: var(--text-primary);
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--primary-red) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
   margin-bottom: 8px;
   letter-spacing: -0.3px;
 }
@@ -202,6 +221,7 @@
   display: inline-block;
   font-weight: 500;
   box-shadow: var(--shadow-sm);
+  animation: pulse 1s infinite;
 }
 
 /* --------------------------------------------
@@ -220,6 +240,7 @@
 
 .big-card:hover {
   box-shadow: var(--shadow-xl);
+  transform: translateY(-2px);
 }
 
 /* --------------------------------------------
@@ -336,10 +357,12 @@
   font-weight: 600;
   padding: 2px 8px;
   border-radius: var(--radius-full);
+  background: var(--primary-red-light);
+  color: var(--primary-red);
 }
 
 /* --------------------------------------------
-   7. INSURANCE CHECKBOX STYLES (NEW)
+   7. INSURANCE CHECKBOX STYLES
    -------------------------------------------- */
 .insurance-checkbox {
   display: flex;
@@ -592,6 +615,16 @@
   background: var(--primary-red-light);
 }
 
+/* DTDC Vendor Badge */
+.vendor-selector label[data-vendor="DTDC"] {
+  border-color: var(--primary-dtdc);
+}
+
+.vendor-selector label[data-vendor="DTDC"]:hover {
+  background: var(--primary-dtdc-light);
+  border-color: var(--primary-dtdc);
+}
+
 /* --------------------------------------------
    10. BUTTON GROUP
    -------------------------------------------- */
@@ -603,7 +636,7 @@
 
 .calc-btn {
   flex: 2;
-  background: var(--primary-green);
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%);
   color: white;
   border: none;
   border-radius: var(--radius-md);
@@ -619,8 +652,8 @@
 }
 
 .calc-btn:hover:not(:disabled) {
-  background: var(--primary-green-dark);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, var(--primary-green-dark) 0%, #1b5e20 100%);
+  transform: translateY(-2px);
   box-shadow: var(--shadow-green);
 }
 
@@ -644,7 +677,7 @@
 
 .reset-btn:hover {
   background: var(--border-light);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 /* --------------------------------------------
@@ -740,6 +773,7 @@
   background: var(--primary-red-light);
   border-color: var(--primary-red);
   color: var(--primary-red);
+  transform: translateY(-2px);
 }
 
 /* --------------------------------------------
@@ -789,6 +823,24 @@
   border-left: 3px solid var(--primary-green);
 }
 
+/* DTDC Specific Styles */
+.vendor-result[data-vendor="DTDC"] {
+  border-left-color: var(--primary-dtdc);
+}
+
+.vendor-result[data-vendor="DTDC"].is-best {
+  background: linear-gradient(135deg, var(--primary-dtdc-light), var(--bg-secondary));
+  border-left: 3px solid var(--primary-dtdc);
+}
+
+/* Not Serviceable Vendor */
+.vendor-result.not-serviceable {
+  opacity: 0.6;
+  background: var(--primary-not-serviceable-light);
+  border-color: var(--primary-not-serviceable);
+  cursor: not-allowed;
+}
+
 .vendor-result-header {
   display: flex;
   justify-content: space-between;
@@ -808,6 +860,11 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+/* DTDC Vendor Name */
+.vendor-name[data-vendor="DTDC"] {
+  color: var(--primary-dtdc);
 }
 
 /* Badges */
@@ -836,10 +893,34 @@
   background: var(--primary-green);
 }
 
+/* Serviceable Badge */
+.serviceable-badge {
+  background: var(--primary-green);
+  color: white;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.not-serviceable-badge {
+  background: var(--primary-not-serviceable);
+  color: white;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 9px;
+  font-weight: 600;
+}
+
 .vendor-total {
   font-size: 22px;
   font-weight: 700;
   color: var(--primary-red);
+}
+
+/* DTDC Total */
+.vendor-result[data-vendor="DTDC"] .vendor-total {
+  color: var(--primary-dtdc);
 }
 
 /* Expand/Collapse */
@@ -1016,6 +1097,11 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.loading-state p {
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
 /* --------------------------------------------
@@ -1246,13 +1332,27 @@
   }
 }
 
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 .vendor-result {
   animation: fadeInUp 0.3s ease forwards;
 }
 
 .insurance-badge,
-.insurance-highlight-badge {
+.insurance-highlight-badge,
+.oda-status-info {
   animation: pulse 0.5s ease;
+}
+
+.loading-spinner {
+  animation: spin 0.8s linear infinite;
 }
 
 /* --------------------------------------------
@@ -1272,17 +1372,25 @@
   .example-inputs,
   .expand-hint,
   .zone-legend,
-  .insurance-checkbox {
+  .insurance-checkbox,
+  .oda-status-info {
     display: none !important;
   }
   
   .vendor-result {
     break-inside: avoid;
     border: 1px solid #ddd;
+    page-break-inside: avoid;
   }
   
   .best-vendor-highlight {
     break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  
+  .vendor-breakdown {
+    max-height: none !important;
+    display: block !important;
   }
 }
 
@@ -1290,15 +1398,29 @@
    21. UTILITY CLASSES
    -------------------------------------------- */
 .text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
 .text-red { color: var(--primary-red); }
 .text-green { color: var(--primary-green); }
 .text-orange { color: var(--primary-orange); }
 .text-purple { color: var(--primary-purple); }
 .text-insurance { color: var(--primary-insurance); }
+.text-dtdc { color: var(--primary-dtdc); }
+.mt-1 { margin-top: 4px; }
 .mt-2 { margin-top: 8px; }
 .mt-3 { margin-top: 12px; }
+.mt-4 { margin-top: 16px; }
+.mb-1 { margin-bottom: 4px; }
 .mb-2 { margin-bottom: 8px; }
 .mb-3 { margin-bottom: 12px; }
+.mb-4 { margin-bottom: 16px; }
+.ml-1 { margin-left: 4px; }
+.ml-2 { margin-left: 8px; }
+.mr-1 { margin-right: 4px; }
+.mr-2 { margin-right: 8px; }
+.p-1 { padding: 4px; }
+.p-2 { padding: 8px; }
+.p-3 { padding: 12px; }
 
 /* Theme Toggle Button (Optional) */
 .theme-toggle {
@@ -1322,6 +1444,7 @@
 
 .theme-toggle:hover {
   transform: scale(1.05);
+  box-shadow: var(--shadow-lg);
 }
 
 /* Insurance Checkbox Focus State */
@@ -1339,4 +1462,73 @@
   font-size: 10px;
   color: var(--text-secondary);
   border-left: 2px solid var(--primary-insurance);
+}
+
+/* DTDC Specific Styles */
+.dtdc-badge {
+  background: var(--primary-dtdc);
+  color: white;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.bluedart-badge {
+  background: var(--primary-bluedart);
+  color: white;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+/* Vendor Count Badge */
+.vendor-count-badge {
+  background: var(--primary-red);
+  color: white;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+/* Loading Skeleton */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+/* Tooltip */
+.tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+}
+
+.tooltip .tooltip-text {
+  visibility: hidden;
+  width: 200px;
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
+  text-align: center;
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -100px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 11px;
+  font-weight: normal;
+}
+
+.tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
 }

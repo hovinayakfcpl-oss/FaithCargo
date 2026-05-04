@@ -54,6 +54,11 @@ const PD_LOGISTICS_ZONES = [
 const SHIPSHOPY_ZONES = DEFAULT_ZONES;
 const DELHIVERY_ZONES = DEFAULT_ZONES;
 
+// DTDC zones - Standard zone names
+const DTDC_ZONES = [
+  "N1", "N2", "N3", "C1", "W1", "W2", "S1", "E1", "NE1", "NE2", "E3"
+];
+
 // Get zones for a specific vendor
 const getZonesForVendor = (vendorName) => {
   if (vendorName === "VXPRESS") return VXPRESS_ZONES;
@@ -65,6 +70,7 @@ const getZonesForVendor = (vendorName) => {
   if (vendorName === "SHIPSHOPY BLUE DART") return SHIPSHOPY_ZONES;
   if (vendorName === "SHIPSHOPY DELIVERY") return SHIPSHOPY_ZONES;
   if (vendorName === "DELHIVERY") return DELHIVERY_ZONES;
+  if (vendorName === "DTDC") return DTDC_ZONES;
   if (vendorName === "TRUCX DLH Dense") return DEFAULT_ZONES;
   if (vendorName === "TRUCX DLH Cargo") return DEFAULT_ZONES;
   return DEFAULT_ZONES;
@@ -90,9 +96,10 @@ const getClientZoneFromVendorZone = (vendorZone, vendorName) => {
     "S4": "South",
     "E1": "East",
     "E2": "East",
+    "E3": "Northeast",
     "NE1": "NE1",
     "NE2": "NE2",
-    "NE3": "NE3",  // NE3 mapping added
+    "NE3": "NE3",
     "GOA": "W2",
     "KERALA": "South"
   };
@@ -104,9 +111,13 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || "https://faithcargo.onrend
 
 const DEFAULT_ODA_MIN_CHARGE = 500;
 const BLUE_DART_ODA_MIN_CHARGE = 3000;
+const DTDC_ODA_MIN_CHARGE = 500;
 
 // Vendors that support CFT rates
 const CFT_SUPPORTED_VENDORS = ["RIVIGO", "PD LOGISTICS"];
+
+// Vendors that need serviceable pincodes (like Blue Dart and DTDC)
+const SERVICEABLE_PINCODE_VENDORS = ["SHIPSHOPY BLUE DART", "DTDC"];
 
 function VendorManage() {
   const [vendors, setVendors] = useState([]);
@@ -158,8 +169,16 @@ function VendorManage() {
         const updatedData = data.map(vendor => {
           const charges = vendor.charges || {};
           const isBlueDart = vendor.vendor_name === "SHIPSHOPY BLUE DART";
+          const isDTDC = vendor.vendor_name === "DTDC";
+          
           if (!charges.oda_min_charge || charges.oda_min_charge === 0) {
-            charges.oda_min_charge = isBlueDart ? BLUE_DART_ODA_MIN_CHARGE : DEFAULT_ODA_MIN_CHARGE;
+            if (isBlueDart) {
+              charges.oda_min_charge = BLUE_DART_ODA_MIN_CHARGE;
+            } else if (isDTDC) {
+              charges.oda_min_charge = DTDC_ODA_MIN_CHARGE;
+            } else {
+              charges.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
+            }
           }
           vendor.charges = charges;
           return vendor;
@@ -236,8 +255,16 @@ function VendorManage() {
 
       const updatedCharges = { ...currentData.charges, ...invoiceData };
       const isBlueDart = invoiceVendor.vendor_name === "SHIPSHOPY BLUE DART";
+      const isDTDC = invoiceVendor.vendor_name === "DTDC";
+      
       if (!updatedCharges.oda_min_charge || updatedCharges.oda_min_charge === 0) {
-        updatedCharges.oda_min_charge = isBlueDart ? BLUE_DART_ODA_MIN_CHARGE : DEFAULT_ODA_MIN_CHARGE;
+        if (isBlueDart) {
+          updatedCharges.oda_min_charge = BLUE_DART_ODA_MIN_CHARGE;
+        } else if (isDTDC) {
+          updatedCharges.oda_min_charge = DTDC_ODA_MIN_CHARGE;
+        } else {
+          updatedCharges.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
+        }
       }
 
       const response = await fetch(`${API_BASE_URL}/api/vendors/vendor-rates/${encodeURIComponent(invoiceVendor.vendor_name)}/`, {
@@ -287,6 +314,12 @@ function VendorManage() {
       sampleData = [
         ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4.5', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
         ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '3.5', String(DEFAULT_ODA_MIN_CHARGE), 'TRUE'],
+        ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
+      ];
+    } else if (vendorName === 'DTDC') {
+      sampleData = [
+        ['212217', 'Allahabad', 'Uttar Pradesh', 'TRUE', 'B', '4', String(DTDC_ODA_MIN_CHARGE), 'TRUE'],
+        ['122502', 'Gurgaon', 'Haryana', 'TRUE', 'A', '2', String(DTDC_ODA_MIN_CHARGE), 'TRUE'],
         ['110001', 'New Delhi', 'Delhi', 'FALSE', '', '0', '0', 'TRUE'],
       ];
     }
@@ -371,7 +404,6 @@ function VendorManage() {
         return;
       }
       try {
-        // Updated endpoint to match backend
         const response = await fetch(`${API_BASE_URL}/api/vendors/bulk-upload-pincodes/${encodeURIComponent(csvVendor.vendor_name)}/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -451,8 +483,16 @@ function VendorManage() {
       const method = editMode ? "PUT" : "POST";
       const chargesToSave = { ...formData.charges };
       const isBlueDart = formData.vendor_name === "SHIPSHOPY BLUE DART";
+      const isDTDC = formData.vendor_name === "DTDC";
+      
       if (!chargesToSave.oda_min_charge || chargesToSave.oda_min_charge === 0) {
-        chargesToSave.oda_min_charge = isBlueDart ? BLUE_DART_ODA_MIN_CHARGE : DEFAULT_ODA_MIN_CHARGE;
+        if (isBlueDart) {
+          chargesToSave.oda_min_charge = BLUE_DART_ODA_MIN_CHARGE;
+        } else if (isDTDC) {
+          chargesToSave.oda_min_charge = DTDC_ODA_MIN_CHARGE;
+        } else {
+          chargesToSave.oda_min_charge = DEFAULT_ODA_MIN_CHARGE;
+        }
       }
       
       console.log("Saving rates for:", formData.vendor_name);
@@ -538,6 +578,7 @@ function VendorManage() {
     const isShipshopyDelivery = invoiceVendor?.vendor_name === 'SHIPSHOPY DELIVERY';
     const isShivaniVX = invoiceVendor?.vendor_name === 'SHIVANI VX';
     const isTrucx = invoiceVendor?.vendor_name?.includes('TRUCX');
+    const isDTDC = invoiceVendor?.vendor_name === 'DTDC';
     
     let exampleJson = {
       "docket_charge": 100, "fsc": "12%", "gst": "18%",
@@ -553,6 +594,8 @@ function VendorManage() {
       exampleJson = { "docket_charge": 50, "fsc": "7%", "min_freight": 800, "oda_min_charge": DEFAULT_ODA_MIN_CHARGE, "divisor": 5000 };
     } else if (isTrucx) {
       exampleJson = { "docket_charge": 50, "fsc": "10%", "min_freight": 350, "oda_charge": 3, "oda_min_charge": DEFAULT_ODA_MIN_CHARGE, "divisor": 4500 };
+    } else if (isDTDC) {
+      exampleJson = { "docket_charge": 75, "fsc": "35%", "min_freight": 400, "oda_charge": 4, "oda_min_charge": DTDC_ODA_MIN_CHARGE, "divisor": 5000 };
     }
     
     return (
@@ -598,6 +641,7 @@ function VendorManage() {
     const isShivaniVX = csvVendor?.vendor_name === 'SHIVANI VX';
     const isPd = csvVendor?.vendor_name === 'PD LOGISTICS';
     const isRivigo = csvVendor?.vendor_name === 'RIVIGO';
+    const isDTDC = csvVendor?.vendor_name === 'DTDC';
     
     let odaHint = "";
     if (isBlueDart) odaHint = `Blue Dart ODA: ₹5/kg (Min ₹${BLUE_DART_ODA_MIN_CHARGE})`;
@@ -605,6 +649,7 @@ function VendorManage() {
     else if (isShivaniVX) odaHint = `Shivani VX: Standard rates, Min ODA ₹${DEFAULT_ODA_MIN_CHARGE}`;
     else if (isPd) odaHint = `PD Logistics ODA: ₹4/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
     else if (isRivigo) odaHint = `RIVIGO ODA: ₹4/kg (Min ₹${DEFAULT_ODA_MIN_CHARGE})`;
+    else if (isDTDC) odaHint = `DTDC ODA: ₹4/kg (Min ₹${DTDC_ODA_MIN_CHARGE})`;
     else odaHint = `Default ODA Min Charge: ₹${DEFAULT_ODA_MIN_CHARGE}`;
     
     return (
@@ -684,6 +729,7 @@ function VendorManage() {
     
     const isVxpress = formData.vendor_name === "VXPRESS";
     const isShivaniVX = formData.vendor_name === "SHIVANI VX";
+    const isDTDC = formData.vendor_name === "DTDC";
     
     return (
       <div className="rate-matrix-container">
@@ -712,7 +758,7 @@ function VendorManage() {
                       <span className="client-zone-hint" style={{fontSize: '10px', display: 'block', color: '#666'}}>
                         ({getClientZoneFromVendorZone(fromZone, formData.vendor_name)})
                       </span>
-                     </td>
+                    </td>
                     {displayZones.map(toZone => {
                       const rateValue = rowRates[toZone];
                       return (
@@ -734,7 +780,7 @@ function VendorManage() {
             </tbody>
           </table>
         </div>
-        {(isVxpress || isShivaniVX) && (
+        {(isVxpress || isShivaniVX || isDTDC) && (
           <div className="info-note" style={{marginTop: '10px', padding: '8px', background: '#e0e7ff', borderRadius: '8px', fontSize: '11px'}}>
             💡 Note: {formData.vendor_name} uses standard zone names (N1, N2, etc.) for rates.
           </div>
@@ -749,6 +795,7 @@ function VendorManage() {
     const isVxpress = formData.vendor_name === "VXPRESS";
     const isShivaniVX = formData.vendor_name === "SHIVANI VX";
     const isBlueDart = formData.vendor_name === "SHIPSHOPY BLUE DART";
+    const isDTDC = formData.vendor_name === "DTDC";
     
     const chargeFields = [
       { key: "docket_charge", label: "Docket Charge (₹)", type: "number", step: "0.01" },
@@ -784,11 +831,14 @@ function VendorManage() {
         {hasCFTSupport && (
           <div className="info-note"><span className="info-icon">📦</span> This vendor supports 6 CFT and 10 CFT rate slabs only.</div>
         )}
-        {(isVxpress || isShivaniVX) && (
+        {(isVxpress || isShivaniVX || isDTDC) && (
           <div className="info-note" style={{background: '#e0e7ff'}}><span className="info-icon">📍</span> This vendor uses standard zone names.</div>
         )}
         {isBlueDart && (
           <div className="info-note" style={{background: '#fef3c7'}}><span className="info-icon">🔵</span> Blue Dart uses serviceable pincodes only. ODA Min Charge: ₹{BLUE_DART_ODA_MIN_CHARGE}</div>
+        )}
+        {isDTDC && (
+          <div className="info-note" style={{background: '#fff3e0'}}><span className="info-icon">🟠</span> DTDC uses serviceable pincodes only. ODA Min Charge: ₹{DTDC_ODA_MIN_CHARGE}</div>
         )}
       </div>
     );
@@ -805,28 +855,37 @@ function VendorManage() {
     const isShipshopyDelivery = vendor.vendor_name === "SHIPSHOPY DELIVERY";
     const isPd = vendor.vendor_name === "PD LOGISTICS";
     const isTrucx = vendor.vendor_name?.includes('TRUCX');
+    const isDTDC = vendor.vendor_name === "DTDC";
     
     const showCFTBadges = isRivigo || isPd;
-    const showCsvButton = isVxpress || isRivigo || isBlueDart || isShipshopyDelivery || isShivaniVX || isPd;
+    const showCsvButton = isVxpress || isRivigo || isBlueDart || isShipshopyDelivery || isShivaniVX || isPd || isDTDC;
     const odaMinCharge = vendor.charges?.oda_min_charge || DEFAULT_ODA_MIN_CHARGE;
-    const odaDisplay = isBlueDart ? `₹${vendor.charges?.oda_charge || 5}/kg (Min ₹${odaMinCharge})` : `₹${vendor.charges?.oda_charge || 2}/kg (Min ₹${odaMinCharge})`;
+    
+    let odaDisplay = "";
+    if (isBlueDart) {
+      odaDisplay = `₹${vendor.charges?.oda_charge || 5}/kg (Min ₹${odaMinCharge})`;
+    } else if (isDTDC) {
+      odaDisplay = `₹${vendor.charges?.oda_charge || 4}/kg (Min ₹${odaMinCharge})`;
+    } else {
+      odaDisplay = `₹${vendor.charges?.oda_charge || 2}/kg (Min ₹${odaMinCharge})`;
+    }
     
     const vendorZones = getZonesForVendor(vendor.vendor_name);
     const zoneCount = vendorZones.length;
     const clientZoneMapping = vendorZones.slice(0, 3).map(zone => `${zone}→${getClientZoneFromVendorZone(zone, vendor.vendor_name)}`).join(', ');
     
-    // Get actual zones from database
     const dbZones = Object.keys(vendor.rates || {});
     const hasRates = dbZones.length > 0;
     
     return (
-      <div className={`vendor-card ${!vendor.is_active ? 'inactive-card' : ''}`} key={vendor.id}>
+      <div className={`vendor-card ${!vendor.is_active ? 'inactive-card' : ''} ${isDTDC ? 'dtdc-card' : ''}`} key={vendor.id}>
         <div className="vendor-card-header">
           <div className="vendor-name-section">
-            <div className={`vendor-icon ${!vendor.is_active ? 'inactive-icon' : ''}`}>{vendor.vendor_name.charAt(0)}</div>
+            <div className={`vendor-icon ${!vendor.is_active ? 'inactive-icon' : ''} ${isDTDC ? 'dtdc-icon' : ''}`}>{vendor.vendor_name.charAt(0)}</div>
             <h3>{vendor.vendor_name}</h3>
             {zoneCount > 0 && zoneCount !== 16 && <span className="zone-count-badge">{zoneCount} zones</span>}
             {!hasRates && <span className="warning-badge">⚠️ No Rates</span>}
+            {isDTDC && <span className="dtdc-badge">DTDC Partner</span>}
           </div>
           <div className="vendor-card-actions">
             <button className="edit-btn" onClick={() => handleEditVendor(vendor)} title="Edit Vendor">✏️</button>
@@ -855,6 +914,7 @@ function VendorManage() {
             {isBlueDart && <span className="badge bluedart-badge">🔵 Blue Dart</span>}
             {isShipshopyDelivery && <span className="badge delhivery-badge">📦 Shipshopy Del</span>}
             {isTrucx && <span className="badge trucx-badge">🚛 TRUCX</span>}
+            {isDTDC && <span className="badge dtdc-badge">🟠 DTDC Express</span>}
           </div>
           {dbZones.length > 0 && (
             <div className="zone-mapping-hint">📍 DB Zones: {dbZones.slice(0, 5).join(', ')}{dbZones.length > 5 ? '...' : ''}</div>
@@ -887,9 +947,9 @@ function VendorManage() {
                   className="form-input"
                   value={formData.vendor_name}
                   onChange={(e) => setFormData({...formData, vendor_name: e.target.value.toUpperCase()})}
-                  placeholder="DELHIVERY, SHIPSHOPY BLUE DART, TRUCX DLH Lite, SHIVANI VX, VXPRESS"
+                  placeholder="DELHIVERY, SHIPSHOPY BLUE DART, DTDC, TRUCX DLH Lite, SHIVANI VX, VXPRESS"
                 />
-                <small className="input-hint">Available: DELHIVERY, GATI, PD LOGISTICS, RIVIGO, SHIPSHOPY BLUE DART, SHIPSHOPY DELIVERY, TRUCX DLH Lite/Dense/Cargo, VXPRESS, SHIVANI VX</small>
+                <small className="input-hint">Available: DELHIVERY, GATI, PD LOGISTICS, RIVIGO, SHIPSHOPY BLUE DART, SHIPSHOPY DELIVERY, DTDC, TRUCX DLH Lite/Dense/Cargo, VXPRESS, SHIVANI VX</small>
               </div>
             )}
             <div className="tabs">

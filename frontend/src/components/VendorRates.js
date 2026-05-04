@@ -71,7 +71,7 @@ const getClientZoneFromPincode = (pincode) => {
   }
   
   // East - (70xxxx to 83xxxx) - EXCLUDING Northeast (780-799 already handled)
-  if (prefixNum >= 700 && prefixNum <= 839) {
+  if (prefixNum >= 700 && prefixNum <= 845) {
     return 'East';
   }
   
@@ -110,6 +110,9 @@ const ZONES_PD_LOGISTICS = [];
 // DELHIVERY - 16 zones
 const ZONES_DEFAULT = ZONES_TRUCX_16;
 
+// DTDC ZONES - Standard zone names
+const ZONES_DTDC = ["N1", "N2", "N3", "C1", "W1", "W2", "S1", "E1", "NE1", "NE2", "E3"];
+
 // ============================================
 // ZONE MAPPING: Client Zone → Vendor Database Zone
 // ============================================
@@ -131,6 +134,27 @@ const getVendorZoneFromClientZone = (clientZone, vendorName) => {
     'NE2': 'NE2',
     'NE3': 'NE3'
   };
+  
+  // ============================================
+  // DTDC MAPPING - Uses standard zone names
+  // NE zones map to E3 (East III)
+  // ============================================
+  if (vendorUpper.includes('DTDC')) {
+    const dtdcMapping = {
+      'Delhi NCR': 'N1',
+      'NORTH 2': 'N2',
+      'NORTH 3': 'N3',
+      'Central': 'C1',
+      'W1': 'W1',
+      'W2': 'W2',
+      'East': 'E1',
+      'South': 'S1',
+      'NE1': 'E3',
+      'NE2': 'E3',
+      'NE3': 'E3'
+    };
+    return dtdcMapping[clientZone] || 'N1';
+  }
   
   // GATI - supports NE3 directly
   if (vendorUpper.includes('GATI')) {
@@ -206,6 +230,7 @@ const getZonesForVendor = (vendorName) => {
   if (vendorName === "SHIVANI VX") return ZONES_SHIVANI_VX;
   if (vendorName === "PD LOGISTICS") return ZONES_PD_LOGISTICS;
   if (vendorName === "SHIPSHOPY BLUE DART" || vendorName === "SHIPSHOPY DELIVERY") return ZONES_SHIPSHOPY;
+  if (vendorName === "DTDC") return ZONES_DTDC;
   return ZONES_DEFAULT;
 };
 
@@ -238,7 +263,8 @@ const VENDOR_PINCODE_SOURCE = {
   "TRUCX DLH Lite": "PD LOGISTICS",
   "TRUCX DLH Dense": "PD LOGISTICS",
   "TRUCX DLH Cargo": "PD LOGISTICS",
-  "SHIVANI VX": "VXPRESS"
+  "SHIVANI VX": "VXPRESS",
+  "DTDC": "DTDC"  // DTDC uses its own pincodes
 };
 
 function VendorRateCalculator() {
@@ -405,7 +431,18 @@ function VendorRateCalculator() {
         
         let result;
         
-        if (vendor.vendor_name === "SHIPSHOPY BLUE DART") {
+        // DTDC - serviceable only if in database (like Blue Dart)
+        if (vendor.vendor_name === "DTDC") {
+          result = {
+            isServiceable: data.is_serviceable === true,
+            isODA: data.is_oda === true,
+            charge: data.is_oda === true ? (parseFloat(data.oda_charge_per_kg) || 0) : 0,
+            minCharge: data.is_oda === true ? (parseFloat(data.oda_min_charge) || 500) : 0,
+            category: data.is_oda === true ? (data.oda_category || null) : null
+          };
+        }
+        // SHIPSHOPY BLUE DART - serviceable only if in database
+        else if (vendor.vendor_name === "SHIPSHOPY BLUE DART") {
           result = {
             isServiceable: data.is_serviceable === true,
             isODA: false,
@@ -413,7 +450,8 @@ function VendorRateCalculator() {
             minCharge: 0,
             category: null
           };
-        } else {
+        } 
+        else {
           const isODA = data.is_oda === true;
           result = {
             isServiceable: data.is_serviceable !== false,
@@ -432,7 +470,8 @@ function VendorRateCalculator() {
       console.error(`Error checking pincode for ${vendor.vendor_name}:`, err);
     }
     
-    if (vendor.vendor_name === "SHIPSHOPY BLUE DART") {
+    // Default fallback
+    if (vendor.vendor_name === "DTDC" || vendor.vendor_name === "SHIPSHOPY BLUE DART") {
       return { isServiceable: false, isODA: false, charge: 0, minCharge: 0, category: null };
     }
     return { isServiceable: true, isODA: false, charge: 0, minCharge: 0, category: null };
@@ -1071,7 +1110,7 @@ function VendorRateCalculator() {
                 </div>
                 
                 <div className="disclaimer">
-                  <small>* Rates are based on your client's zone mapping (Delhi NCR, NORTH 2, NORTH 3, Central, W1, W2, East, South, NE1, NE2, NE3). ODA charges: Min ₹500 for all vendors. PD Logistics: Only 6 CFT and 10 CFT rates apply. RIVIGO: Both CFT and Standard rates. Insurance: 0.1% of invoice value (Min ₹100) - only when checkbox is selected.</small>
+                  <small>* Rates are based on your client's zone mapping (Delhi NCR, NORTH 2, NORTH 3, Central, W1, W2, East, South, NE1, NE2, NE3). ODA charges: Min ₹500 for all vendors. PD Logistics: Only 6 CFT and 10 CFT rates apply. RIVIGO: Both CFT and Standard rates. DTDC & Blue Dart: Serviceable only where pincodes are configured in database. Insurance: 0.1% of invoice value (Min ₹100) - only when checkbox is selected.</small>
                 </div>
               </>
             )}
