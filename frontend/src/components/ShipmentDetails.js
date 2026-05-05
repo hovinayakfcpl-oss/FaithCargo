@@ -10,6 +10,10 @@ import {
 } from "lucide-react";
 import "./ShipmentDetail.css";
 
+// Logo and Stamp imports (make sure these paths are correct)
+import logo from "../assets/logo.png";
+import stampPng from "../assets/stamp.png";
+
 function ShipmentDetails() {
   // ============================================
   // 🔐 USER AUTHENTICATION STATE
@@ -294,15 +298,13 @@ function ShipmentDetails() {
   };
 
   // ============================================
-  // 🖨️ PROFESSIONAL DOCKET PRINT - FULLY FIXED
+  // 🖨️ PROFESSIONAL DOCKET PRINT
   // ============================================
   const printDocket = (shipment) => {
     const statusOpt = statusOptions.find(s => s.value === shipment.status) || statusOptions[0];
-    // Fixed Barcode URL with better rendering
     const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${shipment.lr}&code=Code128&dpi=120&hidehrt=0`;
     const currentDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
     
-    // Get data safely
     const pickupName = shipment.pickupName || 'N/A';
     const pickupAddress = shipment.pickupAddress || 'Address not provided';
     const pickupPincode = shipment.pickupPincode || 'N/A';
@@ -672,22 +674,18 @@ function ShipmentDetails() {
   };
 
   // ============================================
-  // 🏷️ PROFESSIONAL BOX LABEL PRINT - FULLY FIXED
+  // 🏷️ PROFESSIONAL BOX LABEL - EXACTLY AS IMAGE
   // ============================================
   const printLabel = (shipment) => {
-    const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${shipment.lr}&code=Code128&dpi=120&hidehrt=0`;
     const awbNumber = shipment.awb || shipment.lr || 'N/A';
     const totalBoxes = shipment.boxes || 1;
     
     const pickupName = shipment.pickupName || 'N/A';
-    const pickupPincode = shipment.pickupPincode || 'N/A';
     const pickupCity = shipment.pickupCity || 'DELHI';
     
     const deliveryName = shipment.deliveryName || 'N/A';
-    const deliveryPincode = shipment.deliveryPincode || 'N/A';
-    const deliveryCity = shipment.deliveryCity || 'LUDHIANA';
+    const deliveryCity = shipment.deliveryCity || 'LUDHIYANA';
     const deliveryContact = shipment.deliveryContact || 'N/A';
-    const weight = shipment.weight || 0;
     
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
@@ -697,129 +695,395 @@ function ShipmentDetails() {
         <title>Faith Cargo - Box Label ${shipment.lr}</title>
         <meta charset="UTF-8">
         <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { 
-            font-family: 'Segoe UI', 'Arial', sans-serif; 
-            background: #e2e8f0; 
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: 'Arial', 'Segoe UI', sans-serif;
+            background: #e2e8f0;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             padding: 20px;
           }
+          
           @media print {
-            body { background: white; padding: 0; margin: 0; }
-            @page { size: A4; margin: 0; }
+            body {
+              background: white;
+              padding: 0;
+              margin: 0;
+            }
+            @page {
+              size: A4;
+              margin: 0;
+            }
           }
+          
+          /* Label Container - 2 labels per page */
+          .labels-page {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            background: white;
+          }
+          
           .box-label {
             width: 180mm;
-            height: 120mm;
+            height: 135mm;
             background: white;
-            border: 3px solid #d32f2f;
+            border: 2px solid #cc0000;
             position: relative;
-            overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            font-family: 'Segoe UI', 'Arial', sans-serif;
+            font-family: 'Arial', sans-serif;
+            page-break-after: always;
+            break-inside: avoid;
+            margin: 0;
+            padding: 0;
           }
-          .label-watermark {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            font-size: 50px;
-            font-weight: 900;
-            color: rgba(211, 47, 47, 0.05);
-            white-space: nowrap;
-            pointer-events: none;
-            transform: rotate(-15deg);
-          }
-          .top-red-bar {
-            background: linear-gradient(135deg, #d32f2f, #b71c1c);
-            padding: 8px 15px;
+          
+          /* Header Section - Red Bar */
+          .label-header {
+            background: #cc0000;
+            padding: 12px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             color: white;
           }
-          .brand-name { font-size: 18px; font-weight: 800; letter-spacing: 1px; }
-          .brand-tagline { font-size: 9px; opacity: 0.9; }
-          .tollfree { font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 20px; }
-          .label-body { padding: 15px; }
-          .lr-section { text-align: center; margin-bottom: 15px; }
-          .lr-label { font-size: 10px; color: #64748b; letter-spacing: 2px; }
-          .lr-number-large { font-size: 28px; font-weight: 900; color: #d32f2f; font-family: monospace; letter-spacing: 2px; }
-          .barcode-container { text-align: center; margin: 10px 0; }
-          .barcode-img { width: 200px; height: auto; }
-          .address-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0; }
-          .address-box { background: #f8fafc; padding: 10px; border-radius: 8px; border-left: 3px solid #d32f2f; }
-          .address-label { font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
-          .address-name { font-size: 11px; font-weight: 800; color: #1e293b; margin-bottom: 3px; }
-          .address-location { font-size: 9px; color: #475569; }
-          .info-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 8px; background: #f1f5f9; border-radius: 6px; }
-          .info-item { text-align: center; flex: 1; }
-          .info-label { font-size: 8px; color: #64748b; text-transform: uppercase; }
-          .info-value { font-size: 12px; font-weight: 700; color: #1e293b; }
-          .icons-section { display: flex; justify-content: space-around; margin: 15px 0; padding: 10px; background: #fef3c7; border-radius: 8px; flex-wrap: wrap; gap: 10px; }
-          .icon-item { text-align: center; }
-          .icon-text { font-size: 8px; font-weight: 600; margin-top: 3px; }
-          .icon-large { font-size: 24px; }
-          .box-count { text-align: center; margin: 10px 0; }
-          .box-badge { display: inline-block; background: #d32f2f; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: 800; }
-          .footer-bar { background: #0f172a; color: white; padding: 6px; text-align: center; font-size: 7px; position: absolute; bottom: 0; left: 0; right: 0; }
-          .awb-small { font-size: 9px; color: #64748b; text-align: center; margin-top: 5px; }
+          
+          .brand-left {
+            text-align: left;
+          }
+          
+          .brand-name {
+            font-size: 22px;
+            font-weight: bold;
+            letter-spacing: 1px;
+          }
+          
+          .tagline {
+            font-size: 9px;
+            opacity: 0.9;
+            margin-top: 3px;
+            letter-spacing: 0.5px;
+          }
+          
+          .tollfree {
+            font-size: 11px;
+            font-weight: bold;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+          }
+          
+          /* Body Content */
+          .label-body {
+            padding: 15px 20px;
+          }
+          
+          /* LR Section */
+          .lr-section {
+            text-align: center;
+            margin-bottom: 20px;
+          }
+          
+          .lr-label {
+            font-size: 11px;
+            color: #666;
+            letter-spacing: 1px;
+            font-weight: 600;
+          }
+          
+          .lr-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #cc0000;
+            font-family: monospace;
+            letter-spacing: 2px;
+            margin-top: 5px;
+          }
+          
+          .awb-small {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            margin-top: 5px;
+            font-weight: 500;
+          }
+          
+          /* Address Grid */
+          .address-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+          }
+          
+          .address-box {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #cc0000;
+          }
+          
+          .address-label {
+            font-size: 10px;
+            font-weight: bold;
+            color: #cc0000;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+          }
+          
+          .address-name {
+            font-size: 13px;
+            font-weight: bold;
+            color: #1a1a2e;
+            margin-bottom: 5px;
+          }
+          
+          .address-location {
+            font-size: 11px;
+            color: #555;
+          }
+          
+          /* Info Row */
+          .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            padding: 12px;
+            background: #f1f5f9;
+            border-radius: 8px;
+          }
+          
+          .info-item {
+            text-align: center;
+            flex: 1;
+          }
+          
+          .info-label {
+            font-size: 9px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+          }
+          
+          .info-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1a1a2e;
+          }
+          
+          /* Icons Section */
+          .icons-section {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 12px;
+            background: #fff8e7;
+            border-radius: 8px;
+            flex-wrap: wrap;
+            gap: 15px;
+          }
+          
+          .icon-item {
+            text-align: center;
+          }
+          
+          .icon-large {
+            font-size: 28px;
+          }
+          
+          .icon-text {
+            font-size: 9px;
+            font-weight: bold;
+            margin-top: 5px;
+            color: #333;
+          }
+          
+          /* Box Count */
+          .box-count {
+            text-align: center;
+            margin: 15px 0;
+          }
+          
+          .box-badge {
+            display: inline-block;
+            background: #cc0000;
+            color: white;
+            padding: 6px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+          }
+          
+          /* Footer */
+          .label-footer {
+            background: #cc0000;
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-size: 8px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+          }
+          
+          .cut-line {
+            text-align: center;
+            padding: 5px;
+            font-size: 8px;
+            color: #999;
+            border-top: 1px dashed #ccc;
+            margin-top: 5px;
+          }
         </style>
       </head>
       <body>
-        <div class="box-label">
-          <div class="label-watermark">FCPL</div>
-          <div class="top-red-bar">
-            <div><div class="brand-name">FAITH CARGO</div><div class="brand-tagline">LEGACY OF TRUST & DELIVERY</div></div>
-            <div class="tollfree">📞 TOLL FREE: 9818641504</div>
+        <div class="labels-page">
+          <!-- LABEL 1 -->
+          <div class="box-label">
+            <div class="label-header">
+              <div class="brand-left">
+                <div class="brand-name">FAITH CARGO PVT. LTD.</div>
+                <div class="tagline">FAITHCARGO &nbsp; | &nbsp; LEGACY OF TRUST & DELIVERY</div>
+              </div>
+              <div class="tollfree">📞 TOLL FREE No. 9818641504</div>
+            </div>
+            
+            <div class="label-body">
+              <div class="lr-section">
+                <div class="lr-label">LR No :</div>
+                <div class="lr-number">${shipment.lr}</div>
+                <div class="awb-small">AWB:${awbNumber}</div>
+              </div>
+              
+              <div class="address-grid">
+                <div class="address-box">
+                  <div class="address-label">📤 FROM:</div>
+                  <div class="address-name">${pickupName}</div>
+                  <div class="address-location">${pickupCity}</div>
+                </div>
+                <div class="address-box">
+                  <div class="address-label">📥 TO:</div>
+                  <div class="address-name">${deliveryName}</div>
+                  <div class="address-location">${deliveryCity}</div>
+                </div>
+              </div>
+              
+              <div class="info-row">
+                <div class="info-item">
+                  <div class="info-label">Receiver Mob:</div>
+                  <div class="info-value">${deliveryContact}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">AWB:</div>
+                  <div class="info-value">${awbNumber}</div>
+                </div>
+              </div>
+              
+              <div class="icons-section">
+                <div class="icon-item">
+                  <div class="icon-large">📦</div>
+                  <div class="icon-text">FRAGILE</div>
+                </div>
+                <div class="icon-item">
+                  <div class="icon-large">🤲</div>
+                  <div class="icon-text">HANDLE<br>WITH CARE</div>
+                </div>
+                <div class="icon-item">
+                  <div class="icon-large">⬆️</div>
+                  <div class="icon-text">THIS SIDE<br>UP</div>
+                </div>
+                <div class="icon-item">
+                  <div class="icon-large">💧</div>
+                  <div class="icon-text">KEEP<br>DRY</div>
+                </div>
+              </div>
+              
+              <div class="box-count">
+                <span class="box-badge">BOX 1/${totalBoxes}</span>
+              </div>
+            </div>
+            
+            <div class="label-footer">
+              FAITH CARGO PVT. LTD. | 4/15, Kirti Nagar, Delhi - 110015 | care@faithcargo.com
+            </div>
           </div>
           
-          <div class="label-body">
-            <div class="lr-section">
-              <div class="lr-label">LR No.</div>
-              <div class="lr-number-large">${shipment.lr}</div>
-            </div>
-            
-            <div class="barcode-container">
-              <img src="${barcodeUrl}" class="barcode-img" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'40\\'%3E%3Crect width=\\'200\\' height=\\'40\\' fill=\\'%23f0f0f0\\'/%3E%3Ctext x=\\'50%25\\' y=\\'50%25\\' text-anchor=\\'middle\\' dy=\\'.3em\\' fill=\\'%23999\\' font-family=\\'monospace\\' font-size=\\'12\\'%3E${shipment.lr}%3C/text%3E%3C/svg%3E'" />
-              <div class="awb-small">AWB: ${awbNumber}</div>
-            </div>
-            
-            <div class="address-grid">
-              <div class="address-box">
-                <div class="address-label">📤 FROM:</div>
-                <div class="address-name">${pickupName}</div>
-                <div class="address-location">${pickupCity} - ${pickupPincode}</div>
+          <!-- LABEL 2 - DUPLICATE -->
+          <div class="box-label">
+            <div class="label-header">
+              <div class="brand-left">
+                <div class="brand-name">FAITH CARGO PVT. LTD.</div>
+                <div class="tagline">FAITHCARGO &nbsp; | &nbsp; LEGACY OF TRUST & DELIVERY</div>
               </div>
-              <div class="address-box">
-                <div class="address-label">📥 TO:</div>
-                <div class="address-name">${deliveryName}</div>
-                <div class="address-location">${deliveryCity} - ${deliveryPincode}</div>
+              <div class="tollfree">📞 TOLL FREE No. 9818641504</div>
+            </div>
+            
+            <div class="label-body">
+              <div class="lr-section">
+                <div class="lr-label">LR No :</div>
+                <div class="lr-number">${shipment.lr}</div>
+                <div class="awb-small">AWB:${awbNumber}</div>
+              </div>
+              
+              <div class="address-grid">
+                <div class="address-box">
+                  <div class="address-label">📤 FROM:</div>
+                  <div class="address-name">${pickupName}</div>
+                  <div class="address-location">${pickupCity}</div>
+                </div>
+                <div class="address-box">
+                  <div class="address-label">📥 TO:</div>
+                  <div class="address-name">${deliveryName}</div>
+                  <div class="address-location">${deliveryCity}</div>
+                </div>
+              </div>
+              
+              <div class="info-row">
+                <div class="info-item">
+                  <div class="info-label">Receiver Mob:</div>
+                  <div class="info-value">${deliveryContact}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">AWB:</div>
+                  <div class="info-value">${awbNumber}</div>
+                </div>
+              </div>
+              
+              <div class="icons-section">
+                <div class="icon-item">
+                  <div class="icon-large">📦</div>
+                  <div class="icon-text">FRAGILE</div>
+                </div>
+                <div class="icon-item">
+                  <div class="icon-large">🤲</div>
+                  <div class="icon-text">HANDLE<br>WITH CARE</div>
+                </div>
+                <div class="icon-item">
+                  <div class="icon-large">⬆️</div>
+                  <div class="icon-text">THIS SIDE<br>UP</div>
+                </div>
+                <div class="icon-item">
+                  <div class="icon-large">💧</div>
+                  <div class="icon-text">KEEP<br>DRY</div>
+                </div>
+              </div>
+              
+              <div class="box-count">
+                <span class="box-badge">BOX 1/${totalBoxes}</span>
               </div>
             </div>
             
-            <div class="info-row">
-              <div class="info-item"><div class="info-label">Receiver Mob</div><div class="info-value">${deliveryContact}</div></div>
-              <div class="info-item"><div class="info-label">Weight</div><div class="info-value">${weight} kg</div></div>
-              <div class="info-item"><div class="info-label">AWB</div><div class="info-value">${awbNumber}</div></div>
+            <div class="label-footer">
+              FAITH CARGO PVT. LTD. | 4/15, Kirti Nagar, Delhi - 110015 | care@faithcargo.com
             </div>
-            
-            <div class="icons-section">
-              <div class="icon-item"><div class="icon-large">📦</div><div class="icon-text">FRAGILE</div></div>
-              <div class="icon-item"><div class="icon-large">🤲</div><div class="icon-text">HANDLE WITH CARE</div></div>
-              <div class="icon-item"><div class="icon-large">⬆️</div><div class="icon-text">THIS SIDE UP</div></div>
-              <div class="icon-item"><div class="icon-large">💧</div><div class="icon-text">KEEP DRY</div></div>
-            </div>
-            
-            <div class="box-count">
-              <span class="box-badge">BOX 1/${totalBoxes}</span>
-            </div>
-          </div>
-          
-          <div class="footer-bar">
-            FAITH CARGO PVT. LTD. | 4/15, Kirti Nagar, Delhi - 110015 | care@faithcargo.com
           </div>
         </div>
       </body>
