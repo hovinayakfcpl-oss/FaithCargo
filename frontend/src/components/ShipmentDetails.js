@@ -10,9 +10,10 @@ import {
 } from "lucide-react";
 import "./ShipmentDetail.css";
 
-// Logo and Stamp imports (make sure these paths are correct)
+// Logo and Stamp imports (JPG images)
 import logo from "../assets/logo.png";
 import stampPng from "../assets/stamp.png";
+import JsBarcode from "jsbarcode";
 
 function ShipmentDetails() {
   // ============================================
@@ -44,6 +45,8 @@ function ShipmentDetails() {
   const [selectedInvoices, setSelectedInvoices] = useState([]);
   const chatEndRef = useRef(null);
   const recognitionRef = useRef(null);
+  const barcodeRef = useRef(null);
+  const labelBarcodeRef = useRef(null);
 
   // Available statuses
   const statusOptions = [
@@ -298,11 +301,10 @@ function ShipmentDetails() {
   };
 
   // ============================================
-  // 🖨️ PROFESSIONAL DOCKET PRINT
+  // 🖨️ PROFESSIONAL DOCKET PRINT WITH LOGO, STAMP & BARCODE
   // ============================================
   const printDocket = (shipment) => {
     const statusOpt = statusOptions.find(s => s.value === shipment.status) || statusOptions[0];
-    const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${shipment.lr}&code=Code128&dpi=120&hidehrt=0`;
     const currentDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
     
     const pickupName = shipment.pickupName || 'N/A';
@@ -311,6 +313,7 @@ function ShipmentDetails() {
     const pickupContact = shipment.pickupContact || 'N/A';
     const pickupCity = shipment.pickupCity || '';
     const pickupState = shipment.pickupState || '';
+    const pickupGstin = shipment.pickupGstin || '';
     
     const deliveryName = shipment.deliveryName || 'N/A';
     const deliveryAddress = shipment.deliveryAddress || 'Address not provided';
@@ -318,6 +321,7 @@ function ShipmentDetails() {
     const deliveryContact = shipment.deliveryContact || 'N/A';
     const deliveryCity = shipment.deliveryCity || '';
     const deliveryState = shipment.deliveryState || '';
+    const deliveryGstin = shipment.deliveryGstin || '';
     
     const material = shipment.material || 'GENERAL CARGO';
     const hsn = shipment.hsn || '1234';
@@ -333,6 +337,9 @@ function ShipmentDetails() {
     const ewayBill = shipment.eway_bill || '';
     const freightAmount = shipment.freight_amount || 0;
     
+    const logoImg = logo;
+    const stampImg = stampPng;
+    
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -340,6 +347,7 @@ function ShipmentDetails() {
       <head>
         <title>Faith Cargo - Consignment Note ${shipment.lr}</title>
         <meta charset="UTF-8">
+        <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { 
@@ -416,6 +424,12 @@ function ShipmentDetails() {
             display: flex;
             gap: 18px;
             flex-wrap: wrap;
+            align-items: center;
+          }
+          .logo-img {
+            height: 70px;
+            width: auto;
+            object-fit: contain;
           }
           .logo-text {
             font-size: 28px;
@@ -466,14 +480,13 @@ function ShipmentDetails() {
             font-family: monospace;
             letter-spacing: 2px;
           }
-          .barcode-img {
-            width: 200px;
+          .barcode-container {
+            margin: 10px 0;
+            text-align: center;
+          }
+          canvas#docketBarcode {
+            width: 250px;
             height: auto;
-            margin: 8px 0;
-            background: white;
-            padding: 4px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
           }
           .awb-text, .date-text {
             font-size: 9px;
@@ -510,6 +523,7 @@ function ShipmentDetails() {
           .party-name { font-size: 12px; font-weight: 800; margin-bottom: 6px; color: #0f172a; }
           .party-address { font-size: 9px; color: #475569; margin-bottom: 8px; line-height: 1.4; }
           .party-details { display: flex; flex-wrap: wrap; gap: 12px; font-size: 8px; padding-top: 8px; border-top: 1px dashed #e2e8f0; color: #64748b; }
+          .gst-text { font-size: 7px; color: #64748b; margin-top: 4px; }
           .table-wrapper { padding: 0 25px; margin-bottom: 20px; overflow-x: auto; position: relative; z-index: 2; }
           .shipment-table { width: 100%; border-collapse: collapse; font-size: 9px; }
           .shipment-table th { background: #f1f5f9; padding: 10px 8px; font-weight: 800; border: 1px solid #e2e8f0; text-align: center; }
@@ -530,9 +544,26 @@ function ShipmentDetails() {
           .billing-total { display: flex; justify-content: space-between; font-size: 10px; font-weight: 800; margin-top: 10px; padding-top: 10px; border-top: 2px solid #e2e8f0; }
           .eway-bill { margin-top: 10px; padding: 8px; background: #fef3c7; border-radius: 8px; font-size: 9px; text-align: center; }
           .stamp-section { display: flex; justify-content: space-between; align-items: center; padding: 0 25px; margin: 20px 0; flex-wrap: wrap; gap: 30px; position: relative; z-index: 2; }
-          .stamp-area { width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; }
-          .stamp-fallback { width: 90px; height: 90px; border-radius: 50%; border: 2px solid #2563eb; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 8px; font-weight: 800; color: #2563eb; background: rgba(37,99,235,0.02); }
-          .stamp-line { width: 25px; height: 1px; background: #2563eb; margin: 3px 0; }
+          .stamp-img {
+            width: 100px;
+            height: auto;
+            object-fit: contain;
+          }
+          .stamp-placeholder {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            border: 2px solid #d32f2f;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 8px;
+            font-weight: 800;
+            color: #d32f2f;
+            background: rgba(211,47,47,0.05);
+          }
           .signatures { display: flex; gap: 50px; flex-wrap: wrap; }
           .sign-box { text-align: center; }
           .sign-line { width: 120px; border-top: 1.5px solid #0f172a; margin-bottom: 6px; }
@@ -554,7 +585,8 @@ function ShipmentDetails() {
           
           <div class="docket-header">
             <div class="logo-section">
-              <div class="logo-text">FCPL</div>
+              <img src="${logoImg}" class="logo-img" alt="Logo" onerror="this.style.display='none'; this.nextSibling.style.display='block';" />
+              <div class="logo-text" style="display:none;">FCPL</div>
               <div class="company-details">
                 <h1>FAITH CARGO PRIVATE LIMITED</h1>
                 <p>ISO 9001:2015 & ISO 14001:2015 CERTIFIED</p>
@@ -566,7 +598,9 @@ function ShipmentDetails() {
             <div class="doc-section">
               <div class="doc-title">CONSIGNMENT NOTE</div>
               <div class="lr-number">${shipment.lr}</div>
-              <img src="${barcodeUrl}" class="barcode-img" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'50\\'%3E%3Crect width=\\'200\\' height=\\'50\\' fill=\\'%23f0f0f0\\'/%3E%3Ctext x=\\'50%25\\' y=\\'50%25\\' text-anchor=\\'middle\\' dy=\\'.3em\\' fill=\\'%23999\\' font-family=\\'monospace\\' font-size=\\'14\\'%3E${shipment.lr}%3C/text%3E%3C/svg%3E'" />
+              <div class="barcode-container">
+                <canvas id="docketBarcode"></canvas>
+              </div>
               <div class="awb-text">AWB: ${shipment.awb || 'N/A'}</div>
               <div class="date-text">Date: ${currentDate}</div>
             </div>
@@ -583,6 +617,7 @@ function ShipmentDetails() {
                   <span>📍 ${pickupCity} ${pickupState}</span>
                   <span>📞 ${pickupContact}</span>
                 </div>
+                ${pickupGstin ? `<div class="gst-text">🏢 GST: ${pickupGstin}</div>` : ''}
               </div>
             </div>
             <div class="party-card">
@@ -595,6 +630,7 @@ function ShipmentDetails() {
                   <span>📍 ${deliveryCity} ${deliveryState}</span>
                   <span>📞 ${deliveryContact}</span>
                 </div>
+                ${deliveryGstin ? `<div class="gst-text">🏢 GST: ${deliveryGstin}</div>` : ''}
               </div>
             </div>
           </div>
@@ -635,11 +671,11 @@ function ShipmentDetails() {
 
           <div class="stamp-section">
             <div class="stamp-area">
-              <div class="stamp-fallback">
+              <img src="${stampImg}" class="stamp-img" alt="Stamp" onerror="this.style.display='none'; this.nextSibling.style.display='flex';" />
+              <div class="stamp-placeholder" style="display:none;">
                 <div>FAITH</div>
                 <div>CARGO</div>
                 <div>PVT LTD</div>
-                <div class="stamp-line"></div>
                 <div>AUTHORIZED</div>
               </div>
             </div>
@@ -664,6 +700,20 @@ function ShipmentDetails() {
             <div class="footer-powered">Powered by <strong>Faith Cargo Logistics</strong> | Developed by <strong>Devora Technologies</strong></div>
           </div>
         </div>
+        <script>
+          try {
+            JsBarcode("#docketBarcode", "${shipment.lr}", {
+              format: "CODE128",
+              width: 1.8,
+              height: 50,
+              displayValue: true,
+              fontSize: 12,
+              font: "monospace",
+              margin: 10,
+              textAlign: "center"
+            });
+          } catch(e) { console.log("Barcode error:", e); }
+        </script>
       </body>
       </html>
     `);
@@ -674,7 +724,7 @@ function ShipmentDetails() {
   };
 
   // ============================================
-  // 🏷️ PROFESSIONAL BOX LABEL - EXACTLY AS IMAGE
+  // 🏷️ PROFESSIONAL BOX LABEL WITH LOGO & BARCODE
   // ============================================
   const printLabel = (shipment) => {
     const awbNumber = shipment.awb || shipment.lr || 'N/A';
@@ -687,6 +737,8 @@ function ShipmentDetails() {
     const deliveryCity = shipment.deliveryCity || 'LUDHIYANA';
     const deliveryContact = shipment.deliveryContact || 'N/A';
     
+    const logoImg = logo;
+    
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -694,43 +746,28 @@ function ShipmentDetails() {
       <head>
         <title>Faith Cargo - Box Label ${shipment.lr}</title>
         <meta charset="UTF-8">
+        <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
         <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          
-          body {
-            font-family: 'Arial', 'Segoe UI', sans-serif;
-            background: #e2e8f0;
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Arial', 'Segoe UI', sans-serif; 
+            background: #e2e8f0; 
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             padding: 20px;
           }
-          
           @media print {
-            body {
-              background: white;
-              padding: 0;
-              margin: 0;
-            }
-            @page {
-              size: A4;
-              margin: 0;
-            }
+            body { background: white; padding: 0; margin: 0; }
+            @page { size: A4; margin: 0; }
           }
-          
-          /* Label Container - 2 labels per page */
           .labels-page {
             display: flex;
             flex-direction: column;
             gap: 0;
             background: white;
           }
-          
           .box-label {
             width: 180mm;
             height: 135mm;
@@ -743,204 +780,188 @@ function ShipmentDetails() {
             margin: 0;
             padding: 0;
           }
-          
-          /* Header Section - Red Bar */
           .label-header {
             background: #cc0000;
-            padding: 12px 15px;
+            padding: 10px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             color: white;
           }
-          
           .brand-left {
             text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 12px;
           }
-          
+          .label-logo {
+            height: 40px;
+            width: auto;
+            object-fit: contain;
+            background: white;
+            border-radius: 4px;
+            padding: 2px;
+          }
           .brand-name {
-            font-size: 22px;
+            font-size: 18px;
             font-weight: bold;
             letter-spacing: 1px;
           }
-          
           .tagline {
-            font-size: 9px;
+            font-size: 8px;
             opacity: 0.9;
-            margin-top: 3px;
+            margin-top: 2px;
             letter-spacing: 0.5px;
           }
-          
           .tollfree {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: bold;
             background: rgba(255,255,255,0.2);
-            padding: 4px 12px;
+            padding: 4px 10px;
             border-radius: 20px;
           }
-          
-          /* Body Content */
           .label-body {
-            padding: 15px 20px;
+            padding: 12px 18px;
           }
-          
-          /* LR Section */
           .lr-section {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
           }
-          
           .lr-label {
-            font-size: 11px;
+            font-size: 10px;
             color: #666;
             letter-spacing: 1px;
             font-weight: 600;
           }
-          
           .lr-number {
-            font-size: 32px;
+            font-size: 28px;
             font-weight: bold;
             color: #cc0000;
             font-family: monospace;
             letter-spacing: 2px;
-            margin-top: 5px;
+            margin-top: 4px;
           }
-          
+          .barcode-label {
+            text-align: center;
+            margin: 8px 0;
+          }
+          canvas#labelBarcode {
+            width: 200px;
+            height: auto;
+          }
           .awb-small {
-            font-size: 12px;
+            font-size: 11px;
             color: #666;
             text-align: center;
-            margin-top: 5px;
+            margin-top: 4px;
             font-weight: 500;
           }
-          
-          /* Address Grid */
           .address-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin: 20px 0;
+            gap: 15px;
+            margin: 15px 0;
           }
-          
           .address-box {
             background: #f8fafc;
-            padding: 12px;
+            padding: 10px;
             border-radius: 8px;
             border-left: 4px solid #cc0000;
           }
-          
           .address-label {
-            font-size: 10px;
+            font-size: 9px;
             font-weight: bold;
             color: #cc0000;
             text-transform: uppercase;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             letter-spacing: 1px;
           }
-          
           .address-name {
-            font-size: 13px;
+            font-size: 11px;
             font-weight: bold;
             color: #1a1a2e;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
           }
-          
           .address-location {
-            font-size: 11px;
+            font-size: 10px;
             color: #555;
           }
-          
-          /* Info Row */
           .info-row {
             display: flex;
             justify-content: space-between;
-            margin: 20px 0;
-            padding: 12px;
+            margin: 15px 0;
+            padding: 10px;
             background: #f1f5f9;
             border-radius: 8px;
           }
-          
           .info-item {
             text-align: center;
             flex: 1;
           }
-          
           .info-label {
-            font-size: 9px;
+            font-size: 8px;
             color: #666;
             text-transform: uppercase;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
           }
-          
           .info-value {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: bold;
             color: #1a1a2e;
           }
-          
-          /* Icons Section */
           .icons-section {
             display: flex;
             justify-content: space-around;
-            margin: 20px 0;
-            padding: 12px;
+            margin: 15px 0;
+            padding: 10px;
             background: #fff8e7;
             border-radius: 8px;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 12px;
           }
-          
           .icon-item {
             text-align: center;
           }
-          
           .icon-large {
-            font-size: 28px;
+            font-size: 24px;
           }
-          
           .icon-text {
-            font-size: 9px;
+            font-size: 8px;
             font-weight: bold;
-            margin-top: 5px;
+            margin-top: 4px;
             color: #333;
           }
-          
-          /* Box Count */
           .box-count {
             text-align: center;
-            margin: 15px 0;
+            margin: 12px 0;
           }
-          
           .box-badge {
             display: inline-block;
             background: #cc0000;
             color: white;
-            padding: 6px 20px;
+            padding: 5px 18px;
             border-radius: 25px;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: bold;
           }
-          
-          /* Footer */
           .label-footer {
             background: #cc0000;
             color: white;
-            padding: 8px;
+            padding: 6px;
             text-align: center;
-            font-size: 8px;
+            font-size: 7px;
             position: absolute;
             bottom: 0;
             left: 0;
             right: 0;
           }
-          
           .cut-line {
             text-align: center;
-            padding: 5px;
-            font-size: 8px;
+            padding: 4px;
+            font-size: 7px;
             color: #999;
             border-top: 1px dashed #ccc;
-            margin-top: 5px;
+            margin-top: 4px;
           }
         </style>
       </head>
@@ -950,17 +971,23 @@ function ShipmentDetails() {
           <div class="box-label">
             <div class="label-header">
               <div class="brand-left">
-                <div class="brand-name">FAITH CARGO PVT. LTD.</div>
-                <div class="tagline">FAITHCARGO &nbsp; | &nbsp; LEGACY OF TRUST & DELIVERY</div>
+                <img src="${logoImg}" class="label-logo" alt="Logo" onerror="this.style.display='none'" />
+                <div>
+                  <div class="brand-name">FAITH CARGO PVT. LTD.</div>
+                  <div class="tagline">FAITHCARGO | LEGACY OF TRUST & DELIVERY</div>
+                </div>
               </div>
-              <div class="tollfree">📞 TOLL FREE No. 9818641504</div>
+              <div class="tollfree">📞 TOLL FREE: 9818641504</div>
             </div>
             
             <div class="label-body">
               <div class="lr-section">
                 <div class="lr-label">LR No :</div>
                 <div class="lr-number">${shipment.lr}</div>
-                <div class="awb-small">AWB:${awbNumber}</div>
+                <div class="barcode-label">
+                  <canvas id="labelBarcode"></canvas>
+                </div>
+                <div class="awb-small">AWB: ${awbNumber}</div>
               </div>
               
               <div class="address-grid">
@@ -994,15 +1021,15 @@ function ShipmentDetails() {
                 </div>
                 <div class="icon-item">
                   <div class="icon-large">🤲</div>
-                  <div class="icon-text">HANDLE<br>WITH CARE</div>
+                  <div class="icon-text">HANDLE WITH CARE</div>
                 </div>
                 <div class="icon-item">
                   <div class="icon-large">⬆️</div>
-                  <div class="icon-text">THIS SIDE<br>UP</div>
+                  <div class="icon-text">THIS SIDE UP</div>
                 </div>
                 <div class="icon-item">
                   <div class="icon-large">💧</div>
-                  <div class="icon-text">KEEP<br>DRY</div>
+                  <div class="icon-text">KEEP DRY</div>
                 </div>
               </div>
               
@@ -1020,17 +1047,23 @@ function ShipmentDetails() {
           <div class="box-label">
             <div class="label-header">
               <div class="brand-left">
-                <div class="brand-name">FAITH CARGO PVT. LTD.</div>
-                <div class="tagline">FAITHCARGO &nbsp; | &nbsp; LEGACY OF TRUST & DELIVERY</div>
+                <img src="${logoImg}" class="label-logo" alt="Logo" onerror="this.style.display='none'" />
+                <div>
+                  <div class="brand-name">FAITH CARGO PVT. LTD.</div>
+                  <div class="tagline">FAITHCARGO | LEGACY OF TRUST & DELIVERY</div>
+                </div>
               </div>
-              <div class="tollfree">📞 TOLL FREE No. 9818641504</div>
+              <div class="tollfree">📞 TOLL FREE: 9818641504</div>
             </div>
             
             <div class="label-body">
               <div class="lr-section">
                 <div class="lr-label">LR No :</div>
                 <div class="lr-number">${shipment.lr}</div>
-                <div class="awb-small">AWB:${awbNumber}</div>
+                <div class="barcode-label">
+                  <canvas id="labelBarcode2"></canvas>
+                </div>
+                <div class="awb-small">AWB: ${awbNumber}</div>
               </div>
               
               <div class="address-grid">
@@ -1064,15 +1097,15 @@ function ShipmentDetails() {
                 </div>
                 <div class="icon-item">
                   <div class="icon-large">🤲</div>
-                  <div class="icon-text">HANDLE<br>WITH CARE</div>
+                  <div class="icon-text">HANDLE WITH CARE</div>
                 </div>
                 <div class="icon-item">
                   <div class="icon-large">⬆️</div>
-                  <div class="icon-text">THIS SIDE<br>UP</div>
+                  <div class="icon-text">THIS SIDE UP</div>
                 </div>
                 <div class="icon-item">
                   <div class="icon-large">💧</div>
-                  <div class="icon-text">KEEP<br>DRY</div>
+                  <div class="icon-text">KEEP DRY</div>
                 </div>
               </div>
               
@@ -1086,6 +1119,28 @@ function ShipmentDetails() {
             </div>
           </div>
         </div>
+        <script>
+          try {
+            JsBarcode("#labelBarcode", "${shipment.lr}", {
+              format: "CODE128",
+              width: 1.5,
+              height: 35,
+              displayValue: true,
+              fontSize: 10,
+              font: "monospace",
+              margin: 5
+            });
+            JsBarcode("#labelBarcode2", "${shipment.lr}", {
+              format: "CODE128",
+              width: 1.5,
+              height: 35,
+              displayValue: true,
+              fontSize: 10,
+              font: "monospace",
+              margin: 5
+            });
+          } catch(e) { console.log("Barcode error:", e); }
+        </script>
       </body>
       </html>
     `);
@@ -1096,7 +1151,7 @@ function ShipmentDetails() {
   };
 
   // ============================================
-  // 🎤 VOICE ENGINE
+  // 🎤 VOICE ENGINE (Rest remains same)
   // ============================================
   const speak = (text) => {
     if (!isVoiceEnabled) return;
