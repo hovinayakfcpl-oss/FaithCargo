@@ -1,3 +1,7 @@
+# ============================================
+# FAITH CARGO LOGISTICS - REQUIREMENTS
+# ============================================
+
 # Django Core
 Django==4.2.7
 gunicorn==21.2.0
@@ -8,9 +12,9 @@ django-cors-headers==4.3.1
 djangorestframework==3.14.0
 djangorestframework-simplejwt==5.3.0
 
-# Database
+# Database - Use psycopg (pure Python, no compilation)
 dj-database-url==2.1.0
-psycopg2-binary==2.9.9
+psycopg==3.1.12
 
 # HTTP & Requests
 requests==2.31.0
