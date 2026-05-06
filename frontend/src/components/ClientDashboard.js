@@ -13,7 +13,7 @@ import {
   LineChart, PieChart, Activity, Users,
   Headphones, MessageCircle, ThumbsUp,
   Sun, Moon, Filter, DownloadCloud, RefreshCw,
-  Heart
+  Heart, Wallet, PlusCircle, History
 } from "lucide-react";
 import "./ClientDashboard.css";
 
@@ -26,6 +26,18 @@ function ClientDashboard() {
   const [recentShipments, setRecentShipments] = useState([]);
   const [darkMode, setDarkMode] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [rechargeAmount, setRechargeAmount] = useState("");
+  const [rechargeMethod, setRechargeMethod] = useState("UPI");
+  const [recharging, setRecharging] = useState(false);
+  const [walletData, setWalletData] = useState({
+    balance: 0,
+    total_recharged: 0,
+    total_spent: 0,
+    low_balance_warning: null
+  });
+  const [rechargeHistory, setRechargeHistory] = useState([]);
+  const [showRechargeHistory, setShowRechargeHistory] = useState(false);
   const [stats, setStats] = useState({
     totalShipments: 0,
     delivered: 0,
@@ -40,6 +52,94 @@ function ClientDashboard() {
   const clientId = localStorage.getItem("clientId");
   const clientEmail = localStorage.getItem("clientEmail") || "client@faithcargo.com";
   const clientCompany = localStorage.getItem("clientCompany") || clientName;
+
+  // Fetch wallet balance on load
+  useEffect(() => {
+    fetchWalletBalance();
+    fetchRechargeHistory();
+  }, []);
+
+  const fetchWalletBalance = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`https://faithcargo.onrender.com/api/user/wallet/balance/`, {
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setWalletData({
+          balance: data.balance || 0,
+          total_recharged: data.total_recharged || 0,
+          total_spent: data.total_spent || 0,
+          low_balance_warning: data.low_balance_warning
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching wallet balance:", error);
+    }
+  };
+
+  const fetchRechargeHistory = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`https://faithcargo.onrender.com/api/user/wallet/recharge-history/`, {
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setRechargeHistory(data.history || []);
+      }
+    } catch (error) {
+      console.error("Error fetching recharge history:", error);
+    }
+  };
+
+  const handleRechargeRequest = async () => {
+    if (!rechargeAmount || parseFloat(rechargeAmount) <= 0) {
+      alert("Please enter a valid amount");
+      return;
+    }
+
+    setRecharging(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`https://faithcargo.onrender.com/api/user/wallet/recharge-request/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          amount: parseFloat(rechargeAmount),
+          payment_method: rechargeMethod,
+          reference_number: `REF_${Date.now()}`
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`✅ Recharge request submitted!\nAmount: ₹${rechargeAmount}\nStatus: ${data.status}`);
+        setShowRechargeModal(false);
+        setRechargeAmount("");
+        fetchWalletBalance();
+        fetchRechargeHistory();
+      } else {
+        const error = await response.json();
+        alert(`❌ Recharge failed: ${error.error || "Unknown error"}`);
+      }
+    } catch (error) {
+      console.error("Recharge error:", error);
+      alert("❌ Network error. Please try again.");
+    } finally {
+      setRecharging(false);
+    }
+  };
 
   // Dark mode effect
   useEffect(() => {
@@ -63,7 +163,7 @@ function ClientDashboard() {
 
   const refreshData = async () => {
     setRefreshing(true);
-    await Promise.all([fetchShipmentStats(), fetchRecentShipments()]);
+    await Promise.all([fetchShipmentStats(), fetchRecentShipments(), fetchWalletBalance()]);
     setTimeout(() => setRefreshing(false), 1000);
   };
 
@@ -127,7 +227,6 @@ function ClientDashboard() {
     window.location.href = "/";
   };
 
-  // 🔥 FIXED: Navigation handler using window.location for reliability
   const handleNavigation = (path) => {
     window.location.href = path;
   };
@@ -172,7 +271,7 @@ function ClientDashboard() {
     { icon: <Calculator size={18} />, label: "Calculate Rate", path: "/ba-b2b-rate-calculator", color: "#3b82f6" },
     { icon: <Package size={18} />, label: "New Order", path: "/create-order", color: "#10b981" },
     { icon: <Search size={18} />, label: "Track Shipment", path: "/tracking", color: "#8b5cf6" },
-    { icon: <FileText size={18} />, label: "View Reports", path: "/shipment-details", color: "#f59e0b" }
+    { icon: <Wallet size={18} />, label: "Recharge Wallet", action: "recharge", color: "#f59e0b" }
   ];
 
   const getStatusBadge = (status) => {
@@ -218,7 +317,43 @@ function ClientDashboard() {
           </div>
         </div>
 
-        {/* 🔥 FIXED: Sidebar Navigation using window.location */}
+        {/* 🔥 NEW: Wallet Card in Sidebar */}
+        <div className="sidebar-wallet">
+          <div className="wallet-card">
+            <div className="wallet-header">
+              <Wallet size={18} />
+              <span>Wallet Balance</span>
+            </div>
+            <div className="wallet-balance">
+              ₹{walletData.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className="wallet-stats">
+              <div className="wallet-stat">
+                <span>Total Recharged</span>
+                <strong>₹{walletData.total_recharged.toLocaleString()}</strong>
+              </div>
+              <div className="wallet-stat">
+                <span>Total Spent</span>
+                <strong>₹{walletData.total_spent.toLocaleString()}</strong>
+              </div>
+            </div>
+            {walletData.low_balance_warning && (
+              <div className="wallet-warning">
+                <AlertCircle size={14} />
+                {walletData.low_balance_warning}
+              </div>
+            )}
+            <div className="wallet-actions">
+              <button className="recharge-btn" onClick={() => setShowRechargeModal(true)}>
+                <PlusCircle size={16} /> Recharge
+              </button>
+              <button className="history-btn" onClick={() => setShowRechargeHistory(true)}>
+                <History size={16} /> History
+              </button>
+            </div>
+          </div>
+        </div>
+
         <nav className="sidebar-nav">
           <button className="nav-item active" onClick={() => handleNavigation("/client-dashboard")}>
             <Home size={20} /> Dashboard
@@ -343,7 +478,7 @@ function ClientDashboard() {
           </div>
         </div>
 
-        {/* 🔥 FIXED: Quick Actions using window.location */}
+        {/* Quick Actions */}
         <div className="quick-actions-section">
           <div className="section-header">
             <h2><Zap size={22} /> Quick Actions</h2>
@@ -354,7 +489,7 @@ function ClientDashboard() {
               <button 
                 key={idx}
                 className="quick-action-btn"
-                onClick={() => handleNavigation(action.path)}
+                onClick={() => action.action === "recharge" ? setShowRechargeModal(true) : handleNavigation(action.path)}
                 style={{ borderColor: action.color }}
               >
                 <span className="action-icon" style={{ color: action.color }}>{action.icon}</span>
@@ -558,8 +693,123 @@ function ClientDashboard() {
           </div>
         </footer>
       </div>
+
+      {/* 🔥 NEW: Recharge Modal */}
+      {showRechargeModal && (
+        <div className="modal-overlay" onClick={() => setShowRechargeModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3><Wallet size={20} /> Recharge Wallet</h3>
+              <button className="modal-close" onClick={() => setShowRechargeModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="current-balance">
+                <label>Current Balance</label>
+                <div className="balance-amount">₹{walletData.balance.toLocaleString()}</div>
+              </div>
+              <div className="recharge-input">
+                <label>Recharge Amount (₹)</label>
+                <div className="amount-input-wrapper">
+                  <span className="currency">₹</span>
+                  <input
+                    type="number"
+                    placeholder="Enter amount"
+                    value={rechargeAmount}
+                    onChange={(e) => setRechargeAmount(e.target.value)}
+                    min="100"
+                    step="100"
+                  />
+                </div>
+                <div className="suggested-amounts">
+                  {[500, 1000, 2000, 5000].map(amt => (
+                    <button key={amt} onClick={() => setRechargeAmount(amt)}>₹{amt}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="payment-method">
+                <label>Payment Method</label>
+                <div className="method-options">
+                  <button className={`method ${rechargeMethod === 'UPI' ? 'active' : ''}`} onClick={() => setRechargeMethod('UPI')}>
+                    <CreditCard size={16} /> UPI
+                  </button>
+                  <button className={`method ${rechargeMethod === 'CARD' ? 'active' : ''}`} onClick={() => setRechargeMethod('CARD')}>
+                    <CreditCard size={16} /> Card
+                  </button>
+                  <button className={`method ${rechargeMethod === 'BANK' ? 'active' : ''}`} onClick={() => setRechargeMethod('BANK')}>
+                    <Bank size={16} /> Bank Transfer
+                  </button>
+                  <button className={`method ${rechargeMethod === 'CASH' ? 'active' : ''}`} onClick={() => setRechargeMethod('CASH')}>
+                    <DollarSign size={16} /> Cash
+                  </button>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button className="cancel-btn" onClick={() => setShowRechargeModal(false)}>Cancel</button>
+                <button className="recharge-confirm-btn" onClick={handleRechargeRequest} disabled={recharging}>
+                  {recharging ? "Processing..." : "Proceed to Recharge"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🔥 NEW: Recharge History Modal */}
+      {showRechargeHistory && (
+        <div className="modal-overlay" onClick={() => setShowRechargeHistory(false)}>
+          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3><History size={20} /> Recharge History</h3>
+              <button className="modal-close" onClick={() => setShowRechargeHistory(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              {rechargeHistory.length === 0 ? (
+                <div className="no-data">No recharge history found</div>
+              ) : (
+                <table className="history-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Amount</th>
+                      <th>Method</th>
+                      <th>Status</th>
+                      <th>Transaction ID</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rechargeHistory.map((item, idx) => (
+                      <tr key={idx}>
+                        <td>{new Date(item.created_at).toLocaleDateString()}</td>
+                        <td className="amount">₹{item.amount.toLocaleString()}</td>
+                        <td>{item.payment_method}</td>
+                        <td>
+                          <span className={`status-badge ${item.status === 'COMPLETED' ? 'success' : 'pending'}`}>
+                            {item.status}
+                          </span>
+                        </td>
+                        <td className="txn-id">{item.transaction_id}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+// Bank icon component
+const Bank = ({ size, ...props }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <rect x="3" y="10" width="18" height="14" rx="2" />
+    <path d="M3 10L12 3l9 7" />
+    <line x1="8" y1="14" x2="8" y2="17" />
+    <line x1="12" y1="14" x2="12" y2="17" />
+    <line x1="16" y1="14" x2="16" y2="17" />
+  </svg>
+);
 
 export default ClientDashboard;

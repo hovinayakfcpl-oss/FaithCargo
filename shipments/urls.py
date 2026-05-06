@@ -1,4 +1,4 @@
-# shipments/urls.py
+# shipments/urls.py - COMPLETE WITH WALLET BALANCE CHECK
 from django.urls import path
 from . import views
 
@@ -68,6 +68,14 @@ urlpatterns = [
     # Send SMS/WhatsApp notification
     # POST /api/shipments/send-notification/
     path("send-notification/", views.send_notification_api, name="send_notification"),
+    
+    # =====================================================
+    # 💰 WALLET & RECHARGE SYSTEM (NEW)
+    # =====================================================
+    
+    # Check wallet balance before creating order
+    # GET /api/shipments/check-wallet-balance/?clientId=FCPL001&freight_amount=1500
+    path("check-wallet-balance/", views.check_wallet_balance, name="check_wallet_balance"),
 ]
 
 # =====================================================
@@ -76,29 +84,32 @@ urlpatterns = [
 """
 COMPLETE API ENDPOINTS LIST:
 
-┌─────────────────────────────────────────────────────────────────┐
-│ METHOD │ ENDPOINT                              │ DESCRIPTION   │
-├─────────────────────────────────────────────────────────────────┤
-│ POST   │ /api/shipments/create-order/          │ Create new order with LR/AWB │
-│ GET    │ /api/shipments/                       │ Get all shipments list │
-│ GET    │ /api/shipments/shipment/<lr>/         │ Get single shipment details │
-│ PUT    │ /api/shipments/update/<lr>/           │ Update full shipment │
-│ POST   │ /api/shipments/update-status/         │ Update only status │
-│ DELETE │ /api/shipments/delete/<lr>/           │ Delete shipment │
-│ GET    │ /api/shipments/client/<client_id>/orders/ │ Get client-specific orders │
-│ POST   │ /api/shipments/calculate-freight/     │ Calculate freight with charges │
-│ POST   │ /api/shipments/add-location/          │ Add/update pincode location │
-│ GET    │ /api/shipments/get-locations/         │ Get all locations │
-│ POST   │ /api/shipments/jervice-chat/          │ Jervice AI assistant │
-│ GET    │ /api/shipments/dashboard-stats/       │ Dashboard statistics │
-│ POST   │ /api/shipments/send-notification/     │ Send SMS/WhatsApp notification │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ METHOD │ ENDPOINT                                      │ DESCRIPTION       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ POST   │ /api/shipments/create-order/                  │ Create new order with LR/AWB │
+│ GET    │ /api/shipments/                               │ Get all shipments list │
+│ GET    │ /api/shipments/shipment/<lr>/                 │ Get single shipment details │
+│ PUT    │ /api/shipments/update/<lr>/                   │ Update full shipment │
+│ POST   │ /api/shipments/update-status/                 │ Update only status │
+│ DELETE │ /api/shipments/delete/<lr>/                   │ Delete shipment │
+│ GET    │ /api/shipments/client/<client_id>/orders/     │ Get client-specific orders │
+│ POST   │ /api/shipments/calculate-freight/             │ Calculate freight with charges │
+│ POST   │ /api/shipments/add-location/                  │ Add/update pincode location │
+│ GET    │ /api/shipments/get-locations/                 │ Get all locations │
+│ POST   │ /api/shipments/jervice-chat/                  │ Jervice AI assistant │
+│ GET    │ /api/shipments/dashboard-stats/               │ Dashboard statistics │
+│ POST   │ /api/shipments/send-notification/             │ Send SMS/WhatsApp notification │
+│ GET    │ /api/shipments/check-wallet-balance/          │ 🆕 Check wallet balance │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-📝 REQUEST/REPONSE EXAMPLES:
+📝 REQUEST/RESPONSE EXAMPLES:
 
 1. CREATE ORDER
    POST /api/shipments/create-order/
    Body: {
+     "clientId": "FCPL001",
+     "freight_amount": 1500,
      "pickupName": "ABC Company",
      "pickupPincode": "110001",
      "deliveryName": "XYZ Customer",
@@ -107,24 +118,44 @@ COMPLETE API ENDPOINTS LIST:
      "total_value": 50000,
      "invoices": [{"invoice_no": "INV001", "invoice_value": 50000}]
    }
+   Response: {
+     "success": true,
+     "lr_number": "FCPL0001",
+     "awb": "AWB001234",
+     "freight_amount": 1500,
+     "balance_remaining": 3500,
+     "message": "Order created successfully!"
+   }
 
-2. UPDATE STATUS
+2. CHECK WALLET BALANCE (NEW)
+   GET /api/shipments/check-wallet-balance/?clientId=FCPL001&freight_amount=1500
+   Response: {
+     "success": true,
+     "has_balance": true,
+     "current_balance": 5000,
+     "required_amount": 1500,
+     "shortfall": 0,
+     "low_balance_warning": null,
+     "message": "Sufficient balance"
+   }
+
+3. UPDATE STATUS
    POST /api/shipments/update-status/
    Body: {"lr": "FCPL0001", "status": "delivered"}
 
-3. CALCULATE FREIGHT
+4. CALCULATE FREIGHT
    POST /api/shipments/calculate-freight/
    Body: {"origin": "110001", "destination": "400001", "weight": 50}
 
-4. JERVICE AI CHAT
+5. JERVICE AI CHAT
    POST /api/shipments/jervice-chat/
    Body: {"prompt": "Docket FCPL0001 track karo"}
 
-5. GET DASHBOARD STATS
+6. GET DASHBOARD STATS
    GET /api/shipments/dashboard-stats/
    Response: {"total": 100, "delivered": 75, "in_transit": 15, "booked": 10}
 
-6. SEND NOTIFICATION (NEW)
+7. SEND NOTIFICATION
    POST /api/shipments/send-notification/
    Body: {
      "lrNumber": "FCPL0001",
@@ -138,4 +169,38 @@ COMPLETE API ENDPOINTS LIST:
      "pickupName": "ABC Company",
      "deliveryName": "XYZ Customer"
    }
+
+8. GET CLIENT ORDERS
+   GET /api/shipments/client/FCPL001/orders/
+   Response: [
+     {
+       "lr": "FCPL0001",
+       "awb": "AWB001234",
+       "route": "110001 → 400001",
+       "status": "delivered",
+       "weight": 50,
+       "freight": 1500,
+       "date": "2024-01-15 10:30"
+     }
+   ]
+
+============================================
+🔄 COMPLETE FLOW FOR ORDER WITH WALLET:
+============================================
+
+1. Client fills order form
+   ↓
+2. Frontend calls /check-wallet-balance/?clientId=XXX&freight_amount=XXX
+   ↓
+3. If balance sufficient → Proceed
+   ↓
+4. Frontend calls /create-order/ with clientId and freight_amount
+   ↓
+5. Backend:
+   - Checks balance again
+   - Creates order
+   - Deducts amount from wallet
+   - Returns new balance
+   ↓
+6. Frontend shows success with remaining balance
 """

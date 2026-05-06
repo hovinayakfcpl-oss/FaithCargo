@@ -8,7 +8,9 @@ import {
   Bell, Search, ChevronRight, Star, Shield,
   Bot, Send, Volume2, VolumeX, Mic, Headphones,
   Loader, Zap, Award, Crown, DollarSign, UserCog,
-  UserPlus, UserCheck, Users as UsersIcon
+  UserPlus, UserCheck, Users as UsersIcon, Wallet,
+  History, RefreshCw, Activity, PieChart, FileSpreadsheet,
+  Receipt, DollarSign as MoneyIcon
 } from "lucide-react";
 import "./AdminDashboard.css";
 import "../styles/theme.css";
@@ -22,7 +24,7 @@ const JerviceAI = () => {
   const [messages, setMessages] = useState([
     { 
       role: "assistant", 
-      content: "🎤 **नमस्ते सर!** Main hoon Jervice AI - Aapka Personal Logistics Assistant. Main aapki madad kar sakta hoon:\n\n✅ Real-Time Rate Calculation\n✅ Pincode ODA Status Check\n✅ Order Tracking\n✅ Pickup Schedule\n✅ Vendor Management\n✅ Document Help\n✅ User Management\n\nAaj main aapki kya seva kar sakta hoon?" 
+      content: "🎤 **नमस्ते सर!** Main hoon Jervice AI - Aapka Personal Logistics Assistant. Main aapki madad kar sakta hoon:\n\n✅ Real-Time Rate Calculation\n✅ Pincode ODA Status Check\n✅ Order Tracking\n✅ Pickup Schedule\n✅ Vendor Management\n✅ Document Help\n✅ User Management\n✅ Client Wallet & Recharge Management\n\nAaj main aapki kya seva kar sakta hoon?" 
     }
   ]);
   const [userInput, setUserInput] = useState("");
@@ -44,14 +46,18 @@ const JerviceAI = () => {
       "Rate Update - Update shipping rates matrix",
       "Pincode Management - Manage serviceable pincodes",
       "User Management - Add, edit, delete users with permissions",
-      "BA & B2B Rate - Business to business rates"
+      "BA & B2B Rate - Business to business rates",
+      "Client Wallet - View client balances and recharge history",
+      "Recharge Management - Approve pending recharges"
     ],
     contacts: {
       vinayak: "9311801079",
       support: "9818641504",
       email: "care@faithcargo.com",
       website: "www.faithcargo.com"
-    }
+    },
+    rechargeStatus: ["PENDING", "COMPLETED", "FAILED", "REFUNDED"],
+    paymentMethods: ["UPI", "CARD", "BANK", "CASH", "CHEQUE"]
   };
 
   // API Base URL
@@ -178,10 +184,71 @@ const JerviceAI = () => {
     }
   };
 
+  const getAllRecharges = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE}/user/admin/recharges/`, {
+        headers: { 'Authorization': `Token ${token}` }
+      });
+      if (response.ok) {
+        return await response.json();
+      }
+      return null;
+    } catch (error) {
+      console.error("Recharges API error:", error);
+      return null;
+    }
+  };
+
+  const approveRecharge = async (rechargeId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE}/user/admin/recharge/approve/${rechargeId}/`, {
+        method: 'POST',
+        headers: { 'Authorization': `Token ${token}` }
+      });
+      if (response.ok) {
+        return await response.json();
+      }
+      return null;
+    } catch (error) {
+      console.error("Approve API error:", error);
+      return null;
+    }
+  };
+
   const generateResponse = async (userQuery) => {
     const query = userQuery.toLowerCase();
     
-    // User Management related queries
+    // 💰 WALLET & RECHARGE MANAGEMENT (NEW)
+    if (query.includes("recharge") || query.includes("wallet") || query.includes("balance")) {
+      if (query.includes("pending") || query.includes("approve")) {
+        setIsFetching(true);
+        const recharges = await getAllRecharges();
+        setIsFetching(false);
+        if (recharges && recharges.pending_count > 0) {
+          return `💰 **Pending Recharges!** Sir, ${recharges.pending_count} pending recharges hain:\n\n${recharges.recharges?.filter(r => r.status === 'PENDING').slice(0, 5).map(r => `• ${r.client_name} (${r.client_id}) - ₹${r.amount} - ${r.payment_method}`).join('\n')}\n\nक्या मैं किसी recharge को approve कर दूं सर?`;
+        } else {
+          return `💰 **No Pending Recharges!** Sir, filhaal koi pending recharge nahi hai. Client recharge request ke liye wait karein.`;
+        }
+      } else if (query.includes("summary") || query.includes("total")) {
+        setIsFetching(true);
+        const recharges = await getAllRecharges();
+        setIsFetching(false);
+        if (recharges) {
+          return `💰 **Wallet Summary!**\n\n💵 Total Recharged: ₹${recharges.total_amount_recharged?.toLocaleString()}\n⏳ Pending: ${recharges.pending_count}\n✅ Completed: ${recharges.completed_count}\n\nक्या मैं pending recharges दिखाऊं सर?`;
+        }
+        return `💰 Sir, recharge summary fetch nahi kar paya।`;
+      } else if (query.includes("client") && query.match(/\b(FCPL|CLIENT)\s*\w+\b/i)) {
+        const clientMatch = query.match(/\b(FCPL|CLIENT)\s*(\w+)\b/i);
+        if (clientMatch) {
+          return `👤 **Client Balance Check!** Sir, client ${clientMatch[2]} ka balance check karne ke liye Client Dashboard ya User Management page par jayein।`;
+        }
+      }
+      return `💰 **Wallet Management Help!**\n\n✅ View All Recharges - "Recharge summary dikhao"\n✅ Approve Pending - "Pending recharges approve"\n✅ Client Balance - "Client FCPL001 balance check"\n✅ Total Revenue - "Total recharge amount"\n\nकिसमें help चाहिए सर?`;
+    }
+    
+    // 👥 USER MANAGEMENT
     if (query.includes("user management") || query.includes("user manage") || query.includes("add user") || query.includes("create user")) {
       return `👥 **User Management Help!** Sir, user management से आप ये कर सकते हैं:\n\n✅ **Add New User** - Username, password, email, phone, company details\n✅ **Assign Permissions** - Module-wise access control\n✅ **Edit User** - Update user details and permissions\n✅ **Delete User** - Remove user accounts\n✅ **View User Stats** - Track user shipments and orders\n✅ **Generate User Bill** - Individual billing for each user\n\n📌 **How to use:**\n1. User Management page पर जाएं\n2. "Create New User" form fill करें\n3. Permissions select करें (Create Order, Shipment Details, etc.)\n4. Submit करें\n\nक्या मैं आपको User Management page पर redirect कर दूं सर?`;
     }
@@ -194,7 +261,7 @@ const JerviceAI = () => {
       const pinData = await checkPincodeStatus(pincode);
       setIsFetching(false);
       if (pinData) {
-        const odaText = pinData.oda ? "❌ ODA Area (Out of Delivery Area - Extra charges apply)" : "✅ Regular Area (No extra charges)";
+        const odaText = pinData.oda ? "❌ ODA Area (Extra charges apply)" : "✅ Regular Area (No extra charges)";
         return `📍 **Pincode Status - ${pincode}**\n\n📌 **Zone:** ${pinData.zone || "Not Available"}\n📌 **City:** ${pinData.city || "N/A"}\n📌 **State:** ${pinData.state || "N/A"}\n📌 **Status:** ${odaText}\n\n💰 **ODA Charges:** ${pinData.oda ? "₹650 or ₹3/kg (whichever higher)" : "No ODA charges"}\n\nक्या आप इस पिनकोड के लिए rate check करवाना चाहेंगे सर?`;
       } else {
         return `❌ **Pincode Not Found!** Sir, pincode ${pincode} हमारे database में नहीं है।\n\nकृपया Pincode Management page पर जाकर add करें।`;
@@ -244,13 +311,18 @@ const JerviceAI = () => {
       return `📞 **Contact Information!**\n\n👤 **Vinayak Sir:** ${systemKnowledge.contacts.vinayak}\n🏢 **Support:** ${systemKnowledge.contacts.support}\n📧 **Email:** ${systemKnowledge.contacts.email}\n🌐 **Website:** ${systemKnowledge.contacts.website}`;
     }
     
+    // 📊 STATS & SUMMARY
+    if (query.includes("summary") || query.includes("stats") || query.includes("dashboard") || query.includes("total order")) {
+      return `📊 **Dashboard Summary!**\n\n📦 **Today's Stats:**\n• Total Shipments: 1,284\n• Active Pickups: 48\n• Delivered Today: 156\n• Total Users: 24\n• Total Clients: 8\n💰 **Revenue Today:** ₹2,45,000\n\nक्या मैं detailed report दिखाऊं सर?`;
+    }
+    
     // ❓ HELP
     if (query.includes("help") || query.includes("madad") || query.includes("kya kar sakte ho")) {
-      return `🎤 **Jervice AI - Help Menu!**\n\n✅ **Rate Calculate** - "110001 to 400001 ka rate"\n✅ **Pincode Check** - "Check pincode 110001"\n✅ **Track Order** - "Track FCPL1234"\n✅ **User Management** - "Add new user"\n✅ **Schedule Pickup** - "Schedule pickup from 110001 to 400001"\n✅ **Contact Info** - "Vinayak Sir ka number"\n\nकैसे help करूं सर? 🙏`;
+      return `🎤 **Jervice AI - Complete Help Menu!**\n\n✅ **Rate Calculate** - "110001 to 400001 ka rate 50 kg"\n✅ **Pincode Check** - "Check pincode 110001"\n✅ **Track Order** - "Track FCPL1234"\n✅ **User Management** - "Add new user"\n✅ **Schedule Pickup** - "Schedule pickup from 110001 to 400001"\n✅ **Contact Info** - "Vinayak Sir ka number"\n✅ **Wallet Management** - "Pending recharges dikhao"\n✅ **Dashboard Stats** - "Dashboard summary dikhao"\n\nकैसे help करूं सर? 🙏`;
     }
     
     // DEFAULT
-    return `🎤 **सर, मैं समझ गया!**\n\nमैं ये कर सकता हूँ:\n⭐ Rate Calculate - "110001 to 400001 ka rate"\n⭐ Pincode Check - "Check pincode 110001"\n⭐ User Management - "User management help"\n⭐ Track Order - "Track FCPL1234"\n\nक्या आपको इनमें से कुछ चाहिए? 🙏`;
+    return `🎤 **सर, मैं समझ गया!**\n\nमैं ये कर सकता हूँ:\n⭐ Rate Calculate - "110001 to 400001 ka rate"\n⭐ Pincode Check - "Check pincode 110001"\n⭐ User Management - "User management help"\n⭐ Track Order - "Track FCPL1234"\n⭐ Wallet Management - "Pending recharges dikhao"\n⭐ Dashboard Stats - "Dashboard summary dikhao"\n\nक्या आपको इनमें से कुछ चाहिए? 🙏`;
   };
 
   const handleChat = async (inputOverride = null) => {
@@ -278,7 +350,7 @@ const JerviceAI = () => {
           <Bot size={28} />
           <div className="jervice-text">
             <span className="jervice-title">Jervice AI</span>
-            <span className="jervice-status">Real-Time • API Ready</span>
+            <span className="jervice-status">Real-Time • Wallet Ready</span>
           </div>
           <Headphones size={16} className="voice-badge" />
         </button>
@@ -292,7 +364,7 @@ const JerviceAI = () => {
               </div>
               <div className="ai-details">
                 <h4>Jervice AI Assistant</h4>
-                <p>🎤 Live • Real-Time Rates • User Management</p>
+                <p>🎤 Live • Real-Time Rates • Wallet Management</p>
               </div>
             </div>
             <div className="header-actions">
@@ -346,7 +418,7 @@ const JerviceAI = () => {
           <div className="jervice-ai-input">
             <input
               type="text"
-              placeholder="Example: 110001 to 400001 ka rate 50 kg ke liye"
+              placeholder="Example: 110001 to 400001 ka rate 50 kg OR Pending recharges dikhao"
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleChat()}
@@ -362,12 +434,15 @@ const JerviceAI = () => {
               <button onClick={() => handleChat("110001 to 400001 ka rate 50 kg")}>💰 Rates</button>
               <button onClick={() => handleChat("Check pincode 110001")}>📍 Pincode</button>
               <button onClick={() => handleChat("user management help")}>👥 Users</button>
+              <button onClick={() => handleChat("Pending recharges dikhao")}>💳 Recharge</button>
+              <button onClick={() => handleChat("dashboard summary dikhao")}>📊 Stats</button>
               <button onClick={() => handleChat("contact vinayak")}>📞 Contact</button>
             </div>
             <div className="system-status">
               <span className="status-badge">🤖 AI Ready</span>
               <span className="status-badge">🌐 API Connected</span>
               <span className="status-badge">🎤 Voice Active</span>
+              <span className="status-badge">💳 Wallet Ready</span>
             </div>
           </div>
         </div>
@@ -383,7 +458,7 @@ function AdminDashboard() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [notifications, setNotifications] = useState(3);
+  const [notifications, setNotifications] = useState(5);
   const [adminName, setAdminName] = useState("Admin");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -412,7 +487,9 @@ function AdminDashboard() {
     { label: "Total Shipments", value: "1,284", change: "+12%", icon: Package, color: "#4361ee" },
     { label: "Active Pickups", value: "48", change: "+5%", icon: Truck, color: "#f59e0b" },
     { label: "Delivered Today", value: "156", change: "+18%", icon: CheckCircle, color: "#10b981" },
-    { label: "Total Users", value: "24", change: "+8%", icon: UsersIcon, color: "#8b5cf6" }
+    { label: "Total Users", value: "24", change: "+8%", icon: UsersIcon, color: "#8b5cf6" },
+    { label: "Total Clients", value: "8", change: "+3", icon: UserCheck, color: "#06b6d4" },
+    { label: "Total Recharge", value: "₹5,42,000", change: "+22%", icon: Wallet, color: "#f97316" }
   ];
 
   const dashboardCards = [
@@ -425,7 +502,8 @@ function AdminDashboard() {
     { title: "Rate Update", desc: "Update shipping rates", link: "/rate-update", icon: TrendingUp, color: "#f97316" },
     { title: "Pincode Management", desc: "Manage service pincodes", link: "/pincode", icon: MapPin, color: "#06b6d4" },
     { title: "User Management", desc: "Add, edit, delete users with permissions", link: "/user-management", icon: UserCog, color: "#6366f1", badge: "Advanced" },
-    { title: "BA & B2B Rate", desc: "Calculate BA & B2B shipment rates", link: "/ba-b2b-rate", icon: Calculator, color: "#14b8a6" }
+    { title: "BA & B2B Rate", desc: "Calculate BA & B2B shipment rates", link: "/ba-b2b-rate", icon: Calculator, color: "#14b8a6" },
+    { title: "Client Recharges", desc: "View all client recharges", link: "/admin/recharges", icon: Wallet, color: "#f97316", badge: "New" }
   ];
 
   const recentActivities = [
@@ -433,7 +511,8 @@ function AdminDashboard() {
     { action: "Pickup completed", id: "PK-2024-1234", time: "15 min ago", status: "info" },
     { action: "Rate updated", id: "Mumbai-Delhi", time: "1 hour ago", status: "warning" },
     { action: "New user added", id: "client_five", time: "3 hours ago", status: "success" },
-    { action: "New vendor added", id: "Vendor #458", time: "3 hours ago", status: "success" }
+    { action: "New vendor added", id: "Vendor #458", time: "3 hours ago", status: "success" },
+    { action: "Recharge approved", id: "Client FCPL001", time: "4 hours ago", status: "success" }
   ];
 
   const filteredCards = dashboardCards.filter(card =>
@@ -564,6 +643,18 @@ function AdminDashboard() {
               <span>User Management</span>
             </div>
           </div>
+
+          <div className="nav-section">
+            <div className="nav-label">Finance</div>
+            <div className="nav-item" onClick={() => goTo("/admin/recharges")}>
+              <Wallet size={20} />
+              <span>Client Recharges</span>
+            </div>
+            <div className="nav-item" onClick={() => goTo("/admin/transactions")}>
+              <History size={20} />
+              <span>Transactions</span>
+            </div>
+          </div>
         </nav>
 
         <div className="sidebar-footer">
@@ -584,6 +675,10 @@ function AdminDashboard() {
             <div className="quick-stat">
               <Star size={18} />
               <span>Premium Service</span>
+            </div>
+            <div className="quick-stat">
+              <Wallet size={18} />
+              <span>Wallet Active</span>
             </div>
           </div>
         </div>
@@ -664,7 +759,7 @@ function AdminDashboard() {
             <div className="quick-tip">
               <div className="tip-icon">💡</div>
               <div className="tip-content">
-                <strong>Jervice AI Pro Tip:</strong> "User management help" - नए users add करना, permissions देना, और user stats देखना सीखें!
+                <strong>Jervice AI Pro Tip:</strong> "Pending recharges dikhao" - सभी pending client recharges देखें और approve करें!
               </div>
             </div>
           </div>

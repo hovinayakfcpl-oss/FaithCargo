@@ -1,8 +1,8 @@
-# usermanagement/models.py
+# user_management/models.py - COMPLETE FIXED FILE
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password
 import uuid
-
+from django.utils import timezone
 
 class CustomUser(models.Model):
     username = models.CharField(max_length=100, unique=True)
@@ -135,7 +135,7 @@ class CustomUser(models.Model):
 
 
 # ============================================
-# CLIENT PROFILE MODEL - NEW
+# CLIENT PROFILE MODEL
 # ============================================
 class ClientProfile(models.Model):
     """
@@ -183,7 +183,7 @@ class ClientProfile(models.Model):
 
 
 # ============================================
-# CLIENT RATE MATRIX MODEL - NEW
+# CLIENT RATE MATRIX MODEL
 # ============================================
 class ClientRateMatrix(models.Model):
     """
@@ -222,7 +222,7 @@ class ClientRateMatrix(models.Model):
 
 
 # ============================================
-# CLIENT RATE POLICY MODEL - NEW
+# CLIENT RATE POLICY MODEL
 # ============================================
 class ClientRatePolicy(models.Model):
     """
@@ -296,7 +296,7 @@ class ClientRatePolicy(models.Model):
 
 
 # ============================================
-# SHIPMENT MODEL - NEW (for orders)
+# SHIPMENT MODEL - FIXED (REMOVED client_id CLASH)
 # ============================================
 class Shipment(models.Model):
     STATUS_CHOICES = [
@@ -315,9 +315,13 @@ class Shipment(models.Model):
         ('rail', 'Rail Cargo'),
     ]
     
-    # Client Info
+    # Client Info - ONLY ForeignKey (NO client_id field to avoid clash)
     client = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='shipments', null=True, blank=True)
-    client_id = models.CharField(max_length=50, blank=True, null=True)
+    
+    # For easy access, add a property to get client_id
+    @property
+    def client_id(self):
+        return self.client.client_id if self.client else None
     
     # LR / AWB Numbers
     lr_number = models.CharField(max_length=50, unique=True, db_index=True)
@@ -380,14 +384,14 @@ class Shipment(models.Model):
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['lr_number']),
-            models.Index(fields=['client_id']),
+            models.Index(fields=['client']),  # Index on client ForeignKey
             models.Index(fields=['status']),
             models.Index(fields=['created_at']),
         ]
 
 
 # ============================================
-# SHIPMENT TRACKING MODEL - NEW
+# SHIPMENT TRACKING MODEL
 # ============================================
 class ShipmentTracking(models.Model):
     shipment = models.ForeignKey(Shipment, on_delete=models.CASCADE, related_name='tracking_history')
@@ -406,7 +410,7 @@ class ShipmentTracking(models.Model):
 
 
 # ============================================
-# CLIENT SESSION MODEL - NEW
+# CLIENT SESSION MODEL
 # ============================================
 class ClientSession(models.Model):
     client = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='sessions')
@@ -426,7 +430,7 @@ class ClientSession(models.Model):
 
 
 # ============================================
-# CLIENT ORDER SUMMARY MODEL - NEW
+# CLIENT ORDER SUMMARY MODEL
 # ============================================
 class ClientOrderSummary(models.Model):
     client = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='order_summaries')
@@ -446,3 +450,239 @@ class ClientOrderSummary(models.Model):
     
     def __str__(self):
         return f"{self.client.client_id} - {self.month}/{self.year}: {self.total_orders} orders"
+
+
+# ============================================
+# 💰 CLIENT WALLET & RECHARGE SYSTEM
+# ============================================
+
+class ClientWallet(models.Model):
+    """
+    Client ka wallet balance track karne ke liye
+    """
+    client = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='wallet')
+    
+    # Balance fields
+    balance = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    total_recharged = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    total_spent = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    last_recharge_date = models.DateTimeField(null=True, blank=True)
+    last_used_date = models.DateTimeField(null=True, blank=True)
+    
+    # Status
+    is_active = models.BooleanField(default=True)
+    low_balance_threshold = models.DecimalField(max_digits=15, decimal_places=2, default=500)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def has_sufficient_balance(self, amount):
+        """Check if client has enough balance"""
+        return self.balance >= amount
+    
+    def deduct_balance(self, amount, order_id=None):
+        """Deduct amount from wallet when order is created"""
+        if self.has_sufficient_balance(amount):
+            self.balance -= amount
+            self.total_spent += amount
+            self.last_used_date = timezone.now()
+            self.save()
+            
+            # Create transaction record
+            WalletTransaction.objects.create(
+                client=self.client,
+                amount=amount,
+                transaction_type='DEBIT',
+                order_id=order_id,
+                balance_after=self.balance,
+                description=f'Order amount deducted'
+            )
+            return True
+        return False
+    
+    def add_balance(self, amount, recharge_id=None):
+        """Add amount to wallet when client recharges"""
+        self.balance += amount
+        self.total_recharged += amount
+        self.last_recharge_date = timezone.now()
+        self.save()
+        
+        # Create transaction record
+        WalletTransaction.objects.create(
+            client=self.client,
+            amount=amount,
+            transaction_type='CREDIT',
+            recharge_id=recharge_id,
+            balance_after=self.balance,
+            description=f'Wallet recharge'
+        )
+        return True
+    
+    def get_low_balance_warning(self):
+        """Check if balance is low"""
+        if self.balance <= self.low_balance_threshold:
+            return f"⚠️ Low balance: ₹{self.balance}. Please recharge soon!"
+        return None
+    
+    def __str__(self):
+        return f"{self.client.client_id or self.client.username} - Balance: ₹{self.balance}"
+    
+    class Meta:
+        db_table = 'client_wallets'
+        ordering = ['-created_at']
+
+
+class RechargeHistory(models.Model):
+    """
+    Client recharge records
+    """
+    PAYMENT_METHODS = [
+        ('UPI', 'UPI (Google Pay/PhonePe)'),
+        ('CARD', 'Credit/Debit Card'),
+        ('BANK', 'Bank Transfer'),
+        ('CASH', 'Cash'),
+        ('CHEQUE', 'Cheque'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('COMPLETED', 'Completed'),
+        ('FAILED', 'Failed'),
+        ('REFUNDED', 'Refunded'),
+    ]
+    
+    client = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='recharges')
+    
+    # Amount details
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS)
+    
+    # Transaction details
+    transaction_id = models.CharField(max_length=100, unique=True)
+    gateway_transaction_id = models.CharField(max_length=200, blank=True, null=True)
+    
+    # Status
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    remarks = models.TextField(blank=True, null=True)
+    
+    # Proof & Documents
+    payment_screenshot = models.TextField(blank=True, null=True)
+    utr_number = models.CharField(max_length=50, blank=True, null=True)
+    
+    # Admin info
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='created_recharges')
+    approved_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='approved_recharges')
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    def complete_recharge(self, approved_by_user):
+        """Mark recharge as completed"""
+        self.status = 'COMPLETED'
+        self.completed_at = timezone.now()
+        self.approved_by = approved_by_user
+        self.save()
+        
+        # Add balance to wallet
+        wallet, created = ClientWallet.objects.get_or_create(client=self.client)
+        wallet.add_balance(self.amount, self.id)
+        return True
+    
+    def __str__(self):
+        return f"{self.client.client_id} - ₹{self.amount} - {self.status}"
+    
+    class Meta:
+        db_table = 'recharge_history'
+        ordering = ['-created_at']
+
+
+class WalletTransaction(models.Model):
+    """
+    All wallet transactions (both credit and debit)
+    """
+    TRANSACTION_TYPES = [
+        ('CREDIT', 'Credit (Recharge)'),
+        ('DEBIT', 'Debit (Order Deduction)'),
+        ('REFUND', 'Refund'),
+        ('ADJUSTMENT', 'Manual Adjustment'),
+    ]
+    
+    client = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='wallet_transactions')
+    
+    # Transaction details
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES)
+    balance_before = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    balance_after = models.DecimalField(max_digits=12, decimal_places=2)
+    
+    # Reference links
+    recharge = models.ForeignKey(RechargeHistory, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
+    order_id = models.CharField(max_length=50, null=True, blank=True)
+    shipment_id = models.IntegerField(null=True, blank=True)
+    
+    # Description
+    description = models.TextField(blank=True, null=True)
+    
+    # Metadata
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True, null=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.client.client_id} - {self.transaction_type} - ₹{self.amount}"
+    
+    class Meta:
+        db_table = 'wallet_transactions'
+        ordering = ['-created_at']
+
+
+class RechargeRequest(models.Model):
+    """
+    Manual recharge request from client (for cash/cheque payments)
+    """
+    client = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='recharge_requests')
+    
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    payment_method = models.CharField(max_length=20, choices=RechargeHistory.PAYMENT_METHODS)
+    
+    # Client provided info
+    reference_number = models.CharField(max_length=100, blank=True, null=True)
+    bank_name = models.CharField(max_length=100, blank=True, null=True)
+    payment_date = models.DateField(null=True, blank=True)
+    
+    # Status
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending Approval'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    
+    # Admin remarks
+    admin_remarks = models.TextField(blank=True, null=True)
+    approved_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='approved_requests')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.client.client_id} - ₹{self.amount} - {self.status}"
+    
+    class Meta:
+        db_table = 'recharge_requests'
+        ordering = ['-created_at']
+
+
+# ============================================
+# SIGNALS - Auto create wallet for new clients
+# ============================================
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=CustomUser)
+def create_client_wallet(sender, instance, created, **kwargs):
+    """Auto create wallet when new client is created"""
+    if created and instance.role == 'Client':
+        ClientWallet.objects.get_or_create(client=instance)

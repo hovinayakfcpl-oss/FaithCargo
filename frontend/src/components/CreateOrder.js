@@ -17,7 +17,8 @@ import {
   ClipboardList, TruckIcon, Ship, Navigation2, MapPinned,
   PhoneCall, MailOpen, Building as BuildingIcon, Home,
   Briefcase, FileCheck, Stamp as StampIcon, BadgeCheck,
-  Shield, Lock, Leaf, Sparkles, Rocket, Zap, Target, Compass
+  Shield, Lock, Leaf, Sparkles, Rocket, Zap, Target, Compass,
+  Wallet, AlertTriangle
 } from "lucide-react";
 import "./CreateOrder.css";
 
@@ -26,7 +27,7 @@ import logo from "../assets/logo.png";
 import stampPng from "../assets/stamp.png";
 
 // ============================================
-// 🔐 AUTHENTICATION CHECK
+// 🔐 AUTHENTICATION CHECK WITH WALLET
 // ============================================
 const useAuth = () => {
   const [user, setUser] = useState(null);
@@ -35,6 +36,8 @@ const useAuth = () => {
   const [userRole, setUserRole] = useState(null);
   const [clientRates, setClientRates] = useState(null);
   const [clientPolicy, setClientPolicy] = useState(null);
+  const [walletBalance, setWalletBalance] = useState(null);
+  const [walletLoading, setWalletLoading] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -75,7 +78,27 @@ const useAuth = () => {
           console.error("Rates fetch error:", err);
         }
       };
+      
+      const fetchWallet = async () => {
+        setWalletLoading(true);
+        try {
+          const token = localStorage.getItem("clientToken");
+          const walletRes = await fetch(`https://faithcargo.onrender.com/api/user/wallet/balance/`, {
+            headers: { 'Authorization': `Token ${token}` }
+          });
+          if (walletRes.ok) {
+            const walletData = await walletRes.json();
+            setWalletBalance(walletData.balance);
+          }
+        } catch (err) {
+          console.error("Wallet fetch error:", err);
+        } finally {
+          setWalletLoading(false);
+        }
+      };
+      
       fetchRates();
+      fetchWallet();
       setLoading(false);
       return;
     }
@@ -96,7 +119,7 @@ const useAuth = () => {
     window.location.href = "/";
   };
 
-  return { user, isAuthenticated, loading, userRole, clientRates, clientPolicy, logout };
+  return { user, isAuthenticated, loading, userRole, clientRates, clientPolicy, walletBalance, walletLoading, logout };
 };
 
 // ============================================
@@ -746,10 +769,10 @@ const sendOrderNotification = async (orderData) => {
 };
 
 // ============================================
-// 🚀 MAIN CREATE ORDER COMPONENT
+// 🚀 MAIN CREATE ORDER COMPONENT WITH WALLET
 // ============================================
 export default function CreateOrder() {
-  const { user, isAuthenticated, loading: authLoading, userRole, clientPolicy, clientRates, logout } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, userRole, clientPolicy, clientRates, walletBalance, walletLoading, logout } = useAuth();
   
   const [dimensions, setDimensions] = useState([]);
   const [totalPackages, setTotalPackages] = useState(0);
@@ -766,6 +789,11 @@ export default function CreateOrder() {
   const [showFreightOnDocket, setShowFreightOnDocket] = useState(true);
   const [shipmentStatus, setShipmentStatus] = useState("booked");
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  
+  // 🔥 NEW: Wallet balance states
+  const [balanceCheckResult, setBalanceCheckResult] = useState(null);
+  const [showInsufficientModal, setShowInsufficientModal] = useState(false);
+  const [orderSuccessData, setOrderSuccessData] = useState(null);
   
   const printDocketRef = useRef(null);
 
@@ -790,6 +818,32 @@ export default function CreateOrder() {
   
   const chargedWeight = Math.max(parseFloat(orderDetails.weight || 0), parseFloat(volWeight));
   const needsEwayBill = totalInvoiceValue >= 50000;
+  const calculatedFreight = freightData?.total || 0;
+
+  // 🔥 NEW: Check wallet balance before order
+  const checkWalletBalance = async () => {
+    if (userRole !== "client") return true;
+    
+    const clientId = user?.clientId;
+    if (!clientId) return true;
+    
+    try {
+      const response = await fetch(`https://faithcargo.onrender.com/api/shipments/check-wallet-balance/?clientId=${clientId}&freight_amount=${calculatedFreight}`);
+      const result = await response.json();
+      
+      setBalanceCheckResult(result);
+      
+      if (result.has_balance) {
+        return true;
+      } else {
+        setShowInsufficientModal(true);
+        return false;
+      }
+    } catch (error) {
+      console.error("Balance check error:", error);
+      return true;
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -815,6 +869,12 @@ export default function CreateOrder() {
     setPickup(address);
   };
 
+  const handleRechargeRedirect = () => {
+    setShowInsufficientModal(false);
+    window.location.href = "/client-dashboard";
+  };
+
+  // 🔥 MODIFIED: Create order with wallet check
   const handleCreateOrder = async () => {
     if (!isAuthenticated) {
       alert("Please login first!");
@@ -827,10 +887,12 @@ export default function CreateOrder() {
     if (!pickup.pincode || !delivery.pincode) return alert("Enter valid 6-digit pincodes");
     if (isManualLR && !manualLRNumber) return alert("Enter Manual LR Number");
 
+    // 🔥 Check wallet balance first
+    const hasBalance = await checkWalletBalance();
+    if (!hasBalance) return;
+
     setLoading(true);
     setApiError("");
-
-    const calculatedFreight = freightData?.total || 0;
 
     const orderData = {
       clientId: userRole === "client" ? user?.clientId : null,
@@ -870,7 +932,30 @@ export default function CreateOrder() {
         setLrNumber(result.lr_number);
         setAwbNumber(result.awb);
         setShipmentStatus("booked");
+        
+        // 🔥 Store success data with balance info
+        setOrderSuccessData({
+          lrNumber: result.lr_number,
+          awbNumber: result.awb,
+          freightAmount: calculatedFreight,
+          balanceRemaining: result.balance_remaining
+        });
+        
         setShowLR(true);
+        
+        // Send notification
+        await sendOrderNotification({
+          lrNumber: result.lr_number,
+          awb: result.awb,
+          pickupPincode: pickup.pincode,
+          deliveryPincode: delivery.pincode,
+          weight: chargedWeight,
+          totalValue: totalInvoiceValue,
+          pickupContact: pickup.contact,
+          deliveryContact: delivery.contact,
+          pickupName: pickup.name,
+          deliveryName: delivery.name,
+        });
       } else {
         setApiError(result.error || "Failed");
         alert("Error: " + result.error);
@@ -948,7 +1033,6 @@ export default function CreateOrder() {
             .bottom-left { bottom: -2px; left: -2px; border-right: none; border-top: none; border-radius: 0 0 0 12px; }
             .bottom-right { bottom: -2px; right: -2px; border-left: none; border-top: none; border-radius: 0 0 12px 0; }
             
-            /* Barcode Top Section */
             .docket-barcode-top {
               text-align: center;
               padding: 10px;
@@ -1128,6 +1212,7 @@ export default function CreateOrder() {
   }
 
   const displayName = userRole === "admin" ? "Admin" : (user?.companyName || user?.username);
+  const isLowBalance = userRole === "client" && walletBalance !== null && walletBalance < calculatedFreight && calculatedFreight > 0;
 
   return (
     <div className="create-order-premium">
@@ -1143,6 +1228,15 @@ export default function CreateOrder() {
         <div className="header-user">
           <UserCircle size={18} />
           <span>{displayName}</span>
+          {/* 🔥 Show wallet balance for clients */}
+          {userRole === "client" && !walletLoading && walletBalance !== null && (
+            <span className={`wallet-badge-header ${isLowBalance ? 'low-balance' : ''}`}>
+              <Wallet size={14} /> ₹{walletBalance.toLocaleString()}
+            </span>
+          )}
+          {userRole === "client" && walletLoading && (
+            <span className="wallet-badge-header loading">...</span>
+          )}
           <button className="logout-btn" onClick={logout}>Logout</button>
         </div>
       </header>
@@ -1150,6 +1244,18 @@ export default function CreateOrder() {
       {/* Main Content */}
       <div className="main-content-premium">
         {apiError && <div className="error-banner"><AlertCircle size={16} /> {apiError}</div>}
+
+        {/* 🔥 Low Balance Warning Banner */}
+        {isLowBalance && (
+          <div className="low-balance-banner">
+            <AlertTriangle size={18} />
+            <div>
+              <strong>Low Wallet Balance!</strong>
+              <span>Available: ₹{walletBalance.toLocaleString()} | Required: ₹{calculatedFreight.toLocaleString()}</span>
+            </div>
+            <button onClick={handleRechargeRedirect}>Recharge Now</button>
+          </div>
+        )}
 
         <div className="form-grid-premium">
           {/* Left Column - Pickup & Delivery */}
@@ -1269,9 +1375,9 @@ export default function CreateOrder() {
               </div>
             </div>
 
-            <button className={`generate-btn-premium ${loading ? 'loading' : ''}`} onClick={handleCreateOrder} disabled={loading}>
+            <button className={`generate-btn-premium ${loading ? 'loading' : ''} ${isLowBalance ? 'disabled' : ''}`} onClick={handleCreateOrder} disabled={loading || isLowBalance}>
               {loading ? <Clock size={20} className="spin" /> : <Sparkles size={20} />}
-              {loading ? "Generating..." : "Generate Consignment Note"}
+              {loading ? "Processing..." : "Generate Consignment Note"}
               <ChevronRight size={16} />
             </button>
           </div>
@@ -1285,6 +1391,21 @@ export default function CreateOrder() {
               <h2>Consignment Generated!</h2>
               <div className="modal-lr">{isManualLR ? manualLRNumber : lrNumber}</div>
               <div className="modal-awb">AWB: {awbNumber}</div>
+              
+              {/* 🔥 Show balance deduction info for clients */}
+              {userRole === "client" && orderSuccessData && (
+                <div className="balance-deduction-info">
+                  <div className="deduction-row">
+                    <span>Freight Deducted:</span>
+                    <strong>₹{orderSuccessData.freightAmount?.toLocaleString()}</strong>
+                  </div>
+                  <div className="deduction-row">
+                    <span>Remaining Balance:</span>
+                    <strong className="remaining-balance">₹{orderSuccessData.balanceRemaining?.toLocaleString()}</strong>
+                  </div>
+                </div>
+              )}
+              
               <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
                 <PrintDocket 
                   key={lrNumber} 
@@ -1306,6 +1427,39 @@ export default function CreateOrder() {
               <div className="modal-buttons-premium">
                 <button className="modal-btn print" onClick={handlePrintDocket}><Printer size={16} /> Print Docket</button>
                 <button className="modal-btn new" onClick={() => window.location.reload()}><Plus size={16} /> New Booking</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 🔥 NEW: Insufficient Balance Modal */}
+        {showInsufficientModal && balanceCheckResult && (
+          <div className="modal-overlay-premium" onClick={() => setShowInsufficientModal(false)}>
+            <div className="modal-dialog-premium insufficient" onClick={e => e.stopPropagation()}>
+              <div className="modal-icon"><AlertTriangle size={60} color="#f59e0b" /></div>
+              <h2>Insufficient Wallet Balance!</h2>
+              <div className="balance-info">
+                <div className="balance-row">
+                  <span>Current Balance:</span>
+                  <strong>₹{balanceCheckResult.current_balance?.toLocaleString()}</strong>
+                </div>
+                <div className="balance-row">
+                  <span>Required Amount:</span>
+                  <strong>₹{balanceCheckResult.required_amount?.toLocaleString()}</strong>
+                </div>
+                <div className="balance-row shortfall">
+                  <span>Shortfall:</span>
+                  <strong>₹{balanceCheckResult.shortfall?.toLocaleString()}</strong>
+                </div>
+              </div>
+              <p className="insufficient-message">
+                Please recharge your wallet to continue with this booking.
+              </p>
+              <div className="modal-buttons-premium">
+                <button className="modal-btn cancel" onClick={() => setShowInsufficientModal(false)}>Cancel</button>
+                <button className="modal-btn recharge" onClick={handleRechargeRedirect}>
+                  <Wallet size={16} /> Recharge Now
+                </button>
               </div>
             </div>
           </div>

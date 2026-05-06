@@ -1,4 +1,4 @@
-# shipments/views.py
+# shipments/views.py - COMPLETE WITH WALLET INTEGRATION
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
@@ -442,21 +442,94 @@ Mujhse puchiye:
 
 
 # =====================================================
-# 📦 CREATE ORDER (With client_id and freight_amount support)
+# 💰 CHECK WALLET BALANCE BEFORE ORDER
+# =====================================================
+@csrf_exempt
+def check_wallet_balance(request):
+    """Check if client has sufficient balance before creating order"""
+    if request.method == "GET":
+        try:
+            client_id = request.GET.get('clientId')
+            freight_amount = Decimal(str(request.GET.get('freight_amount', 0)))
+            
+            if not client_id:
+                return JsonResponse({
+                    "success": False,
+                    "error": "Client ID required"
+                }, status=400)
+            
+            # Import wallet models
+            from user_management.models import CustomUser, ClientWallet
+            
+            client_user = CustomUser.objects.filter(client_id=client_id, role='Client').first()
+            
+            if not client_user:
+                return JsonResponse({
+                    "success": False,
+                    "error": f"Client '{client_id}' not found"
+                }, status=404)
+            
+            wallet, created = ClientWallet.objects.get_or_create(client=client_user)
+            has_balance = wallet.has_sufficient_balance(freight_amount)
+            
+            return JsonResponse({
+                "success": True,
+                "has_balance": has_balance,
+                "current_balance": float(wallet.balance),
+                "required_amount": float(freight_amount),
+                "shortfall": float(max(0, freight_amount - wallet.balance)),
+                "low_balance_warning": wallet.get_low_balance_warning(),
+                "message": "Sufficient balance" if has_balance else f"Insufficient balance. Need ₹{freight_amount - wallet.balance:,.2f} more."
+            }, status=200)
+            
+        except Exception as e:
+            print(f"Balance check error: {e}")
+            return JsonResponse({
+                "success": False,
+                "error": str(e)
+            }, status=500)
+    
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+# =====================================================
+# 📦 CREATE ORDER (WITH WALLET DEDUCTION)
 # =====================================================
 @csrf_exempt
 def create_order(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
+            
+            client_id = data.get("clientId")
+            freight_amount = Decimal(str(data.get("freight_amount", 0)))
+            
+            # 🔥 CHECK WALLET BALANCE FIRST
+            if client_id and freight_amount > 0:
+                try:
+                    from user_management.models import CustomUser, ClientWallet
+                    
+                    client_user = CustomUser.objects.filter(client_id=client_id, role='Client').first()
+                    
+                    if client_user:
+                        wallet, created = ClientWallet.objects.get_or_create(client=client_user)
+                        
+                        if not wallet.has_sufficient_balance(freight_amount):
+                            return JsonResponse({
+                                "success": False,
+                                "error": f"Insufficient wallet balance! Available: ₹{wallet.balance}, Required: ₹{freight_amount}",
+                                "current_balance": float(wallet.balance),
+                                "shortfall": float(freight_amount - wallet.balance)
+                            }, status=400)
+                except Exception as e:
+                    print(f"⚠️ Wallet check error: {e}")
+            
             with transaction.atomic():
                 cursor = connection.cursor()
                 lr_raw, awb_raw = generate_numbers(cursor)
                 formatted_lr = format_lr(lr_raw)
                 formatted_awb = format_awb(awb_raw)
 
-                client_id = data.get("clientId")
-                freight_amount = data.get("freight_amount", 0)
                 pickup_gstin = data.get("pickupGstin")
                 delivery_gstin = data.get("deliveryGstin")
                 
@@ -488,7 +561,7 @@ def create_order(request):
                         total_value, eway_bill, status, booking_mode, created_at, updated_at
                     ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
                 """, [
-                    lr_raw, formatted_awb, client_id, freight_amount,
+                    lr_raw, formatted_awb, client_id, float(freight_amount),
                     data.get("pickupName"), data.get("pickupAddress"), data.get("pickupPincode"), 
                     data.get("pickupContact"), pickup_gstin,
                     data.get("deliveryName"), data.get("deliveryAddress"), data.get("deliveryPincode"), 
@@ -500,6 +573,40 @@ def create_order(request):
                 ])
                 order_id = cursor.fetchone()[0]
 
+                # 🔥 DEDUCT FROM WALLET AFTER ORDER CREATED
+                balance_remaining = None
+                if client_id and freight_amount > 0:
+                    try:
+                        from user_management.models import CustomUser, ClientWallet
+                        from django.utils import timezone
+                        
+                        client_user = CustomUser.objects.filter(client_id=client_id, role='Client').first()
+                        
+                        if client_user:
+                            wallet, created = ClientWallet.objects.get_or_create(client=client_user)
+                            before_balance = wallet.balance
+                            success = wallet.deduct_balance(freight_amount, order_id=formatted_lr)
+                            
+                            if success:
+                                balance_remaining = float(wallet.balance)
+                                print(f"✅ Wallet deducted: ₹{freight_amount} from {client_id}. New balance: ₹{balance_remaining}")
+                                
+                                # Update client profile stats
+                                try:
+                                    from user_management.models import ClientProfile
+                                    profile, created = ClientProfile.objects.get_or_create(client=client_user)
+                                    profile.total_orders += 1
+                                    profile.total_shipments += 1
+                                    profile.total_freight += freight_amount
+                                    profile.last_order_date = timezone.now()
+                                    profile.save()
+                                except Exception as e:
+                                    print(f"⚠️ Profile update error: {e}")
+                            else:
+                                print(f"⚠️ Wallet deduction failed for {client_id}")
+                    except Exception as e:
+                        print(f"⚠️ Wallet deduction error (order still created): {e}")
+
                 # Insert invoices
                 for inv in data.get("invoices", []):
                     if inv.get("invoice_no"):
@@ -508,7 +615,7 @@ def create_order(request):
                             VALUES (%s,%s,%s)
                         """, [order_id, inv["invoice_no"], inv.get("invoice_value", 0)])
 
-                # 🔥 SEND SMS/WHATSAPP NOTIFICATION AFTER ORDER CREATION
+                # Send notification
                 try:
                     notification_data = {
                         'lr_number': formatted_lr,
@@ -531,13 +638,16 @@ def create_order(request):
                     "success": True, 
                     "lr_number": formatted_lr, 
                     "awb": formatted_awb,
-                    "freight_amount": freight_amount,
+                    "freight_amount": float(freight_amount),
                     "client_id": client_id,
+                    "balance_remaining": balance_remaining,
                     "message": "Order created successfully!"
                 })
+                
         except Exception as e:
             print(f"Create order error: {str(e)}")
             return JsonResponse({"success": False, "error": f"Database Error: {str(e)}"}, status=500)
+    
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
