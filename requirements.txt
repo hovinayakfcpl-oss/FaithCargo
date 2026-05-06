@@ -31,3 +31,4 @@ openpyxl
 # Notifications (SMS/WhatsApp)
 twilio>=8.0.0
 razorpay==1.4.2
+setuptools==65.5.0
