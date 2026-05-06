@@ -30,4 +30,4 @@ openpyxl
 
 # Notifications (SMS/WhatsApp)
 twilio>=8.0.0
-razorpay==1.4.0  
+razorpay==1.4.2
