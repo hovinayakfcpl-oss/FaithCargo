@@ -4,31 +4,36 @@
 # ============================================
 
 # Django Core
-Django>=4.2
-gunicorn
-whitenoise
-django-cors-headers
+Django>=4.2,<5.0
+gunicorn==21.2.0
+whitenoise==6.6.0
+django-cors-headers==4.3.1
 
 # REST Framework
-djangorestframework
-djangorestframework-simplejwt
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.0
 
 # Database
-dj-database-url
-psycopg2-binary
+dj-database-url==2.1.0
+psycopg2-binary==2.9.9
 
 # HTTP & Requests
 requests==2.31.0
 
 # Environment & Config
-python-dotenv
+python-dotenv==1.0.0
 
 # Excel/Data Processing
-django-import-export
-pandas
-openpyxl
+django-import-export==3.3.6
+pandas==2.1.4
+openpyxl==3.1.2
 
 # Notifications (SMS/WhatsApp)
-twilio>=8.0.0
+twilio==8.10.0
+
+# Payment Gateway
 razorpay==1.4.2
-setuptools==65.5.0
+
+# 🔥 IMPORTANT: Fixed setuptools version for Python 3.11
+setuptools==69.5.1
+wheel==0.42.0
