@@ -13,9 +13,62 @@ import {
   LineChart, PieChart, Activity, Users,
   Headphones, MessageCircle, ThumbsUp,
   Sun, Moon, Filter, DownloadCloud, RefreshCw,
-  Heart, Wallet, PlusCircle, History
+  Heart, Wallet, PlusCircle, History, QrCode,
+  Copy, Check, AlertTriangle
 } from "lucide-react";
 import "./ClientDashboard.css";
+
+// QR Scanner Component
+const QrScannerComponent = ({ onScan, onClose }) => {
+  const [scanning, setScanning] = useState(true);
+  
+  useEffect(() => {
+    // Load QR Scanner library dynamically
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+    script.onload = () => {
+      if (window.Html5Qrcode) {
+        const html5QrCode = new window.Html5Qrcode("qr-reader");
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        
+        html5QrCode.start(
+          { facingMode: "environment" },
+          config,
+          (decodedText) => {
+            html5QrCode.stop();
+            onScan(decodedText);
+            setScanning(false);
+          },
+          (errorMessage) => {
+            console.log("Scan error:", errorMessage);
+          }
+        ).catch(err => console.log("Start error:", err));
+      }
+    };
+    document.head.appendChild(script);
+    
+    return () => {
+      if (window.html5QrCode) {
+        window.html5QrCode.stop();
+      }
+    };
+  }, [onScan]);
+  
+  return (
+    <div className="scanner-modal">
+      <div className="scanner-content">
+        <div className="scanner-header">
+          <h3>Scan UPI QR Code</h3>
+          <button className="scanner-close" onClick={onClose}>×</button>
+        </div>
+        <div className="scanner-body">
+          <div id="qr-reader" style={{ width: '100%' }}></div>
+          <p className="scanner-instruction">Place QR code in front of camera</p>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 function ClientDashboard() {
   const navigate = useNavigate();
@@ -30,6 +83,10 @@ function ClientDashboard() {
   const [rechargeAmount, setRechargeAmount] = useState("");
   const [rechargeMethod, setRechargeMethod] = useState("UPI");
   const [recharging, setRecharging] = useState(false);
+  const [utrNumber, setUtrNumber] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [lastRechargeAmount, setLastRechargeAmount] = useState(0);
   const [walletData, setWalletData] = useState({
     balance: 0,
     total_recharged: 0,
@@ -100,15 +157,40 @@ function ClientDashboard() {
     }
   };
 
+  // Handle QR Scan
+  const handleQrScan = (scannedData) => {
+    console.log("Scanned QR:", scannedData);
+    // Extract UPI ID from scanned QR
+    const upiMatch = scannedData.match(/pa=([^&]+)/);
+    if (upiMatch) {
+      alert(`✅ UPI ID detected: ${upiMatch[1]}`);
+    }
+    setShowScanner(false);
+  };
+
+  // Handle Recharge Request
   const handleRechargeRequest = async () => {
-    if (!rechargeAmount || parseFloat(rechargeAmount) <= 0) {
-      alert("Please enter a valid amount");
+    const amount = parseFloat(rechargeAmount);
+    
+    if (!amount || amount <= 0) {
+      alert("❌ Please enter a valid amount");
+      return;
+    }
+    
+    if (amount < 100) {
+      alert("❌ Minimum recharge amount is ₹100");
+      return;
+    }
+
+    if (rechargeMethod === 'UPI' && !utrNumber) {
+      alert("❌ Please enter UTR number for UPI payment");
       return;
     }
 
     setRecharging(true);
     try {
       const token = localStorage.getItem("token");
+      
       const response = await fetch(`https://faithcargo.onrender.com/api/user/wallet/recharge-request/`, {
         method: 'POST',
         headers: {
@@ -116,26 +198,29 @@ function ClientDashboard() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          amount: parseFloat(rechargeAmount),
+          amount: amount,
           payment_method: rechargeMethod,
-          reference_number: `REF_${Date.now()}`
+          utr_number: utrNumber,
+          reference_number: `RECH_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`
         })
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        alert(`✅ Recharge request submitted!\nAmount: ₹${rechargeAmount}\nStatus: ${data.status}`);
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setLastRechargeAmount(amount);
         setShowRechargeModal(false);
         setRechargeAmount("");
-        fetchWalletBalance();
-        fetchRechargeHistory();
+        setUtrNumber("");
+        setShowSuccessModal(true);
+        await fetchWalletBalance();
+        await fetchRechargeHistory();
       } else {
-        const error = await response.json();
-        alert(`❌ Recharge failed: ${error.error || "Unknown error"}`);
+        alert(`❌ Recharge failed: ${data.error || data.message || "Please try again"}`);
       }
     } catch (error) {
       console.error("Recharge error:", error);
-      alert("❌ Network error. Please try again.");
+      alert("❌ Network error. Please check your connection and try again.");
     } finally {
       setRecharging(false);
     }
@@ -317,7 +402,7 @@ function ClientDashboard() {
           </div>
         </div>
 
-        {/* 🔥 NEW: Wallet Card in Sidebar */}
+        {/* Wallet Card in Sidebar */}
         <div className="sidebar-wallet">
           <div className="wallet-card">
             <div className="wallet-header">
@@ -383,7 +468,7 @@ function ClientDashboard() {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main Content - Same as before */}
       <div className="main-content">
         {/* Top Header */}
         <header className="top-header">
@@ -694,7 +779,7 @@ function ClientDashboard() {
         </footer>
       </div>
 
-      {/* 🔥 NEW: Recharge Modal */}
+      {/* 🔥 UPDATED: Recharge Modal with UPI QR and UTR */}
       {showRechargeModal && (
         <div className="modal-overlay" onClick={() => setShowRechargeModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -707,6 +792,7 @@ function ClientDashboard() {
                 <label>Current Balance</label>
                 <div className="balance-amount">₹{walletData.balance.toLocaleString()}</div>
               </div>
+              
               <div className="recharge-input">
                 <label>Recharge Amount (₹)</label>
                 <div className="amount-input-wrapper">
@@ -726,11 +812,12 @@ function ClientDashboard() {
                   ))}
                 </div>
               </div>
+              
               <div className="payment-method">
                 <label>Payment Method</label>
                 <div className="method-options">
                   <button className={`method ${rechargeMethod === 'UPI' ? 'active' : ''}`} onClick={() => setRechargeMethod('UPI')}>
-                    <CreditCard size={16} /> UPI
+                    <QrCode size={16} /> UPI / QR
                   </button>
                   <button className={`method ${rechargeMethod === 'CARD' ? 'active' : ''}`} onClick={() => setRechargeMethod('CARD')}>
                     <CreditCard size={16} /> Card
@@ -738,15 +825,76 @@ function ClientDashboard() {
                   <button className={`method ${rechargeMethod === 'BANK' ? 'active' : ''}`} onClick={() => setRechargeMethod('BANK')}>
                     <Bank size={16} /> Bank Transfer
                   </button>
-                  <button className={`method ${rechargeMethod === 'CASH' ? 'active' : ''}`} onClick={() => setRechargeMethod('CASH')}>
-                    <DollarSign size={16} /> Cash
-                  </button>
                 </div>
               </div>
+
+              {/* UPI QR Section */}
+              {rechargeMethod === 'UPI' && (
+                <div className="upi-qr-section">
+                  <div className="qr-header">
+                    <div className="qr-icon">📱</div>
+                    <div className="qr-title">
+                      <h4>Scan & Pay to Gaurav Sharma</h4>
+                      <p>Pay using any UPI app</p>
+                    </div>
+                  </div>
+                  
+                  <div className="qr-code-container">
+                    <img 
+                      src="https://quickchart.io/qr?text=upi://pay?pa=gauravsharma000123-3@oksbi&pn=Gaurav%20Sharma&cu=INR&am="
+                      alt="UPI QR Code"
+                      className="upi-qr-image"
+                    />
+                    <div className="upi-id-container">
+                      <span className="upi-id-label">UPI ID:</span>
+                      <strong className="upi-id">gauravsharma000123-3@oksbi</strong>
+                      <button 
+                        className="copy-upi-btn"
+                        onClick={() => {
+                          navigator.clipboard.writeText("gauravsharma000123-3@oksbi");
+                          alert("✅ UPI ID copied!");
+                        }}
+                      >
+                        <Copy size={14} /> Copy
+                      </button>
+                    </div>
+                    <button className="scan-qr-btn" onClick={() => setShowScanner(true)}>
+                      <QrCode size={16} /> Scan QR Code
+                    </button>
+                  </div>
+                  
+                  <div className="qr-instructions">
+                    <ol>
+                      <li>📱 Open Google Pay / PhonePe / Paytm</li>
+                      <li>🔍 Scan QR code or copy UPI ID</li>
+                      <li>💰 Enter amount: <strong>₹{rechargeAmount || "0"}</strong></li>
+                      <li>✅ Complete payment</li>
+                      <li>📝 Enter UTR number below</li>
+                    </ol>
+                  </div>
+                  
+                  <div className="utr-input-section">
+                    <label>UTR / Transaction Reference Number *</label>
+                    <input 
+                      type="text"
+                      placeholder="Enter UTR number from your UPI app"
+                      value={utrNumber}
+                      onChange={(e) => setUtrNumber(e.target.value)}
+                      className="utr-input"
+                    />
+                    <small>Found in payment success screen or bank statement</small>
+                  </div>
+                </div>
+              )}
+
               <div className="modal-footer">
                 <button className="cancel-btn" onClick={() => setShowRechargeModal(false)}>Cancel</button>
-                <button className="recharge-confirm-btn" onClick={handleRechargeRequest} disabled={recharging}>
-                  {recharging ? "Processing..." : "Proceed to Recharge"}
+                <button 
+                  className="recharge-confirm-btn" 
+                  onClick={handleRechargeRequest} 
+                  disabled={recharging || (rechargeMethod === 'UPI' && !utrNumber)}
+                >
+                  {recharging ? "Processing..." : "Confirm Payment"}
                 </button>
               </div>
             </div>
@@ -754,7 +902,43 @@ function ClientDashboard() {
         </div>
       )}
 
-      {/* 🔥 NEW: Recharge History Modal */}
+      {/* 🔥 NEW: Success Modal - Shows updated balance */}
+      {showSuccessModal && (
+        <div className="modal-overlay" onClick={() => setShowSuccessModal(false)}>
+          <div className="modal-content success-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="success-icon">
+              <CheckCircle size={60} color="#10b981" />
+            </div>
+            <h2>Recharge Successful!</h2>
+            <div className="recharge-details">
+              <div className="detail-row">
+                <span>Amount Recharged:</span>
+                <strong>₹{lastRechargeAmount.toLocaleString()}</strong>
+              </div>
+              <div className="detail-row highlight">
+                <span>New Balance:</span>
+                <strong className="new-balance">₹{walletData.balance.toLocaleString()}</strong>
+              </div>
+            </div>
+            <p className="success-message">
+              Your wallet has been successfully recharged. You can now create orders using this balance.
+            </p>
+            <button className="success-ok-btn" onClick={() => setShowSuccessModal(false)}>
+              OK, Got it
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* QR Scanner Modal */}
+      {showScanner && (
+        <QrScannerComponent 
+          onScan={handleQrScan}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      {/* Recharge History Modal */}
       {showRechargeHistory && (
         <div className="modal-overlay" onClick={() => setShowRechargeHistory(false)}>
           <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
@@ -773,7 +957,7 @@ function ClientDashboard() {
                       <th>Amount</th>
                       <th>Method</th>
                       <th>Status</th>
-                      <th>Transaction ID</th>
+                      <th>UTR No.</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -787,7 +971,7 @@ function ClientDashboard() {
                             {item.status}
                           </span>
                         </td>
-                        <td className="txn-id">{item.transaction_id}</td>
+                        <td className="txn-id">{item.utr_number || item.transaction_id}</td>
                       </tr>
                     ))}
                   </tbody>
