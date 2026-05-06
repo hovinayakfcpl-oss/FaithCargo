@@ -10,30 +10,9 @@ from pincode.models import Pincode
 from utils.notifications import send_order_notification
 from datetime import datetime
 
+
 # =====================================================
 # 🛠️ HELPER: LR FORMATTER (Numbers ko FCPL0001 banata hai)
-@api_view(['GET'])
-def test_api(request):
-    """Test API endpoint to check if server is running"""
-    return Response({
-        "status": "success",
-        "message": "User Management API is working!",
-        "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0",
-        "endpoints": [
-            "/api/user/admin-login/",
-            "/api/user/login/",
-            "/api/user/add-user/",
-            "/api/user/users/",
-            "/api/user/clients/",
-            "/api/user/wallet/balance/",
-            "/api/user/wallet/recharge-request/",
-            "/api/user/wallet/recharge-history/",
-            "/api/user/admin/recharges/",
-            "/api/user/create-razorpay-order/",
-            "/api/user/verify-razorpay-payment/"
-        ]
-    })
 # =====================================================
 def format_lr(number):
     try:
@@ -437,6 +416,7 @@ Sir, total {stats['total']} orders hain:
 ✅ Rate Check - "Mumbai se Delhi ka rate 50kg"
 ✅ Pincode Check - "Check pincode 110001"
 ✅ Order Summary - "Kitne order hain"
+✅ Wallet Help - "Wallet recharge kaise kare"
 
 Kya aapko kisi cheez mein madad chahiye, Sir?"""
         
