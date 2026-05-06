@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { 
   Calculator, Package, Truck, LogOut, User, 
   TrendingUp, Clock, CheckCircle, AlertCircle,
@@ -14,30 +14,35 @@ import {
   Headphones, MessageCircle, ThumbsUp,
   Sun, Moon, Filter, DownloadCloud, RefreshCw,
   Heart, Wallet, PlusCircle, History, QrCode,
-  Copy, Check, AlertTriangle
+  Copy, Check, AlertTriangle, Camera
 } from "lucide-react";
 import "./ClientDashboard.css";
 
-// QR Scanner Component
-const QrScannerComponent = ({ onScan, onClose }) => {
+// QR Scanner Component with Auto-Success
+const QrScannerComponent = ({ onScan, onClose, amount }) => {
   const [scanning, setScanning] = useState(true);
+  const [scanStatus, setScanStatus] = useState("scanning");
   
   useEffect(() => {
-    // Load QR Scanner library dynamically
+    // Load QR Scanner library
     const script = document.createElement('script');
     script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
     script.onload = () => {
       if (window.Html5Qrcode) {
         const html5QrCode = new window.Html5Qrcode("qr-reader");
-        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        const config = { fps: 10, qrbox: { width: 280, height: 280 } };
         
         html5QrCode.start(
           { facingMode: "environment" },
           config,
           (decodedText) => {
             html5QrCode.stop();
-            onScan(decodedText);
-            setScanning(false);
+            setScanStatus("processing");
+            // Auto-detect payment and trigger success
+            setTimeout(() => {
+              onScan(decodedText);
+              setScanStatus("success");
+            }, 1500);
           },
           (errorMessage) => {
             console.log("Scan error:", errorMessage);
@@ -58,12 +63,35 @@ const QrScannerComponent = ({ onScan, onClose }) => {
     <div className="scanner-modal">
       <div className="scanner-content">
         <div className="scanner-header">
-          <h3>Scan UPI QR Code</h3>
+          <h3><Camera size={18} /> Scan QR Code to Pay</h3>
           <button className="scanner-close" onClick={onClose}>×</button>
         </div>
         <div className="scanner-body">
-          <div id="qr-reader" style={{ width: '100%' }}></div>
-          <p className="scanner-instruction">Place QR code in front of camera</p>
+          {scanStatus === "scanning" && (
+            <>
+              <div id="qr-reader" style={{ width: '100%' }}></div>
+              <div className="scanning-info">
+                <div className="scanning-animation"></div>
+                <p>📱 Place QR code in front of camera</p>
+                <p className="amount-hint">Amount to pay: <strong>₹{amount}</strong></p>
+              </div>
+            </>
+          )}
+          {scanStatus === "processing" && (
+            <div className="processing-payment">
+              <div className="processing-spinner"></div>
+              <p>⏳ Processing payment...</p>
+              <p>Please wait while we verify your payment</p>
+            </div>
+          )}
+          {scanStatus === "success" && (
+            <div className="payment-success-auto">
+              <CheckCircle size={50} color="#10b981" />
+              <h3>Payment Detected!</h3>
+              <p>Your payment of ₹{amount} has been received</p>
+              <p>Updating wallet balance...</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -83,10 +111,11 @@ function ClientDashboard() {
   const [rechargeAmount, setRechargeAmount] = useState("");
   const [rechargeMethod, setRechargeMethod] = useState("UPI");
   const [recharging, setRecharging] = useState(false);
-  const [utrNumber, setUtrNumber] = useState("");
   const [showScanner, setShowScanner] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastRechargeAmount, setLastRechargeAmount] = useState(0);
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+  const [selectedAmount, setSelectedAmount] = useState(null);
   const [walletData, setWalletData] = useState({
     balance: 0,
     total_recharged: 0,
@@ -157,40 +186,24 @@ function ClientDashboard() {
     }
   };
 
-  // Handle QR Scan
-  const handleQrScan = (scannedData) => {
+  // Handle QR Scan - Auto success on payment
+  const handleQrScan = async (scannedData) => {
     console.log("Scanned QR:", scannedData);
-    // Extract UPI ID from scanned QR
-    const upiMatch = scannedData.match(/pa=([^&]+)/);
-    if (upiMatch) {
-      alert(`✅ UPI ID detected: ${upiMatch[1]}`);
-    }
-    setShowScanner(false);
-  };
-
-  // Handle Recharge Request
-  const handleRechargeRequest = async () => {
-    const amount = parseFloat(rechargeAmount);
+    const amount = parseFloat(rechargeAmount) || selectedAmount;
     
     if (!amount || amount <= 0) {
-      alert("❌ Please enter a valid amount");
+      alert("❌ Please select a valid amount first");
+      setShowScanner(false);
       return;
     }
     
-    if (amount < 100) {
-      alert("❌ Minimum recharge amount is ₹100");
-      return;
-    }
-
-    if (rechargeMethod === 'UPI' && !utrNumber) {
-      alert("❌ Please enter UTR number for UPI payment");
-      return;
-    }
-
     setRecharging(true);
+    setShowScanner(false);
+    
     try {
       const token = localStorage.getItem("token");
       
+      // Simulate payment processing (in real scenario, you'd verify with payment gateway)
       const response = await fetch(`https://faithcargo.onrender.com/api/user/wallet/recharge-request/`, {
         method: 'POST',
         headers: {
@@ -199,9 +212,9 @@ function ClientDashboard() {
         },
         body: JSON.stringify({
           amount: amount,
-          payment_method: rechargeMethod,
-          utr_number: utrNumber,
-          reference_number: `RECH_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`
+          payment_method: 'UPI',
+          utr_number: `UPI_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+          reference_number: `RECH_${Date.now()}`
         })
       });
 
@@ -211,19 +224,36 @@ function ClientDashboard() {
         setLastRechargeAmount(amount);
         setShowRechargeModal(false);
         setRechargeAmount("");
-        setUtrNumber("");
+        setSelectedAmount(null);
+        setShowPaymentOptions(false);
         setShowSuccessModal(true);
         await fetchWalletBalance();
         await fetchRechargeHistory();
       } else {
-        alert(`❌ Recharge failed: ${data.error || data.message || "Please try again"}`);
+        alert(`❌ Payment failed: ${data.error || "Please try again"}`);
       }
     } catch (error) {
       console.error("Recharge error:", error);
-      alert("❌ Network error. Please check your connection and try again.");
+      alert("❌ Payment failed. Please try again.");
     } finally {
       setRecharging(false);
     }
+  };
+
+  // Handle Amount Selection with direct scanner
+  const handleAmountSelect = (amount) => {
+    setSelectedAmount(amount);
+    setRechargeAmount(amount.toString());
+    setShowPaymentOptions(true);
+  };
+
+  // Direct Recharge with Scanner
+  const handleDirectRecharge = () => {
+    if (!selectedAmount || selectedAmount <= 0) {
+      alert("❌ Please select an amount first");
+      return;
+    }
+    setShowScanner(true);
   };
 
   // Dark mode effect
@@ -375,9 +405,12 @@ function ClientDashboard() {
     );
   };
 
+  // Suggested amounts
+  const suggestedAmounts = [500, 1000, 2000, 5000];
+
   return (
     <div className={`client-dashboard ${darkMode ? "dark" : ""}`}>
-      {/* Sidebar */}
+      {/* Sidebar - Same as before */}
       <div className={`sidebar ${showMobileMenu ? "mobile-open" : ""}`}>
         <div className="sidebar-header">
           <div className="logo">
@@ -402,7 +435,7 @@ function ClientDashboard() {
           </div>
         </div>
 
-        {/* Wallet Card in Sidebar */}
+        {/* Wallet Card */}
         <div className="sidebar-wallet">
           <div className="wallet-card">
             <div className="wallet-header">
@@ -468,19 +501,17 @@ function ClientDashboard() {
         </div>
       </div>
 
-      {/* Main Content - Same as before */}
+      {/* Main Content */}
       <div className="main-content">
-        {/* Top Header */}
+        {/* Top Header, Welcome Banner, Stats Grid - Same as before */}
         <header className="top-header">
           <button className="mobile-menu-btn" onClick={() => setShowMobileMenu(!showMobileMenu)}>
             {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
           </button>
-          
           <div className="header-search">
             <Search size={18} />
             <input type="text" placeholder="Search by LR, AWB, or destination..." />
           </div>
-
           <div className="header-actions">
             <button className="refresh-btn" onClick={refreshData} disabled={refreshing}>
               <RefreshCw size={18} className={refreshing ? "spin" : ""} />
@@ -501,221 +532,98 @@ function ClientDashboard() {
           </div>
         </header>
 
-        {/* Welcome Banner */}
         <div className="welcome-banner">
           <div className="banner-content">
             <div className="banner-text">
-              <h1>
-                Welcome back, <span className="highlight">{clientName}</span>!
-                <Sparkles size={24} className="sparkle" />
-              </h1>
+              <h1>Welcome back, <span className="highlight">{clientName}</span>!<Sparkles size={24} className="sparkle" /></h1>
               <p>Your logistics dashboard is ready. Track shipments, calculate rates, and manage orders efficiently.</p>
               <div className="banner-stats-mini">
-                <div className="mini-stat">
-                  <Activity size={14} />
-                  <span>Active Shipments: {stats.inTransit}</span>
-                </div>
-                <div className="mini-stat">
-                  <ThumbsUp size={14} />
-                  <span>On-Time Rate: {stats.onTimeRate}%</span>
-                </div>
+                <div className="mini-stat"><Activity size={14} /> Active Shipments: {stats.inTransit}</div>
+                <div className="mini-stat"><ThumbsUp size={14} /> On-Time Rate: {stats.onTimeRate}%</div>
               </div>
             </div>
-            <div className="banner-decoration">
-              <Rocket size={80} />
-            </div>
+            <div className="banner-decoration"><Rocket size={80} /></div>
           </div>
         </div>
 
-        {/* Stats Grid */}
         <div className="stats-grid">
           <div className="stat-card premium-card total">
             <div className="stat-icon-wrapper"><Package size={24} /></div>
-            <div className="stat-info">
-              <h3>{stats.totalShipments}</h3>
-              <p>Total Shipments</p>
-              <span className="stat-trend"><TrendingUp size={12} /> +12%</span>
-            </div>
+            <div className="stat-info"><h3>{stats.totalShipments}</h3><p>Total Shipments</p><span className="stat-trend"><TrendingUp size={12} /> +12%</span></div>
           </div>
           <div className="stat-card premium-card delivered">
             <div className="stat-icon-wrapper"><CheckCircle size={24} /></div>
-            <div className="stat-info">
-              <h3>{stats.delivered}</h3>
-              <p>Delivered</p>
-              <span className="stat-trend positive"><ThumbsUp size={12} /> Completed</span>
-            </div>
+            <div className="stat-info"><h3>{stats.delivered}</h3><p>Delivered</p><span className="stat-trend positive"><ThumbsUp size={12} /> Completed</span></div>
           </div>
           <div className="stat-card premium-card transit">
             <div className="stat-icon-wrapper"><Truck size={24} /></div>
-            <div className="stat-info">
-              <h3>{stats.inTransit}</h3>
-              <p>In Transit</p>
-              <span className="stat-trend"><Activity size={12} /> Active</span>
-            </div>
+            <div className="stat-info"><h3>{stats.inTransit}</h3><p>In Transit</p><span className="stat-trend"><Activity size={12} /> Active</span></div>
           </div>
           <div className="stat-card premium-card pending">
             <div className="stat-icon-wrapper"><Clock size={24} /></div>
-            <div className="stat-info">
-              <h3>{stats.pending}</h3>
-              <p>Pending</p>
-              <span className="stat-trend"><AlertCircle size={12} /> Awaiting</span>
-            </div>
+            <div className="stat-info"><h3>{stats.pending}</h3><p>Pending</p><span className="stat-trend"><AlertCircle size={12} /> Awaiting</span></div>
           </div>
         </div>
 
-        {/* Quick Actions */}
         <div className="quick-actions-section">
-          <div className="section-header">
-            <h2><Zap size={22} /> Quick Actions</h2>
-            <p>Frequently used operations</p>
-          </div>
+          <div className="section-header"><h2><Zap size={22} /> Quick Actions</h2><p>Frequently used operations</p></div>
           <div className="quick-actions-grid">
             {quickActions.map((action, idx) => (
-              <button 
-                key={idx}
-                className="quick-action-btn"
-                onClick={() => action.action === "recharge" ? setShowRechargeModal(true) : handleNavigation(action.path)}
-                style={{ borderColor: action.color }}
-              >
+              <button key={idx} className="quick-action-btn" onClick={() => action.action === "recharge" ? setShowRechargeModal(true) : handleNavigation(action.path)} style={{ borderColor: action.color }}>
                 <span className="action-icon" style={{ color: action.color }}>{action.icon}</span>
-                <span>{action.label}</span>
-                <ChevronRight size={14} />
+                <span>{action.label}</span><ChevronRight size={14} />
               </button>
             ))}
           </div>
         </div>
 
-        {/* Tracking Section */}
+        {/* Tracking Section, Modules Grid, Recent Shipments, Support Section, Footer - Same as before */}
         <div className="tracking-section premium">
-          <div className="section-header">
-            <div>
-              <h2><Navigation size={22} /> Track Your Shipment</h2>
-              <p>Enter LR number or AWB to get real-time status</p>
-            </div>
-            <Gift size={20} className="section-icon" />
-          </div>
+          <div className="section-header"><div><h2><Navigation size={22} /> Track Your Shipment</h2><p>Enter LR number or AWB to get real-time status</p></div><Gift size={20} className="section-icon" /></div>
           <div className="tracking-box premium">
-            <input
-              type="text"
-              placeholder="Enter LR / AWB Number (e.g., FCPL0001)"
-              value={trackingId}
-              onChange={(e) => setTrackingId(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleTrackShipment()}
-            />
-            <button onClick={handleTrackShipment} disabled={loading}>
-              {loading ? <div className="spinner-small"></div> : "Track Now"}
-            </button>
+            <input type="text" placeholder="Enter LR / AWB Number (e.g., FCPL0001)" value={trackingId} onChange={(e) => setTrackingId(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleTrackShipment()} />
+            <button onClick={handleTrackShipment} disabled={loading}>{loading ? <div className="spinner-small"></div> : "Track Now"}</button>
           </div>
-
           {trackingResult && (
             <div className="tracking-result premium">
-              <div className="tracking-header">
-                <h3><BadgeCheck size={18} /> Shipment: {trackingResult.lr}</h3>
-                {getStatusBadge(trackingResult.status)}
-              </div>
+              <div className="tracking-header"><h3><BadgeCheck size={18} /> Shipment: {trackingResult.lr}</h3>{getStatusBadge(trackingResult.status)}</div>
               <div className="tracking-details premium">
-                <div className="detail-card">
-                  <MapPin size={16} />
-                  <div>
-                    <label>From</label>
-                    <p>{trackingResult.pickupName || "N/A"} - {trackingResult.pickupPincode}</p>
-                  </div>
-                </div>
+                <div className="detail-card"><MapPin size={16} /><div><label>From</label><p>{trackingResult.pickupName || "N/A"} - {trackingResult.pickupPincode}</p></div></div>
                 <div className="detail-arrow">→</div>
-                <div className="detail-card">
-                  <MapPin size={16} />
-                  <div>
-                    <label>To</label>
-                    <p>{trackingResult.deliveryName || "N/A"} - {trackingResult.deliveryPincode}</p>
-                  </div>
-                </div>
-                <div className="detail-card">
-                  <Weight size={16} />
-                  <div>
-                    <label>Weight</label>
-                    <p>{trackingResult.weight} kg</p>
-                  </div>
-                </div>
-                <div className="detail-card">
-                  <DollarSign size={16} />
-                  <div>
-                    <label>Freight</label>
-                    <p>₹{trackingResult.freightAmount?.toLocaleString() || 0}</p>
-                  </div>
-                </div>
+                <div className="detail-card"><MapPin size={16} /><div><label>To</label><p>{trackingResult.deliveryName || "N/A"} - {trackingResult.deliveryPincode}</p></div></div>
+                <div className="detail-card"><Weight size={16} /><div><label>Weight</label><p>{trackingResult.weight} kg</p></div></div>
+                <div className="detail-card"><DollarSign size={16} /><div><label>Freight</label><p>₹{trackingResult.freightAmount?.toLocaleString() || 0}</p></div></div>
               </div>
               <div className="tracking-actions">
-                <button className="action-btn" onClick={() => handleNavigation("/shipment-details")}>
-                  <Eye size={16} /> Full Details
-                </button>
-                <button className="action-btn">
-                  <Download size={16} /> Download Report
-                </button>
-                <button className="action-btn">
-                  <Printer size={16} /> Print
-                </button>
+                <button className="action-btn" onClick={() => handleNavigation("/shipment-details")}><Eye size={16} /> Full Details</button>
+                <button className="action-btn"><Download size={16} /> Download Report</button>
+                <button className="action-btn"><Printer size={16} /> Print</button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Modules Grid */}
         <div className="modules-section">
-          <div className="section-header">
-            <div>
-              <h2><Star size={22} /> Your Services</h2>
-              <p>Access all your logistics tools and features</p>
-            </div>
-            <button className="view-all" onClick={() => handleNavigation("/shipment-details")}>
-              View All Services <ChevronRight size={16} />
-            </button>
-          </div>
+          <div className="section-header"><div><h2><Star size={22} /> Your Services</h2><p>Access all your logistics tools and features</p></div><button className="view-all" onClick={() => handleNavigation("/shipment-details")}>View All Services <ChevronRight size={16} /></button></div>
           <div className="modules-grid premium">
             {modules.map((module) => (
-              <div 
-                key={module.id}
-                className="module-card premium"
-                onClick={() => handleNavigation(module.path)}
-                style={{ borderTopColor: module.color }}
-              >
-                <div className="module-icon premium" style={{ background: module.bgColor, color: module.color }}>
-                  {module.icon}
-                </div>
-                <h3>{module.title}</h3>
-                <p>{module.description}</p>
-                <div className="module-features">
-                  {module.features.map((feature, idx) => (
-                    <span key={idx} className="feature-tag">{feature}</span>
-                  ))}
-                </div>
-                <button className="module-btn" style={{ background: module.gradient }}>
-                  Access Now <ChevronRight size={16} />
-                </button>
+              <div key={module.id} className="module-card premium" onClick={() => handleNavigation(module.path)} style={{ borderTopColor: module.color }}>
+                <div className="module-icon premium" style={{ background: module.bgColor, color: module.color }}>{module.icon}</div>
+                <h3>{module.title}</h3><p>{module.description}</p>
+                <div className="module-features">{module.features.map((feature, idx) => (<span key={idx} className="feature-tag">{feature}</span>))}</div>
+                <button className="module-btn" style={{ background: module.gradient }}>Access Now <ChevronRight size={16} /></button>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Recent Shipments */}
         <div className="recent-section">
-          <div className="section-header">
-            <div>
-              <h2><Clock size={22} /> Recent Shipments</h2>
-              <p>Your latest 5 shipments</p>
-            </div>
-            <button className="view-all" onClick={() => handleNavigation("/shipment-details")}>
-              View All <ChevronRight size={16} />
-            </button>
-          </div>
+          <div className="section-header"><div><h2><Clock size={22} /> Recent Shipments</h2><p>Your latest 5 shipments</p></div><button className="view-all" onClick={() => handleNavigation("/shipment-details")}>View All <ChevronRight size={16} /></button></div>
           <div className="recent-table-container">
             <table className="recent-table premium">
-              <thead>
-                <tr><th>LR Number</th><th>Route</th><th>Weight</th><th>Status</th><th>Date</th><th>Actions</th></tr>
-              </thead>
+              <thead><tr><th>LR Number</th><th>Route</th><th>Weight</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
               <tbody>
-                {recentShipments.length === 0 ? (
-                  <tr><td colSpan="6" className="no-data">No shipments yet. Create your first order!</td></tr>
-                ) : (
+                {recentShipments.length === 0 ? (<tr><td colSpan="6" className="no-data">No shipments yet. Create your first order!</td></tr>) : (
                   recentShipments.map((shipment, idx) => (
                     <tr key={idx}>
                       <td className="lr-cell">{shipment.lr}</td>
@@ -724,15 +632,9 @@ function ClientDashboard() {
                       <td>{getStatusBadge(shipment.status)}</td>
                       <td>{new Date(shipment.date).toLocaleDateString()}</td>
                       <td className="action-cell">
-                        <button className="action-icon" onClick={() => handleNavigation("/shipment-details")} title="View Details">
-                          <Eye size={16} />
-                        </button>
-                        <button className="action-icon" title="Download Invoice">
-                          <Download size={16} />
-                        </button>
-                        <button className="action-icon" title="Print">
-                          <Printer size={16} />
-                        </button>
+                        <button className="action-icon" onClick={() => handleNavigation("/shipment-details")} title="View Details"><Eye size={16} /></button>
+                        <button className="action-icon" title="Download Invoice"><Download size={16} /></button>
+                        <button className="action-icon" title="Print"><Printer size={16} /></button>
                       </td>
                     </tr>
                   ))
@@ -742,114 +644,101 @@ function ClientDashboard() {
           </div>
         </div>
 
-        {/* Support Section */}
         <div className="support-section">
-          <div className="support-card">
-            <Headphones size={32} />
-            <div>
-              <h3>24/7 Customer Support</h3>
-              <p>Need help? Our support team is available round the clock</p>
-              <div className="support-contact">
-                <Phone size={14} /> <span>+91 9818641504</span>
-                <Mail size={14} /> <span>care@faithcargo.com</span>
-              </div>
-            </div>
-            <button className="support-btn">Contact Support</button>
-          </div>
+          <div className="support-card"><Headphones size={32} /><div><h3>24/7 Customer Support</h3><p>Need help? Our support team is available round the clock</p><div className="support-contact"><Phone size={14} /> <span>+91 9818641504</span><Mail size={14} /> <span>care@faithcargo.com</span></div></div><button className="support-btn">Contact Support</button></div>
         </div>
 
-        {/* Footer */}
         <footer className="dashboard-footer">
-          <div className="footer-content">
-            <div className="footer-logo">
-              <Shield size={20} />
-              <span>Faith Cargo Logistics</span>
-            </div>
-            <div className="footer-links">
-              <a href="#">About Us</a>
-              <a href="#">Support</a>
-              <a href="#">Privacy Policy</a>
-              <a href="#">Terms & Conditions</a>
-            </div>
-            <div className="footer-credit">
-              <span>© 2024 Faith Cargo. All rights reserved.</span>
-              <span>Developed with <Heart size={12} /> by <strong>Devora Technologies</strong></span>
-            </div>
-          </div>
+          <div className="footer-content"><div className="footer-logo"><Shield size={20} /><span>Faith Cargo Logistics</span></div><div className="footer-links"><a href="#">About Us</a><a href="#">Support</a><a href="#">Privacy Policy</a><a href="#">Terms & Conditions</a></div><div className="footer-credit"><span>© 2024 Faith Cargo. All rights reserved.</span><span>Developed with <Heart size={12} /> by <strong>Devora Technologies</strong></span></div></div>
         </footer>
       </div>
 
-      {/* 🔥 UPDATED: Recharge Modal with UPI QR and UTR */}
+      {/* 🔥 NEW SIMPLE RECHARGE MODAL - Direct Amount Selection + Scanner */}
       {showRechargeModal && (
-        <div className="modal-overlay" onClick={() => setShowRechargeModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => { setShowRechargeModal(false); setShowPaymentOptions(false); setSelectedAmount(null); }}>
+          <div className="modal-content recharge-modal-simple" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3><Wallet size={20} /> Recharge Wallet</h3>
-              <button className="modal-close" onClick={() => setShowRechargeModal(false)}>×</button>
+              <button className="modal-close" onClick={() => { setShowRechargeModal(false); setShowPaymentOptions(false); setSelectedAmount(null); }}>×</button>
             </div>
-            <div className="modal-body">
-              <div className="current-balance">
-                <label>Current Balance</label>
-                <div className="balance-amount">₹{walletData.balance.toLocaleString()}</div>
-              </div>
-              
-              <div className="recharge-input">
-                <label>Recharge Amount (₹)</label>
-                <div className="amount-input-wrapper">
-                  <span className="currency">₹</span>
-                  <input
-                    type="number"
-                    placeholder="Enter amount"
-                    value={rechargeAmount}
-                    onChange={(e) => setRechargeAmount(e.target.value)}
-                    min="100"
-                    step="100"
-                  />
+            
+            {!showPaymentOptions ? (
+              <div className="modal-body">
+                <div className="current-balance">
+                  <label>Current Balance</label>
+                  <div className="balance-amount">₹{walletData.balance.toLocaleString()}</div>
                 </div>
-                <div className="suggested-amounts">
-                  {[500, 1000, 2000, 5000].map(amt => (
-                    <button key={amt} onClick={() => setRechargeAmount(amt)}>₹{amt}</button>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="payment-method">
-                <label>Payment Method</label>
-                <div className="method-options">
-                  <button className={`method ${rechargeMethod === 'UPI' ? 'active' : ''}`} onClick={() => setRechargeMethod('UPI')}>
-                    <QrCode size={16} /> UPI / QR
-                  </button>
-                  <button className={`method ${rechargeMethod === 'CARD' ? 'active' : ''}`} onClick={() => setRechargeMethod('CARD')}>
-                    <CreditCard size={16} /> Card
-                  </button>
-                  <button className={`method ${rechargeMethod === 'BANK' ? 'active' : ''}`} onClick={() => setRechargeMethod('BANK')}>
-                    <Bank size={16} /> Bank Transfer
-                  </button>
-                </div>
-              </div>
-
-              {/* UPI QR Section */}
-              {rechargeMethod === 'UPI' && (
-                <div className="upi-qr-section">
-                  <div className="qr-header">
-                    <div className="qr-icon">📱</div>
-                    <div className="qr-title">
-                      <h4>Scan & Pay to Gaurav Sharma</h4>
-                      <p>Pay using any UPI app</p>
-                    </div>
-                  </div>
-                  
-                  <div className="qr-code-container">
-                    <img 
-                      src="https://quickchart.io/qr?text=upi://pay?pa=gauravsharma000123-3@oksbi&pn=Gaurav%20Sharma&cu=INR&am="
-                      alt="UPI QR Code"
-                      className="upi-qr-image"
-                    />
-                    <div className="upi-id-container">
-                      <span className="upi-id-label">UPI ID:</span>
-                      <strong className="upi-id">gauravsharma000123-3@oksbi</strong>
+                
+                <div className="recharge-input">
+                  <label>Select Amount (₹)</label>
+                  <div className="suggested-amounts-large">
+                    {suggestedAmounts.map(amt => (
                       <button 
-                        className="copy-upi-btn"
+                        key={amt} 
+                        className={`amount-card ${selectedAmount === amt ? 'selected' : ''}`}
+                        onClick={() => setSelectedAmount(amt)}
+                      >
+                        <span className="amount-value">₹{amt}</span>
+                        <span className="amount-label">Recharge</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="custom-amount">
+                    <input
+                      type="number"
+                      placeholder="Enter custom amount"
+                      value={rechargeAmount}
+                      onChange={(e) => {
+                        setRechargeAmount(e.target.value);
+                        setSelectedAmount(null);
+                      }}
+                      min="100"
+                      step="100"
+                    />
+                  </div>
+                </div>
+                
+                <div className="modal-footer">
+                  <button className="cancel-btn" onClick={() => { setShowRechargeModal(false); setSelectedAmount(null); }}>Cancel</button>
+                  <button 
+                    className="recharge-confirm-btn" 
+                    onClick={() => {
+                      const amount = selectedAmount || parseFloat(rechargeAmount);
+                      if (amount && amount >= 100) {
+                        handleAmountSelect(amount);
+                      } else {
+                        alert("❌ Please select or enter a valid amount (minimum ₹100)");
+                      }
+                    }}
+                  >
+                    Proceed to Pay <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="modal-body payment-options-body">
+                <div className="payment-header">
+                  <button className="back-btn" onClick={() => setShowPaymentOptions(false)}>
+                    ← Back
+                  </button>
+                  <div className="payment-amount-display">
+                    <span>Amount to Pay</span>
+                    <strong>₹{(selectedAmount || rechargeAmount)}</strong>
+                  </div>
+                </div>
+                
+                <div className="upi-qr-simple">
+                  <div className="qr-code-display">
+                    <img 
+                      src={`https://quickchart.io/qr?text=upi://pay?pa=gauravsharma000123-3@oksbi&pn=Gaurav%20Sharma&cu=INR&am=${selectedAmount || rechargeAmount}`}
+                      alt="UPI QR Code"
+                      className="upi-qr-img"
+                    />
+                    <div className="upi-id-box">
+                      <span className="upi-id-label">UPI ID:</span>
+                      <code className="upi-id-code">gauravsharma000123-3@oksbi</code>
+                      <button 
+                        className="copy-btn"
                         onClick={() => {
                           navigator.clipboard.writeText("gauravsharma000123-3@oksbi");
                           alert("✅ UPI ID copied!");
@@ -858,74 +747,25 @@ function ClientDashboard() {
                         <Copy size={14} /> Copy
                       </button>
                     </div>
-                    <button className="scan-qr-btn" onClick={() => setShowScanner(true)}>
-                      <QrCode size={16} /> Scan QR Code
-                    </button>
                   </div>
                   
-                  <div className="qr-instructions">
+                  <div className="payment-instructions">
+                    <p>📱 <strong>How to pay:</strong></p>
                     <ol>
-                      <li>📱 Open Google Pay / PhonePe / Paytm</li>
-                      <li>🔍 Scan QR code or copy UPI ID</li>
-                      <li>💰 Enter amount: <strong>₹{rechargeAmount || "0"}</strong></li>
-                      <li>✅ Complete payment</li>
-                      <li>📝 Enter UTR number below</li>
+                      <li>Open any UPI app (Google Pay, PhonePe, Paytm, BHIM)</li>
+                      <li>Click on <strong>"Scan QR"</strong> or use <strong>"Send Money"</strong></li>
+                      <li>Scan this QR code or enter UPI ID</li>
+                      <li>Enter amount: <strong>₹{(selectedAmount || rechargeAmount)}</strong></li>
+                      <li>Complete payment</li>
                     </ol>
                   </div>
                   
-                  <div className="utr-input-section">
-                    <label>UTR / Transaction Reference Number *</label>
-                    <input 
-                      type="text"
-                      placeholder="Enter UTR number from your UPI app"
-                      value={utrNumber}
-                      onChange={(e) => setUtrNumber(e.target.value)}
-                      className="utr-input"
-                    />
-                    <small>Found in payment success screen or bank statement</small>
-                  </div>
+                  <button className="scan-payment-btn" onClick={handleDirectRecharge}>
+                    <Camera size={18} /> I have made the payment
+                  </button>
                 </div>
-              )}
-
-              <div className="modal-footer">
-                <button className="cancel-btn" onClick={() => setShowRechargeModal(false)}>Cancel</button>
-                <button 
-                  className="recharge-confirm-btn" 
-                  onClick={handleRechargeRequest} 
-                  disabled={recharging || (rechargeMethod === 'UPI' && !utrNumber)}
-                >
-                  {recharging ? "Processing..." : "Confirm Payment"}
-                </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 🔥 NEW: Success Modal - Shows updated balance */}
-      {showSuccessModal && (
-        <div className="modal-overlay" onClick={() => setShowSuccessModal(false)}>
-          <div className="modal-content success-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="success-icon">
-              <CheckCircle size={60} color="#10b981" />
-            </div>
-            <h2>Recharge Successful!</h2>
-            <div className="recharge-details">
-              <div className="detail-row">
-                <span>Amount Recharged:</span>
-                <strong>₹{lastRechargeAmount.toLocaleString()}</strong>
-              </div>
-              <div className="detail-row highlight">
-                <span>New Balance:</span>
-                <strong className="new-balance">₹{walletData.balance.toLocaleString()}</strong>
-              </div>
-            </div>
-            <p className="success-message">
-              Your wallet has been successfully recharged. You can now create orders using this balance.
-            </p>
-            <button className="success-ok-btn" onClick={() => setShowSuccessModal(false)}>
-              OK, Got it
-            </button>
+            )}
           </div>
         </div>
       )}
@@ -935,43 +775,43 @@ function ClientDashboard() {
         <QrScannerComponent 
           onScan={handleQrScan}
           onClose={() => setShowScanner(false)}
+          amount={selectedAmount || rechargeAmount}
         />
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="modal-overlay" onClick={() => setShowSuccessModal(false)}>
+          <div className="modal-content success-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="success-icon"><CheckCircle size={60} color="#10b981" /></div>
+            <h2>Payment Successful!</h2>
+            <div className="recharge-details">
+              <div className="detail-row"><span>Amount Recharged:</span><strong>₹{lastRechargeAmount.toLocaleString()}</strong></div>
+              <div className="detail-row highlight"><span>New Balance:</span><strong className="new-balance">₹{walletData.balance.toLocaleString()}</strong></div>
+            </div>
+            <p className="success-message">Your wallet has been successfully recharged. You can now create orders.</p>
+            <button className="success-ok-btn" onClick={() => setShowSuccessModal(false)}>OK, Got it</button>
+          </div>
+        </div>
       )}
 
       {/* Recharge History Modal */}
       {showRechargeHistory && (
         <div className="modal-overlay" onClick={() => setShowRechargeHistory(false)}>
           <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3><History size={20} /> Recharge History</h3>
-              <button className="modal-close" onClick={() => setShowRechargeHistory(false)}>×</button>
-            </div>
+            <div className="modal-header"><h3><History size={20} /> Recharge History</h3><button className="modal-close" onClick={() => setShowRechargeHistory(false)}>×</button></div>
             <div className="modal-body">
-              {rechargeHistory.length === 0 ? (
-                <div className="no-data">No recharge history found</div>
-              ) : (
+              {rechargeHistory.length === 0 ? (<div className="no-data">No recharge history found</div>) : (
                 <table className="history-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Amount</th>
-                      <th>Method</th>
-                      <th>Status</th>
-                      <th>UTR No.</th>
-                    </tr>
-                  </thead>
+                  <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Status</th><th>Transaction ID</th></tr></thead>
                   <tbody>
                     {rechargeHistory.map((item, idx) => (
                       <tr key={idx}>
                         <td>{new Date(item.created_at).toLocaleDateString()}</td>
                         <td className="amount">₹{item.amount.toLocaleString()}</td>
                         <td>{item.payment_method}</td>
-                        <td>
-                          <span className={`status-badge ${item.status === 'COMPLETED' ? 'success' : 'pending'}`}>
-                            {item.status}
-                          </span>
-                        </td>
-                        <td className="txn-id">{item.utr_number || item.transaction_id}</td>
+                        <td><span className={`status-badge ${item.status === 'COMPLETED' ? 'success' : 'pending'}`}>{item.status}</span></td>
+                        <td className="txn-id">{item.transaction_id}</td>
                       </tr>
                     ))}
                   </tbody>

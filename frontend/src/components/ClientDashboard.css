@@ -1,4 +1,4 @@
-/* Client Dashboard - Premium Professional Design v5.0 */
+/* Client Dashboard - Premium Professional Design v6.0 */
 /* Developed by Devora Technologies */
 
 :root {
@@ -248,7 +248,7 @@
 }
 
 /* ============================================
-   🆕 WALLET CARD STYLES
+   WALLET CARD STYLES
    ============================================ */
 .sidebar-wallet {
   padding: 20px;
@@ -360,7 +360,7 @@
 }
 
 /* ============================================
-   🆕 MODAL STYLES
+   RECHARGE MODAL - SIMPLE & CLEAN
    ============================================ */
 .modal-overlay {
   position: fixed;
@@ -377,11 +377,6 @@
   animation: fadeIn 0.3s ease;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 .modal-content {
   background: white;
   border-radius: var(--radius-2xl);
@@ -393,8 +388,17 @@
   box-shadow: var(--shadow-2xl);
 }
 
+.modal-content.recharge-modal-simple {
+  max-width: 550px;
+}
+
 .modal-content.large {
   max-width: 800px;
+}
+
+.modal-content.success-modal {
+  max-width: 400px;
+  text-align: center;
 }
 
 .client-dashboard.dark .modal-content {
@@ -462,121 +466,422 @@
   color: var(--primary-red);
 }
 
-.recharge-input {
-  margin-bottom: 24px;
-}
-
-.recharge-input label {
-  font-size: 13px;
-  font-weight: 600;
-  display: block;
-  margin-bottom: 8px;
-  color: var(--text-primary);
-}
-
-.amount-input-wrapper {
-  position: relative;
-  margin-bottom: 12px;
-}
-
-.amount-input-wrapper .currency {
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.amount-input-wrapper input {
-  width: 100%;
-  padding: 14px 16px 14px 40px;
-  border: 2px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  font-size: 18px;
-  font-weight: 600;
-  transition: var(--transition);
-  background: white;
-}
-
-.client-dashboard.dark .amount-input-wrapper input {
-  background: #334155;
-  border-color: #475569;
-  color: white;
-}
-
-.amount-input-wrapper input:focus {
-  outline: none;
-  border-color: var(--primary-red);
-  box-shadow: 0 0 0 3px var(--primary-red-glow);
-}
-
-.suggested-amounts {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.suggested-amounts button {
-  padding: 8px 16px;
-  background: var(--hover-bg);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-weight: 500;
-  transition: var(--transition);
-}
-
-.suggested-amounts button:hover {
-  background: var(--primary-red);
-  color: white;
-  border-color: var(--primary-red);
-}
-
-.payment-method {
-  margin-bottom: 24px;
-}
-
-.payment-method label {
-  font-size: 13px;
-  font-weight: 600;
-  display: block;
-  margin-bottom: 12px;
-  color: var(--text-primary);
-}
-
-.method-options {
+/* Suggested Amounts Grid */
+.suggested-amounts-large {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
+  margin-bottom: 16px;
 }
 
-.method {
+.amount-card {
+  background: linear-gradient(135deg, #f8fafc, #ffffff);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.amount-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary-blue);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.amount-card.selected {
+  background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-dark));
+  border-color: var(--primary-blue);
+  color: white;
+}
+
+.amount-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.amount-label {
+  display: block;
+  font-size: 11px;
+  opacity: 0.8;
+  margin-top: 4px;
+}
+
+.custom-amount input {
+  width: 100%;
+  padding: 14px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  text-align: center;
+  transition: var(--transition);
+}
+
+.custom-amount input:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+}
+
+/* Payment Options */
+.payment-options-body {
+  padding: 20px;
+}
+
+.payment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: var(--primary-blue);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition);
+}
+
+.back-btn:hover {
+  transform: translateX(-4px);
+}
+
+.payment-amount-display {
+  text-align: right;
+}
+
+.payment-amount-display span {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: block;
+}
+
+.payment-amount-display strong {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+/* UPI QR Section */
+.upi-qr-simple {
+  text-align: center;
+}
+
+.qr-code-display {
+  background: white;
+  padding: 20px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  margin-bottom: 20px;
+}
+
+.upi-qr-img {
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+  display: block;
+}
+
+.upi-id-box {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px;
+  margin-top: 16px;
+  padding: 10px;
   background: var(--hover-bg);
-  border: 2px solid var(--border-color);
   border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+
+.upi-id-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.upi-id-code {
+  font-size: 12px;
+  font-family: monospace;
+  background: var(--border-color);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.copy-btn {
+  background: var(--primary-blue);
+  border: none;
+  padding: 4px 12px;
+  border-radius: 20px;
+  color: white;
+  font-size: 11px;
   cursor: pointer;
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   transition: var(--transition);
 }
 
-.method:hover {
-  border-color: var(--primary-red);
-  background: var(--primary-red-light);
+.copy-btn:hover {
+  transform: scale(1.05);
+  background: var(--primary-blue-dark);
 }
 
-.method.active {
-  background: var(--primary-red);
-  border-color: var(--primary-red);
+.payment-instructions {
+  background: var(--success-light);
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  text-align: left;
+  margin: 20px 0;
+}
+
+.payment-instructions p {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #166534;
+}
+
+.payment-instructions ol {
+  margin: 8px 0 0 20px;
+  font-size: 12px;
+  color: #166534;
+  line-height: 1.6;
+}
+
+.scan-payment-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--success), var(--success-dark));
   color: white;
+  border: none;
+  border-radius: 40px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
 }
 
+.scan-payment-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+}
+
+/* ============================================
+   QR SCANNER STYLES
+   ============================================ */
+.scanner-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.scanner-content {
+  background: white;
+  border-radius: var(--radius-2xl);
+  width: 90%;
+  max-width: 500px;
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+.scanner-header {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, var(--dark-bg), var(--sidebar-bg));
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.scanner-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 18px;
+}
+
+.scanner-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 28px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.scanner-close:hover {
+  transform: scale(1.1);
+  color: var(--primary-red);
+}
+
+.scanner-body {
+  padding: 20px;
+  text-align: center;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+#qr-reader {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+#qr-reader__scan_region {
+  background: #000;
+  border-radius: var(--radius-lg);
+}
+
+.scanning-info {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.scanning-animation {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 12px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-blue);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.amount-hint {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.amount-hint strong {
+  color: var(--primary-blue);
+  font-size: 18px;
+}
+
+/* Processing & Success States */
+.processing-payment,
+.payment-success-auto {
+  text-align: center;
+  padding: 30px 20px;
+}
+
+.processing-spinner {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 16px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--success);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.payment-success-auto h3 {
+  color: var(--success);
+  margin: 16px 0 8px;
+  font-size: 24px;
+}
+
+.payment-success-auto p {
+  color: var(--text-secondary);
+  margin: 4px 0;
+}
+
+/* ============================================
+   SUCCESS MODAL STYLES
+   ============================================ */
+.success-modal {
+  text-align: center;
+}
+
+.success-icon {
+  margin-bottom: 20px;
+  animation: scaleIn 0.3s ease;
+}
+
+.success-modal h2 {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+}
+
+.recharge-details {
+  background: var(--hover-bg);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin: 20px 0;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+
+.detail-row.highlight {
+  border-top: 1px solid var(--border-color);
+  margin-top: 8px;
+  padding-top: 12px;
+  font-size: 18px;
+}
+
+.new-balance {
+  color: var(--success);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.success-message {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 16px 0;
+}
+
+.success-ok-btn {
+  background: linear-gradient(135deg, var(--success), var(--success-dark));
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 16px;
+  transition: var(--transition);
+}
+
+.success-ok-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* ============================================
+   MODAL FOOTER
+   ============================================ */
 .modal-footer {
   display: flex;
   gap: 12px;
@@ -608,6 +913,10 @@
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .recharge-confirm-btn:hover {
@@ -621,7 +930,47 @@
   transform: none;
 }
 
-/* History Table */
+/* ============================================
+   RECHARGE INPUT STYLES
+   ============================================ */
+.recharge-input {
+  margin-bottom: 24px;
+}
+
+.recharge-input label {
+  font-size: 13px;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.suggested-amounts {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.suggested-amounts button {
+  padding: 8px 16px;
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.suggested-amounts button:hover {
+  background: var(--primary-red);
+  color: white;
+  border-color: var(--primary-red);
+}
+
+/* ============================================
+   HISTORY TABLE STYLES
+   ============================================ */
 .history-table {
   width: 100%;
   border-collapse: collapse;
@@ -648,7 +997,7 @@
 
 .history-table .amount {
   font-weight: 700;
-  color: var(--primary-green);
+  color: var(--success);
 }
 
 .history-table .txn-id {
@@ -683,7 +1032,7 @@
   font-size: 14px;
 }
 
-/* Spinner Small */
+/* Spinner */
 .spinner-small {
   width: 18px;
   height: 18px;
@@ -791,7 +1140,7 @@
 }
 
 /* ============================================
-   MAIN CONTENT STYLES - ENHANCED
+   MAIN CONTENT STYLES
    ============================================ */
 .main-content {
   flex: 1;
@@ -799,7 +1148,7 @@
   overflow-x: hidden;
 }
 
-/* Top Header - Enhanced */
+/* Top Header */
 .top-header {
   background: white;
   padding: 16px 32px;
@@ -822,10 +1171,6 @@
   padding: 8px;
   border-radius: var(--radius-md);
   transition: var(--transition);
-}
-
-.mobile-menu-btn:hover {
-  background: var(--hover-bg);
 }
 
 .header-search {
@@ -865,15 +1210,6 @@
 .refresh-btn:hover {
   background: var(--hover-bg);
   color: var(--primary-red);
-}
-
-.spin {
-  animation: spin 0.5s linear;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 
 .header-actions {
@@ -918,10 +1254,6 @@
   transition: var(--transition);
 }
 
-.header-user:hover {
-  background: var(--border-light);
-}
-
 .user-details {
   text-align: right;
 }
@@ -948,7 +1280,7 @@
   color: var(--primary-red);
 }
 
-/* Welcome Banner - Premium */
+/* Welcome Banner */
 .welcome-banner {
   margin: 24px 32px;
   background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-red-dark) 100%);
@@ -1020,7 +1352,7 @@
   transform: translateY(-50%);
 }
 
-/* Stats Grid - Premium */
+/* Stats Grid */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1097,7 +1429,7 @@
   color: var(--success);
 }
 
-/* Quick Actions Section */
+/* Quick Actions */
 .quick-actions-section {
   padding: 0 32px;
   margin-bottom: 32px;
@@ -1130,12 +1462,7 @@
   border-color: transparent;
 }
 
-.action-icon {
-  display: flex;
-  align-items: center;
-}
-
-/* Tracking Section - Premium */
+/* Tracking Section */
 .tracking-section.premium {
   background: white;
   margin: 0 32px 32px;
@@ -1157,8 +1484,6 @@
   border-radius: var(--radius-lg);
   font-size: 14px;
   transition: var(--transition);
-  color: var(--text-primary);
-  background: var(--bg-white);
 }
 
 .tracking-box.premium input:focus {
@@ -1188,65 +1513,6 @@
   background: var(--hover-bg);
   border-radius: var(--radius-xl);
   padding: 24px;
-}
-
-.tracking-progress {
-  margin-bottom: 24px;
-}
-
-.progress-steps {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: relative;
-}
-
-.progress-steps::before {
-  content: '';
-  position: absolute;
-  top: 20px;
-  left: 10%;
-  right: 10%;
-  height: 2px;
-  background: var(--border-color);
-  z-index: 0;
-}
-
-.step {
-  text-align: center;
-  position: relative;
-  z-index: 1;
-  background: white;
-  padding: 0 10px;
-}
-
-.step .step-icon {
-  width: 40px;
-  height: 40px;
-  background: var(--border-color);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
-  transition: var(--transition);
-}
-
-.step.active .step-icon {
-  background: var(--primary-red);
-  color: white;
-  transform: scale(1.1);
-  box-shadow: 0 0 0 3px var(--primary-red-glow);
-}
-
-.step span {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.step.active span {
-  color: var(--primary-red);
-  font-weight: 600;
 }
 
 .tracking-details.premium {
@@ -1322,7 +1588,7 @@
   color: var(--primary-red);
 }
 
-/* Modules Grid - Premium */
+/* Modules Grid */
 .modules-grid.premium {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1427,7 +1693,7 @@
   filter: brightness(1.05);
 }
 
-/* Recent Table - Premium */
+/* Recent Table */
 .recent-section {
   padding: 0 32px 32px;
 }
@@ -1462,10 +1728,6 @@
   color: var(--text-primary);
 }
 
-.recent-table.premium tbody tr {
-  transition: var(--transition);
-}
-
 .recent-table.premium tbody tr:hover {
   background: var(--hover-bg);
 }
@@ -1494,12 +1756,6 @@
   background: var(--primary-red-light);
   color: var(--primary-red);
   transform: scale(1.05);
-}
-
-.no-data {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-secondary);
 }
 
 /* Support Section */
@@ -1559,7 +1815,7 @@
   box-shadow: var(--shadow-lg);
 }
 
-/* Footer - Premium */
+/* Footer */
 .dashboard-footer {
   background: white;
   padding: 24px 32px;
@@ -1655,14 +1911,31 @@
   50% { transform: scale(1.05); opacity: 0.8; }
 }
 
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-20px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* Scrollbar Styling */
@@ -1747,10 +2020,6 @@
     width: 95%;
     margin: 20px;
   }
-  
-  .method-options {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 @media (max-width: 768px) {
@@ -1805,15 +2074,6 @@
     flex-direction: column;
   }
   
-  .progress-steps {
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  
-  .progress-steps::before {
-    display: none;
-  }
-  
   .footer-content {
     flex-direction: column;
     text-align: center;
@@ -1849,18 +2109,25 @@
     padding: 16px;
   }
   
-  .method-options {
-    grid-template-columns: 1fr;
-  }
-  
   .modal-footer {
     flex-direction: column;
   }
   
-  .history-table th,
-  .history-table td {
-    padding: 8px;
-    font-size: 11px;
+  .suggested-amounts-large {
+    grid-template-columns: 1fr;
+  }
+  
+  .upi-qr-img {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .scanner-content {
+    width: 95%;
+  }
+  
+  #qr-reader {
+    width: 100%;
   }
 }
 
@@ -1925,6 +2192,20 @@
   .wallet-actions {
     flex-direction: column;
   }
+  
+  .upi-id-code {
+    font-size: 10px;
+  }
+  
+  .payment-header {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+  
+  .payment-amount-display {
+    text-align: center;
+  }
 }
 
 /* Focus Visible Accessibility */
@@ -1943,244 +2224,4 @@
 ::-moz-selection {
   background: var(--primary-red-light);
   color: var(--primary-red);
-}
-/* Success Modal */
-.success-modal {
-  text-align: center;
-  max-width: 400px;
-}
-
-.success-icon {
-  margin-bottom: 20px;
-  animation: scaleIn 0.3s ease;
-}
-
-.success-modal h2 {
-  font-size: 24px;
-  font-weight: 800;
-  color: #1e293b;
-  margin-bottom: 20px;
-}
-
-.recharge-details {
-  background: #f8fafc;
-  border-radius: 16px;
-  padding: 16px;
-  margin: 20px 0;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-}
-
-.detail-row.highlight {
-  border-top: 1px solid #e2e8f0;
-  margin-top: 8px;
-  padding-top: 12px;
-  font-size: 18px;
-}
-
-.new-balance {
-  color: #10b981;
-  font-size: 20px;
-}
-
-.success-message {
-  color: #64748b;
-  font-size: 13px;
-  line-height: 1.5;
-  margin: 16px 0;
-}
-
-.success-ok-btn {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 30px;
-  font-weight: 600;
-  cursor: pointer;
-  width: 100%;
-  margin-top: 16px;
-}
-
-/* UPI QR Section */
-.upi-qr-section {
-  background: linear-gradient(135deg, #f8fafc, #ffffff);
-  border-radius: 16px;
-  padding: 20px;
-  margin: 20px 0;
-  border: 1px solid #e2e8f0;
-}
-
-.qr-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.qr-icon {
-  font-size: 32px;
-}
-
-.qr-title h4 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.qr-title p {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: #64748b;
-}
-
-.qr-code-container {
-  text-align: center;
-  padding: 16px;
-  background: white;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-}
-
-.upi-qr-image {
-  width: 160px;
-  height: 160px;
-  margin: 0 auto;
-  display: block;
-}
-
-.upi-id-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin: 12px 0;
-  padding: 8px;
-  background: #f1f5f9;
-  border-radius: 8px;
-  flex-wrap: wrap;
-}
-
-.upi-id {
-  font-size: 12px;
-  font-family: monospace;
-  word-break: break-all;
-}
-
-.copy-upi-btn, .scan-qr-btn {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  border: none;
-  padding: 6px 12px;
-  border-radius: 20px;
-  color: white;
-  font-size: 11px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.scan-qr-btn {
-  margin-top: 8px;
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-}
-
-.qr-instructions {
-  background: #f0fdf4;
-  padding: 12px 16px;
-  border-radius: 10px;
-  margin: 16px 0;
-  font-size: 12px;
-  color: #166534;
-}
-
-.qr-instructions ol {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.utr-input-section label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.utr-input {
-  width: 100%;
-  padding: 12px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-family: monospace;
-  letter-spacing: 1px;
-}
-
-.utr-input:focus {
-  outline: none;
-  border-color: #3b82f6;
-}
-
-/* Scanner Modal */
-.scanner-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.9);
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.scanner-content {
-  background: white;
-  border-radius: 24px;
-  width: 90%;
-  max-width: 500px;
-  overflow: hidden;
-}
-
-.scanner-header {
-  padding: 16px;
-  background: #1e293b;
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.scanner-close {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 24px;
-  cursor: pointer;
-}
-
-.scanner-body {
-  padding: 20px;
-  text-align: center;
-}
-
-.scanner-instruction {
-  margin-top: 12px;
-  font-size: 12px;
-  color: #64748b;
-}
-
-@keyframes scaleIn {
-  from {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
 }
