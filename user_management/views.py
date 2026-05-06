@@ -12,6 +12,28 @@ from datetime import datetime
 
 # =====================================================
 # 🛠️ HELPER: LR FORMATTER (Numbers ko FCPL0001 banata hai)
+@api_view(['GET'])
+def test_api(request):
+    """Test API endpoint to check if server is running"""
+    return Response({
+        "status": "success",
+        "message": "User Management API is working!",
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0",
+        "endpoints": [
+            "/api/user/admin-login/",
+            "/api/user/login/",
+            "/api/user/add-user/",
+            "/api/user/users/",
+            "/api/user/clients/",
+            "/api/user/wallet/balance/",
+            "/api/user/wallet/recharge-request/",
+            "/api/user/wallet/recharge-history/",
+            "/api/user/admin/recharges/",
+            "/api/user/create-razorpay-order/",
+            "/api/user/verify-razorpay-payment/"
+        ]
+    })
 # =====================================================
 def format_lr(number):
     try:
