@@ -10,7 +10,79 @@ from pincode.models import Pincode
 from utils.notifications import send_order_notification
 from datetime import datetime
 
+# Add this right after your imports, before any other functions
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
 
+# Django
+from django.contrib.auth.hashers import make_password, check_password
+from django.db.models import Sum, Count, Q
+from django.db import connection
+from django.core.exceptions import ObjectDoesNotExist
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
+
+# Python
+from datetime import datetime, timedelta
+from decimal import Decimal
+import logging
+import uuid
+import json
+# Razorpay
+import razorpay
+
+# Local imports
+from .models import (
+    CustomUser, ClientProfile, ClientRateMatrix, ClientRatePolicy, 
+    ClientSession, ClientOrderSummary, ClientWallet, RechargeHistory, 
+    WalletTransaction, RechargeRequest
+)
+
+# Setup logging
+logger = logging.getLogger(__name__)
+
+# Try to import Shipment models
+try:
+    from shipments.models import Order
+    SHIPMENT_MODELS_AVAILABLE = True
+except ImportError:
+    SHIPMENT_MODELS_AVAILABLE = False
+    logger.warning("Shipment models not available.")
+
+# Initialize Razorpay client
+razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+
+# ============================================
+# 🔧 TEST API ENDPOINT
+# ============================================
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def test_api(request):
+    """Test API endpoint to check if server is running"""
+    return Response({
+        "status": "success",
+        "message": "User Management API is working!",
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0",
+        "endpoints": [
+            "/api/user/admin-login/",
+            "/api/user/login/",
+            "/api/user/add-user/",
+            "/api/user/users/",
+            "/api/user/clients/",
+            "/api/user/wallet/balance/",
+            "/api/user/wallet/recharge-request/",
+            "/api/user/wallet/recharge-history/",
+            "/api/user/admin/recharges/",
+            "/api/user/create-razorpay-order/",
+            "/api/user/verify-razorpay-payment/"
+        ]
+    })
 # =====================================================
 # 🛠️ HELPER: LR FORMATTER (Numbers ko FCPL0001 banata hai)
 # =====================================================
@@ -51,6 +123,7 @@ def get_locations(request):
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 # 💰 DYNAMIC FREIGHT CALCULATOR (Using 'rates' app)
+
 @csrf_exempt
 def calculate_freight(request):
     if request.method == "POST":
