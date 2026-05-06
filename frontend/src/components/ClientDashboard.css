@@ -570,7 +570,7 @@
   color: var(--text-primary);
 }
 
-/* UPI QR Section */
+/* 🔥 UPI QR Section - DYNAMIC QR WITH AMOUNT */
 .upi-qr-simple {
   text-align: center;
 }
@@ -583,11 +583,69 @@
   margin-bottom: 20px;
 }
 
+/* 🔥 NEW: QR Amount Badge */
+.qr-amount-badge {
+  text-align: center;
+  margin-bottom: 16px;
+  padding: 10px;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border-radius: 12px;
+  border: 1px solid #bbf7d0;
+}
+
+.qr-amount-badge span {
+  font-size: 12px;
+  color: #166534;
+  display: block;
+  font-weight: 500;
+}
+
+.qr-amount-badge strong {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--success);
+  display: block;
+  margin-top: 4px;
+}
+
+/* 🔥 NEW: QR Amount Info */
+.qr-amount-info {
+  text-align: center;
+  margin-top: 16px;
+  padding: 12px;
+  background: linear-gradient(135deg, #fef3c7, #fffbeb);
+  border-radius: 10px;
+  border-left: 3px solid var(--warning);
+}
+
+.qr-amount-info p {
+  font-size: 11px;
+  color: #92400e;
+  margin: 4px 0;
+}
+
+.auto-amount-hint {
+  font-size: 10px;
+  font-weight: 500;
+  background: #fde68a;
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-top: 5px;
+}
+
+.auto-amount-hint strong {
+  color: #b45309;
+  font-size: 12px;
+}
+
 .upi-qr-img {
   width: 200px;
   height: 200px;
-  margin: 0 auto;
+  margin: 10px auto;
   display: block;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .upi-id-box {
@@ -652,7 +710,7 @@
   margin: 8px 0 0 20px;
   font-size: 12px;
   color: #166534;
-  line-height: 1.6;
+  line-height: 1.8;
 }
 
 .scan-payment-btn {
@@ -2129,6 +2187,10 @@
   #qr-reader {
     width: 100%;
   }
+  
+  .qr-amount-badge strong {
+    font-size: 20px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -2205,6 +2267,14 @@
   
   .payment-amount-display {
     text-align: center;
+  }
+  
+  .qr-amount-badge strong {
+    font-size: 18px;
+  }
+  
+  .auto-amount-hint {
+    font-size: 9px;
   }
 }
 

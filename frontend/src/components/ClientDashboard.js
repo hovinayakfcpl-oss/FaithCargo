@@ -63,7 +63,7 @@ const QrScannerComponent = ({ onScan, onClose, amount }) => {
     <div className="scanner-modal">
       <div className="scanner-content">
         <div className="scanner-header">
-          <h3><Camera size={18} /> Scan QR Code to Pay</h3>
+          <h3><Camera size={18} /> Scan QR Code to Pay ₹{amount}</h3>
           <button className="scanner-close" onClick={onClose}>×</button>
         </div>
         <div className="scanner-body">
@@ -72,8 +72,8 @@ const QrScannerComponent = ({ onScan, onClose, amount }) => {
               <div id="qr-reader" style={{ width: '100%' }}></div>
               <div className="scanning-info">
                 <div className="scanning-animation"></div>
-                <p>📱 Place QR code in front of camera</p>
-                <p className="amount-hint">Amount to pay: <strong>₹{amount}</strong></p>
+                <p>📱 Scan the QR code displayed on your mobile</p>
+                <p className="amount-hint">Amount <strong>₹{amount}</strong> will be auto-filled in UPI app</p>
               </div>
             </>
           )}
@@ -139,6 +139,19 @@ function ClientDashboard() {
   const clientEmail = localStorage.getItem("clientEmail") || "client@faithcargo.com";
   const clientCompany = localStorage.getItem("clientCompany") || clientName;
 
+  // 🔥 Generate Dynamic QR Code URL with amount
+  const getDynamicQrUrl = (amount) => {
+    const upiId = "gauravsharma000123-3@oksbi";
+    const name = "Gaurav Sharma";
+    const currency = "INR";
+    
+    // Create UPI URL with amount - amount will auto-fill in UPI app when scanned
+    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&cu=${currency}&am=${amount}`;
+    
+    // Generate QR code using quickchart.io
+    return `https://quickchart.io/qr?text=${encodeURIComponent(upiUrl)}&size=250&margin=2`;
+  };
+
   // Fetch wallet balance on load
   useEffect(() => {
     fetchWalletBalance();
@@ -203,7 +216,6 @@ function ClientDashboard() {
     try {
       const token = localStorage.getItem("token");
       
-      // Simulate payment processing (in real scenario, you'd verify with payment gateway)
       const response = await fetch(`https://faithcargo.onrender.com/api/user/wallet/recharge-request/`, {
         method: 'POST',
         headers: {
@@ -407,10 +419,13 @@ function ClientDashboard() {
 
   // Suggested amounts
   const suggestedAmounts = [500, 1000, 2000, 5000];
+  
+  // Get current amount for QR
+  const currentAmount = selectedAmount || parseFloat(rechargeAmount) || 0;
 
   return (
     <div className={`client-dashboard ${darkMode ? "dark" : ""}`}>
-      {/* Sidebar - Same as before */}
+      {/* Sidebar */}
       <div className={`sidebar ${showMobileMenu ? "mobile-open" : ""}`}>
         <div className="sidebar-header">
           <div className="logo">
@@ -503,7 +518,6 @@ function ClientDashboard() {
 
       {/* Main Content */}
       <div className="main-content">
-        {/* Top Header, Welcome Banner, Stats Grid - Same as before */}
         <header className="top-header">
           <button className="mobile-menu-btn" onClick={() => setShowMobileMenu(!showMobileMenu)}>
             {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
@@ -577,7 +591,7 @@ function ClientDashboard() {
           </div>
         </div>
 
-        {/* Tracking Section, Modules Grid, Recent Shipments, Support Section, Footer - Same as before */}
+        {/* Tracking Section */}
         <div className="tracking-section premium">
           <div className="section-header"><div><h2><Navigation size={22} /> Track Your Shipment</h2><p>Enter LR number or AWB to get real-time status</p></div><Gift size={20} className="section-icon" /></div>
           <div className="tracking-box premium">
@@ -653,7 +667,7 @@ function ClientDashboard() {
         </footer>
       </div>
 
-      {/* 🔥 NEW SIMPLE RECHARGE MODAL - Direct Amount Selection + Scanner */}
+      {/* 🔥 RECHARGE MODAL - With Dynamic QR Code */}
       {showRechargeModal && (
         <div className="modal-overlay" onClick={() => { setShowRechargeModal(false); setShowPaymentOptions(false); setSelectedAmount(null); }}>
           <div className="modal-content recharge-modal-simple" onClick={(e) => e.stopPropagation()}>
@@ -723,15 +737,20 @@ function ClientDashboard() {
                   </button>
                   <div className="payment-amount-display">
                     <span>Amount to Pay</span>
-                    <strong>₹{(selectedAmount || rechargeAmount)}</strong>
+                    <strong>₹{selectedAmount || rechargeAmount}</strong>
                   </div>
                 </div>
                 
                 <div className="upi-qr-simple">
                   <div className="qr-code-display">
+                    {/* 🔥 DYNAMIC QR CODE - Amount is encoded in QR */}
+                    <div className="qr-amount-badge">
+                      <span>Scan to Pay</span>
+                      <strong>₹{selectedAmount || rechargeAmount}</strong>
+                    </div>
                     <img 
-                      src={`https://quickchart.io/qr?text=upi://pay?pa=gauravsharma000123-3@oksbi&pn=Gaurav%20Sharma&cu=INR&am=${selectedAmount || rechargeAmount}`}
-                      alt="UPI QR Code"
+                      src={getDynamicQrUrl(selectedAmount || rechargeAmount)}
+                      alt="UPI QR Code with Amount"
                       className="upi-qr-img"
                     />
                     <div className="upi-id-box">
@@ -747,15 +766,19 @@ function ClientDashboard() {
                         <Copy size={14} /> Copy
                       </button>
                     </div>
+                    <div className="qr-amount-info">
+                      <p>💡 Scan this QR code with any UPI app</p>
+                      <p className="auto-amount-hint">✨ Amount <strong>₹{selectedAmount || rechargeAmount}</strong> will be <strong>auto-filled</strong> in the UPI app</p>
+                    </div>
                   </div>
                   
                   <div className="payment-instructions">
                     <p>📱 <strong>How to pay:</strong></p>
                     <ol>
                       <li>Open any UPI app (Google Pay, PhonePe, Paytm, BHIM)</li>
-                      <li>Click on <strong>"Scan QR"</strong> or use <strong>"Send Money"</strong></li>
-                      <li>Scan this QR code or enter UPI ID</li>
-                      <li>Enter amount: <strong>₹{(selectedAmount || rechargeAmount)}</strong></li>
+                      <li>Click on <strong>"Scan QR"</strong></li>
+                      <li>Scan the QR code above</li>
+                      <li>Amount <strong>₹{selectedAmount || rechargeAmount}</strong> will be auto-filled</li>
                       <li>Complete payment</li>
                     </ol>
                   </div>
