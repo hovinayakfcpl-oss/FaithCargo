@@ -53,4 +53,7 @@ urlpatterns = [
     path('admin/recharge/manual/', views.add_recharge_manual, name='admin_recharge_manual'),
     path('admin/recharges/', views.admin_all_recharges, name='admin_all_recharges'),
     path('admin/recharge/approve/<int:recharge_id>/', views.approve_recharge, name='approve_recharge'),
+    # Add these URLs
+path('create-razorpay-order/', views.create_razorpay_order, name='create_razorpay_order'),
+path('verify-razorpay-payment/', views.verify_razorpay_payment, name='verify_razorpay_payment'),
 ]

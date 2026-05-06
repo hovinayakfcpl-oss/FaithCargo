@@ -14,6 +14,11 @@ import uuid
 # Add these with other imports
 from .models import ClientWallet, RechargeHistory, WalletTransaction, RechargeRequest
 from django.utils import timezone
+# Add these imports at the top
+import razorpay
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -1299,3 +1304,100 @@ def check_balance_before_order(request):
             "success": False,
             "error": str(e)
         }, status=500)
+    
+
+
+# Initialize Razorpay client
+razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_razorpay_order(request):
+    """Create Razorpay order for recharge"""
+    try:
+        user = request.user
+        amount = request.data.get('amount')
+        
+        if not amount or float(amount) <= 0:
+            return Response({'error': 'Invalid amount'}, status=400)
+        
+        # Create Razorpay order
+        order_amount = int(float(amount) * 100)
+        order_currency = 'INR'
+        
+        razorpay_order = razorpay_client.order.create({
+            'amount': order_amount,
+            'currency': order_currency,
+            'payment_capture': 1,
+            'notes': {
+                'user_id': user.id,
+                'client_id': user.client_id,
+                'amount': amount
+            }
+        })
+        
+        # Save order in database
+        recharge = RechargeHistory.objects.create(
+            client=user,
+            amount=amount,
+            payment_method='RAZORPAY',
+            transaction_id=razorpay_order['id'],
+            status='PENDING',
+            created_by=user
+        )
+        
+        return Response({
+            'success': True,
+            'order_id': razorpay_order['id'],
+            'amount': amount,
+            'currency': order_currency,
+            'key_id': settings.RAZORPAY_KEY_ID,
+            'recharge_id': recharge.id
+        })
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@api_view(['POST'])
+def verify_razorpay_payment(request):
+    """Verify Razorpay payment"""
+    try:
+        order_id = request.data.get('order_id')
+        payment_id = request.data.get('payment_id')
+        signature = request.data.get('signature')
+        
+        # Verify payment signature
+        params_dict = {
+            'razorpay_order_id': order_id,
+            'razorpay_payment_id': payment_id,
+            'razorpay_signature': signature
+        }
+        
+        razorpay_client.utility.verify_payment_signature(params_dict)
+        
+        # Update recharge
+        recharge = RechargeHistory.objects.filter(transaction_id=order_id).first()
+        
+        if recharge and recharge.status == 'PENDING':
+            recharge.status = 'COMPLETED'
+            recharge.gateway_transaction_id = payment_id
+            recharge.completed_at = timezone.now()
+            recharge.save()
+            
+            # Add balance to wallet
+            wallet, created = ClientWallet.objects.get_or_create(client=recharge.client)
+            wallet.add_balance(recharge.amount, recharge.id)
+            
+            return Response({
+                'success': True,
+                'message': 'Payment verified successfully',
+                'amount': recharge.amount,
+                'new_balance': wallet.balance
+            })
+        
+        return Response({'error': 'Recharge not found'}, status=404)
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)

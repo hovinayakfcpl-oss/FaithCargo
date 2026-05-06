@@ -18,84 +18,15 @@ import {
 } from "lucide-react";
 import "./ClientDashboard.css";
 
-// QR Scanner Component with Auto-Success
-const QrScannerComponent = ({ onScan, onClose, amount }) => {
-  const [scanning, setScanning] = useState(true);
-  const [scanStatus, setScanStatus] = useState("scanning");
-  
-  useEffect(() => {
-    // Load QR Scanner library
+// Load Razorpay script dynamically
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
     const script = document.createElement('script');
-    script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-    script.onload = () => {
-      if (window.Html5Qrcode) {
-        const html5QrCode = new window.Html5Qrcode("qr-reader");
-        const config = { fps: 10, qrbox: { width: 280, height: 280 } };
-        
-        html5QrCode.start(
-          { facingMode: "environment" },
-          config,
-          (decodedText) => {
-            html5QrCode.stop();
-            setScanStatus("processing");
-            // Auto-detect payment and trigger success
-            setTimeout(() => {
-              onScan(decodedText);
-              setScanStatus("success");
-            }, 1500);
-          },
-          (errorMessage) => {
-            console.log("Scan error:", errorMessage);
-          }
-        ).catch(err => console.log("Start error:", err));
-      }
-    };
-    document.head.appendChild(script);
-    
-    return () => {
-      if (window.html5QrCode) {
-        window.html5QrCode.stop();
-      }
-    };
-  }, [onScan]);
-  
-  return (
-    <div className="scanner-modal">
-      <div className="scanner-content">
-        <div className="scanner-header">
-          <h3><Camera size={18} /> Scan QR Code to Pay ₹{amount}</h3>
-          <button className="scanner-close" onClick={onClose}>×</button>
-        </div>
-        <div className="scanner-body">
-          {scanStatus === "scanning" && (
-            <>
-              <div id="qr-reader" style={{ width: '100%' }}></div>
-              <div className="scanning-info">
-                <div className="scanning-animation"></div>
-                <p>📱 Scan the QR code displayed on your mobile</p>
-                <p className="amount-hint">Amount <strong>₹{amount}</strong> will be auto-filled in UPI app</p>
-              </div>
-            </>
-          )}
-          {scanStatus === "processing" && (
-            <div className="processing-payment">
-              <div className="processing-spinner"></div>
-              <p>⏳ Processing payment...</p>
-              <p>Please wait while we verify your payment</p>
-            </div>
-          )}
-          {scanStatus === "success" && (
-            <div className="payment-success-auto">
-              <CheckCircle size={50} color="#10b981" />
-              <h3>Payment Detected!</h3>
-              <p>Your payment of ₹{amount} has been received</p>
-              <p>Updating wallet balance...</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
 };
 
 function ClientDashboard() {
@@ -109,13 +40,13 @@ function ClientDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [rechargeAmount, setRechargeAmount] = useState("");
-  const [rechargeMethod, setRechargeMethod] = useState("UPI");
+  const [rechargeMethod, setRechargeMethod] = useState("RAZORPAY");
   const [recharging, setRecharging] = useState(false);
-  const [showScanner, setShowScanner] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastRechargeAmount, setLastRechargeAmount] = useState(0);
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState(null);
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [walletData, setWalletData] = useState({
     balance: 0,
     total_recharged: 0,
@@ -139,18 +70,17 @@ function ClientDashboard() {
   const clientEmail = localStorage.getItem("clientEmail") || "client@faithcargo.com";
   const clientCompany = localStorage.getItem("clientCompany") || clientName;
 
-  // 🔥 Generate Dynamic QR Code URL with amount
-  const getDynamicQrUrl = (amount) => {
-    const upiId = "gauravsharma000123-3@oksbi";
-    const name = "Gaurav Sharma";
-    const currency = "INR";
-    
-    // Create UPI URL with amount - amount will auto-fill in UPI app when scanned
-    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&cu=${currency}&am=${amount}`;
-    
-    // Generate QR code using quickchart.io
-    return `https://quickchart.io/qr?text=${encodeURIComponent(upiUrl)}&size=250&margin=2`;
-  };
+  // Load Razorpay script on component mount
+  useEffect(() => {
+    const loadScript = async () => {
+      const loaded = await loadRazorpayScript();
+      setRazorpayLoaded(loaded);
+      if (!loaded) {
+        console.error("Failed to load Razorpay script");
+      }
+    };
+    loadScript();
+  }, []);
 
   // Fetch wallet balance on load
   useEffect(() => {
@@ -199,73 +129,113 @@ function ClientDashboard() {
     }
   };
 
-  // Handle QR Scan - Auto success on payment
-  const handleQrScan = async (scannedData) => {
-    console.log("Scanned QR:", scannedData);
-    const amount = parseFloat(rechargeAmount) || selectedAmount;
+  // 🔥 RAZORPAY PAYMENT HANDLER
+  const handleRazorpayPayment = async () => {
+    const amount = selectedAmount || parseFloat(rechargeAmount);
     
-    if (!amount || amount <= 0) {
-      alert("❌ Please select a valid amount first");
-      setShowScanner(false);
+    if (!amount || amount < 100) {
+      alert("❌ Please select a valid amount (minimum ₹100)");
+      return;
+    }
+    
+    if (!razorpayLoaded) {
+      alert("❌ Payment system is loading. Please try again.");
       return;
     }
     
     setRecharging(true);
-    setShowScanner(false);
     
     try {
       const token = localStorage.getItem("token");
       
-      const response = await fetch(`https://faithcargo.onrender.com/api/user/wallet/recharge-request/`, {
+      // Create Razorpay order
+      const response = await fetch(`https://faithcargo.onrender.com/api/user/create-razorpay-order/`, {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          amount: amount,
-          payment_method: 'UPI',
-          utr_number: `UPI_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-          reference_number: `RECH_${Date.now()}`
-        })
+        body: JSON.stringify({ amount: amount })
       });
-
+      
       const data = await response.json();
-
-      if (response.ok && data.success) {
-        setLastRechargeAmount(amount);
-        setShowRechargeModal(false);
-        setRechargeAmount("");
-        setSelectedAmount(null);
-        setShowPaymentOptions(false);
-        setShowSuccessModal(true);
-        await fetchWalletBalance();
-        await fetchRechargeHistory();
-      } else {
-        alert(`❌ Payment failed: ${data.error || "Please try again"}`);
+      console.log("Order response:", data);
+      
+      if (!data.success) {
+        throw new Error(data.error || "Failed to create order");
       }
+      
+      // Open Razorpay checkout
+      const options = {
+        key: data.key_id,
+        amount: data.amount * 100,
+        currency: data.currency,
+        name: "Faith Cargo Logistics",
+        description: `Wallet Recharge - ₹${data.amount}`,
+        image: "https://faithcargo.onrender.com/static/logo.png",
+        order_id: data.order_id,
+        handler: async function(response) {
+          console.log("Payment success:", response);
+          
+          // Verify payment
+          const verifyRes = await fetch(`https://faithcargo.onrender.com/api/user/verify-razorpay-payment/`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Token ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              order_id: response.razorpay_order_id,
+              payment_id: response.razorpay_payment_id,
+              signature: response.razorpay_signature
+            })
+          });
+          
+          const verifyData = await verifyRes.json();
+          console.log("Verify response:", verifyData);
+          
+          if (verifyData.success) {
+            setLastRechargeAmount(amount);
+            setShowRechargeModal(false);
+            setRechargeAmount("");
+            setSelectedAmount(null);
+            setShowPaymentOptions(false);
+            setShowSuccessModal(true);
+            await fetchWalletBalance();
+            await fetchRechargeHistory();
+          } else {
+            alert("❌ Payment verification failed. Please contact support.");
+          }
+        },
+        prefill: {
+          name: clientName,
+          email: clientEmail,
+          contact: ""
+        },
+        notes: {
+          client_id: clientId,
+          amount: amount
+        },
+        theme: {
+          color: "#d32f2f"
+        },
+        modal: {
+          ondismiss: function() {
+            console.log("Checkout closed");
+            setRecharging(false);
+          }
+        }
+      };
+      
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+      
     } catch (error) {
-      console.error("Recharge error:", error);
-      alert("❌ Payment failed. Please try again.");
+      console.error("Razorpay error:", error);
+      alert("❌ Payment failed: " + error.message);
     } finally {
       setRecharging(false);
     }
-  };
-
-  // Handle Amount Selection with direct scanner
-  const handleAmountSelect = (amount) => {
-    setSelectedAmount(amount);
-    setRechargeAmount(amount.toString());
-    setShowPaymentOptions(true);
-  };
-
-  // Direct Recharge with Scanner
-  const handleDirectRecharge = () => {
-    if (!selectedAmount || selectedAmount <= 0) {
-      alert("❌ Please select an amount first");
-      return;
-    }
-    setShowScanner(true);
   };
 
   // Dark mode effect
@@ -420,8 +390,12 @@ function ClientDashboard() {
   // Suggested amounts
   const suggestedAmounts = [500, 1000, 2000, 5000];
   
-  // Get current amount for QR
-  const currentAmount = selectedAmount || parseFloat(rechargeAmount) || 0;
+  // Handle Amount Selection
+  const handleAmountSelect = (amount) => {
+    setSelectedAmount(amount);
+    setRechargeAmount(amount.toString());
+    setShowPaymentOptions(true);
+  };
 
   return (
     <div className={`client-dashboard ${darkMode ? "dark" : ""}`}>
@@ -637,23 +611,33 @@ function ClientDashboard() {
             <table className="recent-table premium">
               <thead><tr><th>LR Number</th><th>Route</th><th>Weight</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
               <tbody>
-                {recentShipments.length === 0 ? (<tr><td colSpan="6" className="no-data">No shipments yet. Create your first order!</td></tr>) : (
-                  recentShipments.map((shipment, idx) => (
-                    <tr key={idx}>
-                      <td className="lr-cell">{shipment.lr}</td>
-                      <td>{shipment.route || `${shipment.pickupPincode} → ${shipment.deliveryPincode}`}</td>
-                      <td>{shipment.weight || 0} kg</td>
-                      <td>{getStatusBadge(shipment.status)}</td>
-                      <td>{new Date(shipment.date).toLocaleDateString()}</td>
-                      <td className="action-cell">
-                        <button className="action-icon" onClick={() => handleNavigation("/shipment-details")} title="View Details"><Eye size={16} /></button>
-                        <button className="action-icon" title="Download Invoice"><Download size={16} /></button>
-                        <button className="action-icon" title="Print"><Printer size={16} /></button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
+  {recentShipments.length === 0 ? (
+    <tr>
+      <td colSpan="6" className="no-data">No shipments yet. Create your first order!</td>
+    </tr>
+  ) : (
+    recentShipments.map((shipment, idx) => (
+      <tr key={idx}>
+        <td className="lr-cell">{shipment.lr}</td>
+        <td>{shipment.route || `${shipment.pickupPincode} → ${shipment.deliveryPincode}`}</td>
+        <td>{shipment.weight || 0} kg</td>
+        <td>{getStatusBadge(shipment.status)}</td>
+        <td>{new Date(shipment.date).toLocaleDateString()}</td>
+        <td className="action-cell">
+          <button className="action-icon" onClick={() => handleNavigation("/shipment-details")} title="View Details">
+            <Eye size={16} />
+          </button>
+          <button className="action-icon" title="Download Invoice">
+            <Download size={16} />
+          </button>
+          <button className="action-icon" title="Print">
+            <Printer size={16} />
+          </button>
+        </td>
+      </tr>
+    ))
+  )}
+</tbody>
             </table>
           </div>
         </div>
@@ -667,7 +651,7 @@ function ClientDashboard() {
         </footer>
       </div>
 
-      {/* 🔥 RECHARGE MODAL - With Dynamic QR Code */}
+      {/* 🔥 RECHARGE MODAL - With Razorpay */}
       {showRechargeModal && (
         <div className="modal-overlay" onClick={() => { setShowRechargeModal(false); setShowPaymentOptions(false); setSelectedAmount(null); }}>
           <div className="modal-content recharge-modal-simple" onClick={(e) => e.stopPropagation()}>
@@ -741,65 +725,72 @@ function ClientDashboard() {
                   </div>
                 </div>
                 
-                <div className="upi-qr-simple">
-                  <div className="qr-code-display">
-                    {/* 🔥 DYNAMIC QR CODE - Amount is encoded in QR */}
-                    <div className="qr-amount-badge">
-                      <span>Scan to Pay</span>
+                <div className="razorpay-payment-section">
+                  <div className="payment-methods-grid">
+                    <div className="payment-method-card">
+                      <CreditCard size={24} className="method-icon" />
+                      <h4>Credit/Debit Card</h4>
+                      <p>Visa, Mastercard, RuPay</p>
+                    </div>
+                    <div className="payment-method-card">
+                      <QrCode size={24} className="method-icon" />
+                      <h4>UPI / QR Code</h4>
+                      <p>Google Pay, PhonePe, Paytm</p>
+                    </div>
+                    <div className="payment-method-card">
+                      <Bank size={24} className="method-icon" />
+                      <h4>Net Banking</h4>
+                      <p>All major banks</p>
+                    </div>
+                    <div className="payment-method-card">
+                      <Wallet size={24} className="method-icon" />
+                      <h4>Mobile Wallet</h4>
+                      <p>Paytm, Amazon Pay</p>
+                    </div>
+                  </div>
+                  
+                  <div className="payment-summary">
+                    <div className="summary-row">
+                      <span>Recharge Amount:</span>
                       <strong>₹{selectedAmount || rechargeAmount}</strong>
                     </div>
-                    <img 
-                      src={getDynamicQrUrl(selectedAmount || rechargeAmount)}
-                      alt="UPI QR Code with Amount"
-                      className="upi-qr-img"
-                    />
-                    <div className="upi-id-box">
-                      <span className="upi-id-label">UPI ID:</span>
-                      <code className="upi-id-code">gauravsharma000123-3@oksbi</code>
-                      <button 
-                        className="copy-btn"
-                        onClick={() => {
-                          navigator.clipboard.writeText("gauravsharma000123-3@oksbi");
-                          alert("✅ UPI ID copied!");
-                        }}
-                      >
-                        <Copy size={14} /> Copy
-                      </button>
+                    <div className="summary-row">
+                      <span>Convenience Fee:</span>
+                      <strong>₹0</strong>
                     </div>
-                    <div className="qr-amount-info">
-                      <p>💡 Scan this QR code with any UPI app</p>
-                      <p className="auto-amount-hint">✨ Amount <strong>₹{selectedAmount || rechargeAmount}</strong> will be <strong>auto-filled</strong> in the UPI app</p>
+                    <div className="summary-row total">
+                      <span>Total Payable:</span>
+                      <strong>₹{selectedAmount || rechargeAmount}</strong>
                     </div>
                   </div>
                   
-                  <div className="payment-instructions">
-                    <p>📱 <strong>How to pay:</strong></p>
-                    <ol>
-                      <li>Open any UPI app (Google Pay, PhonePe, Paytm, BHIM)</li>
-                      <li>Click on <strong>"Scan QR"</strong></li>
-                      <li>Scan the QR code above</li>
-                      <li>Amount <strong>₹{selectedAmount || rechargeAmount}</strong> will be auto-filled</li>
-                      <li>Complete payment</li>
-                    </ol>
+                  <div className="secure-payment-badge">
+                    <Shield size={16} />
+                    <span>100% Secure Payments by Razorpay</span>
                   </div>
                   
-                  <button className="scan-payment-btn" onClick={handleDirectRecharge}>
-                    <Camera size={18} /> I have made the payment
+                  <button 
+                    className="razorpay-pay-btn" 
+                    onClick={handleRazorpayPayment}
+                    disabled={recharging}
+                  >
+                    {recharging ? (
+                      <>
+                        <div className="spinner-small"></div>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard size={18} />
+                        Pay ₹{selectedAmount || rechargeAmount} via Razorpay
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
             )}
           </div>
         </div>
-      )}
-
-      {/* QR Scanner Modal */}
-      {showScanner && (
-        <QrScannerComponent 
-          onScan={handleQrScan}
-          onClose={() => setShowScanner(false)}
-          amount={selectedAmount || rechargeAmount}
-        />
       )}
 
       {/* Success Modal */}
@@ -833,7 +824,11 @@ function ClientDashboard() {
                         <td>{new Date(item.created_at).toLocaleDateString()}</td>
                         <td className="amount">₹{item.amount.toLocaleString()}</td>
                         <td>{item.payment_method}</td>
-                        <td><span className={`status-badge ${item.status === 'COMPLETED' ? 'success' : 'pending'}`}>{item.status}</span></td>
+                        <td>
+                          <span className={`status-badge ${item.status === 'COMPLETED' ? 'success' : 'pending'}`}>
+                            {item.status}
+                          </span>
+                        </td>
                         <td className="txn-id">{item.transaction_id}</td>
                       </tr>
                     ))}

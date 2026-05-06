@@ -1,4 +1,4 @@
-/* Client Dashboard - Premium Professional Design v6.0 */
+/* Client Dashboard - Premium Professional Design v7.0 */
 /* Developed by Devora Technologies */
 
 :root {
@@ -570,7 +570,153 @@
   color: var(--text-primary);
 }
 
-/* 🔥 UPI QR Section - DYNAMIC QR WITH AMOUNT */
+/* ============================================
+   🔥 RAZORPAY PAYMENT STYLES - NEW
+   ============================================ */
+.razorpay-payment-section {
+  padding: 20px;
+}
+
+.payment-methods-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.payment-method-card {
+  background: linear-gradient(135deg, #f8fafc, #ffffff);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 15px;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.payment-method-card:hover {
+  transform: translateY(-2px);
+  border-color: #d32f2f;
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.1);
+}
+
+.payment-method-card.active {
+  border-color: #d32f2f;
+  background: linear-gradient(135deg, #ffebed, #ffffff);
+}
+
+.method-icon {
+  margin-bottom: 8px;
+  color: #d32f2f;
+}
+
+.payment-method-card h4 {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.payment-method-card p {
+  font-size: 10px;
+  color: #64748b;
+}
+
+.payment-summary {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.summary-row.total {
+  border-top: 1px solid #e2e8f0;
+  margin-top: 8px;
+  padding-top: 12px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.summary-row.total strong {
+  color: #d32f2f;
+  font-size: 18px;
+}
+
+.secure-payment-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  background: #ecfdf5;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: #065f46;
+}
+
+.razorpay-pay-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #d32f2f, #b71c1c);
+  border: none;
+  border-radius: 40px;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.razorpay-pay-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(211, 47, 47, 0.3);
+}
+
+.razorpay-pay-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Dark mode for Razorpay styles */
+.client-dashboard.dark .payment-method-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.client-dashboard.dark .payment-method-card h4 {
+  color: #f1f5f9;
+}
+
+.client-dashboard.dark .payment-summary {
+  background: #1e293b;
+}
+
+.client-dashboard.dark .summary-row {
+  color: #cbd5e1;
+}
+
+.client-dashboard.dark .secure-payment-badge {
+  background: #064e3b;
+  color: #6ee7b7;
+}
+
+/* ============================================
+   UPI QR Section Styles (Legacy)
+   ============================================ */
 .upi-qr-simple {
   text-align: center;
 }
@@ -583,7 +729,6 @@
   margin-bottom: 20px;
 }
 
-/* 🔥 NEW: QR Amount Badge */
 .qr-amount-badge {
   text-align: center;
   margin-bottom: 16px;
@@ -608,7 +753,6 @@
   margin-top: 4px;
 }
 
-/* 🔥 NEW: QR Amount Info */
 .qr-amount-info {
   text-align: center;
   margin-top: 16px;
@@ -2190,6 +2334,10 @@
   
   .qr-amount-badge strong {
     font-size: 20px;
+  }
+  
+  .payment-methods-grid {
+    grid-template-columns: 1fr;
   }
 }
 
