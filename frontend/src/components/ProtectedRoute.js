@@ -44,11 +44,51 @@ function ProtectedRoute({ children, requiredModule }) {
     return children;
   }
 
+  // Check if user is Staff
+  const isStaff = userRole === "staff" || userRole === "User" || loginType === "staff";
+  
+  if (isStaff) {
+    // Staff accessible routes
+    const staffRoutes = [
+      "/",
+      "/user-dashboard",
+      "/staff/my-work",
+      "/staff/tasks",
+      "/fcpl-rate",
+      "/pickup",
+      "/ba-b2b-rate",
+      "/rate-update",
+      "/pincode",
+      "/vendor-manage",
+      "/vendor-rate",
+      "/user-management",
+    ];
+    
+    // Special routes that need module permission
+    if (requiredModule) {
+      const userModules = JSON.parse(localStorage.getItem("userModules") || "{}");
+      if (!userModules[requiredModule]) {
+        console.log(`❌ Staff missing module permission: ${requiredModule}`);
+        return <Navigate to="/user-dashboard" replace />;
+      }
+    }
+    
+    if (staffRoutes.includes(location.pathname)) {
+      console.log(`✅ Staff access granted for: ${location.pathname}`);
+      return children;
+    } else if (location.pathname === "/staff/my-work") {
+      return children;
+    } else {
+      console.log(`❌ Staff access denied for: ${location.pathname}, redirecting to dashboard`);
+      return <Navigate to="/user-dashboard" replace />;
+    }
+  }
+
   // Check if user is Client
   const isClient = hasClientToken || loginType === "client" || userRole === "client";
   
   if (isClient) {
-    // All routes that clients can access
+    // Client accessible routes
     const clientRoutes = [
       "/",
       "/client-dashboard",
@@ -58,11 +98,26 @@ function ProtectedRoute({ children, requiredModule }) {
       "/shipment-details",
       "/shipments",
       "/tracking",
+      "/pickup-request",
+      "/my-pickups",
     ];
+    
+    // Special routes that need module permission
+    if (requiredModule) {
+      const userModules = JSON.parse(localStorage.getItem("userModules") || "{}");
+      if (!userModules[requiredModule]) {
+        console.log(`❌ Client missing module permission: ${requiredModule}`);
+        return <Navigate to="/client-dashboard" replace />;
+      }
+    }
     
     // Check if current route is allowed for client
     if (clientRoutes.includes(location.pathname)) {
       console.log(`✅ Client access granted for: ${location.pathname}`);
+      return children;
+    } else if (location.pathname === "/pickup-request") {
+      return children;
+    } else if (location.pathname === "/my-pickups") {
       return children;
     } else {
       console.log(`❌ Client access denied for: ${location.pathname}, redirecting to dashboard`);

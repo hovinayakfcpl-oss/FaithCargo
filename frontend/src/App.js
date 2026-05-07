@@ -23,6 +23,12 @@ import CreateOrder from "./components/CreateOrder";
 import ShipmentDetails from "./components/ShipmentDetails";
 import UserManagement from "./components/UserManagement";
 
+// 🔥 PICKUP MANAGEMENT MODULES
+import PickupRequest from "./components/PickupRequest";
+import MyPickups from "./components/MyPickups";
+import PickupManagement from "./components/PickupManagement";
+import MyWork from "./components/MyWork";
+
 // 🔹 Auth Helpers
 import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
@@ -162,6 +168,19 @@ function App() {
   const clientRoutes = [
     { path: "/client-dashboard", component: ClientDashboard, title: "Client Dashboard", icon: "🏠" },
     { path: "/tracking", component: ShipmentDetails, title: "Track Shipment", icon: "🔍" },
+    // 🔥 Pickup Routes for Client
+    { path: "/pickup-request", component: PickupRequest, title: "Pickup Request", icon: "🚚" },
+    { path: "/my-pickups", component: MyPickups, title: "My Pickups", icon: "📦" },
+  ];
+
+  // 🔥 Staff specific routes
+  const staffRoutes = [
+    { path: "/staff/my-work", component: MyWork, title: "My Work", icon: "💼" },
+  ];
+
+  // 🔥 Admin specific routes
+  const adminRoutes = [
+    { path: "/admin/pickup-management", component: PickupManagement, title: "Pickup Management", icon: "📋" },
   ];
 
   if (loading) {
@@ -262,6 +281,32 @@ function App() {
 
         {/* 🔥 CLIENT SPECIFIC ROUTES */}
         {clientRoutes.map((route) => (
+          <Route
+            key={route.path}
+            path={route.path}
+            element={
+              <ProtectedRoute>
+                {React.createElement(route.component)}
+              </ProtectedRoute>
+            }
+          />
+        ))}
+
+        {/* 🔥 STAFF SPECIFIC ROUTES */}
+        {staffRoutes.map((route) => (
+          <Route
+            key={route.path}
+            path={route.path}
+            element={
+              <ProtectedRoute>
+                {React.createElement(route.component)}
+              </ProtectedRoute>
+            }
+          />
+        ))}
+
+        {/* 🔥 ADMIN SPECIFIC ROUTES */}
+        {adminRoutes.map((route) => (
           <Route
             key={route.path}
             path={route.path}
