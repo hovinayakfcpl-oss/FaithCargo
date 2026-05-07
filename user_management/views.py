@@ -1,4 +1,4 @@
-# user_management/views.py - ORIGINAL WORKING VERSION (Restore this)
+# user_management/views.py - COMPLETE WORKING VERSION
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -45,7 +45,7 @@ def test_api(request):
     })
 
 
-# ✅ ADMIN LOGIN API (ORIGINAL WORKING)
+# ✅ ADMIN LOGIN API - FIXED (No is_superuser)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def admin_login(request):
@@ -61,8 +61,9 @@ def admin_login(request):
         if not check_password(password, user.password):
             return Response({"error": "Invalid password"}, status=400)
         
-        if not user.is_superuser:
-            return Response({"error": "Not a superuser. Please use User Login."}, status=403)
+        # ✅ FIXED: Check role instead of is_superuser
+        if user.role != 'Admin':
+            return Response({"error": "Not an admin. Please use User Login."}, status=403)
         
         all_modules = {
             "fcpl_rate": True,
@@ -136,7 +137,7 @@ def user_login(request):
         return Response({"error": "Invalid username or password"}, status=400)
 
 
-# ✅ ADD USER API (ORIGINAL WORKING)
+# ✅ ADD USER API
 @api_view(['POST'])
 def add_user(request):
     data = request.data
@@ -183,7 +184,7 @@ def add_user(request):
     }, status=status.HTTP_201_CREATED)
 
 
-# ✅ GET ALL USERS (ORIGINAL WORKING)
+# ✅ GET ALL USERS
 @api_view(['GET'])
 def user_list(request):
     users = CustomUser.objects.filter(role__in=['Admin', 'User']).values(
@@ -193,7 +194,7 @@ def user_list(request):
     return Response(list(users))
 
 
-# ✅ GET ALL CLIENTS (ORIGINAL WORKING)
+# ✅ GET ALL CLIENTS
 @api_view(['GET'])
 def client_list(request):
     clients = CustomUser.objects.filter(role='Client')
@@ -222,7 +223,7 @@ def client_list(request):
     return Response(client_data, status=200)
 
 
-# ✅ GET USER DETAILS (ORIGINAL WORKING)
+# ✅ GET USER DETAILS
 @api_view(['GET'])
 def user_detail(request, id):
     try:
@@ -253,7 +254,7 @@ def user_detail(request, id):
         return Response({"error": "User not found"}, status=404)
 
 
-# ✅ UPDATE USER (ORIGINAL WORKING)
+# ✅ UPDATE USER
 @api_view(['PUT'])
 def update_user(request, id):
     try:
@@ -289,7 +290,7 @@ def update_user(request, id):
         return Response({"error": "User not found"}, status=404)
 
 
-# ✅ DELETE USER (ORIGINAL WORKING)
+# ✅ DELETE USER
 @api_view(['DELETE'])
 def delete_user(request, id):
     try:
@@ -301,7 +302,7 @@ def delete_user(request, id):
 
 
 # ============================================
-# 🆕 CLIENT MANAGEMENT APIs (ORIGINAL WORKING)
+# 🆕 CLIENT MANAGEMENT APIs
 # ============================================
 
 @api_view(['POST'])
@@ -420,7 +421,7 @@ def get_client_order_summary(request, client_id):
 
 
 # ============================================
-# 🆕 CLIENT RATES APIs (ORIGINAL WORKING)
+# 🆕 CLIENT RATES APIs
 # ============================================
 
 @api_view(['GET'])
@@ -488,7 +489,7 @@ def update_client_rates(request, client_id):
 
 
 # ============================================
-# 📊 USER STATISTICS & SHIPMENTS (ORIGINAL WORKING)
+# 📊 USER STATISTICS & SHIPMENTS
 # ============================================
 
 @api_view(['GET'])
@@ -648,6 +649,7 @@ def dashboard_stats(request):
         "recent_revenue": float(total_freight) * 0.1,
     })
 
+
 # ============================================
 # 💰 CLIENT WALLET & RECHARGE FUNCTIONS
 # ============================================
@@ -708,7 +710,6 @@ def create_recharge_request(request):
         
         transaction_id = f"RECH_{user.client_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
         
-        # Create recharge record
         recharge = RechargeHistory.objects.create(
             client=user,
             amount=amount,
@@ -719,7 +720,6 @@ def create_recharge_request(request):
             completed_at=timezone.now()
         )
         
-        # Add balance to wallet
         wallet, created = ClientWallet.objects.get_or_create(client=user)
         wallet.add_balance(float(amount), recharge.id)
         
