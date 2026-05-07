@@ -1,4 +1,4 @@
-// AdminDashboard.js - COMPLETE UPGRADED VERSION WITH PICKUP MANAGEMENT, AI, REAL-TIME UPDATES
+// AdminDashboard.js - COMPLETE UPGRADED VERSION WITH ALL IMPORTS AT TOP
 import React, { useState, useEffect, useRef, lazy, Suspense, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -14,7 +14,8 @@ import {
   Receipt, DollarSign as MoneyIcon, ClipboardList,
   Navigation, Home, Calendar, Phone, Mail, Building2,
   Wifi, WifiOff, Database, Cloud, CloudOff, Sparkles,
-  Gift, Target, Flame, Heart, Coffee, Sun, Moon
+  Gift, Target, Flame, Heart, Coffee, Sun, Moon,
+  Keyboard // Added Keyboard import here - FIXED POSITION
 } from "lucide-react";
 import "./AdminDashboard.css";
 import "../styles/theme.css";
@@ -51,7 +52,6 @@ const useWebSocket = (onMessage) => {
         
         ws.onclose = () => {
           setIsConnected(false);
-          // Reconnect after 5 seconds
           setTimeout(connectWebSocket, 5000);
         };
         
@@ -290,7 +290,7 @@ const JerviceAI = ({ onNavigate, onRefreshData }) => {
         appointment: false,
         dimensions: []
       })
-    }, cacheKey, false); // Don't cache rates as they change frequently
+    }, cacheKey, false);
   };
 
   const checkPincodeStatus = async (pincode) => {
@@ -674,19 +674,16 @@ function AdminDashboard() {
     const storedName = localStorage.getItem("adminName");
     if (storedName) setAdminName(storedName);
     
-    // Load saved theme preference
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "dark") {
       setIsDarkMode(true);
       document.body.classList.add("dark-mode");
     }
     
-    // Load initial data
     refreshAllData();
     
-    // Auto-refresh every 30 seconds
     const refreshInterval = setInterval(() => {
-      refreshAllData(true); // Silent refresh
+      refreshAllData(true);
     }, 30000);
     
     return () => {
@@ -742,7 +739,6 @@ function AdminDashboard() {
       }
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
-      // Use mock data if API fails
       setDashboardStats({
         total_shipments: 1284,
         total_users: 24,
@@ -760,7 +756,6 @@ function AdminDashboard() {
       await Promise.all([fetchPickupStats(), fetchDashboardStats()]);
       setLastUpdated(new Date());
       if (!silent) {
-        // Show success notification
         const notification = {
           id: Date.now(),
           title: "Data Refreshed",
@@ -911,7 +906,6 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* Notifications Dropdown */}
         {showNotifications && (
           <div className="notifications-dropdown">
             <div className="notifications-header">
@@ -1161,23 +1155,19 @@ function AdminDashboard() {
                 <span>Keyboard Shortcuts</span>
               </div>
               <div className="shortcuts-grid">
-                <div className="shortcut-item"><kbd>Ctrl+K</kbd> <span>Search</span></div>
-                <div className="shortcut-item"><kbd>Ctrl+J</kbd> <span>Jervice AI</span></div>
-                <div className="shortcut-item"><kbd>Ctrl+R</kbd> <span>Refresh</span></div>
-                <div className="shortcut-item"><kbd>Ctrl+D</kbd> <span>Dark Mode</span></div>
+                <div className="shortcut-item"><kbd>⌘K</kbd> <span>Search</span></div>
+                <div className="shortcut-item"><kbd>⌘J</kbd> <span>Jervice AI</span></div>
+                <div className="shortcut-item"><kbd>⌘R</kbd> <span>Refresh</span></div>
+                <div className="shortcut-item"><kbd>⌘D</kbd> <span>Dark Mode</span></div>
               </div>
             </div>
           </div>
         </div>
       </main>
 
-      {/* Advanced Jervice AI Component */}
       <JerviceAI onRefreshData={refreshAllData} />
     </div>
   );
 }
-
-// Add Keyboard icon import
-import { Keyboard } from "lucide-react";
 
 export default AdminDashboard;
