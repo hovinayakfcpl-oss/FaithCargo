@@ -1,3 +1,4 @@
+// src/components/PickupRequest.js - Admin & Client both can create pickup
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { 
@@ -5,7 +6,8 @@ import {
   Building2, AlertCircle, CheckCircle, ArrowRight, 
   FileText, Weight, Box, Info, Send, Home, Navigation,
   CreditCard, DollarSign, Save, X, Plus, Minus,
-  Sparkles, Shield, Award, Clock as ClockIcon
+  Sparkles, Shield, Award, Clock as ClockIcon,
+  RefreshCw, Check, Users
 } from "lucide-react";
 import "./PickupRequest.css";
 
@@ -16,6 +18,10 @@ function PickupRequest() {
   const [success, setSuccess] = useState(false);
   const [pickupId, setPickupId] = useState("");
   const [activeTab, setActiveTab] = useState("pickup");
+  const [toast, setToast] = useState({ show: false, message: "", type: "" });
+  const [userRole, setUserRole] = useState("");
+  const [clientsList, setClientsList] = useState([]);
+  const [selectedClient, setSelectedClient] = useState("");
   
   // Pickup Details
   const [pickup, setPickup] = useState({
@@ -51,6 +57,44 @@ function PickupRequest() {
     timeSlot: "Morning",
     preferredTime: ""
   });
+
+  // Get user role from localStorage
+  useEffect(() => {
+    const role = localStorage.getItem("userRole") || localStorage.getItem("role");
+    const token = localStorage.getItem("token") || localStorage.getItem("clientToken");
+    
+    setUserRole(role);
+    
+    // If admin, fetch clients list for dropdown
+    if (role === "admin" || role === "Admin") {
+      fetchClientsList();
+    }
+    
+    if (!token) {
+      showToast("Please login to create pickup request", "error");
+    }
+  }, []);
+
+  // Fetch clients list for admin
+  const fetchClientsList = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get("https://faithcargo.onrender.com/api/user/clients/", {
+        headers: { Authorization: `Token ${token}` }
+      });
+      if (response.data.success) {
+        setClientsList(response.data.clients || []);
+      }
+    } catch (err) {
+      console.error("Error fetching clients:", err);
+    }
+  };
+
+  // Show toast notification
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: "", type: "" }), 4000);
+  };
 
   // Fetch location from pincode
   const fetchLocation = async (pincode, type) => {
@@ -102,30 +146,64 @@ function PickupRequest() {
     }));
   };
 
-  // Submit pickup request
-  const submitRequest = async () => {
-    // Validation
+  // Validate form data
+  const validateForm = () => {
     if (!pickup.name || !pickup.phone || !pickup.address || !pickup.pincode) {
-      alert("❌ Please fill all pickup details");
-      return;
+      showToast("❌ Please fill all pickup details", "error");
+      return false;
     }
     if (!delivery.name || !delivery.phone || !delivery.address || !delivery.pincode) {
-      alert("❌ Please fill all delivery details");
-      return;
+      showToast("❌ Please fill all delivery details", "error");
+      return false;
     }
     if (!shipment.weight || shipment.weight <= 0) {
-      alert("❌ Please enter valid weight");
-      return;
+      showToast("❌ Please enter valid weight", "error");
+      return false;
     }
     if (!schedule.date) {
-      alert("❌ Please select pickup date");
+      showToast("❌ Please select pickup date", "error");
+      return false;
+    }
+    if (pickup.phone.length !== 10) {
+      showToast("❌ Please enter valid 10-digit phone number for pickup", "error");
+      return false;
+    }
+    if (delivery.phone.length !== 10) {
+      showToast("❌ Please enter valid 10-digit phone number for delivery", "error");
+      return false;
+    }
+    if (pickup.pincode.length !== 6) {
+      showToast("❌ Please enter valid 6-digit pincode for pickup", "error");
+      return false;
+    }
+    if (delivery.pincode.length !== 6) {
+      showToast("❌ Please enter valid 6-digit pincode for delivery", "error");
+      return false;
+    }
+    return true;
+  };
+
+  // Submit pickup request
+  const submitRequest = async () => {
+    if (!validateForm()) return;
+    
+    // Get token based on role
+    const token = userRole === "admin" || userRole === "Admin" 
+      ? localStorage.getItem("token") 
+      : localStorage.getItem("clientToken") || localStorage.getItem("token");
+    
+    if (!token) {
+      showToast("Please login to create pickup request", "error");
       return;
     }
-
+    
     setLoading(true);
     
-    const token = localStorage.getItem("clientToken");
-    const config = { headers: { Authorization: `Bearer ${token}` } };
+    const config = { 
+      headers: { 
+        Authorization: `Token ${token}` 
+      } 
+    };
     
     const payload = {
       pickup_name: pickup.name,
@@ -146,54 +224,104 @@ function PickupRequest() {
       special_instructions: shipment.specialInstructions,
       pickup_date: schedule.date,
       pickup_time: schedule.timeSlot,
-      preferred_time_slot: schedule.preferredTime
+      preferred_time_slot: schedule.preferredTime,
+      // If admin is creating for a client
+      client_id: (userRole === "admin" || userRole === "Admin") && selectedClient ? selectedClient : null
     };
 
     try {
+      console.log("Submitting pickup request:", payload);
       const response = await axios.post(`${API_BASE}/create/`, payload, config);
+      
       if (response.data.success) {
         setPickupId(response.data.pickup_id);
         setSuccess(true);
+        showToast(`✅ Pickup request created successfully! ID: ${response.data.pickup_id}`, "success");
+        
         // Reset form
         setPickup({ name: "", phone: "", address: "", pincode: "", city: "", state: "" });
         setDelivery({ name: "", phone: "", address: "", pincode: "", city: "", state: "" });
         setShipment({ weight: "", packages: 1, material: "General Cargo", specialInstructions: "" });
         setSchedule({ date: "", timeSlot: "Morning", preferredTime: "" });
+        setActiveTab("pickup");
+        setSelectedClient("");
         
-        // Scroll to success
         window.scrollTo({ top: 0, behavior: "smooth" });
+        setTimeout(() => setSuccess(false), 5000);
+      } else {
+        showToast(response.data.error || "Error creating pickup request", "error");
       }
     } catch (err) {
       console.error("Error creating pickup:", err);
-      alert("❌ Error creating pickup request. Please try again.");
+      if (err.response?.status === 401) {
+        showToast("Session expired. Please login again.", "error");
+      } else if (err.response?.data?.error) {
+        showToast(err.response.data.error, "error");
+      } else {
+        showToast("❌ Error creating pickup request. Please try again.", "error");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const timeSlots = ["Morning (9AM - 12PM)", "Afternoon (12PM - 3PM)", "Evening (3PM - 6PM)", "Late Evening (6PM - 9PM)"];
+  const timeSlots = [
+    { value: "Morning", label: "Morning (9AM - 12PM)" },
+    { value: "Afternoon", label: "Afternoon (12PM - 3PM)" },
+    { value: "Evening", label: "Evening (3PM - 6PM)" },
+    { value: "Late Evening", label: "Late Evening (6PM - 9PM)" }
+  ];
   
   const materialTypes = ["General Cargo", "Electronics", "Furniture", "Documents", "Automobile Parts", "Fragile Items", "Perishable Goods", "Industrial Equipment"];
 
-  // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().split('T')[0];
+  const isAdmin = userRole === "admin" || userRole === "Admin";
 
   return (
     <div className="pickup-request-container">
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className={`pickup-toast ${toast.type}`}>
+          {toast.type === "success" ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+          <span>{toast.message}</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="pickup-header">
         <div className="pickup-header-content">
           <div className="pickup-header-icon">
-            <Truck size={32} />
+            {isAdmin ? <Users size={32} /> : <Truck size={32} />}
           </div>
           <div className="pickup-header-text">
-            <h1>Schedule a Pickup</h1>
-            <p>Request a pickup for your shipment. Our team will contact you shortly.</p>
+            <h1>{isAdmin ? "Create Pickup for Client" : "Schedule a Pickup"}</h1>
+            <p>{isAdmin ? "Create pickup request on behalf of client" : "Request a pickup for your shipment. Our team will contact you shortly."}</p>
           </div>
         </div>
       </div>
 
-      {/* Success Modal */}
+      {/* Admin Client Selection */}
+      {isAdmin && (
+        <div className="pickup-admin-client-select" style={{ maxWidth: "1000px", margin: "20px auto", padding: "0 20px" }}>
+          <div className="admin-client-card">
+            <Users size={20} />
+            <div>
+              <strong>Select Client (Optional)</strong>
+              <p>If creating pickup for a specific client, select from below. Leave empty for general.</p>
+            </div>
+            <select value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)}>
+              <option value="">-- Select Client (Optional) --</option>
+              {clientsList.map(client => (
+                <option key={client.id} value={client.id}>
+                  {client.company || client.username} - {client.email}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Success Banner */}
       {success && (
         <div className="pickup-success-banner">
           <div className="success-content">
@@ -204,9 +332,14 @@ function PickupRequest() {
               <span>Pickup ID:</span>
               <strong>{pickupId}</strong>
             </div>
-            <button className="success-close" onClick={() => setSuccess(false)}>
-              <X size={18} /> Close
-            </button>
+            <div className="success-actions">
+              <button className="success-close" onClick={() => setSuccess(false)}>
+                <X size={18} /> Close
+              </button>
+              <button className="success-track" onClick={() => window.location.href = isAdmin ? "/admin/pickup-management" : "/my-pickups"}>
+                <Eye size={18} /> {isAdmin ? "Go to Pickup Management" : "View My Pickups"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -214,28 +347,28 @@ function PickupRequest() {
       <div className="pickup-form-wrapper">
         {/* Progress Steps */}
         <div className="pickup-progress">
-          <div className={`progress-step ${activeTab === "pickup" ? "active" : "completed"}`}>
-            <div className="step-number">1</div>
+          <div className={`progress-step ${activeTab === "pickup" ? "active" : pickup.name ? "completed" : ""}`}>
+            <div className="step-number">{activeTab === "pickup" ? "1" : <Check size={14} />}</div>
             <div className="step-label">Pickup Details</div>
           </div>
           <div className="progress-line"></div>
-          <div className={`progress-step ${activeTab === "delivery" ? "active" : ""}`}>
-            <div className="step-number">2</div>
+          <div className={`progress-step ${activeTab === "delivery" ? "active" : delivery.name ? "completed" : ""}`}>
+            <div className="step-number">{activeTab === "delivery" ? "2" : delivery.name ? <Check size={14} /> : "2"}</div>
             <div className="step-label">Delivery Details</div>
           </div>
           <div className="progress-line"></div>
-          <div className={`progress-step ${activeTab === "shipment" ? "active" : ""}`}>
-            <div className="step-number">3</div>
+          <div className={`progress-step ${activeTab === "shipment" ? "active" : shipment.weight ? "completed" : ""}`}>
+            <div className="step-number">{activeTab === "shipment" ? "3" : shipment.weight ? <Check size={14} /> : "3"}</div>
             <div className="step-label">Shipment Info</div>
           </div>
           <div className="progress-line"></div>
-          <div className={`progress-step ${activeTab === "schedule" ? "active" : ""}`}>
-            <div className="step-number">4</div>
+          <div className={`progress-step ${activeTab === "schedule" ? "active" : schedule.date ? "completed" : ""}`}>
+            <div className="step-number">{activeTab === "schedule" ? "4" : schedule.date ? <Check size={14} /> : "4"}</div>
             <div className="step-label">Schedule</div>
           </div>
         </div>
 
-        {/* Form Content */}
+        {/* Form Content - Same as before */}
         <div className="pickup-form-content">
           {/* Tab 1: Pickup Details */}
           {activeTab === "pickup" && (
@@ -509,13 +642,13 @@ function PickupRequest() {
                   <div className="time-slots">
                     {timeSlots.map(slot => (
                       <button
-                        key={slot}
+                        key={slot.value}
                         type="button"
-                        className={`time-slot ${schedule.timeSlot === slot.split(' ')[0] ? 'active' : ''}`}
-                        onClick={() => setSchedule({...schedule, timeSlot: slot.split(' ')[0]})}
+                        className={`time-slot ${schedule.timeSlot === slot.value ? 'active' : ''}`}
+                        onClick={() => setSchedule({...schedule, timeSlot: slot.value})}
                       >
                         <ClockIcon size={14} />
-                        {slot}
+                        {slot.label}
                       </button>
                     ))}
                   </div>
@@ -569,7 +702,9 @@ function PickupRequest() {
                 </button>
                 <button className="btn-submit" onClick={submitRequest} disabled={loading}>
                   {loading ? (
-                    <>Processing...</>
+                    <>
+                      <RefreshCw size={18} className="spin" /> Processing...
+                    </>
                   ) : (
                     <>
                       <Send size={18} /> Submit Pickup Request
@@ -609,7 +744,15 @@ function PickupRequest() {
   );
 }
 
-// Headphones icon component
+// Eye icon for track button
+const Eye = ({ size, ...props }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+    <circle cx="12" cy="12" r="3"></circle>
+  </svg>
+);
+
+// Headphones icon
 const Headphones = ({ size, ...props }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
