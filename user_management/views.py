@@ -1,4 +1,4 @@
-# user_management/views.py - COMPLETE FIXED VERSION
+# user_management/views.py - COMPLETE WORKING VERSION
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -16,7 +16,6 @@ import logging
 import uuid
 import json
 import requests
-import razorpay
 
 from .models import (
     CustomUser, ClientProfile, ClientRateMatrix, ClientRatePolicy, 
@@ -33,9 +32,6 @@ try:
 except ImportError:
     SHIPMENT_MODELS_AVAILABLE = False
     logger.warning("Shipment models not available.")
-
-# Initialize Razorpay client
-razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
 
 # ============================================
@@ -73,7 +69,7 @@ def admin_login(request):
         if not check_password(password, user.password):
             return Response({"error": "Invalid password"}, status=400)
         
-        # 🔥 FIX: Check role instead of is_superuser
+        # Check role instead of is_superuser
         if user.role != 'Admin':
             return Response({"error": "Not an admin. Please use User Login."}, status=403)
         
@@ -450,7 +446,6 @@ def user_orders(request, user_id):
         
         cursor = connection.cursor()
         
-        # 🔥 FIX: Use role instead of is_superuser
         if user.role == 'Client' and user.client_id:
             cursor.execute("""
                 SELECT lr_number, awb_number, pickup_pincode, delivery_pincode, 
@@ -742,6 +737,9 @@ def get_wallet_balance(request):
         
         wallet, created = ClientWallet.objects.get_or_create(client=user)
         
+        # Update balance from wallet
+        wallet.refresh_from_db()
+        
         return Response({
             "success": True,
             "balance": float(wallet.balance),
@@ -753,6 +751,7 @@ def get_wallet_balance(request):
         }, status=200)
         
     except Exception as e:
+        logger.error(f"Error getting wallet balance: {str(e)}")
         return Response({
             "success": False,
             "error": str(e)
@@ -772,7 +771,7 @@ def create_recharge_request(request):
             }, status=403)
         
         amount = request.data.get('amount')
-        payment_method = request.data.get('payment_method', 'CASH')
+        payment_method = request.data.get('payment_method', 'UPI')
         reference_number = request.data.get('reference_number', '')
         
         if not amount or float(amount) <= 0:
@@ -781,7 +780,15 @@ def create_recharge_request(request):
                 "error": "Invalid amount"
             }, status=400)
         
+        if float(amount) < 100:
+            return Response({
+                "success": False,
+                "error": "Minimum recharge amount is ₹100"
+            }, status=400)
+        
         transaction_id = f"RECH_{user.client_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        # Create recharge record
         recharge = RechargeHistory.objects.create(
             client=user,
             amount=amount,
@@ -797,6 +804,9 @@ def create_recharge_request(request):
         wallet, created = ClientWallet.objects.get_or_create(client=user)
         wallet.add_balance(float(amount), recharge.id)
         
+        # Refresh wallet to get updated balance
+        wallet.refresh_from_db()
+        
         return Response({
             "success": True,
             "message": f"₹{amount} recharged successfully!",
@@ -807,6 +817,7 @@ def create_recharge_request(request):
         }, status=201)
         
     except Exception as e:
+        logger.error(f"Error creating recharge: {str(e)}")
         return Response({
             "success": False,
             "error": str(e)
@@ -840,14 +851,17 @@ def get_recharge_history(request):
                 "completed_at": r.completed_at,
             })
         
+        total_amount = sum([d['amount'] for d in data if d['status'] == 'COMPLETED'])
+        
         return Response({
             "success": True,
             "history": data,
             "total_count": len(data),
-            "total_amount": sum([d['amount'] for d in data if d['status'] == 'COMPLETED'])
+            "total_amount": total_amount
         }, status=200)
         
     except Exception as e:
+        logger.error(f"Error getting recharge history: {str(e)}")
         return Response({
             "success": False,
             "error": str(e)
@@ -887,6 +901,7 @@ def get_wallet_transactions(request):
         }, status=200)
         
     except Exception as e:
+        logger.error(f"Error getting wallet transactions: {str(e)}")
         return Response({
             "success": False,
             "error": str(e)
@@ -908,19 +923,23 @@ def admin_all_recharges(request):
         recharges = RechargeHistory.objects.select_related('client').order_by('-created_at')
         
         data = []
+        total_recharged = 0
+        
         for r in recharges:
+            amount = float(r.amount)
+            if r.status == 'COMPLETED':
+                total_recharged += amount
+            
             data.append({
                 "id": r.id,
                 "client_id": r.client.client_id if r.client.client_id else r.client.username,
                 "client_name": r.client.company or r.client.username,
-                "amount": float(r.amount),
+                "amount": amount,
                 "payment_method": r.get_payment_method_display(),
                 "status": r.status,
                 "transaction_id": r.transaction_id,
                 "created_at": r.created_at,
             })
-        
-        total_recharged = sum([d['amount'] for d in data if d['status'] == 'COMPLETED'])
         
         return Response({
             "success": True,
@@ -930,6 +949,167 @@ def admin_all_recharges(request):
         }, status=200)
         
     except Exception as e:
+        logger.error(f"Error getting all recharges: {str(e)}")
+        return Response({
+            "success": False,
+            "error": str(e)
+        }, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_balance_before_order(request):
+    """
+    Check if client has sufficient balance before creating order
+    """
+    try:
+        user = request.user
+        
+        if user.role != 'Client':
+            return Response({
+                "success": False,
+                "error": "Only clients can check balance"
+            }, status=403)
+        
+        freight_amount = float(request.GET.get('freight_amount', 0))
+        
+        wallet, created = ClientWallet.objects.get_or_create(client=user)
+        wallet.refresh_from_db()
+        
+        has_balance = wallet.has_sufficient_balance(freight_amount)
+        
+        return Response({
+            "success": True,
+            "has_balance": has_balance,
+            "current_balance": float(wallet.balance),
+            "required_amount": freight_amount,
+            "shortfall": max(0, freight_amount - float(wallet.balance)) if not has_balance else 0,
+            "message": "Sufficient balance" if has_balance else f"Insufficient balance. Need ₹{freight_amount - float(wallet.balance)} more."
+        }, status=200)
+        
+    except Exception as e:
+        logger.error(f"Error checking balance: {str(e)}")
+        return Response({
+            "success": False,
+            "error": str(e)
+        }, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_recharge_manual(request):
+    """Admin adds recharge manually (for cash/cheque payments)"""
+    try:
+        user = request.user
+        
+        # Check if user is admin
+        if user.role != 'Admin':
+            return Response({
+                "success": False,
+                "error": "Only admin can add manual recharge"
+            }, status=403)
+        
+        client_id = request.data.get('client_id')
+        amount = request.data.get('amount')
+        payment_method = request.data.get('payment_method', 'CASH')
+        remarks = request.data.get('remarks', '')
+        
+        if not client_id or not amount:
+            return Response({
+                "success": False,
+                "error": "Client ID and amount required"
+            }, status=400)
+        
+        # Find client
+        try:
+            client = CustomUser.objects.get(client_id__iexact=client_id, role='Client')
+        except CustomUser.DoesNotExist:
+            return Response({
+                "success": False,
+                "error": f"Client '{client_id}' not found"
+            }, status=404)
+        
+        # Create transaction
+        transaction_id = f"ADMIN_{client.client_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        recharge = RechargeHistory.objects.create(
+            client=client,
+            amount=amount,
+            payment_method=payment_method,
+            transaction_id=transaction_id,
+            status='COMPLETED',
+            remarks=f"Admin added: {remarks}",
+            created_by=user,
+            approved_by=user,
+            completed_at=timezone.now()
+        )
+        
+        # Add balance to wallet
+        wallet, created = ClientWallet.objects.get_or_create(client=client)
+        wallet.add_balance(float(amount), recharge.id)
+        wallet.refresh_from_db()
+        
+        return Response({
+            "success": True,
+            "message": f"₹{amount} added to {client.client_id} wallet",
+            "transaction_id": transaction_id,
+            "new_balance": float(wallet.balance)
+        }, status=200)
+        
+    except Exception as e:
+        logger.error(f"Error adding manual recharge: {str(e)}")
+        return Response({
+            "success": False,
+            "error": str(e)
+        }, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def approve_recharge(request, recharge_id):
+    """Admin approve a pending recharge"""
+    try:
+        user = request.user
+        
+        # Check if admin
+        if user.role != 'Admin':
+            return Response({
+                "success": False,
+                "error": "Admin access required"
+            }, status=403)
+        
+        recharge = RechargeHistory.objects.get(id=recharge_id)
+        
+        if recharge.status != 'PENDING':
+            return Response({
+                "success": False,
+                "error": f"Recharge is already {recharge.status}"
+            }, status=400)
+        
+        # Complete the recharge
+        recharge.status = 'COMPLETED'
+        recharge.completed_at = timezone.now()
+        recharge.approved_by = user
+        recharge.save()
+        
+        # Add balance to wallet
+        wallet, created = ClientWallet.objects.get_or_create(client=recharge.client)
+        wallet.add_balance(recharge.amount, recharge.id)
+        wallet.refresh_from_db()
+        
+        return Response({
+            "success": True,
+            "message": f"Recharge of ₹{recharge.amount} approved for {recharge.client.client_id}",
+            "new_balance": float(wallet.balance)
+        }, status=200)
+        
+    except RechargeHistory.DoesNotExist:
+        return Response({
+            "success": False,
+            "error": "Recharge not found"
+        }, status=404)
+    except Exception as e:
+        logger.error(f"Error approving recharge: {str(e)}")
         return Response({
             "success": False,
             "error": str(e)
