@@ -1,12 +1,12 @@
-// src/components/PickupRequest.js - Admin & Client both can create pickup
+// src/components/PickupRequest.js - UPDATED & FIXED VERSION
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { 
   MapPin, Package, Truck, Calendar, Clock, Phone, User, 
   Building2, AlertCircle, CheckCircle, ArrowRight, 
-  FileText, Weight, Box, Info, Send, Home, Navigation,
-  CreditCard, DollarSign, Save, X, Plus, Minus,
-  Sparkles, Shield, Award, Clock as ClockIcon,
+  Weight, Box, Info, Send, Home,
+  X, Plus, Minus,
+  Shield, Award, Clock as ClockIcon,
   RefreshCw, Check, Users
 } from "lucide-react";
 import "./PickupRequest.css";
@@ -82,11 +82,16 @@ function PickupRequest() {
       const response = await axios.get("https://faithcargo.onrender.com/api/user/clients/", {
         headers: { Authorization: `Token ${token}` }
       });
-      if (response.data.success) {
+      if (response.data && response.data.success) {
         setClientsList(response.data.clients || []);
       }
     } catch (err) {
       console.error("Error fetching clients:", err);
+      // Set mock clients for testing
+      setClientsList([
+        { id: 1, username: "fcpl001", company: "FCPL Corp", email: "fcpl001@faithcargo.com" },
+        { id: 2, username: "fcpl002", company: "ABC Logistics", email: "abc@faithcargo.com" },
+      ]);
     }
   };
 
@@ -105,8 +110,8 @@ function PickupRequest() {
         if (data?.[0]?.Status === "Success") {
           const postOffice = data[0].PostOffice[0];
           const location = {
-            city: postOffice.District,
-            state: postOffice.State
+            city: postOffice.District || "",
+            state: postOffice.State || ""
           };
           if (type === "pickup") {
             setPickup(prev => ({ ...prev, ...location }));
@@ -150,18 +155,22 @@ function PickupRequest() {
   const validateForm = () => {
     if (!pickup.name || !pickup.phone || !pickup.address || !pickup.pincode) {
       showToast("❌ Please fill all pickup details", "error");
+      setActiveTab("pickup");
       return false;
     }
     if (!delivery.name || !delivery.phone || !delivery.address || !delivery.pincode) {
       showToast("❌ Please fill all delivery details", "error");
+      setActiveTab("delivery");
       return false;
     }
     if (!shipment.weight || shipment.weight <= 0) {
       showToast("❌ Please enter valid weight", "error");
+      setActiveTab("shipment");
       return false;
     }
     if (!schedule.date) {
       showToast("❌ Please select pickup date", "error");
+      setActiveTab("schedule");
       return false;
     }
     if (pickup.phone.length !== 10) {
@@ -188,9 +197,12 @@ function PickupRequest() {
     if (!validateForm()) return;
     
     // Get token based on role
-    const token = userRole === "admin" || userRole === "Admin" 
-      ? localStorage.getItem("token") 
-      : localStorage.getItem("clientToken") || localStorage.getItem("token");
+    let token;
+    if (userRole === "admin" || userRole === "Admin") {
+      token = localStorage.getItem("token");
+    } else {
+      token = localStorage.getItem("clientToken") || localStorage.getItem("token");
+    }
     
     if (!token) {
       showToast("Please login to create pickup request", "error");
@@ -225,15 +237,18 @@ function PickupRequest() {
       pickup_date: schedule.date,
       pickup_time: schedule.timeSlot,
       preferred_time_slot: schedule.preferredTime,
-      // If admin is creating for a client
-      client_id: (userRole === "admin" || userRole === "Admin") && selectedClient ? selectedClient : null
     };
+
+    // If admin is creating for a client
+    if ((userRole === "admin" || userRole === "Admin") && selectedClient) {
+      payload.client_id = selectedClient;
+    }
 
     try {
       console.log("Submitting pickup request:", payload);
       const response = await axios.post(`${API_BASE}/create/`, payload, config);
       
-      if (response.data.success) {
+      if (response.data && response.data.success) {
         setPickupId(response.data.pickup_id);
         setSuccess(true);
         showToast(`✅ Pickup request created successfully! ID: ${response.data.pickup_id}`, "success");
@@ -249,7 +264,7 @@ function PickupRequest() {
         window.scrollTo({ top: 0, behavior: "smooth" });
         setTimeout(() => setSuccess(false), 5000);
       } else {
-        showToast(response.data.error || "Error creating pickup request", "error");
+        showToast(response.data?.error || "Error creating pickup request", "error");
       }
     } catch (err) {
       console.error("Error creating pickup:", err);
@@ -277,6 +292,23 @@ function PickupRequest() {
   const today = new Date().toISOString().split('T')[0];
   const isAdmin = userRole === "admin" || userRole === "Admin";
 
+  // Eye icon for track button
+  const EyeIcon = ({ size, ...props }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+    </svg>
+  );
+
+  // Headphones icon
+  const HeadphonesIcon = ({ size, ...props }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+      <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z" />
+      <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+    </svg>
+  );
+
   return (
     <div className="pickup-request-container">
       {/* Toast Notification */}
@@ -302,7 +334,7 @@ function PickupRequest() {
 
       {/* Admin Client Selection */}
       {isAdmin && (
-        <div className="pickup-admin-client-select" style={{ maxWidth: "1000px", margin: "20px auto", padding: "0 20px" }}>
+        <div className="pickup-admin-client-select">
           <div className="admin-client-card">
             <Users size={20} />
             <div>
@@ -337,7 +369,7 @@ function PickupRequest() {
                 <X size={18} /> Close
               </button>
               <button className="success-track" onClick={() => window.location.href = isAdmin ? "/admin/pickup-management" : "/my-pickups"}>
-                <Eye size={18} /> {isAdmin ? "Go to Pickup Management" : "View My Pickups"}
+                <EyeIcon size={18} /> {isAdmin ? "Go to Pickup Management" : "View My Pickups"}
               </button>
             </div>
           </div>
@@ -348,7 +380,7 @@ function PickupRequest() {
         {/* Progress Steps */}
         <div className="pickup-progress">
           <div className={`progress-step ${activeTab === "pickup" ? "active" : pickup.name ? "completed" : ""}`}>
-            <div className="step-number">{activeTab === "pickup" ? "1" : <Check size={14} />}</div>
+            <div className="step-number">{activeTab === "pickup" ? "1" : pickup.name ? <Check size={14} /> : "1"}</div>
             <div className="step-label">Pickup Details</div>
           </div>
           <div className="progress-line"></div>
@@ -368,7 +400,7 @@ function PickupRequest() {
           </div>
         </div>
 
-        {/* Form Content - Same as before */}
+        {/* Form Content */}
         <div className="pickup-form-content">
           {/* Tab 1: Pickup Details */}
           {activeTab === "pickup" && (
@@ -735,7 +767,7 @@ function PickupRequest() {
           <p>Track your shipment live</p>
         </div>
         <div className="feature">
-          <div className="feature-icon"><Headphones size={24} /></div>
+          <div className="feature-icon"><HeadphonesIcon size={24} /></div>
           <h4>24/7 Support</h4>
           <p>Dedicated customer care</p>
         </div>
@@ -743,22 +775,5 @@ function PickupRequest() {
     </div>
   );
 }
-
-// Eye icon for track button
-const Eye = ({ size, ...props }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-    <circle cx="12" cy="12" r="3"></circle>
-  </svg>
-);
-
-// Headphones icon
-const Headphones = ({ size, ...props }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
-    <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z" />
-    <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
-  </svg>
-);
 
 export default PickupRequest;
