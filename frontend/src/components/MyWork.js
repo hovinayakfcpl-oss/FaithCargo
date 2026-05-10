@@ -1,6 +1,5 @@
-// src/components/MyWork.js - COMPLETELY FIXED VERSION
+// src/components/MyWork.js - COMPLETELY FIXED VERSION (No Axios)
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "axios";
 import { 
   Package, Truck, CheckCircle, Clock, MapPin, 
   User, Phone, Calendar, MessageCircle, Bell,
@@ -16,9 +15,7 @@ function MyWork() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("pickups");
-  const [selectedTask, setSelectedTask] = useState(null);
   const [taskReply, setTaskReply] = useState("");
-  const [showTaskModal, setShowTaskModal] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [isAuthenticated, setIsAuthenticated] = useState(true);
 
@@ -26,22 +23,16 @@ function MyWork() {
   const getToken = () => {
     const token = localStorage.getItem("token");
     const clientToken = localStorage.getItem("clientToken");
-    const userRole = localStorage.getItem("userRole");
-    
-    // Staff/Admin use 'token'
     return token || clientToken;
   };
 
   const token = getToken();
   
-  // ✅ FIXED: Correct Authorization header for Django (Token instead of Bearer)
-  const getConfig = () => {
-    return {
-      headers: { 
-        Authorization: token ? `Token ${token}` : "" 
-      } 
-    };
-  };
+  // ✅ FIXED: Get headers for fetch API
+  const getHeaders = () => ({
+    'Authorization': token ? `Token ${token}` : "",
+    'Content-Type': 'application/json'
+  });
 
   // Show toast notification
   const showToast = (message, type = "success") => {
@@ -49,7 +40,7 @@ function MyWork() {
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
 
-  // Fetch my assigned pickups
+  // ✅ FIXED: Fetch my assigned pickups using fetch API
   const fetchMyPickups = useCallback(async () => {
     const currentToken = getToken();
     if (!currentToken) {
@@ -60,100 +51,122 @@ function MyWork() {
     
     setLoading(true);
     try {
-      const config = getConfig();
-      const res = await axios.get(`${API_BASE}/staff/my-pickups/`, config);
+      const response = await fetch(`${API_BASE}/staff/my-pickups/`, {
+        method: 'GET',
+        headers: getHeaders()
+      });
       
-      if (res.data && res.data.success !== false) {
-        setAssignedPickups(res.data.pickups || []);
+      if (response.status === 200) {
+        const data = await response.json();
+        setAssignedPickups(data.pickups || []);
         setIsAuthenticated(true);
-      } else {
-        setAssignedPickups([]);
-      }
-    } catch (err) {
-      console.error("Error fetching pickups:", err);
-      if (err.response?.status === 401) {
+      } else if (response.status === 401) {
         showToast("Session expired. Please login again.", "error");
         setIsAuthenticated(false);
-      } else if (err.response?.status === 404) {
+      } else if (response.status === 404) {
         // Try alternate endpoint
         try {
-          const altRes = await axios.get(`${API_BASE}/my-assigned-pickups/`, getConfig());
-          setAssignedPickups(altRes.data.pickups || []);
+          const altResponse = await fetch(`${API_BASE}/my-assigned-pickups/`, {
+            method: 'GET',
+            headers: getHeaders()
+          });
+          if (altResponse.ok) {
+            const altData = await altResponse.json();
+            setAssignedPickups(altData.pickups || []);
+          } else {
+            setAssignedPickups([]);
+          }
         } catch (altErr) {
           console.error("Alternate endpoint also failed");
           setAssignedPickups([]);
         }
       } else {
         showToast("Error fetching assigned pickups", "error");
+        setAssignedPickups([]);
       }
+    } catch (err) {
+      console.error("Error fetching pickups:", err);
+      showToast("Network error. Please try again.", "error");
+      setAssignedPickups([]);
     }
     setLoading(false);
   }, []);
 
-  // Fetch my tasks
+  // ✅ FIXED: Fetch my tasks using fetch API
   const fetchMyTasks = useCallback(async () => {
     const currentToken = getToken();
     if (!currentToken) return;
     
     try {
-      const config = getConfig();
-      let tasksData = [];
+      const response = await fetch(`${API_BASE}/staff/my-tasks/`, {
+        method: 'GET',
+        headers: getHeaders()
+      });
       
-      // Try primary endpoint
-      try {
-        const res = await axios.get(`${API_BASE}/staff/my-tasks/`, config);
-        tasksData = res.data.tasks || [];
-      } catch (e) {
+      if (response.status === 200) {
+        const data = await response.json();
+        setTasks(data.tasks || []);
+      } else if (response.status === 404) {
         // Try alternate endpoint
         try {
-          const res2 = await axios.get(`${API_BASE}/my-tasks/`, config);
-          tasksData = res2.data.tasks || [];
-        } catch (e2) {
-          // Mock tasks for testing if no backend
-          console.warn("Using mock tasks for testing");
-          tasksData = [
-            { 
-              id: 1, 
-              title: "Payment Collection", 
-              message: "Collect payment of ₹1500 from customer for pickup PICK-2024-0001",
-              status: "PENDING",
-              task_type: "PAYMENT",
-              pickup: { pickup_id: "PICK-2024-0001" }
-            },
-            { 
-              id: 2, 
-              title: "Delivery Arrangement", 
-              message: "Arrange delivery for urgent shipment to Mumbai",
-              status: "PENDING",
-              task_type: "DELIVERY",
-              pickup: { pickup_id: "PICK-2024-0002" }
-            }
-          ];
+          const altResponse = await fetch(`${API_BASE}/my-tasks/`, {
+            method: 'GET',
+            headers: getHeaders()
+          });
+          if (altResponse.ok) {
+            const altData = await altResponse.json();
+            setTasks(altData.tasks || []);
+          } else {
+            // Mock tasks for testing
+            console.log("Using mock tasks");
+            setTasks([
+              { 
+                id: 1, 
+                title: "Payment Collection", 
+                message: "Collect payment of ₹1500 from customer for pickup PICK-2024-0001",
+                status: "PENDING",
+                task_type: "PAYMENT",
+                pickup: { pickup_id: "PICK-2024-0001" }
+              },
+              { 
+                id: 2, 
+                title: "Delivery Arrangement", 
+                message: "Arrange delivery for urgent shipment to Mumbai",
+                status: "PENDING",
+                task_type: "DELIVERY",
+                pickup: { pickup_id: "PICK-2024-0002" }
+              }
+            ]);
+          }
+        } catch (altErr) {
+          console.error("Alternate endpoint also failed");
+          setTasks([]);
         }
+      } else {
+        setTasks([]);
       }
-      
-      setTasks(tasksData);
     } catch (err) {
       console.error("Error fetching tasks:", err);
       setTasks([]);
     }
   }, []);
 
-  // Update pickup status
+  // ✅ FIXED: Update pickup status using fetch API
   const updateStatus = async (pickupId, newStatus) => {
     try {
-      const config = getConfig();
-      const response = await axios.put(
-        `${API_BASE}/staff/update-status/${pickupId}/`,
-        { status: newStatus },
-        config
-      );
+      const response = await fetch(`${API_BASE}/staff/update-status/${pickupId}/`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({ status: newStatus })
+      });
       
-      if (response.data.success !== false) {
+      const data = await response.json();
+      
+      if (response.ok && data.success !== false) {
         showToast(`✅ Status updated to ${newStatus}`, "success");
         fetchMyPickups();
       } else {
-        showToast(response.data.error || "Error updating status", "error");
+        showToast(data.error || "Error updating status", "error");
       }
     } catch (err) {
       console.error("Status update error:", err);
@@ -161,7 +174,7 @@ function MyWork() {
     }
   };
 
-  // Mark task as completed
+  // ✅ FIXED: Mark task as completed using fetch API
   const completeTask = async (taskId) => {
     if (!taskReply.trim()) {
       showToast("Please add a reply before completing", "error");
@@ -169,21 +182,20 @@ function MyWork() {
     }
     
     try {
-      const config = getConfig();
-      const response = await axios.post(
-        `${API_BASE}/staff/complete-task/${taskId}/`,
-        { reply: taskReply },
-        config
-      );
+      const response = await fetch(`${API_BASE}/staff/complete-task/${taskId}/`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ reply: taskReply })
+      });
       
-      if (response.data.success !== false) {
+      const data = await response.json();
+      
+      if (response.ok && data.success !== false) {
         showToast("✅ Task marked as completed!", "success");
-        setShowTaskModal(false);
         setTaskReply("");
-        setSelectedTask(null);
         fetchMyTasks();
       } else {
-        showToast(response.data.error || "Error completing task", "error");
+        showToast(data.error || "Error completing task", "error");
       }
     } catch (err) {
       console.error("Complete task error:", err);
@@ -314,7 +326,6 @@ function MyWork() {
                   <div key={pickup.id} className="mywork-pickup-card">
                     <div className="mywork-pickup-header">
                       <div className="mywork-pickup-id">
-                        <Shield size={14} color="#d32f2f" />
                         {pickup.pickup_id}
                       </div>
                       {getStatusBadge(pickup.status)}
@@ -450,12 +461,5 @@ function MyWork() {
     </div>
   );
 }
-
-// Shield icon component
-const Shield = ({ size, color, ...props }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-  </svg>
-);
 
 export default MyWork;

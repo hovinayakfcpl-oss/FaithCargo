@@ -1,3 +1,4 @@
+// src/components/ProtectedRoute.js - COMPLETELY FIXED WORKING VERSION
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
@@ -27,16 +28,14 @@ function ProtectedRoute({ children, requiredModule, allowedRoles = [] }) {
   const hasClientToken = clientToken && clientToken !== "undefined" && clientToken !== "null" && clientToken !== "";
   const isAuthenticated = hasToken || hasClientToken;
   
-  // 🔥 DEBUG LOGS
-  console.log("=== PROTECTED ROUTE DEBUG ===");
-  console.log("Path:", location.pathname);
-  console.log("hasToken:", hasToken);
-  console.log("hasClientToken:", hasClientToken);
-  console.log("isAuthenticated:", isAuthenticated);
-  console.log("userRole:", userRole);
-  console.log("loginType:", loginType);
-  console.log("allowedRoles:", allowedRoles);
-  console.log("requiredModule:", requiredModule);
+  // 🔥 DEBUG LOGS (remove in production)
+  if (process.env.NODE_ENV !== 'production') {
+    console.log("=== PROTECTED ROUTE DEBUG ===");
+    console.log("Path:", location.pathname);
+    console.log("isAuthenticated:", isAuthenticated);
+    console.log("userRole:", userRole);
+    console.log("loginType:", loginType);
+  }
   
   // Not authenticated - redirect to login
   if (!isAuthenticated) {
@@ -167,7 +166,6 @@ function ProtectedRoute({ children, requiredModule, allowedRoles = [] }) {
   ];
   
   if (moduleBasedRoutes.some(route => pathname === route)) {
-    // Staff and Admin can access these
     if (!isStaff && !isAdmin) {
       console.log(`❌ Module route access denied: ${pathname}`);
       if (isClient) return <Navigate to="/client-dashboard" replace />;
@@ -184,7 +182,7 @@ function ProtectedRoute({ children, requiredModule, allowedRoles = [] }) {
   // 🔥 PICKUP REQUEST - Accessible by Client and Admin
   if (pathname === "/pickup-request") {
     if (isClient || isAdmin) {
-      console.log(`✅ Pickup request access granted for ${isClient ? "Client" : "Admin"}`);
+      console.log(`✅ Pickup request access granted`);
       return children;
     }
     console.log(`❌ Pickup request access denied`);
@@ -204,10 +202,10 @@ function ProtectedRoute({ children, requiredModule, allowedRoles = [] }) {
     return <Navigate to="/" replace />;
   }
 
-  // 🔥 MY WORK - Accessible by Staff only
+  // 🔥 MY WORK - Accessible by Staff and Admin
   if (pathname === "/my-work" || pathname === "/staff/my-work") {
     if (isStaff || isAdmin) {
-      console.log(`✅ My work access granted for ${isStaff ? "Staff" : "Admin"}`);
+      console.log(`✅ My work access granted`);
       return children;
     }
     console.log(`❌ My work access denied`);

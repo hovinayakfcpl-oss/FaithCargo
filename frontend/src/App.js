@@ -1,7 +1,8 @@
+// src/App.js - COMPLETELY FIXED WORKING VERSION
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
-// 🔹 Core Components
+// Core Components
 import Login from "./components/Login";
 import UserLogin from "./components/UserLogin";
 import AdminDashboard from "./components/AdminDashboard";
@@ -9,7 +10,7 @@ import UserDashboard from "./components/UserDashboard";
 import ClientDashboard from "./components/ClientDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-// 🔹 Feature Modules
+// Feature Modules
 import FcplRateCalculator from "./components/FcplRateCalculator";
 import BaB2bRateCalculator from "./components/BaB2bRateCalculator";
 import VendorManage from "./components/VendorManage";
@@ -17,31 +18,23 @@ import VendorRates from "./components/VendorRates";
 import RateUpdate from "./components/RateUpdate";
 import PincodeManagement from "./components/PincodeManagement";
 
-// ✅ ORDER MODULES
+// Order Modules
 import CreateOrder from "./components/CreateOrder";
 import ShipmentDetails from "./components/ShipmentDetails";
 import UserManagement from "./components/UserManagement";
 
-// 🔥 PICKUP MANAGEMENT MODULES (UPDATED)
-import PickupRequest from "./components/PickupRequest";      // Client + Admin both can create
-import MyPickups from "./components/MyPickups";              // Client: View my pickups
-import PickupManagement from "./components/PickupManagement"; // Admin: Manage all pickups (Assign inside)
-import MyWork from "./components/MyWork";                    // Staff: Assigned pickups & tasks
+// Pickup Management Modules
+import PickupRequest from "./components/PickupRequest";
+import MyPickups from "./components/MyPickups";
+import PickupManagement from "./components/PickupManagement";
+import MyWork from "./components/MyWork";
 
-// 🔹 Auth Helpers
+// Auth Helpers
 import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
 import Signup from "./components/Signup";
 
-// 🔹 Eye Icon Component
-const Eye = ({ size, ...props }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-    <circle cx="12" cy="12" r="3"></circle>
-  </svg>
-);
-
-// 🔹 404 Page Component
+// 404 Page Component
 const NotFoundPage = () => {
   useEffect(() => {
     document.title = "404 - Page Not Found | Faith Cargo";
@@ -89,11 +82,8 @@ const NotFoundPage = () => {
               border: "none",
               borderRadius: "12px",
               fontWeight: "600",
-              cursor: "pointer",
-              transition: "all 0.3s ease"
+              cursor: "pointer"
             }}
-            onMouseEnter={(e) => e.target.style.transform = "translateY(-2px)"}
-            onMouseLeave={(e) => e.target.style.transform = "translateY(0)"}
           >
             Go to Login
           </button>
@@ -106,11 +96,8 @@ const NotFoundPage = () => {
               border: "1px solid #e2e8f0",
               borderRadius: "12px",
               fontWeight: "600",
-              cursor: "pointer",
-              transition: "all 0.3s ease"
+              cursor: "pointer"
             }}
-            onMouseEnter={(e) => e.target.style.background = "#e2e8f0"}
-            onMouseLeave={(e) => e.target.style.background = "#f1f5f9"}
           >
             Go Back
           </button>
@@ -124,7 +111,6 @@ function App() {
   const [userModules, setUserModules] = useState({});
   const [userRole, setUserRole] = useState(null);
   const [loginType, setLoginType] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -140,11 +126,6 @@ function App() {
     console.log("👤 User Role:", role);
     console.log("🔑 Login Type:", type);
     
-    // Check if authenticated via staff token or client token
-    const hasToken = (token && token !== "undefined" && token !== "null" && token !== "") || 
-                     (clientToken && clientToken !== "undefined" && clientToken !== "null" && clientToken !== "");
-    
-    setIsAuthenticated(hasToken);
     setUserRole(role);
     setLoginType(type);
     
@@ -163,37 +144,37 @@ function App() {
 
   // Route configuration with permissions (For Staff/Admin)
   const routeConfig = [
-    { path: "/fcpl-rate", component: FcplRateCalculator, module: "fcpl_rate", title: "FCPL Rate Calculator", icon: "📊" },
-    { path: "/ba-b2b-rate", component: BaB2bRateCalculator, module: "ba_b2b", title: "BA & B2B Rate Calculator", icon: "📈" },
-    { path: "/ba-b2b-rate-calculator", component: BaB2bRateCalculator, module: "ba_b2b", title: "BA & B2B Rate Calculator", icon: "📈" },
-    { path: "/vendor-manage", component: VendorManage, module: "vendor_manage", title: "Vendor Management", icon: "🏢" },
-    { path: "/vendor-rate", component: VendorRates, module: "vendor_rates", title: "Vendor Rates", icon: "💰" },
-    { path: "/rate-update", component: RateUpdate, module: "rate_update", title: "Rate Update", icon: "📝" },
-    { path: "/pincode", component: PincodeManagement, module: "pincode", title: "Pincode Management", icon: "📍" },
-    { path: "/user-management", component: UserManagement, module: "user_management", title: "User Management", icon: "👥" },
-    { path: "/create-order", component: CreateOrder, module: "create_order", title: "Create Order", icon: "📝" },
-    { path: "/shipment-details", component: ShipmentDetails, module: "shipment_details", title: "Shipment Details", icon: "📦" },
+    { path: "/fcpl-rate", component: FcplRateCalculator, module: "fcpl_rate" },
+    { path: "/ba-b2b-rate", component: BaB2bRateCalculator, module: "ba_b2b" },
+    { path: "/ba-b2b-rate-calculator", component: BaB2bRateCalculator, module: "ba_b2b" },
+    { path: "/vendor-manage", component: VendorManage, module: "vendor_manage" },
+    { path: "/vendor-rate", component: VendorRates, module: "vendor_rates" },
+    { path: "/rate-update", component: RateUpdate, module: "rate_update" },
+    { path: "/pincode", component: PincodeManagement, module: "pincode" },
+    { path: "/user-management", component: UserManagement, module: "user_management" },
+    { path: "/create-order", component: CreateOrder, module: "create_order" },
+    { path: "/shipment-details", component: ShipmentDetails, module: "shipment_details" },
   ];
 
-  // 🔥 CLIENT SPECIFIC ROUTES (No module permission check needed)
+  // Client Specific Routes
   const clientRoutes = [
-    { path: "/client-dashboard", component: ClientDashboard, title: "Client Dashboard", icon: "🏠" },
-    { path: "/tracking", component: ShipmentDetails, title: "Track Shipment", icon: "🔍" },
-    { path: "/pickup-request", component: PickupRequest, title: "Schedule Pickup", icon: "🚚" },
-    { path: "/my-pickups", component: MyPickups, title: "My Pickups", icon: "📦" },
+    { path: "/client-dashboard", component: ClientDashboard },
+    { path: "/tracking", component: ShipmentDetails },
+    { path: "/pickup-request", component: PickupRequest },
+    { path: "/my-pickups", component: MyPickups },
   ];
 
-  // 🔥 ADMIN SPECIFIC ROUTES
+  // Admin Specific Routes
   const adminRoutes = [
-    { path: "/admin/pickup-management", component: PickupManagement, title: "Pickup Management", icon: "📋" },
-    { path: "/pickup-management", component: PickupManagement, title: "Pickup Management", icon: "📋" }, // Alias
-    { path: "/admin/pickup-request", component: PickupRequest, title: "Create Pickup (Admin)", icon: "🚚" }, // Admin can also create
+    { path: "/admin/pickup-management", component: PickupManagement },
+    { path: "/pickup-management", component: PickupManagement },
+    { path: "/admin/pickup-request", component: PickupRequest },
   ];
 
-  // 🔥 STAFF SPECIFIC ROUTES
+  // Staff Specific Routes
   const staffRoutes = [
-    { path: "/my-work", component: MyWork, title: "My Work", icon: "💼" },
-    { path: "/staff/my-work", component: MyWork, title: "My Work", icon: "💼" }, // Alias
+    { path: "/my-work", component: MyWork },
+    { path: "/staff/my-work", component: MyWork },
   ];
 
   if (loading) {
@@ -205,9 +186,7 @@ function App() {
         minHeight: "100vh",
         background: "linear-gradient(135deg, #f5f7fa 0%, #eef2f7 100%)"
       }}>
-        <div style={{
-          textAlign: "center"
-        }}>
+        <div style={{ textAlign: "center" }}>
           <div style={{
             width: "50px",
             height: "50px",
@@ -232,166 +211,92 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* ============================================
-            🔹 PUBLIC ROUTES - No authentication required
-            ============================================ */}
+        {/* Public Routes - No authentication required */}
         <Route path="/" element={<Login />} />
         <Route path="/user-login" element={<UserLogin />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
 
-        {/* ============================================
-            🔥 ADMIN DASHBOARD - Full Access
-            ============================================ */}
-        <Route
-          path="/admin-dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["admin", "Admin"]}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
+        {/* Admin Dashboard */}
+        <Route path="/admin-dashboard" element={
+          <ProtectedRoute allowedRoles={["admin", "Admin"]}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
 
-        {/* ============================================
-            🔹 USER DASHBOARD (Staff)
-            ============================================ */}
-        <Route
-          path="/user-dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["user", "User", "staff", "Staff"]}>
-              <UserDashboard />
-            </ProtectedRoute>
-          }
-        />
+        {/* User Dashboard (Staff) */}
+        <Route path="/user-dashboard" element={
+          <ProtectedRoute allowedRoles={["user", "User", "staff", "Staff"]}>
+            <UserDashboard />
+          </ProtectedRoute>
+        } />
 
-        {/* ============================================
-            🔥 CLIENT DASHBOARD
-            ============================================ */}
-        <Route
-          path="/client-dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["client", "Client"]}>
-              <ClientDashboard />
-            </ProtectedRoute>
-          }
-        />
+        {/* Client Dashboard */}
+        <Route path="/client-dashboard" element={
+          <ProtectedRoute allowedRoles={["client", "Client"]}>
+            <ClientDashboard />
+          </ProtectedRoute>
+        } />
 
-        {/* ============================================
-            🔹 MODULE-BASED PROTECTED ROUTES (Staff/Admin)
-            ============================================ */}
+        {/* Module-Based Protected Routes (Staff/Admin) */}
         {routeConfig.map((route) => (
-          <Route
-            key={route.path}
-            path={route.path}
-            element={
-              <ProtectedRoute requiredModule={route.module} allowedRoles={["admin", "Admin", "user", "User", "staff", "Staff"]}>
-                {React.createElement(route.component)}
-              </ProtectedRoute>
-            }
-          />
-        ))}
-
-        {/* ============================================
-            🔥 CLIENT SPECIFIC ROUTES
-            ============================================ */}
-        {clientRoutes.map((route) => (
-          <Route
-            key={route.path}
-            path={route.path}
-            element={
-              <ProtectedRoute allowedRoles={["client", "Client"]}>
-                {React.createElement(route.component)}
-              </ProtectedRoute>
-            }
-          />
-        ))}
-
-        {/* ============================================
-            🔥 ADMIN SPECIFIC ROUTES
-            ============================================ */}
-        {adminRoutes.map((route) => (
-          <Route
-            key={route.path}
-            path={route.path}
-            element={
-              <ProtectedRoute allowedRoles={["admin", "Admin"]}>
-                {React.createElement(route.component)}
-              </ProtectedRoute>
-            }
-          />
-        ))}
-
-        {/* ============================================
-            🔥 STAFF SPECIFIC ROUTES
-            ============================================ */}
-        {staffRoutes.map((route) => (
-          <Route
-            key={route.path}
-            path={route.path}
-            element={
-              <ProtectedRoute allowedRoles={["user", "User", "staff", "Staff"]}>
-                {React.createElement(route.component)}
-              </ProtectedRoute>
-            }
-          />
-        ))}
-
-        {/* ============================================
-            🔹 CREATE ORDER - Direct route (Client/Staff/Admin)
-            ============================================ */}
-        <Route
-          path="/create-order"
-          element={
-            <ProtectedRoute>
-              <CreateOrder />
+          <Route key={route.path} path={route.path} element={
+            <ProtectedRoute requiredModule={route.module} allowedRoles={["admin", "Admin", "user", "User", "staff", "Staff"]}>
+              {React.createElement(route.component)}
             </ProtectedRoute>
-          }
-        />
+          } />
+        ))}
 
-        {/* ============================================
-            🔹 Redirect based on authentication and role
-            ============================================ */}
-        <Route
-          path="/dashboard"
-          element={
-            <Navigate 
-              to={loginType === "client" 
-                ? "/client-dashboard" 
-                : (userRole === "admin" || userRole === "Admin" 
-                    ? "/admin-dashboard" 
-                    : "/user-dashboard")} 
-              replace 
-            />
-          }
-        />
+        {/* Client Specific Routes */}
+        {clientRoutes.map((route) => (
+          <Route key={route.path} path={route.path} element={
+            <ProtectedRoute allowedRoles={["client", "Client"]}>
+              {React.createElement(route.component)}
+            </ProtectedRoute>
+          } />
+        ))}
 
-        {/* ============================================
-            🔹 Logout Route
-            ============================================ */}
-        <Route
-          path="/logout"
-          element={
-            <Navigate
-              to="/"
-              replace
-            />
-          }
-        />
+        {/* Admin Specific Routes */}
+        {adminRoutes.map((route) => (
+          <Route key={route.path} path={route.path} element={
+            <ProtectedRoute allowedRoles={["admin", "Admin"]}>
+              {React.createElement(route.component)}
+            </ProtectedRoute>
+          } />
+        ))}
 
-        {/* ============================================
-            🔹 Admin Pickup Assign Route (Legacy support)
-            ============================================ */}
-        <Route
-          path="/pickup"
-          element={
-            <Navigate to="/admin/pickup-management" replace />
-          }
-        />
+        {/* Staff Specific Routes */}
+        {staffRoutes.map((route) => (
+          <Route key={route.path} path={route.path} element={
+            <ProtectedRoute allowedRoles={["user", "User", "staff", "Staff"]}>
+              {React.createElement(route.component)}
+            </ProtectedRoute>
+          } />
+        ))}
 
-        {/* ============================================
-            🔥 DEFAULT FALLBACK - 404 Page
-            ============================================ */}
+        {/* Create Order - Accessible by all authenticated users */}
+        <Route path="/create-order" element={
+          <ProtectedRoute>
+            <CreateOrder />
+          </ProtectedRoute>
+        } />
+
+        {/* Redirect based on role */}
+        <Route path="/dashboard" element={
+          <Navigate to={
+            loginType === "client" ? "/client-dashboard" : 
+            (userRole === "admin" || userRole === "Admin") ? "/admin-dashboard" : "/user-dashboard"
+          } replace />
+        } />
+
+        {/* Logout Route */}
+        <Route path="/logout" element={<Navigate to="/" replace />} />
+
+        {/* Legacy Pickup Route Redirect */}
+        <Route path="/pickup" element={<Navigate to="/pickup-request" replace />} />
+
+        {/* 404 Fallback */}
         <Route path="/404" element={<NotFoundPage />} />
         <Route path="*" element={<Navigate to="/404" replace />} />
       </Routes>

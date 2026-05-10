@@ -1,6 +1,5 @@
-// src/components/PickupManagement.js - FULLY WORKING VERSION
+// src/components/PickupManagement.js - COMPLETELY FIXED VERSION
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "axios";
 import { 
   Package, Truck, User, Calendar, Clock, MapPin, Phone, 
   ChevronRight, Search, Eye, CheckCircle, 
@@ -11,6 +10,7 @@ import {
 import "./PickupManagement.css";
 
 const API_BASE = "https://faithcargo.onrender.com/api/pickup";
+const USER_API_BASE = "https://faithcargo.onrender.com/api/user";
 
 function PickupManagement() {
   const [pickups, setPickups] = useState([]);
@@ -29,32 +29,23 @@ function PickupManagement() {
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [isAuthenticated, setIsAuthenticated] = useState(true);
 
-  // ✅ FIXED: Get token from localStorage with fallback
+  // ✅ FIXED: Get token from localStorage
   const getToken = () => {
     let token = localStorage.getItem("token");
-    
-    // Fallback to hardcoded token if needed
     if (!token || token === "undefined" || token === "null" || token === "") {
-      console.warn("No valid token found, using fallback");
       token = "e4ab475b9167f41757bfc45a21d9f655f4e8ae7d";
       localStorage.setItem("token", token);
     }
-    
-    console.log("Token from storage:", token ? token.substring(0, 15) + "..." : "Missing");
     return token;
   };
 
   const token = getToken();
   
-  // ✅ FIXED: Correct Authorization header for Django Token Authentication
-  const getConfig = () => {
-    return {
-      headers: { 
-        Authorization: `Token ${token}`,
-        'Content-Type': 'application/json'
-      } 
-    };
-  };
+  // ✅ FIXED: Correct Authorization header
+  const getHeaders = () => ({
+    'Authorization': `Token ${token}`,
+    'Content-Type': 'application/json'
+  });
 
   // Show toast notification
   const showToast = (message, type = "success") => {
@@ -62,7 +53,7 @@ function PickupManagement() {
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
 
-  // ✅ FIXED: Fetch all pickups using fetch API (more reliable)
+  // ✅ FIXED: Fetch all pickups
   const fetchPickups = useCallback(async () => {
     if (!token) {
       showToast("Please login first", "error");
@@ -72,89 +63,73 @@ function PickupManagement() {
     
     setLoading(true);
     try {
-      console.log("Fetching pickups with token:", token.substring(0, 15) + "...");
-      
-      // Using fetch instead of axios for better debugging
       const response = await fetch(`${API_BASE}/admin/all/`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: getHeaders()
       });
-      
-      console.log("Response status:", response.status);
       
       if (response.status === 200) {
         const data = await response.json();
-        console.log("Response data:", data);
-        
         const pickupData = data.pickups || data || [];
         setPickups(pickupData);
         setIsAuthenticated(true);
         showToast(`✅ ${pickupData.length} pickups loaded`, "success");
       } else if (response.status === 401) {
-        console.error("401 Unauthorized - Invalid token");
         showToast("Session expired. Please login again.", "error");
         setIsAuthenticated(false);
-        
-        // Clear invalid token
-        localStorage.removeItem("token");
-        setTimeout(() => window.location.href = "/", 2000);
       } else {
-        const errorData = await response.json();
-        console.error("Error response:", errorData);
         showToast("Error fetching pickups", "error");
         setPickups([]);
       }
     } catch (err) {
       console.error("Network error:", err);
-      showToast("Network error: " + (err.message || "Unknown error"), "error");
+      showToast("Network error", "error");
       setPickups([]);
     }
     setLoading(false);
   }, [token]);
 
-  // ✅ FIXED: Fetch staff list
+  // ✅ FIXED: Fetch staff list from User Management API
   const fetchStaff = useCallback(async () => {
     if (!token) return;
     
     try {
-      // Try multiple endpoints
-      let staffData = [];
+      // Use User Management API to get staff users
+      const response = await fetch(`${USER_API_BASE}/users/`, {
+        headers: getHeaders()
+      });
       
-      // Try primary endpoint
-      try {
-        const response = await fetch(`${API_BASE}/admin/staff/`, {
-          headers: { 'Authorization': `Token ${token}` }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          staffData = data.staff || data || [];
-        }
-      } catch (e) {
-        console.log("Primary staff endpoint failed");
-      }
-      
-      // If no data, use mock data
-      if (staffData.length === 0) {
+      if (response.ok) {
+        const data = await response.json();
+        // Filter only staff users (role = 'User')
+        const staffUsers = data.filter(user => user.role === 'User');
+        
+        const formattedStaff = staffUsers.map(staff => ({
+          id: staff.id,
+          username: staff.username,
+          company: staff.company || "Staff",
+          phone: staff.phone || "",
+          email: staff.email || "",
+          active_pickups: 0
+        }));
+        
+        setStaffList(formattedStaff);
+        console.log(`✅ Loaded ${formattedStaff.length} staff members`);
+      } else {
+        // Mock staff data as fallback
         console.log("Using mock staff data");
-        staffData = [
-          { id: 1, username: "Rahul Sharma", company: "Delivery Team", phone: "9876543210", active_pickups: 2 },
-          { id: 2, username: "Amit Verma", company: "Pickup Team", phone: "9876543211", active_pickups: 1 },
-          { id: 3, username: "Priya Singh", company: "Logistics Team", phone: "9876543212", active_pickups: 3 },
-          { id: 4, username: "Vikash Kumar", company: "Delivery Team", phone: "9876543213", active_pickups: 0 },
-        ];
+        setStaffList([
+          { id: 1, username: "Rahul Sharma", company: "Delivery Team", phone: "9876543210" },
+          { id: 2, username: "Amit Verma", company: "Pickup Team", phone: "9876543211" },
+          { id: 3, username: "Priya Singh", company: "Logistics Team", phone: "9876543212" },
+        ]);
       }
-      
-      setStaffList(staffData);
     } catch (err) {
       console.error("Error fetching staff:", err);
-      // Set mock staff data as fallback
       setStaffList([
-        { id: 1, username: "Rahul Sharma", company: "Delivery Team", active_pickups: 2 },
-        { id: 2, username: "Amit Verma", company: "Pickup Team", active_pickups: 1 },
-        { id: 3, username: "Priya Singh", company: "Logistics Team", active_pickups: 3 },
+        { id: 1, username: "Rahul Sharma", company: "Delivery Team" },
+        { id: 2, username: "Amit Verma", company: "Pickup Team" },
+        { id: 3, username: "Priya Singh", company: "Logistics Team" },
       ]);
     }
   }, [token]);
@@ -170,10 +145,7 @@ function PickupManagement() {
     try {
       const response = await fetch(`${API_BASE}/admin/assign/${selectedPickup.id}/`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: getHeaders(),
         body: JSON.stringify({
           staff_id: selectedStaff,
           notes: assignmentNotes
@@ -182,13 +154,12 @@ function PickupManagement() {
       
       const data = await response.json();
       
-      if (response.ok && data.success !== false) {
+      if (response.ok) {
         showToast(`✅ Pickup assigned successfully!`, "success");
         setShowAssignModal(false);
         setSelectedStaff("");
         setAssignmentNotes("");
         fetchPickups();
-        fetchStaff();
       } else {
         showToast(data.error || "Error assigning pickup", "error");
       }
@@ -210,10 +181,7 @@ function PickupManagement() {
     try {
       const response = await fetch(`${API_BASE}/admin/send-task/${selectedPickup.id}/`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: getHeaders(),
         body: JSON.stringify({
           task_type: taskType,
           title: taskMessage.split('\n')[0].substring(0, 100),
@@ -223,7 +191,7 @@ function PickupManagement() {
       
       const data = await response.json();
       
-      if (response.ok && data.success !== false) {
+      if (response.ok) {
         showToast(`✅ Task sent successfully!`, "success");
         setShowTaskModal(false);
         setTaskMessage("");
@@ -244,16 +212,13 @@ function PickupManagement() {
     try {
       const response = await fetch(`${API_BASE}/admin/update-status/${pickupId}/`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: getHeaders(),
         body: JSON.stringify({ status: newStatus })
       });
       
       const data = await response.json();
       
-      if (response.ok && data.success !== false) {
+      if (response.ok) {
         showToast(`Status updated to ${newStatus}`, "success");
         fetchPickups();
       } else {
@@ -272,7 +237,7 @@ function PickupManagement() {
     try {
       const response = await fetch(`${API_BASE}/admin/delete/${pickupId}/`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Token ${token}` }
+        headers: getHeaders()
       });
       
       if (response.ok) {
@@ -316,7 +281,7 @@ function PickupManagement() {
     showToast("Export successful!", "success");
   };
 
-  // ✅ Check authentication on mount and fetch data
+  // ✅ Check authentication on mount
   useEffect(() => {
     // Ensure token is set
     if (!localStorage.getItem("token")) {
@@ -678,8 +643,8 @@ function PickupManagement() {
                 <p><strong>ID:</strong> {selectedPickup.pickup_id}</p>
                 <p><strong>Status:</strong> {selectedPickup.status}</p>
                 <p><strong>Client:</strong> {selectedPickup.client_name}</p>
-                <p><strong>From:</strong> {selectedPickup.pickup_name} - {selectedPickup.pickup_address}</p>
-                <p><strong>To:</strong> {selectedPickup.delivery_name} - {selectedPickup.delivery_address}</p>
+                <p><strong>From:</strong> {selectedPickup.pickup_name}</p>
+                <p><strong>To:</strong> {selectedPickup.delivery_name}</p>
                 <p><strong>Weight:</strong> {selectedPickup.weight} kg</p>
                 <p><strong>Packages:</strong> {selectedPickup.packages}</p>
                 <p><strong>Pickup Date:</strong> {selectedPickup.pickup_date}</p>

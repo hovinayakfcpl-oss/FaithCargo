@@ -1,6 +1,5 @@
-// src/components/MyPickups.js - COMPLETELY FIXED VERSION (NO DUPLICATE ERRORS)
+// src/components/MyPickups.js - COMPLETELY FIXED VERSION (No Axios)
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "axios";
 import { 
   Package, MapPin, Calendar, Clock, Truck, Eye, RefreshCw, 
   AlertCircle, CheckCircle, XCircle, User, Phone, Shield
@@ -12,7 +11,6 @@ const API_BASE = "https://faithcargo.onrender.com/api/pickup";
 function MyPickups() {
   const [pickups, setPickups] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedPickup, setSelectedPickup] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [isAuthenticated, setIsAuthenticated] = useState(true);
 
@@ -31,14 +29,11 @@ function MyPickups() {
 
   const token = getToken();
   
-  // Correct Authorization header for Django (Token instead of Bearer)
-  const getConfig = () => {
-    return {
-      headers: { 
-        Authorization: token ? `Token ${token}` : "" 
-      } 
-    };
-  };
+  // ✅ FIXED: Get headers for fetch API
+  const getHeaders = () => ({
+    'Authorization': token ? `Token ${token}` : "",
+    'Content-Type': 'application/json'
+  });
 
   // Show toast notification
   const showToast = (message, type = "success") => {
@@ -46,7 +41,7 @@ function MyPickups() {
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
 
-  // Fetch my pickups
+  // ✅ FIXED: Fetch my pickups using fetch API
   const fetchMyPickups = useCallback(async () => {
     const currentToken = getToken();
     if (!currentToken) {
@@ -57,53 +52,65 @@ function MyPickups() {
     
     setLoading(true);
     try {
-      const config = getConfig();
-      const res = await axios.get(`${API_BASE}/my-pickups/`, config);
+      const response = await fetch(`${API_BASE}/my-pickups/`, {
+        method: 'GET',
+        headers: getHeaders()
+      });
       
-      if (res.data && res.data.success !== false) {
-        setPickups(res.data.pickups || []);
+      if (response.status === 200) {
+        const data = await response.json();
+        setPickups(data.pickups || []);
         setIsAuthenticated(true);
-      } else {
-        setPickups([]);
-      }
-    } catch (err) {
-      console.error("Error fetching pickups:", err);
-      if (err.response?.status === 401) {
+      } else if (response.status === 401) {
         showToast("Session expired. Please login again.", "error");
         setIsAuthenticated(false);
-      } else if (err.response?.status === 404) {
+      } else if (response.status === 404) {
         // Try alternate endpoint
         try {
-          const altRes = await axios.get(`${API_BASE}/client/pickups/`, getConfig());
-          setPickups(altRes.data.pickups || []);
+          const altResponse = await fetch(`${API_BASE}/client/pickups/`, {
+            method: 'GET',
+            headers: getHeaders()
+          });
+          if (altResponse.ok) {
+            const altData = await altResponse.json();
+            setPickups(altData.pickups || []);
+          } else {
+            setPickups([]);
+          }
         } catch (altErr) {
           console.error("Alternate endpoint also failed");
           setPickups([]);
         }
       } else {
         showToast("Error fetching your pickups", "error");
+        setPickups([]);
       }
+    } catch (err) {
+      console.error("Error fetching pickups:", err);
+      showToast("Network error. Please try again.", "error");
+      setPickups([]);
     }
     setLoading(false);
   }, []);
 
-  // Cancel pickup request
+  // ✅ FIXED: Cancel pickup request using fetch API
   const cancelPickup = async (pickupId) => {
     if (!window.confirm("Are you sure you want to cancel this pickup request?")) return;
     
     try {
-      const config = getConfig();
-      const response = await axios.put(
-        `${API_BASE}/cancel/${pickupId}/`,
-        {},
-        config
-      );
+      const response = await fetch(`${API_BASE}/cancel/${pickupId}/`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({})
+      });
       
-      if (response.data.success !== false) {
+      const data = await response.json();
+      
+      if (response.ok && data.success !== false) {
         showToast("Pickup cancelled successfully", "success");
         fetchMyPickups();
       } else {
-        showToast(response.data.error || "Error cancelling pickup", "error");
+        showToast(data.error || "Error cancelling pickup", "error");
       }
     } catch (err) {
       console.error("Cancel error:", err);
