@@ -1,4 +1,4 @@
-// AdminDashboard.js - COMPLETELY FIXED WORKING VERSION
+// AdminDashboard.js - COMPLETELY FIXED PRODUCTION READY VERSION
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -7,7 +7,7 @@ import {
   X, TrendingUp, Clock, CheckCircle, AlertCircle,
   User, CreditCard, PlusCircle, Eye, BarChart3,
   Bell, Search, ChevronRight, Star, Shield,
-  Bot, Send, Volume2, VolumeX, Mic, Headphones,
+  Bot, Send, Volume2, VolumeX, Mic,
   Loader, Zap, Award, DollarSign, UserCog,
   UserCheck, Users as UsersIcon, Wallet,
   History, RefreshCw, Activity, ClipboardList,
@@ -19,6 +19,15 @@ import "../styles/theme.css";
 import logo from "../assets/logo.png";
 
 const API_BASE = "https://faithcargo.onrender.com/api";
+
+// Headphones SVG Component
+const HeadphonesIcon = ({ size, ...props }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+    <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z" />
+    <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+  </svg>
+);
 
 // WebSocket hook for real-time updates
 const useWebSocket = (onMessage) => {
@@ -104,7 +113,7 @@ const useKeyboardShortcuts = (shortcuts) => {
   }, [shortcuts]);
 };
 
-// Simplified Jervice AI component
+// Jervice AI Component
 const JerviceAI = ({ onRefreshData }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -194,7 +203,7 @@ const JerviceAI = ({ onRefreshData }) => {
             <span className="jervice-title">Jervice AI</span>
             <span className="jervice-status">Real-Time • Pickup Ready</span>
           </div>
-          <Headphones size={16} className="voice-badge" />
+          <HeadphonesIcon size={16} className="voice-badge" />
           <Sparkles size={14} className="ai-badge" />
         </button>
       ) : (
@@ -239,15 +248,6 @@ const JerviceAI = ({ onRefreshData }) => {
     </div>
   );
 };
-
-// Headphones component
-const Headphones = ({ size, ...props }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
-    <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z" />
-    <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
-  </svg>
-);
 
 // ============================================
 // 🚀 MAIN ADMIN DASHBOARD COMPONENT
